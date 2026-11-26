@@ -28,8 +28,10 @@ export class UIBatchSorter {
 
   private static readonly _entries = new Array<SortEntry>();
   private static readonly _grid: GridCell[][] = [];
-  // Interleaved (x, y) cell coords touched in the previous frame
-  private static readonly _dirtyCells = new Array<number>();
+  private static readonly _cellCounts = new Int32Array(UIBatchSorter._gridDim * UIBatchSorter._gridDim);
+  // Flat (x * _gridDim + y) cell indices touched in the previous frame
+  private static readonly _dirtyCells = new Int32Array(UIBatchSorter._gridDim * UIBatchSorter._gridDim);
+  private static _dirtyCellCount = 0;
   private static readonly _localBoundsPool = new Array<BoundingBox>();
   private static readonly _worldToLocal = new Matrix();
 
@@ -45,6 +47,7 @@ export class UIBatchSorter {
     const gridDim = this._gridDim;
     const entries = this._entries;
     const grid = this._grid;
+    const cellCounts = this._cellCounts;
     const dirtyCells = this._dirtyCells;
     const localBoundsPool = this._localBoundsPool;
     const worldToLocal = this._worldToLocal;
@@ -60,11 +63,11 @@ export class UIBatchSorter {
       }
     }
 
-    // Clear only previously-used cells (no full sweep)
-    for (let k = 0, n = dirtyCells.length; k < n; k += 2) {
-      grid[dirtyCells[k]][dirtyCells[k + 1]].length = 0;
+    // Reset only counts for previously-used cells so backing arrays stay warm without V8 EmptyFixedArray resets
+    for (let k = 0, n = this._dirtyCellCount; k < n; k++) {
+      cellCounts[dirtyCells[k]] = 0;
     }
-    dirtyCells.length = 0;
+    let dirtyCount = 0;
 
     // Pass 1: transform world bounds to canvas-local + accumulate the union AABB.
     // Transform is already required to do precise overlap, so the union accumulation
@@ -108,7 +111,8 @@ export class UIBatchSorter {
       for (let cellY = minCellY; cellY <= maxCellY; cellY++) {
         for (let cellX = minCellX; cellX <= maxCellX; cellX++) {
           const cell = grid[cellX][cellY];
-          for (let j = 0, m = cell.length; j < m; j++) {
+          const m = cellCounts[cellX * gridDim + cellY];
+          for (let j = 0; j < m; j++) {
             const other = cell[j];
             if (!UIBatchSorter._rectOverlap(localBounds, other.bounds)) continue;
             const otherDepth = other.depth;
@@ -135,14 +139,22 @@ export class UIBatchSorter {
       for (let cellY = minCellY; cellY <= maxCellY; cellY++) {
         for (let cellX = minCellX; cellX <= maxCellX; cellX++) {
           const cell = grid[cellX][cellY];
-          if (cell.length === 0) dirtyCells.push(cellX, cellY);
-          cell.push(entry);
+          const cellIdx = cellX * gridDim + cellY;
+          const len = cellCounts[cellIdx];
+          if (len === 0) dirtyCells[dirtyCount++] = cellIdx;
+          cell[len] = entry;
+          cellCounts[cellIdx] = len + 1;
         }
       }
     }
+    this._dirtyCellCount = dirtyCount;
 
     Utils._quickSort(entries, 0, count, UIBatchSorter._compareEntries);
-    for (let i = 0; i < count; i++) elements[i] = entries[i].element;
+    for (let i = 0; i < count; i++) {
+      const entry = entries[i];
+      elements[i] = entry.element;
+      entry.element = null!;
+    }
   }
 
   private static _rectOverlap(a: BoundingBox, b: BoundingBox): boolean {

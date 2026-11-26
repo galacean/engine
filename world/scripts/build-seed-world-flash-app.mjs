@@ -1,10 +1,12 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, extname, resolve, sep } from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { Script } from "node:vm";
 import { PUGC_UNSUPPORTED_ASSET_EXTENSIONS } from "./project-assets.mjs";
 
+const vitePackagePath = createRequire(import.meta.url).resolve("vite/package.json");
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const worldDirectory = resolve(scriptDirectory, "..");
 const repoRoot = resolve(worldDirectory, "..");
@@ -32,7 +34,7 @@ ensurePreparedEngine();
 
 run(
   process.execPath,
-  [resolve(worldDirectory, "node_modules/vite/bin/vite.js"), "build", "--config", "vite.config.mjs"],
+  [resolve(dirname(vitePackagePath), "bin/vite.js"), "build", "--config", "vite.config.mjs"],
   worldDirectory,
   {
     ...process.env,
@@ -48,9 +50,9 @@ console.log(
 );
 
 function ensurePreparedEngine() {
-  const shaderEntry = resolve(repoRoot, "packages/modify/.cache/shaders.ts");
+  const shaderEntry = resolve(repoRoot, "packages/shader/compiledShaders/index.ts");
   if (!existsSync(shaderEntry)) {
-    throw new Error("Missing packages/modify/.cache/shaders.ts. Run `pnpm --dir world prepare:engine` first.");
+    throw new Error("Missing packages/shader/compiledShaders/index.ts. Run `pnpm --dir world prepare:engine` first.");
   }
 }
 
@@ -189,6 +191,9 @@ function assertClassicWorkerPayloads(outputRoot, assetsRoot, assetNames) {
     }
     if (source.includes("__SEED_WORLD_BUILDING_BIN_BUNDLE_URL__")) {
       throw new Error(`Flash App build did not replace __SEED_WORLD_BUILDING_BIN_BUNDLE_URL__ in ${assetName}`);
+    }
+    if (source.includes("__SEED_WORLD_TEMPLATE_BIN_BUNDLES_JSON__")) {
+      throw new Error(`Flash App build did not replace __SEED_WORLD_TEMPLATE_BIN_BUNDLES_JSON__ in ${assetName}`);
     }
     const relativeSelfLocationMatch = source.match(
       /new URL\(\s*["'](?![a-z]+:)[^"']+["']\s*,\s*self\.location(?:\.href)?\s*\)/u

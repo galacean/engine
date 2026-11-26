@@ -60,6 +60,7 @@ import {
 } from "../../world/SeedWorldAssetPlacementProfile";
 import { envelope } from "../../semantic-study/IslandPlanAtoms";
 import { applyLandscapeEdits } from "../layout/DerivedEdits";
+import { WORLD_TEMPLATE_ART } from "../WorldTemplateArtDirection";
 import { worldTemplate } from "../WorldTemplateCatalog";
 
 export interface PlanningPlantAsset extends LandscapePlantAsset {
@@ -99,7 +100,8 @@ export function planningNaturalTrees(
     landscapes?: readonly import("../../semantic-study/ContextLandscape").LandscapeCandidate[];
   },
   height: Pick<PlanningHeightmap, "sample">,
-  assets: readonly PlanningPlantAsset[]
+  assets: readonly PlanningPlantAsset[],
+  excludedAssetIds: ReadonlySet<string> = SEED_WORLD_NATURAL_VEGETATION_EXCLUDED_ASSET_IDS
 ): LandscapePlantInstance[] {
   const removed = planningRemovedObjectIds(plan.authoredResources ?? []);
   const candidates = (plan.landscapes ?? []).filter(
@@ -112,9 +114,19 @@ export function planningNaturalTrees(
     if (!asset) throw new Error(`Missing planned tree asset: ${id}`);
     return asset;
   });
+  const allowedTrees = palette.filter((asset) => !excludedAssetIds.has(asset.id));
+  const activeTrees = allowedTrees.length > 0 ? allowedTrees : palette;
+  const templateTreePalette = WORLD_TEMPLATE_ART[plan.parameters.worldTemplate?.id ?? ""]?.treeColorPalette;
   return candidates.map((tree) => {
-    const assetId =
-      tree.assetId ?? naturalTreeDimensions(plan.parameters.seed, tree.id, tree.height, tree.center).assetId;
+    const hashParts = hashCanonicalKey(`${plan.parameters.seed}:tree:${tree.id}`).split(":");
+    const hashVal = Number.parseInt(hashParts[1] ?? "0", 36);
+    const stableInt = Number.isFinite(hashVal) ? Math.abs(hashVal) : 0;
+    let assetId = templateTreePalette?.length
+      ? activeTrees[stableInt % activeTrees.length]!.id
+      : (tree.assetId ?? naturalTreeDimensions(plan.parameters.seed, tree.id, tree.height, tree.center).assetId);
+    if (excludedAssetIds.has(assetId)) {
+      assetId = activeTrees[stableInt % activeTrees.length]!.id;
+    }
     const asset = palette.find((asset) => asset.id === assetId);
     if (!asset) throw new Error(`Missing planned tree asset: ${assetId}`);
     const spans = asset.bounds.max.map((v, axis) => v - asset.bounds.min[axis]);
@@ -125,20 +137,30 @@ export function planningNaturalTrees(
     const scale = Math.min(tree.width / spans[0] / spread, tree.height / spans[1], tree.depth / spans[2] / spread);
     const species = PLANT_TREE_SPECIES.find((species) => species.assetId === assetId)!;
     const region = speciesAt([tree.center.x, tree.center.z], tree.id);
+    const baseFoliage = vegetationColorVariation(
+      plan.parameters.seed,
+      species.speciesGroup,
+      tree.id,
+      region,
+      PLANT_FOLIAGE_VARIATIONS.get(assetId)!,
+      "foliage"
+    );
+    const foliage = templateTreePalette?.length
+      ? {
+          brightness: 0.88 + ((stableInt % 97) / 96) * 0.28,
+          tint: {
+            color: templateTreePalette[Math.floor(stableInt / 7) % templateTreePalette.length]!,
+            influence: 0.88
+          }
+        }
+      : baseFoliage;
     return {
       id: tree.id,
       assetId: asset.id,
       layerId: "乔木",
       clusterId: tree.id,
       appearance: {
-        foliage: vegetationColorVariation(
-          plan.parameters.seed,
-          species.speciesGroup,
-          tree.id,
-          region,
-          PLANT_FOLIAGE_VARIATIONS.get(assetId)!,
-          "foliage"
-        ),
+        foliage,
         ...(PLANT_BARK_VARIATIONS.has(assetId)
           ? {
               bark: vegetationColorVariation(
@@ -169,9 +191,10 @@ export function planningEditablePlants(
   plan: IslandPlan,
   ground: Pick<PlanningHeightmap, "sample">,
   assets: readonly PlanningPlantAsset[],
-  population?: Pick<SeedWorldPopulationPreview, "treeInstances">
+  population?: Pick<SeedWorldPopulationPreview, "treeInstances">,
+  excludedAssetIds: ReadonlySet<string> = SEED_WORLD_NATURAL_VEGETATION_EXCLUDED_ASSET_IDS
 ): LandscapePlantInstance[] {
-  const generated = planningNaturalTrees(plan, ground, assets);
+  const generated = planningNaturalTrees(plan, ground, assets, excludedAssetIds);
   const allResources = plan.authoredResources ?? [];
   const removed = planningRemovedObjectIds(allResources);
   const singleResources = allResources.filter(
@@ -204,36 +227,87 @@ export function planningEditablePlants(
           );
   const authored = [...authoredSingle, ...authoredArea];
   const indexedAssets = new Map(assets.map((asset) => [asset.id, asset]));
+  const templateLandscape = plan.parameters.worldTemplate?.id
+    ? WORLD_TEMPLATE_ART[plan.parameters.worldTemplate.id]?.landscape
+    : undefined;
+  const speciesAt = createNaturalTreeSpeciesRegions(plan.parameters.seed);
   return [
     ...generated,
     ...authored.map((plant): LandscapePlantInstance => {
       const placement = resolveSeedWorldAssetPlacement(plant.intent);
       const profile = getSeedWorldAssetPlacementProfile(plant.intent.profileKey);
-      const height = profile.geometry.verticalBoundsMetres[1] * placement.scale[1];
+      const baseHeight = profile.geometry.verticalBoundsMetres[1] * placement.scale[1];
+      const useTemplateTreeHeight =
+        plant.category === "tree" &&
+        templateLandscape?.treeHeightMinM !== undefined &&
+        templateLandscape?.treeHeightMaxM !== undefined &&
+        templateLandscape.treeHeightMaxM >= templateLandscape.treeHeightMinM;
+      const height = useTemplateTreeHeight
+        ? templateLandscape.treeHeightMinM! +
+          (templateLandscape.treeHeightMaxM! - templateLandscape.treeHeightMinM!) * plant.intent.sizeRank
+        : baseHeight;
       const center = {
         x: plant.normalizedPosition.x * plan.parameters.width,
         z: plant.normalizedPosition.y * plan.parameters.width
       };
-      const palette =
+      const basePalette =
         plant.category === "tree" ? NATURAL_VEGETATION_PALETTES.trees : NATURAL_VEGETATION_PALETTES.shrubs;
-      const assetId =
+      const filteredPalette = basePalette.filter((id) => !excludedAssetIds.has(id));
+      const palette = filteredPalette.length > 0 ? filteredPalette : basePalette;
+      let assetId =
         plant.category === "tree"
           ? naturalTreeDimensions(plan.parameters.seed, plant.id, height, center).assetId
           : palette[plant.prototypeRank % palette.length];
+      if (plant.category === "tree" && excludedAssetIds.has(assetId)) {
+        assetId = palette[plant.prototypeRank % palette.length];
+      }
       const asset = indexedAssets.get(assetId);
       if (!asset) throw new Error(`Missing authored plant asset: ${assetId}`);
       const spans = asset.bounds.max.map((v, axis) => v - asset.bounds.min[axis]);
-      const dimensions = [plant.footprintMetres[0], height, plant.footprintMetres[1]];
+      const dimensions = useTemplateTreeHeight
+        ? [(spans[0] / spans[1]) * height, height, (spans[2] / spans[1]) * height]
+        : [plant.footprintMetres[0], height, plant.footprintMetres[1]];
       if (![...spans, ...dimensions].every((v) => Number.isFinite(v) && v > 0))
         throw new Error(`Invalid authored plant dimensions: ${plant.id}`);
       const scale = Math.min(...dimensions.map((v, axis) => v / spans[axis]));
       const ownerId = plant.authoringBrushId ?? plant.id;
+      const treeSpecies =
+        plant.category === "tree" ? PLANT_TREE_SPECIES.find((species) => species.assetId === assetId) : undefined;
+      const treeRegion = treeSpecies ? speciesAt([center.x, center.z], plant.id) : undefined;
+      const foliageVar = treeSpecies ? PLANT_FOLIAGE_VARIATIONS.get(assetId) : undefined;
+      const barkVar = treeSpecies ? PLANT_BARK_VARIATIONS.get(assetId) : undefined;
       return {
         id: plant.id,
         assetId,
         layerId: plant.category === "tree" ? "乔木" : "小灌木",
         clusterId: ownerId,
         scopeId: ownerId,
+        ...(treeSpecies && treeRegion && foliageVar
+          ? {
+              appearance: {
+                foliage: vegetationColorVariation(
+                  plan.parameters.seed,
+                  treeSpecies.speciesGroup,
+                  plant.id,
+                  treeRegion,
+                  foliageVar,
+                  "foliage"
+                ),
+                ...(barkVar
+                  ? {
+                      bark: vegetationColorVariation(
+                        plan.parameters.seed,
+                        treeSpecies.speciesGroup,
+                        plant.id,
+                        treeRegion,
+                        barkVar,
+                        "bark"
+                      )
+                    }
+                  : {})
+              }
+            }
+          : {}),
         position: [center.x, ground.sample(center), center.z],
         yaw: (plant.yawRadians * 180) / Math.PI,
         scale,
@@ -260,6 +334,7 @@ export class PlanningNaturalVegetation {
   private readonly flowerCoverage: ReturnType<typeof vegetationCoverage>;
   private readonly flowerRegions: NonNullable<IslandPlan["flowerRegions"]>;
   private readonly flowerAssetWeights: Readonly<Record<string, Readonly<Record<string, number>>>>;
+  private readonly stoneCompanion: boolean;
   private readonly footprints: {
     solids: readonly PlantingFootprint[];
     roads: readonly PlantingRoad[];
@@ -281,7 +356,8 @@ export class PlanningNaturalVegetation {
     private readonly fields: SeedWorldFields,
     population: SeedWorldPopulationPreview,
     private readonly assets: readonly PlanningPlantAsset[],
-    private readonly presentation?: ReturnType<typeof subjectViewLandscape>
+    private readonly presentation?: ReturnType<typeof subjectViewLandscape>,
+    excludedAssetIds: ReadonlySet<string> = SEED_WORLD_NATURAL_VEGETATION_EXCLUDED_ASSET_IDS
   ) {
     this.densityAt = naturalVegetationAt(plan);
     this.flowerCoverage = vegetationCoverage(plan);
@@ -296,7 +372,7 @@ export class PlanningNaturalVegetation {
         )
       ])
     );
-    this.trees = planningNaturalTrees(plan, height, assets);
+    this.trees = planningNaturalTrees(plan, height, assets, excludedAssetIds);
     const state = plan.spatialLayout,
       slots = state?.landscapeBase?.slots;
     const sources = state?.baselineLandscapes ?? plan.landscapes ?? [];
@@ -307,17 +383,30 @@ export class PlanningNaturalVegetation {
     };
     applyLandscapeEdits(associationPlan, state?.instanceEdits ?? {}, (point) => height.sample(point));
     const landscapes = associationPlan.landscapes;
-    this.associationTrees = planningNaturalTrees(associationPlan, height, assets);
+    this.associationTrees = planningNaturalTrees(associationPlan, height, assets, excludedAssetIds);
     this.solids = [...plan.buildings, ...plan.rocks, ...landscapes.filter((item) => item.kind === "rock")];
+    const stoneCompanionCfg = WORLD_TEMPLATE_ART[plan.parameters.worldTemplate?.id ?? ""]?.stoneCompanionPlanting;
+    const stoneCompanion = Boolean(stoneCompanionCfg);
+    const maxMediumRockRadiusM =
+      typeof stoneCompanionCfg === "object" && stoneCompanionCfg.maxRockRadiusM !== undefined
+        ? stoneCompanionCfg.maxRockRadiusM
+        : 8;
     const baselineRocks = plan.rocks;
+    const anchorTrees = stoneCompanion ? this.trees : this.associationTrees;
+    const anchorRocks = stoneCompanion
+      ? [...baselineRocks, ...(plan.landscapes ?? []).filter((p) => p.kind === "rock")]
+      : [...baselineRocks, ...landscapes.filter((p) => p.kind === "rock")];
     this.anchors = [
-      ...this.associationTrees,
-      ...[...baselineRocks, ...landscapes.filter((p) => p.kind === "rock")].map((rock) => ({
-        id: rock.id,
-        layerId: "岩石",
-        position: [rock.center.x, height.sample(rock.center), rock.center.z] as const,
-        radius: Math.hypot(rock.width, rock.depth) / 2
-      }))
+      ...anchorTrees,
+      ...anchorRocks.map((rock) => {
+        const radius = Math.hypot(rock.width, rock.depth) / 2;
+        return {
+          id: rock.id,
+          layerId: stoneCompanion && radius <= maxMediumRockRadiusM ? "中等石头" : "岩石",
+          position: [rock.center.x, height.sample(rock.center), rock.center.z] as const,
+          radius
+        };
+      })
     ];
     this.grass = population.detailDensityFields.find((field) => field.category === "grass")!.samples;
     // These layers multiply the same substrate field in sample(). A globally
@@ -339,11 +428,36 @@ export class PlanningNaturalVegetation {
       (worldTemplate(plan.parameters.worldTemplate?.id)?.vegetation as string | undefined) !== "grass"
         ? createNaturalCompanionStoneLayer(assets.filter((asset) => asset.kind === "stone"))
         : undefined;
+    this.stoneCompanion = stoneCompanion;
+    // Anchor strictly to medium boulders ("中等石头", <= maxMediumRockRadiusM) and tree-foot boulders ("树脚石块")
+    // rather than giant horizon mountain outcrops ("岩石").
+    const stoneCompanionPatches = {
+      anchorLayers: ["中等石头", "树脚石块"] as const,
+      centerRadiusRatio: 1.9,
+      patchRadiusRatio: 1.45,
+      coverage: 0.84,
+      aspectRatio: [1, 1.5] as const
+    };
+    const withStoneCompanion = (layer: NaturalVegetationLayerRule): NaturalVegetationLayerRule => {
+      if (!stoneCompanion) return layer;
+      if (layer.id === "小灌木") {
+        return {
+          ...layer,
+          companionPlanting: {
+            patches: stoneCompanionPatches,
+            strength: 1,
+            densityMultiplier: 1,
+            densityPerM2: 0.34
+          }
+        };
+      }
+      return layer;
+    };
     this.layers = [
       ...(stones ? [stones] : []),
       ...createNaturalVegetationLayers(
         assets,
-        SEED_WORLD_NATURAL_VEGETATION_EXCLUDED_ASSET_IDS,
+        excludedAssetIds,
         plan.parameters.seed,
         plan.naturalVegetation?.plantSizes
       )
@@ -352,7 +466,7 @@ export class PlanningNaturalVegetation {
           layer.id === "乔木"
             ? { ...layer, density: 0 }
             : layer.id === "零星野花"
-              ? {
+              ? withStoneCompanion({
                   ...layer,
                   density:
                     this.flowerRegions.some((r) => r.config.densityPerM2 > 0) && hasPositiveLayerAbundance("零星野花")
@@ -360,9 +474,9 @@ export class PlanningNaturalVegetation {
                       : 0,
                   maxSlopeDegrees: 90,
                   palette: layer.palette.map((member) => ({ ...member, weight: 1 }))
-                }
+                })
               : hasSubstrate && hasPositiveLayerAbundance(layer.id)
-                ? layer
+                ? withStoneCompanion(layer)
                 : { ...layer, density: 0 }
         )
     ];
@@ -411,6 +525,8 @@ export class PlanningNaturalVegetation {
       );
     });
     const cellHasTreeAnchors = nearbyAnchors.some((anchor) => anchor.layerId === "乔木");
+    const cellHasStoneCompanionAnchors =
+      cellHasTreeAnchors || nearbyAnchors.some((anchor) => anchor.layerId === "中等石头");
     let cellHasGrassSubstrate = false;
     {
       const resolution = this.fields.surfaceResolution,
@@ -452,6 +568,8 @@ export class PlanningNaturalVegetation {
     const cellLayers = this.layers.map((layer) => {
       if (layer.density === 0) return layer;
       if (layer.id === "树脚石块") return cellHasTreeAnchors ? layer : { ...layer, density: 0 };
+      if (this.stoneCompanion && layer.id === "小灌木")
+        return cellHasStoneCompanionAnchors ? layer : { ...layer, density: 0 };
       if (layer.id === "零星野花") return cellHasFlowers ? layer : { ...layer, density: 0 };
       return cellHasGrassSubstrate ? layer : { ...layer, density: 0 };
     });
@@ -544,6 +662,9 @@ export class PlanningNaturalVegetation {
       if (layerId === "树脚石块")
         return settings.companionStoneDensity ?? NATURAL_VEGETATION_DEFAULTS.companionStoneDensity;
       if (layerId === "零星野花") return this.densityAt({ x, z }).flowers!;
+      if (this.stoneCompanion && (layerId === "小灌木" || layerId === "高草与杂草")) {
+        return this.densityAt({ x, z })[densityKeys.get(layerId)!]!;
+      }
       return (this.grass[i] / 255) * this.densityAt({ x, z })[densityKeys.get(layerId)!]!;
     };
     const sample = (x: number, z: number) => {
@@ -796,9 +917,36 @@ function* planningNaturalGroundPopulationSteps(
     const oldSource = previous?.source.detailDensityFields.find((old) => old.prototypeFamily === field.prototypeFamily);
     const oldField = previous?.result.detailDensityFields.find((old) => old.prototypeFamily === field.prototypeFamily);
     const cachedEdges = readRoadEdgeEntry(roadEdges.get(field.samples.length));
-    const reusable =
+    const grassRelHeight = settings.grassRelativeHeight;
+    const lowerMult = 1 - settings.grassHeightVariation;
+    const shrubHeight = heights?.shrubs ?? 0;
+    const grassHeight = heights?.grass ?? 0;
+    const maxFlowerHeight = flowerHeights.reduce((best, region) => Math.max(best, region.height), 0);
+    const currentUpperBound =
+      Math.max(grassHeight, shrubHeight, maxFlowerHeight) *
+      grassRelHeight *
+      Math.max(1, settings.roadsideGrassHeightRatio);
+    const useCompactUint16 =
+      Boolean(plan && heights) &&
+      Number.isFinite(currentUpperBound) &&
+      currentUpperBound > 0 &&
+      Number.isFinite(lowerMult) &&
+      lowerMult > 0 &&
+      lowerMult <= 1;
+    const reusableBase =
       oldSource && oldField?.heightRangeMetres && cachedEdges && oldField.samples.length === field.samples.length
         ? oldField
+        : undefined;
+    const reusableHeight = reusableBase?.heightRangeMetres;
+    const reusable =
+      reusableBase &&
+      (useCompactUint16
+        ? reusableHeight?.samples instanceof Uint16Array &&
+          reusableHeight.encodeScale !== undefined &&
+          reusableHeight.encodeScale >= currentUpperBound &&
+          reusableHeight.lowerMultiplier === lowerMult
+        : reusableHeight?.samples instanceof Float32Array)
+        ? reusableBase
         : undefined;
     const groundSamples = densityAt
       ? reusable
@@ -867,9 +1015,14 @@ function* planningNaturalGroundPopulationSteps(
           edges.fill(1);
         }
       }
-      const samples = reusable
-        ? new Float32Array(reusable.heightRangeMetres!.samples)
-        : new Float32Array(field.samples.length * 2);
+      const encodeScale = useCompactUint16 ? (reusable?.heightRangeMetres?.encodeScale ?? currentUpperBound) : 0;
+      const samples = useCompactUint16
+        ? reusable
+          ? new Uint16Array(reusable.heightRangeMetres!.samples as Uint16Array)
+          : new Uint16Array(field.samples.length)
+        : reusable
+          ? new Float32Array(reusable.heightRangeMetres!.samples)
+          : new Float32Array(field.samples.length * 2);
       let minimum = Infinity,
         maximum = 0;
       const p = { x: 0, z: 0 };
@@ -877,10 +1030,6 @@ function* planningNaturalGroundPopulationSteps(
       const oldFlowerSamples = oldFlowers?.samples;
       const oldSrcSamples = oldSource?.samples;
       const srcSamples = field.samples;
-      const grassRelHeight = settings.grassRelativeHeight;
-      const lowerMult = 1 - settings.grassHeightVariation;
-      const shrubHeight = heights.shrubs;
-      const grassHeight = heights.grass;
       for (let index = 0; index < srcSamples.length; index++) {
         if (index > 0 && index % (resolution * 16) === 0) yield;
         if (
@@ -889,8 +1038,14 @@ function* planningNaturalGroundPopulationSteps(
           Boolean(oldFlowerSamples?.[index]) === Boolean(flowerSamples?.[index]) &&
           (!flowerContextChanged || !flowerSamples?.[index])
         ) {
-          const lo = samples[index * 2],
-            hi = samples[index * 2 + 1];
+          let lo: number, hi: number;
+          if (samples instanceof Uint16Array) {
+            hi = (samples[index]! / 65535) * encodeScale;
+            lo = hi * lowerMult;
+          } else {
+            lo = samples[index * 2]!;
+            hi = samples[index * 2 + 1]!;
+          }
           if (lo < minimum) minimum = lo;
           if (hi > maximum) maximum = hi;
           continue;
@@ -918,22 +1073,41 @@ function* planningNaturalGroundPopulationSteps(
         const accent = Math.min(density.shrubs! > 0 ? shrubHeight : Infinity, flowerHeight);
         const reference = Number.isFinite(accent) ? accent : grassHeight;
         const upper = reference * grassRelHeight * edges[index];
-        samples[index * 2] = upper * lowerMult;
-        samples[index * 2 + 1] = upper;
-        const fLo = samples[index * 2];
-        const fHi = samples[index * 2 + 1];
+        let fLo: number, fHi: number;
+        if (samples instanceof Uint16Array) {
+          let q = Math.min(65535, Math.max(0, Math.round((upper / encodeScale) * 65535)));
+          if (upper > 0 && q === 0) q = 1;
+          samples[index] = q;
+          fHi = (q / 65535) * encodeScale;
+          fLo = fHi * lowerMult;
+        } else {
+          samples[index * 2] = upper * lowerMult;
+          samples[index * 2 + 1] = upper;
+          fLo = samples[index * 2];
+          fHi = samples[index * 2 + 1];
+        }
         if (fLo < minimum) minimum = fLo;
         if (fHi > maximum) maximum = fHi;
       }
-      heightRangeMetres = { samples, minimum, maximum };
+      heightRangeMetres = useCompactUint16
+        ? { samples: samples as Uint16Array, minimum, maximum, encodeScale, lowerMultiplier: lowerMult }
+        : { samples: samples as Float32Array, minimum, maximum };
     }
     // Height edits retain the original candidate identity, positions and colour variation.
     let hash = field.hash;
     if (heightRangeMetres) {
-      const bytes = new Uint8Array(heightRangeMetres.samples.buffer);
+      const bytes = new Uint8Array(
+        heightRangeMetres.samples.buffer,
+        heightRangeMetres.samples.byteOffset,
+        heightRangeMetres.samples.byteLength
+      );
       for (let i = 0; i < bytes.length; i += 65536) {
         if (i > 0) yield;
         hash = hashGroundProjectionBlock(bytes, i, hash);
+      }
+      if (heightRangeMetres.encodeScale !== undefined) {
+        hash = Math.imul(hash ^ Math.round(heightRangeMetres.encodeScale * 1e6), 16777619) >>> 0;
+        hash = Math.imul(hash ^ Math.round((heightRangeMetres.lowerMultiplier ?? 1) * 1e6), 16777619) >>> 0;
       }
     }
     if (densityAt && !heights) {

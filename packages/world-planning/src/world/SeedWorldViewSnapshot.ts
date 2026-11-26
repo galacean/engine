@@ -52,6 +52,10 @@ export interface ViewFrame {
   height: number;
   /** Frozen GPU identity texture; no CPU full-image cache or historical scene graph. */
   identities: ViewIdentityBuffer;
+  /** Optional deferred identity capture hook awaited before exporting or unfreezing the view. */
+  ensureIdentities?: () => Promise<void>;
+  /** Synchronous check for whether deferred identity capture has already settled. */
+  hasIdentities?: () => boolean;
 }
 export interface ViewIdentityBuffer {
   readonly identityBits: number;
@@ -75,10 +79,20 @@ export interface ViewAttachment {
   annotations: ViewAnnotation[];
 }
 
+function quantizeAnnotationCoord(value: number): number {
+  return Number.isFinite(value) ? Math.round(value * 10) / 10 + 0 : value;
+}
+
 export function createViewAnnotation(points: ViewPoint[], scale = 1, color = DEFAULT_PHOTO_INK): ViewAnnotation {
   if (!points.length) throw new Error("Empty annotation");
   if (!/^#[0-9a-f]{6}$/i.test(color)) throw new Error("Invalid annotation color");
-  return { points: structuredClone(points), width: 3 * scale, color };
+  const rawWidth = 3 * scale;
+  const quantizedWidth = Number.isFinite(rawWidth) ? Math.round(rawWidth * 100) / 100 || rawWidth : rawWidth;
+  return {
+    points: points.map((p) => ({ x: quantizeAnnotationCoord(p.x), y: quantizeAnnotationCoord(p.y) })),
+    width: quantizedWidth,
+    color
+  };
 }
 
 /** Rasterize the exact declared mask, including self-intersections (even/odd). */
@@ -578,10 +592,24 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
       }
     }
   }
+  hasIdentities(id: string): boolean {
+    const entry = this.frames.get(id);
+    if (!entry?.frame.ensureIdentities) return true;
+    return entry.frame.hasIdentities ? entry.frame.hasIdentities() : false;
+  }
+  async ensureIdentities(id: string): Promise<void> {
+    const entry = this.frames.get(id);
+    if (!entry?.frame.ensureIdentities) return;
+    await entry.frame.ensureIdentities();
+  }
   private async exportVersion(entry: SnapshotEntry, version: ImageVersion): Promise<AgentViewImage> {
     if (version.image) return version.image;
     if (!version.pending) {
       version.pending = afterImageReclamation(async () => {
+        if (entry.frame.ensureIdentities) {
+          await entry.frame.ensureIdentities();
+          if (this.disposed) throw new Error("Snapshot store is disposed");
+        }
         const image = await entry.frame.image.export(version.annotations);
         if (this.disposed) throw new Error("Snapshot store is disposed");
         validateImage(image);
@@ -598,6 +626,7 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
   acquireAttachments():
     | {
         references: { imagePath: string; metadata: AgentViewObservation["metadata"] }[];
+        currentSnapshotIds(): string[];
         export(): Promise<AgentViewObservation[]>;
         release(): void;
       }
@@ -608,7 +637,7 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
         const entry = this.get(attachment.snapshotId),
           version = entry.versions.get(imagePath)!;
         const metadata = this.attachmentMetadata(attachment, version.annotations.length > 0);
-        return { entry, version, imagePath, metadata, id: attachment.snapshotId };
+        return { entry, version, attachment, imagePath, metadata, id: attachment.snapshotId };
       })
       .map((item) => {
         // Validate every image before acquiring any task ownership.
@@ -618,6 +647,12 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
     let released = false;
     return {
       references: selected.map(({ imagePath, metadata }) => ({ imagePath, metadata })),
+      // Reopening or editing republishes the attachment. A finished input may only remove
+      // the exact attachment it acquired, even if the user later restores identical strokes.
+      currentSnapshotIds: () =>
+        selected
+          .filter(({ id, attachment }) => this.attachments.get(id)?.attachment === attachment)
+          .map(({ id }) => id),
       export: async () => {
         if (released || this.disposed) throw new Error("Screenshot submission was released");
         // Each in-flight export keeps its snapshot alive even if its submission is cancelled.

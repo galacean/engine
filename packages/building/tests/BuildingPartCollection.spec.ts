@@ -135,3 +135,55 @@ it("a part node moved away from its group is rejected, not silently normalized",
   other.transform.localMatrix.elements[12] = Number.NaN;
   expect(() => collectBuildingParts(m.frame, [m.group], m.members, undefined)).toThrow(/Move the group/);
 });
+
+it("validatePartCollection reads raw definitions without cloning", () => {
+  const draftA = mutable(European.buildHouses({ id: "homeA" }));
+  const draftB = mutable(European.buildHouses({ id: "homeB" }));
+  const b = model(draftB);
+
+  const engine = {},
+    scene = {};
+  const frameA: any = { engine, scene, destroyed: false, parent: null, transform: { localMatrix: new Matrix(), worldMatrix: new Matrix() } };
+  const bodyA: any = { engine, scene, destroyed: false, parent: frameA, transform: { localMatrix: new Matrix() } };
+  let cloneReads = 0;
+
+  const groupA = Object.create(BuildingGroupComponent.prototype);
+  Object.defineProperties(groupA, {
+    entity: { value: bodyA },
+    frame: { value: frameA },
+    _definition: { value: draftA.groups[0] },
+    definition: {
+      get: () => {
+        cloneReads++;
+        return structuredClone(draftA.groups[0]);
+      }
+    }
+  });
+  const partsA = draftA.parts.map((def) => {
+    const p = Object.create(BuildingPartComponent.prototype);
+    const conns = draftA.connections.filter((c) => (c.kind === "attach" ? c.guest : c.parts[0]) === def.id);
+    Object.defineProperties(p, {
+      entity: { value: bodyA },
+      frame: { value: frameA },
+      _definition: { value: def },
+      _connections: { value: conns },
+      definition: {
+        get: () => {
+          cloneReads++;
+          return structuredClone(def);
+        }
+      },
+      connections: {
+        get: () => {
+          cloneReads++;
+          return structuredClone(conns);
+        }
+      }
+    });
+    return p as BuildingPartComponent;
+  });
+  const membersA = [groupA, ...partsA];
+
+  validatePartCollection([...membersA, ...b.members]);
+  expect(cloneReads).toBe(0);
+});

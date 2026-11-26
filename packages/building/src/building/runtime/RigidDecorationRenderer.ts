@@ -10,7 +10,7 @@ import {
   TextureWrapMode,
   Vector3
 } from "@galacean/engine";
-import { restoreResource } from "@galacean/engine-modify/rendering/RestorableResources";
+import { restoreResource } from "@galacean/engine-project/rendering/RestorableResources";
 
 /** Rigid skin slots, in the same order as the merged draw's per-vertex IDs. */
 export interface RigidDecorationBinding {

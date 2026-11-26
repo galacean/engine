@@ -8,6 +8,14 @@ import { ShadowType } from "../shadow";
  * Light base class.
  */
 export abstract class Light extends Component {
+  private static readonly _minNormalFloat32 = 2 ** -126;
+
+  protected static _encodeDistance(value: number): number {
+    if (!(value > 0)) return 1e-4;
+    // Zero disables cutoff in shader, so keep finite radii within normal FP32 range
+    return Number.isFinite(Math.fround(value)) ? Math.max(value, Light._minNormalFloat32) : 0;
+  }
+
   /**
    * Culling mask - which layers the light affect.
    * @remarks Support bit manipulation, corresponding to `Layer`.

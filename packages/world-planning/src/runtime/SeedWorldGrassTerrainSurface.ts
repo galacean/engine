@@ -28,18 +28,37 @@ export function createSeedWorldGrassCoverageSampler(
     sizeZ <= 0
   )
     throw new RangeError("Grass coverage requires a complete native alphamap and finite world bounds");
-  const at = (x: number, z: number) => source.weights[(z * width + x) * 4];
-  // One scan per published surface, rather than a scan of dense candidates on every Cell admission.
-  // The summed-area table answers empty-region queries in constant time (4 MiB at 1024²).
-  const stride = width + 1,
-    occupied = new Uint32Array(stride * (height + 1));
-  for (let z = 0; z < height; z++) {
-    let row = 0;
-    for (let x = 0; x < width; x++) {
-      row += Number(seedWorldGrassCoverageScale(at(x, z) / 255) > 0);
-      occupied[(z + 1) * stride + x + 1] = occupied[z * stride + x + 1] + row;
+  const count = width * height;
+  // Retain only channel 0 (grass) so the temporary 4-channel RGBA projection can be collected after GPU upload.
+  const grass = new Uint8Array(count);
+  const occupiedBits = new Uint32Array((count + 31) >>> 5);
+  for (let i = 0; i < count; i++) {
+    const value = source.weights[i * 4]!;
+    grass[i] = value;
+    if (seedWorldGrassCoverageScale(value / 255) > 0) occupiedBits[i >>> 5] |= 1 << (i & 31);
+  }
+  const at = (x: number, z: number) => grass[z * width + x]!;
+  // Coarse 8x8 block prefix sum for O(1) accept/reject paired with the exact 1-bit occupancy mask (~193 KiB at 1024²).
+  const coarseW = (width + 7) >> 3;
+  const coarseH = (height + 7) >> 3;
+  const coarseStride = coarseW + 1;
+  const coarseOccupied = new Uint32Array(coarseStride * (coarseH + 1));
+  for (let bz = 0; bz < coarseH; bz++) {
+    const zStart = bz << 3;
+    const zEnd = Math.min(height, zStart + 8);
+    let rowSum = 0;
+    for (let bx = 0; bx < coarseW; bx++) {
+      const xStart = bx << 3;
+      const xEnd = Math.min(width, xStart + 8);
+      if (hasAnyOccupiedBit(occupiedBits, width, xStart, zStart, xEnd, zEnd)) rowSum++;
+      coarseOccupied[(bz + 1) * coarseStride + bx + 1] = coarseOccupied[bz * coarseStride + bx + 1]! + rowSum;
     }
   }
+  const coarseSum = (bx0: number, bz0: number, bx1: number, bz1: number) =>
+    coarseOccupied[bz1 * coarseStride + bx1]! -
+    coarseOccupied[bz0 * coarseStride + bx1]! -
+    coarseOccupied[bz1 * coarseStride + bx0]! +
+    coarseOccupied[bz0 * coarseStride + bx0]!;
   const sample: SeedWorldGrassCoverageSampler = (worldX, worldZ) => {
     const x = Math.max(0, Math.min(width - 1, ((worldX - originX) / sizeX) * (width - 1)));
     const z = Math.max(0, Math.min(height - 1, ((worldZ - originZ) / sizeZ) * (height - 1)));
@@ -60,15 +79,43 @@ export function createSeedWorldGrassCoverageSampler(
     const z0 = Math.floor(Math.max(0, Math.min(height - 1, ((minimumZ - originZ) / sizeZ) * (height - 1))));
     const x1 = Math.ceil(Math.max(0, Math.min(width - 1, ((maximumX - originX) / sizeX) * (width - 1)))) + 1;
     const z1 = Math.ceil(Math.max(0, Math.min(height - 1, ((maximumZ - originZ) / sizeZ) * (height - 1)))) + 1;
-    return (
-      occupied[z1 * stride + x1] -
-        occupied[z0 * stride + x1] -
-        occupied[z1 * stride + x0] +
-        occupied[z0 * stride + x0] >
-      0
-    );
+    if (x0 >= x1 || z0 >= z1) return false;
+    const obx0 = x0 >> 3;
+    const obz0 = z0 >> 3;
+    const obx1 = ((x1 - 1) >> 3) + 1;
+    const obz1 = ((z1 - 1) >> 3) + 1;
+    if (coarseSum(obx0, obz0, obx1, obz1) === 0) return false;
+    const ibx0 = (x0 + 7) >> 3;
+    const ibz0 = (z0 + 7) >> 3;
+    const ibx1 = x1 >> 3;
+    const ibz1 = z1 >> 3;
+    if (ibx0 < ibx1 && ibz0 < ibz1 && coarseSum(ibx0, ibz0, ibx1, ibz1) > 0) return true;
+    return hasAnyOccupiedBit(occupiedBits, width, x0, z0, x1, z1);
   };
   return sample;
+}
+
+function hasAnyOccupiedBit(bits: Uint32Array, stride: number, x0: number, z0: number, x1: number, z1: number): boolean {
+  for (let z = z0; z < z1; z++) {
+    const rowBase = z * stride;
+    const startBit = rowBase + x0;
+    const endBit = rowBase + x1;
+    let word = startBit >>> 5;
+    const lastWord = (endBit - 1) >>> 5;
+    const loMask = -1 << (startBit & 31);
+    const hiRem = endBit & 31;
+    const hiMask = hiRem === 0 ? -1 : -1 >>> (32 - hiRem);
+    if (word === lastWord) {
+      if ((bits[word]! & loMask & hiMask) !== 0) return true;
+    } else {
+      if ((bits[word]! & loMask) !== 0) return true;
+      for (word++; word < lastWord; word++) {
+        if (bits[word]! !== 0) return true;
+      }
+      if ((bits[lastWord]! & hiMask) !== 0) return true;
+    }
+  }
+  return false;
 }
 
 /**

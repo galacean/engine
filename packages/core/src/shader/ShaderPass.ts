@@ -27,8 +27,8 @@ import type { Camera } from "../Camera";
 import type { Material } from "../material/Material";
 import type { RenderTarget } from "../texture/RenderTarget";
 import type { ShaderData } from "./ShaderData";
-import { ShaderProperty } from "./ShaderProperty";
 import { ShaderTagKey } from "./ShaderTagKey";
+import { ShaderProperty } from "./ShaderProperty";
 import { ShaderLanguage } from "./enums/ShaderLanguage";
 import { ShaderMacroProcessor } from "./ShaderMacroProcessor";
 import { RenderState } from "./state/RenderState";
@@ -77,6 +77,50 @@ function matchesDefaultStage(
 export class ShaderPass extends ShaderPart {
   /** @internal */
   static _shaderPassCounter: number = 0;
+  static _shaderRootPath = "shaders://root/";
+  _feedbackVaryings?: string[];
+  _pipelineStage?: string;
+  private static _variantObservers = new WeakMap<
+    Engine,
+    Set<(pass: ShaderPass, macros: readonly ShaderMacro[]) => void>
+  >();
+
+  /**
+   * Observe newly requested macro variants in this engine, including explicit warmup.
+   * Register before preparing resources. Cache hits and cache-only validation do not notify.
+   * The callback must only enqueue work: it runs inside program preparation.
+   * Returns an unsubscribe function; callers own their queued work and its cancellation.
+   */
+  static observeVariants(
+    engine: Engine,
+    callback: (pass: ShaderPass, macros: readonly ShaderMacro[]) => void
+  ): () => void {
+    let observers = this._variantObservers.get(engine);
+    if (!observers) this._variantObservers.set(engine, (observers = new Set()));
+    observers.add(callback);
+    return () => {
+      observers.delete(callback);
+    };
+  }
+
+  /** Prepare one pass, polling GPU completion when KHR_parallel_shader_compile is available.
+   * Without that extension the driver may complete synchronously.
+   * Source generation and GL submission still execute on the caller's thread.
+   * Cancellation stops waiting; the cached program remains owned by this pass/engine.
+   */
+  async compileVariantAsync(engine: Engine, macros: readonly ShaderMacro[], signal?: AbortSignal): Promise<boolean> {
+    signal?.throwIfAborted();
+    const collection = new ShaderMacroCollection();
+    for (const macro of macros) collection.enable(macro);
+    const program = this._getShaderProgram(engine, collection, true);
+    while (!program._pollReady()) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      signal?.throwIfAborted();
+    }
+    signal?.throwIfAborted();
+    return program.isValid;
+  }
+
   private static _shaderMacroList: ShaderMacro[] = [];
   private static _macroMap: Map<string, string> = new Map();
 
@@ -94,13 +138,12 @@ export class ShaderPass extends ShaderPart {
   _renderStateDataMap: Record<number, ShaderProperty> = {};
   /** @internal */
   _shaderProgramMaps: ShaderProgramMap[] = [];
-  /** @internal */
-  _pipelineStage: string | undefined;
 
   private readonly _vertexOutputNames?: Readonly<Record<string, string>>;
   private readonly _uniformBlocks?: readonly IShaderUniformBlock[];
   private readonly _uniformPlan?: IShaderUniformPlan;
   private readonly _wgsl?: IWebGPUShaderProgram;
+  private readonly _webGPUFragmentInstructions?: ShaderInstruction[];
   private _defaultWebGPUStages?: ReturnType<typeof evaluateDefaultStage>[];
 
   /**
@@ -123,7 +166,8 @@ export class ShaderPass extends ShaderPart {
     vertexOutputNames?: Readonly<Record<string, string>>,
     uniformBlocks?: readonly IShaderUniformBlock[],
     uniformPlan?: IShaderUniformPlan,
-    wgsl?: IWebGPUShaderProgram
+    wgsl?: IWebGPUShaderProgram,
+    webGPUFragmentInstructions?: ShaderInstruction[]
   ) {
     super();
     this._shaderPassId = ShaderPass._shaderPassCounter++;
@@ -135,6 +179,7 @@ export class ShaderPass extends ShaderPart {
     this._uniformBlocks = uniformBlocks;
     this._uniformPlan = uniformPlan;
     this._wgsl = wgsl;
+    this._webGPUFragmentInstructions = webGPUFragmentInstructions;
 
     const mergedTags = { pipelineStage: PipelineStage.Forward, ...tags };
     for (const key in mergedTags) {
@@ -143,7 +188,7 @@ export class ShaderPass extends ShaderPart {
   }
 
   /**
-   * @inheritdoc
+   * @internal
    */
   override setTag<T extends number | string | boolean>(keyName: string, value: T): void;
   override setTag<T extends number | string | boolean>(key: ShaderTagKey, value: T): void;
@@ -172,22 +217,49 @@ export class ShaderPass extends ShaderPart {
   _getShaderProgram(
     engine: Engine,
     macroCollection: ShaderMacroCollection,
-    feedbackVaryings?: string[],
-    primitive?: Primitive,
+    feedbackRequest?: string[] | boolean,
+    primitiveOrCache?: Primitive | boolean,
     renderer?: ShaderData,
     material?: ShaderData,
     element?: ShaderData,
     camera = engine._renderContext.camera
   ): ShaderProgram {
+    const feedbackVaryings = Array.isArray(feedbackRequest) ? feedbackRequest : this._feedbackVaryings;
+    const primitive = typeof primitiveOrCache === "boolean" ? undefined : primitiveOrCache;
+    const cacheOnly = primitiveOrCache === true;
     let shaderProgramMap = engine._getShaderProgramMap(this._shaderPassId, this._shaderProgramMaps);
-    if (feedbackVaryings?.length)
-      shaderProgramMap = shaderProgramMap.specialize("feedback:" + feedbackVaryings.join(","));
+    if (feedbackVaryings) shaderProgramMap = shaderProgramMap.specialize("feedback");
     if (primitive && engine._hardwareRenderer.backend === "webgpu") {
       shaderProgramMap = shaderProgramMap.specialize(primitive._getShaderInputs().key);
     }
     let shaderProgram = shaderProgramMap.get(macroCollection);
+    // The product simulator sizes its output by this ordered layout. A reused
+    // shader/macro variant must still write the same fields into that buffer.
+    const configuredFeedback = shaderProgram?._feedbackVaryings;
+    if (
+      feedbackVaryings &&
+      configuredFeedback &&
+      (feedbackVaryings.length !== configuredFeedback.length ||
+        feedbackVaryings.some((field, index) => field !== configuredFeedback[index]))
+    ) {
+      throw new Error("Transform feedback outputs cannot change after the pass ABI is configured");
+    }
     if (!shaderProgram) {
-      shaderProgram = this._compileShaderProgram(engine, macroCollection, feedbackVaryings, primitive);
+      shaderProgram = this._compileShaderProgram(
+        engine,
+        macroCollection,
+        feedbackVaryings,
+        primitive,
+        undefined,
+        cacheOnly
+      );
+      if (feedbackVaryings) shaderProgram._feedbackVaryings = feedbackVaryings.slice();
+      const observers = ShaderPass._variantObservers.get(engine);
+      if (!cacheOnly && observers?.size) {
+        const macros: ShaderMacro[] = [];
+        ShaderMacro._getMacrosElements(macroCollection, macros);
+        for (const observer of observers) observer(this, macros);
+      }
       shaderProgramMap.cache(shaderProgram);
     }
     const layout = shaderProgram._textureLayout;
@@ -271,7 +343,7 @@ export class ShaderPass extends ShaderPart {
       const platform = program._platformProgram;
       if (!platform.prewarm) return resolve();
       const temporary = internalForwardTarget
-        ? camera._renderPipeline._allocateInternalColorTarget(
+        ? camera._renderPipeline._allocatePrewarmInternalColorTarget(
             Math.min(target?.antiAliasing ?? camera.msaaSamples, engine._hardwareRenderer.capability.maxAntiAliasing)
           )
         : null;
@@ -307,7 +379,8 @@ export class ShaderPass extends ShaderPart {
     macroCollection: ShaderMacroCollection,
     feedbackVaryings?: string[],
     primitive?: Primitive,
-    textureOptions?: ShaderTextureOptions
+    textureOptions?: ShaderTextureOptions,
+    cacheOnly = false
   ): ShaderProgram {
     const names = this._vertexOutputNames;
     if (names && feedbackVaryings?.length) {
@@ -363,7 +436,13 @@ export class ShaderPass extends ShaderPart {
         feedbackVaryings
       };
     }
+    const map = engine._getShaderProgramMap(this._shaderPassId, this._shaderProgramMaps);
+    const key = JSON.stringify([source, variant.uniformBlocks, variant.instanceLayout, variant.instanceBindingName]);
+    const existing = map.getBySource(key);
+    if (existing) return existing;
+    if (cacheOnly) throw new Error("Unprepared Seed shader variant " + this.name);
     const program = new ShaderProgram(engine, source, variant.uniformBlocks, variant.instanceBindingName);
+    map.cacheBySource(key, program);
     program._instanceLayout = variant.instanceLayout;
     return program;
   }
@@ -416,11 +495,12 @@ export class ShaderPass extends ShaderPart {
     macroMap.set("__VERSION__", "300");
 
     const plan = this._uniformPlan;
-    const normalize = !plan && engine._webGPUShaderCompiler?.normalizeRawStage;
+    const webgpu = engine._hardwareRenderer.backend === "webgpu";
+    const normalize = webgpu && !plan && engine._webGPUShaderCompiler?.normalizeRawStage;
     const vertexInstructions = normalize ? normalize(this._vertexShaderInstructions) : this._vertexShaderInstructions;
-    const fragmentInstructions = normalize
-      ? normalize(this._fragmentShaderInstructions)
-      : this._fragmentShaderInstructions;
+    const fragment =
+      webgpu && this._webGPUFragmentInstructions ? this._webGPUFragmentInstructions : this._fragmentShaderInstructions;
+    const fragmentInstructions = normalize ? normalize(fragment) : fragment;
     const instancing = isGPUInstance ? plan?.instancing : undefined;
     const vertexSites: IShaderUniformSelection[] | undefined = plan ? [] : undefined;
     const fragmentSites: IShaderUniformSelection[] | undefined = plan ? [] : undefined;
@@ -443,15 +523,21 @@ export class ShaderPass extends ShaderPart {
     let instanceLayout: InstanceBufferLayout | null = null;
     if (plan) {
       const device = engine._hardwareRenderer;
-      const variant = finalizeShaderUniforms(vertexSource, fragmentSource, vertexSites!, fragmentSites!, {
-        maxBlockBytes: device.maxUniformBlockSize,
-        maxBindings: device.maxUniformBufferBindings,
-        maxVertexBlocks: device.maxVertexUniformBlocks,
-        maxFragmentBlocks: device.maxFragmentUniformBlocks,
-        explicitBlocks: this._uniformBlocks?.length ?? 0,
-        resolveConstant: device.resolveShaderConstant,
-        instancing
-      });
+      const variant = finalizeShaderUniforms(
+        vertexSource,
+        fragmentSource,
+        vertexSites!.filter((entry) => entry.site.name !== "scene_RealtimeEnvSH"),
+        fragmentSites!.filter((entry) => entry.site.name !== "scene_RealtimeEnvSH"),
+        {
+          maxBlockBytes: device.maxUniformBlockSize,
+          maxBindings: device.maxUniformBufferBindings,
+          maxVertexBlocks: device.maxVertexUniformBlocks,
+          maxFragmentBlocks: device.maxFragmentUniformBlocks,
+          explicitBlocks: this._uniformBlocks?.length ?? 0,
+          resolveConstant: device.resolveShaderConstant,
+          instancing
+        }
+      );
       if (variant.instanceOverflow && isGPUInstance) {
         return this._compileShaderSource(engine, macroCollection, false);
       }
@@ -468,6 +554,24 @@ export class ShaderPass extends ShaderPart {
       engine._hardwareRenderer.backend === "webgpu" &&
       engine._webGPUShaderCompiler?.recoverLegacyInstancing
     ) {
+      // Keep the realtime IBL output buffer as an external block while recovering historical fields.
+      const vertexSH = ShaderFactory.injectRealtimeIBLUniformBlocks(vertexSource);
+      const fragmentSH = ShaderFactory.injectRealtimeIBLUniformBlocks(fragmentSource);
+      if (vertexSH !== vertexSource || fragmentSH !== fragmentSource) {
+        uniformBlocks = [
+          ...(uniformBlocks ?? []),
+          {
+            name: "Auto",
+            bindingName: ShaderFactory.REALTIME_IBL_SH_BLOCK_NAME,
+            byteLength: 144,
+            members: [
+              { name: "scene_RealtimeEnvSH", type: "vec4", offset: 0, arrayLength: 9, arrayStride: 16, matrixStride: 0 }
+            ]
+          }
+        ];
+        vertexSource = vertexSH;
+        fragmentSource = fragmentSH;
+      }
       const variant = engine._webGPUShaderCompiler.recoverLegacyInstancing(
         vertexSource,
         fragmentSource,
@@ -491,10 +595,23 @@ export class ShaderPass extends ShaderPart {
       instanceBindingName = instanceLayout.bindingName;
     }
 
-    if (!plan) {
-      vertexSource = upgradeLegacyShaderStage(vertexSource, false);
-      fragmentSource = upgradeLegacyShaderStage(fragmentSource, true);
+    const shVertex = ShaderFactory.injectRealtimeIBLUniformBlocks(vertexSource);
+    const shFragment = ShaderFactory.injectRealtimeIBLUniformBlocks(fragmentSource);
+    if (shVertex !== vertexSource || shFragment !== fragmentSource) {
+      uniformBlocks = [
+        ...(uniformBlocks ?? []),
+        {
+          name: "Auto",
+          bindingName: ShaderFactory.REALTIME_IBL_SH_BLOCK_NAME,
+          byteLength: 144,
+          members: [
+            { name: "scene_RealtimeEnvSH", type: "vec4", offset: 0, arrayLength: 9, arrayStride: 16, matrixStride: 0 }
+          ]
+        }
+      ];
     }
+    vertexSource = plan ? shVertex : upgradeLegacyShaderStage(shVertex, false);
+    fragmentSource = plan ? shFragment : upgradeLegacyShaderStage(shFragment, true);
     const versionStr = "#version 300 es";
 
     return {

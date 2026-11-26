@@ -72,9 +72,12 @@ for (const [old,current] of Object.entries(mapping)) {
   result.differences.push({ source: old, target: current, sourceHash: hash(a), targetHash: hash(b),detail });
 }
 const native = [];
-for (const { original,replacement } of JSON.parse(fs.readFileSync(path.join(root,'packages/modify/native-overrides.json')))) {
-  const a = fs.readFileSync(path.resolve(materialized,'..',original)), b = fs.readFileSync(path.join(root,replacement));
-  if (!a.equals(b)) native.push({original,replacement,syntaxEqual: /\.[cm]?[jt]sx?$/.test(original) && (await syntax(a.toString(),original,true)) === (await syntax(b.toString(),original,true)),sourceHash:hash(a),targetHash:hash(b)});
+const overridesPath = path.join(root, 'packages/modify/native-overrides.json');
+if (fs.existsSync(overridesPath)) {
+  for (const { original, replacement } of JSON.parse(fs.readFileSync(overridesPath))) {
+    const a = fs.readFileSync(path.resolve(materialized, '..', original)), b = fs.readFileSync(path.join(root, replacement));
+    if (!a.equals(b)) native.push({ original, replacement, syntaxEqual: /\.[cm]?[jt]sx?$/.test(original) && (await syntax(a.toString(), original, true)) === (await syntax(b.toString(), original, true)), sourceHash: hash(a), targetHash: hash(b) });
+  }
 }
 result.nativeDifferences = native;
 const out = path.join(root,process.env.PARITY_OUTPUT || 'world/.acceptance/source-parity.json');

@@ -33,8 +33,8 @@ import type { ConstructionDecorationPart } from "./ConstructionDecorations";
 import type { BuildingPaletteSlot } from "./BuildingGlobals";
 import { masonryAppearance, srgbToLinear } from "./MasonryAppearance";
 import { buildingGroupKey, buildingPartKey } from "./BuildingObjectIdentity";
-import type { SeedWorldPickBatch } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
-import { restoreBuffer } from "@galacean/engine-modify/rendering/RestorableResources";
+import type { SeedWorldPickBatch } from "@galacean/engine-project/rendering/SeedWorldPickBatch";
+import { restoreBuffer } from "@galacean/engine-project/rendering/RestorableResources";
 
 // Compact split layout: stream 0 = 32B static geometry (pos 12 + norm/pick 4 + uv 8 + tag 8), stream 1 = 4B u8x4 color+emission
 const COMPACT_GEOM_STRIDE_BYTES = 32;
@@ -43,8 +43,38 @@ const COMPACT_GEOM_U16_STRIDE = COMPACT_GEOM_STRIDE_BYTES / Uint16Array.BYTES_PE
 const FAR_PROXY_RGB_SCALE = 2;
 const FAR_PROXY_EMISSION_SCALE = 8;
 const FAR_PROXY_WALL_LENGTH_SCALE = 256;
-const PLASTER_NORMAL_BIAS_METRES = 0.06;
-const STONE_PAVING_NORMAL_BIAS_METRES = 0.02;
+export const PLASTER_NORMAL_BIAS_METRES = 0.015;
+export const ROOF_NORMAL_BIAS_METRES = 0.08;
+export const STONE_PAVING_NORMAL_BIAS_METRES = 0.02;
+
+export function proxyPartNormalBias(
+  part: Pick<ConstructionPreviewPart, "plaster" | "stonePaving" | "material">
+): number {
+  if (part.plaster) return PLASTER_NORMAL_BIAS_METRES;
+  if (part.stonePaving) return STONE_PAVING_NORMAL_BIAS_METRES;
+  if (part.material === "roof_tile") return ROOF_NORMAL_BIAS_METRES;
+  return 0;
+}
+
+export function proxyDecorationNormalBias(appKind: number | undefined): number {
+  if (
+    appKind === DecorationMaterial.glass ||
+    appKind === DecorationMaterial.texturedGlass ||
+    appKind === DecorationMaterial.lattice ||
+    appKind === DecorationMaterial.texturedLattice
+  ) {
+    return 0.055;
+  }
+  if (appKind === DecorationMaterial.lanternEmission) return 0.02;
+  if (
+    appKind === DecorationMaterial.frame ||
+    appKind === DecorationMaterial.doorWood ||
+    appKind === DecorationMaterial.doorMetal
+  ) {
+    return 0.025;
+  }
+  return 0;
+}
 
 export const SURFACE_KIND_WALL = 0;
 export const SURFACE_KIND_ROOF_TILE = 1;
@@ -334,11 +364,76 @@ export function collapsePreviewPartToBox(part: ConstructionPreviewPart): Constru
   };
 }
 
+function buildOrientedBoxGeometry(
+  rx: number,
+  ry: number,
+  rz: number,
+  ux: number,
+  uy: number,
+  uz: number,
+  nx: number,
+  ny: number,
+  nz: number,
+  minR: number,
+  maxR: number,
+  minU: number,
+  maxU: number,
+  minD: number,
+  maxD: number
+): { positions: Float32Array; normals: Float32Array; indices: Uint16Array } {
+  const r0 = maxR - minR < 1e-3 ? (minR + maxR) * 0.5 - 0.01 : minR;
+  const r1 = maxR - minR < 1e-3 ? (minR + maxR) * 0.5 + 0.01 : maxR;
+  const u0 = maxU - minU < 1e-3 ? (minU + maxU) * 0.5 - 0.01 : minU;
+  const u1 = maxU - minU < 1e-3 ? (minU + maxU) * 0.5 + 0.01 : maxU;
+  const d0 = maxD - minD < 1e-3 ? (minD + maxD) * 0.5 - 0.01 : minD;
+  const d1 = maxD - minD < 1e-3 ? (minD + maxD) * 0.5 + 0.01 : maxD;
+  const pt = (r: number, u: number, d: number): readonly [number, number, number] => [
+    r * rx + u * ux + d * nx,
+    r * ry + u * uy + d * ny,
+    r * rz + u * uz + d * nz
+  ];
+  const faceNormals: readonly (readonly [number, number, number])[] = [
+    [rx, ry, rz],
+    [-rx, -ry, -rz],
+    [ux, uy, uz],
+    [-ux, -uy, -uz],
+    [nx, ny, nz],
+    [-nx, -ny, -nz]
+  ];
+  const corners: readonly (readonly [number, number, number])[][] = [
+    [pt(r1, u0, d0), pt(r1, u1, d0), pt(r1, u1, d1), pt(r1, u0, d1)],
+    [pt(r0, u0, d1), pt(r0, u1, d1), pt(r0, u1, d0), pt(r0, u0, d0)],
+    [pt(r0, u1, d1), pt(r1, u1, d1), pt(r1, u1, d0), pt(r0, u1, d0)],
+    [pt(r0, u0, d0), pt(r1, u0, d0), pt(r1, u0, d1), pt(r0, u0, d1)],
+    [pt(r0, u0, d1), pt(r1, u0, d1), pt(r1, u1, d1), pt(r0, u1, d1)],
+    [pt(r1, u0, d0), pt(r0, u0, d0), pt(r0, u1, d0), pt(r1, u1, d0)]
+  ];
+  const positions = new Float32Array(24 * 3);
+  const normals = new Float32Array(24 * 3);
+  let v = 0;
+  for (let f = 0; f < 6; f++) {
+    const fn = faceNormals[f]!;
+    const face = corners[f]!;
+    for (let c = 0; c < 4; c++) {
+      const p = face[c]!;
+      positions[v] = p[0];
+      positions[v + 1] = p[1];
+      positions[v + 2] = p[2];
+      normals[v] = fn[0];
+      normals[v + 1] = fn[1];
+      normals[v + 2] = fn[2];
+      v += 3;
+    }
+  }
+  return { positions, normals, indices: BOX_INDICES };
+}
+
 export function collapseDecorationToBoxes(dp: ConstructionDecorationPart): ConstructionDecorationPart[] {
   const count = dp.positions.length / 3;
   if (!count) return [];
   const buckets: Array<{
     emissive: boolean;
+    indices: number[];
     minX: number;
     minY: number;
     minZ: number;
@@ -354,6 +449,7 @@ export function collapseDecorationToBoxes(dp: ConstructionDecorationPart): Const
   }> = [
     {
       emissive: false,
+      indices: [],
       minX: Infinity,
       minY: Infinity,
       minZ: Infinity,
@@ -369,6 +465,7 @@ export function collapseDecorationToBoxes(dp: ConstructionDecorationPart): Const
     },
     {
       emissive: true,
+      indices: [],
       minX: Infinity,
       minY: Infinity,
       minZ: Infinity,
@@ -390,6 +487,7 @@ export function collapseDecorationToBoxes(dp: ConstructionDecorationPart): Const
     const x = dp.positions[xyz]!;
     const y = dp.positions[xyz + 1]!;
     const z = dp.positions[xyz + 2]!;
+    b.indices.push(i);
     if (x < b.minX) b.minX = x;
     if (y < b.minY) b.minY = y;
     if (z < b.minZ) b.minZ = z;
@@ -403,14 +501,36 @@ export function collapseDecorationToBoxes(dp: ConstructionDecorationPart): Const
     if (dp.tintMask?.[i] !== false) b.tintedCount++;
     b.n++;
   }
+  const primaryKind = dp.appearance?.kinds?.[0];
+  const isLanternBody = primaryKind === DecorationMaterial.lanternBody;
+  const isLanternEmission = primaryKind === DecorationMaterial.lanternEmission;
+  const isWindowGlass =
+    primaryKind === DecorationMaterial.glass ||
+    primaryKind === DecorationMaterial.texturedGlass ||
+    primaryKind === DecorationMaterial.lattice ||
+    primaryKind === DecorationMaterial.texturedLattice;
+  const isFrame = primaryKind === DecorationMaterial.frame;
+  const isDoor = primaryKind === DecorationMaterial.doorWood || primaryKind === DecorationMaterial.doorMetal;
   const out: ConstructionDecorationPart[] = [];
-  for (const b of buckets) {
-    if (!b.n) continue;
-    const box = buildAxisBoxGeometry(b.minX, b.minY, b.minZ, b.maxX, b.maxY, b.maxZ);
-    const r = b.sumR / b.n;
-    const g = b.sumG / b.n;
-    const bl = b.sumB / b.n;
-    const em = b.sumE / b.n;
+  const pushBoxPart = (
+    b: (typeof buckets)[number],
+    box: { positions: Float32Array; normals: Float32Array; indices: Uint16Array }
+  ) => {
+    let r = b.sumR / b.n;
+    let g = b.sumG / b.n;
+    let bl = b.sumB / b.n;
+    let em = b.sumE / b.n;
+    if (isLanternEmission) {
+      r = Math.max(r, 1.0);
+      g = Math.max(g, 0.78);
+      bl = Math.max(bl, 0.25);
+      em = Math.max(em, 1.4);
+    } else if (isWindowGlass) {
+      // Dark recessed interior base matching LOD1 glass.shaderc (sky brightness comes from physical Fresnel IBL).
+      r = 0.05;
+      g = 0.065;
+      bl = 0.075;
+    }
     const colors = new Float32Array(24 * 3);
     for (let i = 0; i < 24; i++) {
       colors[i * 3] = r;
@@ -420,7 +540,11 @@ export function collapseDecorationToBoxes(dp: ConstructionDecorationPart): Const
     const emission = new Float32Array(24).fill(em);
     const tinted = b.tintedCount * 2 >= b.n;
     const tintMask = dp.tintMask ? new Array<boolean>(24).fill(tinted) : undefined;
-    const kinds = b.emissive ? new Array<number>(24).fill(DecorationMaterial.glass) : undefined;
+    const kinds = isLanternEmission
+      ? new Array<number>(24).fill(DecorationMaterial.lanternEmission)
+      : isWindowGlass || b.emissive
+        ? new Array<number>(24).fill(DecorationMaterial.glass)
+        : undefined;
     out.push({
       ...dp,
       positions: box.positions as unknown as number[],
@@ -432,6 +556,139 @@ export function collapseDecorationToBoxes(dp: ConstructionDecorationPart): Const
       tintMask,
       appearance: kinds ? ({ kinds } as ConstructionDecorationPart["appearance"]) : undefined
     });
+  };
+  for (const b of buckets) {
+    if (!b.n) continue;
+    if (isLanternBody) {
+      // Trim the hollow lantern cage/bracket to its slim upper iron cap so it never
+      // turns into an opaque dark rectangular cube swallowing the glowing lantern bulb.
+      const height = b.maxY - b.minY;
+      const cx = (b.minX + b.maxX) * 0.5;
+      const cz = (b.minZ + b.maxZ) * 0.5;
+      const hx = (b.maxX - b.minX) * 0.31;
+      const hz = (b.maxZ - b.minZ) * 0.31;
+      pushBoxPart(b, buildAxisBoxGeometry(cx - hx, b.minY + height * 0.72, cz - hz, cx + hx, b.maxY, cz + hz));
+      continue;
+    }
+    if (isLanternEmission) {
+      const pad = 0.015;
+      pushBoxPart(b, buildAxisBoxGeometry(b.minX - pad, b.minY, b.minZ - pad, b.maxX + pad, b.maxY, b.maxZ + pad));
+      continue;
+    }
+    if (isFrame || isWindowGlass || isDoor) {
+      // Recover the exact vertical wall-tangent (T) and wall-normal (N) via 2D XZ PCA of vertex
+      // positions. This works even on closed 3D window frames / 2-sided panes whose normals cancel
+      // out, keeping windows/doors 100% flush on rotated walls and round towers instead of cubes.
+      let cx = 0,
+        cz = 0;
+      for (let k = 0; k < b.indices.length; k++) {
+        const xyz = b.indices[k]! * 3;
+        cx += dp.positions[xyz]!;
+        cz += dp.positions[xyz + 2]!;
+      }
+      cx /= b.n;
+      cz /= b.n;
+      let cxx = 0,
+        czz = 0,
+        cxz = 0;
+      for (let k = 0; k < b.indices.length; k++) {
+        const xyz = b.indices[k]! * 3;
+        const dx = dp.positions[xyz]! - cx;
+        const dz = dp.positions[xyz + 2]! - cz;
+        cxx += dx * dx;
+        czz += dz * dz;
+        cxz += dx * dz;
+      }
+      const trace = cxx + czz;
+      const aniso = Math.hypot(cxx - czz, 2 * cxz);
+      let tx = 1,
+        tz = 0;
+      if (trace > 1e-6 && aniso > trace * 0.12) {
+        const angle = 0.5 * Math.atan2(2 * cxz, cxx - czz);
+        tx = Math.cos(angle);
+        tz = Math.sin(angle);
+      } else if (b.maxZ - b.minZ > b.maxX - b.minX) {
+        tx = 0;
+        tz = 1;
+      }
+      const axisAligned = Math.max(Math.abs(tx), Math.abs(tz)) >= 0.992;
+      if (axisAligned) {
+        if (Math.abs(tx) >= Math.abs(tz)) {
+          tx = 1;
+          tz = 0;
+        } else {
+          tx = 0;
+          tz = 1;
+        }
+      }
+      // Right-handed basis: T = (tx, 0, tz), U = (0, 1, 0), N = T x U = (-tz, 0, tx).
+      const nx = -tz;
+      const nz = tx;
+      let minT = Infinity,
+        maxT = -Infinity,
+        minU = Infinity,
+        maxU = -Infinity,
+        minN = Infinity,
+        maxN = -Infinity;
+      for (let k = 0; k < b.indices.length; k++) {
+        const xyz = b.indices[k]! * 3;
+        const px = dp.positions[xyz]!;
+        const py = dp.positions[xyz + 1]!;
+        const pz = dp.positions[xyz + 2]!;
+        const pt = px * tx + pz * tz;
+        const pn = px * nx + pz * nz;
+        if (pt < minT) minT = pt;
+        if (pt > maxT) maxT = pt;
+        if (py < minU) minU = py;
+        if (py > maxU) maxU = py;
+        if (pn < minN) minN = pn;
+        if (pn > maxN) maxN = pn;
+      }
+      const emitBox = (t0: number, t1: number, u0: number, u1: number, n0: number, n1: number) => {
+        if (axisAligned) {
+          if (tx === 1) {
+            pushBoxPart(b, buildAxisBoxGeometry(t0, u0, n0, t1, u1, n1));
+          } else {
+            // T=(0,0,1), N=(-1,0,0) -> x = -n, z = t
+            pushBoxPart(b, buildAxisBoxGeometry(-n1, u0, t0, -n0, u1, t1));
+          }
+        } else {
+          pushBoxPart(b, buildOrientedBoxGeometry(tx, 0, tz, 0, 1, 0, nx, 0, nz, t0, t1, u0, u1, n0, n1));
+        }
+      };
+      const midN = (minN + maxN) * 0.5;
+      const width = maxT - minT;
+      const height = maxU - minU;
+      if (isFrame) {
+        // Build a 4-bar HOLLOW perimeter frame (clamped flush depth <= 0.14m) so the frame
+        // never turns into a solid protruding block or swallows the recessed glass pane inside.
+        const halfD = Math.min(0.07, Math.max(0.035, (maxN - minN) * 0.5));
+        const n0 = midN - halfD;
+        const n1 = midN + halfD;
+        if (width > 0.25 && height > 0.25) {
+          const bT = Math.min(0.14, Math.max(0.055, width * 0.11));
+          const bU = Math.min(0.14, Math.max(0.055, height * 0.11));
+          emitBox(minT, minT + bT, minU, maxU, n0, n1); // left jamb
+          emitBox(maxT - bT, maxT, minU, maxU, n0, n1); // right jamb
+          emitBox(minT + bT, maxT - bT, minU, minU + bU, n0, n1); // bottom sill
+          emitBox(minT + bT, maxT - bT, maxU - bU, maxU, n0, n1); // top header
+        } else {
+          emitBox(minT, maxT, minU, maxU, n0, n1);
+        }
+      } else if (isWindowGlass) {
+        // Slim recessed glass pane cleanly proud of wall & 0.015m plaster, framed by the hollow jambs.
+        const insetT = Math.min(0.045, width * 0.08);
+        const insetU = Math.min(0.045, height * 0.08);
+        const halfD = Math.max(0.045, (maxN - minN) * 0.5 + 0.025);
+        emitBox(minT + insetT, maxT - insetT, minU + insetU, maxU - insetU, midN - halfD, midN + halfD);
+      } else {
+        // Door: flush oriented slab slightly proud of 0.015m plaster.
+        const halfD = Math.max(0.032, (maxN - minN) * 0.5 + 0.02);
+        emitBox(minT, maxT, minU, maxU, midN - halfD, midN + halfD);
+      }
+      continue;
+    }
+    pushBoxPart(b, buildAxisBoxGeometry(b.minX, b.minY, b.minZ, b.maxX, b.maxY, b.maxZ));
   }
   return out;
 }
@@ -789,7 +1046,7 @@ export function createBuildingFarProxy(
 
   for (let pIdx = 0; pIdx < includedParts.length; pIdx++) {
     const p = includedParts[pIdx]!;
-    const normalBias = p.plaster ? PLASTER_NORMAL_BIAS_METRES : p.stonePaving ? STONE_PAVING_NORMAL_BIAS_METRES : 0;
+    const normalBias = proxyPartNormalBias(p);
     const kind = previewPartSurfaceKind(p);
     const plaster = p.plaster;
     const isUnit = p.placement === "unit" ? 1 : 0;
@@ -808,18 +1065,24 @@ export function createBuildingFarProxy(
     const dp = includedDecorations[dIdx]!;
     const uvs = dp.uvs ?? dp.appearance?.materialUVs;
     const appKinds = dp.appearance?.kinds;
+    // Collapsed 24-vert proxy boxes already baked their outward offset; only bias uncollapsed meshes.
+    const isCollapsedBox = dp.uvs === undefined && dp.indices.length === 36 && dp.positions.length === 72;
+    const decoNormalBias = isCollapsedBox ? 0 : proxyDecorationNormalBias(appKinds?.[0]);
     appendCompact(
       dp.decorationId === undefined ? buildingGroupKey(dp.ownerId) : buildingPartKey(dp.decorationId),
       dp.positions,
       dp.normals,
       dp.indices,
-      0,
+      decoNormalBias,
       uvs,
       (i) => dp.emission[i] ?? 0,
       (i) => {
         const appKind = appKinds?.[i];
         const surfaceKind =
-          appKind === DecorationMaterial.glass || appKind === DecorationMaterial.texturedGlass
+          appKind === DecorationMaterial.glass ||
+          appKind === DecorationMaterial.texturedGlass ||
+          appKind === DecorationMaterial.lattice ||
+          appKind === DecorationMaterial.texturedLattice
             ? SURFACE_KIND_DECORATION_GLASS
             : SURFACE_KIND_DECORATION;
         return [surfaceKind, 0, 0, 0];

@@ -20,7 +20,7 @@ import {
 import {
   SeedWorldArrayPickBatch,
   type SeedWorldPickVisitor
-} from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+} from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 import {
   bindSeedWorldGrassColorField,
   bindSeedWorldGrassColorFieldUniforms,

@@ -4,11 +4,35 @@ import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { VirtualCamera } from "../VirtualCamera";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
-import { RenderBufferLoadAction, RenderBufferStoreAction } from "../renderingHardwareInterface";
-import { Shader, ShaderProperty } from "../shader";
+import { RenderPassDescriptor, RenderPassLoadAction } from "../renderingHardwareInterface";
+import { ColorWriteMask, Shader, ShaderProperty } from "../shader";
 import { ShaderTagKey } from "../shader/ShaderTagKey";
 import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { RenderTarget, TextureCubeFace } from "../texture";
+
+/**
+ * Per-frame transient SSR pass state carried on `RenderContext` for the active view.
+ * @internal
+ */
+export class RenderContextSSRState {
+  enabled: boolean = false;
+  verifyReceiverDepth: boolean = false;
+  bilateralSample: boolean = false;
+  packedDepthRG8: boolean = false;
+  packedNormalOct8: boolean = false;
+  packedHDRReinhard: boolean = false;
+  maxRoughness: number = 0.6;
+
+  reset(): void {
+    this.enabled = false;
+    this.verifyReceiverDepth = false;
+    this.bilateralSample = false;
+    this.packedDepthRG8 = false;
+    this.packedNormalOct8 = false;
+    this.packedHDRReinhard = false;
+    this.maxRoughness = 0.6;
+  }
+}
 
 /**
  * @internal
@@ -49,6 +73,8 @@ export class RenderContext {
   flipProjection: boolean | null = false;
   /** @internal */
   _onlyShadowCaster: boolean = false;
+  /** @internal */
+  readonly _ssrState: RenderContextSSRState = new RenderContextSSRState();
   viewMatrix: Matrix;
   projectionMatrix: Matrix;
   viewProjectionMatrix: Matrix;
@@ -87,31 +113,10 @@ export class RenderContext {
     shaderData.setVector4(RenderContext._cameraProjectionProperty, projectionParams);
   }
 
-  setRenderTarget(
-    destination: RenderTarget | null,
-    viewport: Vector4,
-    mipLevel?: number,
-    faceIndex?: TextureCubeFace,
-    colorLoadAction = RenderBufferLoadAction.Load,
-    colorStoreAction = RenderBufferStoreAction.Store,
-    depthLoadAction = RenderBufferLoadAction.Load,
-    depthStoreAction = RenderBufferStoreAction.Store,
-    label?: string
-  ) {
+  setRenderTarget(destination: RenderTarget | null, viewport: Vector4, mipLevel?: number, faceIndex?: TextureCubeFace) {
     const engine = this.camera.engine;
     const rhi = engine._hardwareRenderer;
-    rhi.activeRenderTarget(
-      destination,
-      viewport,
-      this.flipProjection,
-      mipLevel,
-      faceIndex,
-      colorLoadAction,
-      colorStoreAction,
-      depthLoadAction,
-      depthStoreAction,
-      label
-    );
+    rhi.activeRenderTarget(destination, viewport, this.flipProjection, mipLevel, faceIndex);
 
     if (destination) {
       engine._macroCollection.disable(Engine._outputSRGBCorrectMacro);
@@ -120,8 +125,57 @@ export class RenderContext {
     }
   }
 
+  beginRenderPass(descriptor: RenderPassDescriptor): void {
+    const engine = this.camera.engine;
+    const rhi = engine._hardwareRenderer;
+    this.flipProjection =
+      descriptor.faceIndex !== undefined
+        ? descriptor.isFlipProjection
+        : descriptor.isFlipProjection && rhi.backend === "webgl2";
+
+    // WebGL gl.clear() is masked by current color/depth/stencil write masks; reset cached masks on core's RenderState before clearing.
+    if (rhi.backend === "webgl2") {
+      const gl = (rhi as unknown as { gl?: WebGL2RenderingContext }).gl;
+      if (gl) {
+        const {
+          blendState: { targetBlendState },
+          depthState,
+          stencilState
+        } = engine._lastRenderState;
+        if (
+          descriptor.colorLoadAction !== RenderPassLoadAction.Load &&
+          targetBlendState.colorWriteMask !== ColorWriteMask.All
+        ) {
+          gl.colorMask(true, true, true, true);
+          targetBlendState.colorWriteMask = ColorWriteMask.All;
+        }
+        if (descriptor.depthLoadAction !== RenderPassLoadAction.Load && depthState.writeEnabled !== true) {
+          gl.depthMask(true);
+          depthState.writeEnabled = true;
+        }
+        if (descriptor.stencilLoadAction !== RenderPassLoadAction.Load && stencilState.writeMask !== 0xff) {
+          gl.stencilMask(0xff);
+          stencilState.writeMask = 0xff;
+        }
+      }
+    }
+
+    rhi.beginRenderPass(descriptor);
+
+    if (descriptor.renderTarget) {
+      engine._macroCollection.disable(Engine._outputSRGBCorrectMacro);
+    } else {
+      engine._macroCollection.enable(Engine._outputSRGBCorrectMacro);
+    }
+  }
+
+  endRenderPass(): void {
+    this.camera.engine._hardwareRenderer.endRenderPass();
+  }
+
   garbageCollection(): void {
     this.camera = null!;
+    this._ssrState.reset();
   }
 }
 

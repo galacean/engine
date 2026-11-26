@@ -2,6 +2,7 @@ import { Color, SphericalHarmonics3 } from "@galacean/engine-math";
 import { ReferResource } from "../asset/ReferResource";
 import { Engine } from "../Engine";
 import { Scene } from "../Scene";
+import { Buffer } from "../graphic/Buffer";
 import { ShaderData } from "../shader";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
@@ -12,8 +13,13 @@ import { DiffuseMode } from "./enums/DiffuseMode";
  * Ambient light.
  */
 export class AmbientLight extends ReferResource {
+  /** GPU-authored pre-scaled SH used while realtime IBL owns the diffuse environment. @internal */
+  _realtimeSphericalHarmonicsBuffer: Buffer | null = null;
+
   private static _shMacro: ShaderMacro = ShaderMacro.getByName("SCENE_USE_SH");
+  private static _realtimeSHMacro: ShaderMacro = ShaderMacro.getByName("SCENE_USE_REALTIME_SH");
   private static _specularMacro: ShaderMacro = ShaderMacro.getByName("SCENE_USE_SPECULAR_ENV");
+  private static _specularBlendMacro: ShaderMacro = ShaderMacro.getByName("SCENE_USE_SPECULAR_ENV_BLEND");
 
   private static _diffuseColorProperty: ShaderProperty = ShaderProperty.getByName("scene_EnvMapLight.diffuse");
   private static _diffuseSHProperty: ShaderProperty = ShaderProperty.getByName("scene_EnvSH");
@@ -21,16 +27,26 @@ export class AmbientLight extends ReferResource {
     "scene_EnvMapLight.diffuseIntensity"
   );
   private static _specularTextureProperty: ShaderProperty = ShaderProperty.getByName("scene_EnvSpecularSampler");
+  private static _secondarySpecularTextureProperty: ShaderProperty =
+    ShaderProperty.getByName("scene_EnvSpecularSampler2");
   private static _specularIntensityProperty: ShaderProperty = ShaderProperty.getByName(
     "scene_EnvMapLight.specularIntensity"
   );
   private static _mipLevelProperty: ShaderProperty = ShaderProperty.getByName("scene_EnvMapLight.mipMapLevel");
+  private static _secondaryMipLevelProperty: ShaderProperty = ShaderProperty.getByName(
+    "scene_EnvMapLight.mipMapLevel2"
+  );
+  private static _specularTextureBlendProperty: ShaderProperty = ShaderProperty.getByName(
+    "scene_EnvMapLight.specularTextureBlend"
+  );
 
   private _diffuseSphericalHarmonics: SphericalHarmonics3;
   private _diffuseSolidColor: Color = new Color(0.03696758874771872, 0.0421494543549785, 0.05455383078270364);
   private _diffuseIntensity: number = 1.0;
-  private _specularTexture: TextureCube;
+  private _specularTexture: TextureCube | null = null;
+  private _secondarySpecularTexture: TextureCube | null = null;
   private _specularIntensity: number = 1.0;
+  private _specularTextureBlend: number = 0;
   private _diffuseMode: DiffuseMode = DiffuseMode.SolidColor;
   private _shArray: Float32Array = new Float32Array(27);
   private _scenes: Scene[] = [];
@@ -74,6 +90,7 @@ export class AmbientLight extends ReferResource {
   }
 
   set diffuseSphericalHarmonics(value: SphericalHarmonics3) {
+    this._setRealtimeSphericalHarmonicsBuffer(null);
     this._diffuseSphericalHarmonics = value;
     if (value) {
       this._preComputeSH(value, this._shArray);
@@ -103,16 +120,44 @@ export class AmbientLight extends ReferResource {
   /**
    * Specular reflection texture.
    */
-  get specularTexture(): TextureCube {
+  get specularTexture(): TextureCube | null {
     return this._specularTexture;
   }
 
-  set specularTexture(value: TextureCube) {
-    this._specularTexture = value;
+  set specularTexture(value: TextureCube | null) {
+    if (this._specularTexture !== value) {
+      this._replaceTextureReference(this._specularTexture, value);
+      this._specularTexture = value;
+      this._updateSceneSpecularTextures();
+    }
+  }
 
-    const scenes = this._scenes;
-    for (let i = 0, n = scenes.length; i < n; i++) {
-      this._setSpecularTexture(scenes[i].shaderData);
+  /**
+   * Optional second specular environment used for GPU-side environment blending.
+   */
+  get secondarySpecularTexture(): TextureCube | null {
+    return this._secondarySpecularTexture;
+  }
+
+  set secondarySpecularTexture(value: TextureCube | null) {
+    if (this._secondarySpecularTexture !== value) {
+      this._replaceTextureReference(this._secondarySpecularTexture, value);
+      this._secondarySpecularTexture = value;
+      this._updateSceneSpecularTextures();
+    }
+  }
+
+  /**
+   * Blend weight from {@link specularTexture} to {@link secondarySpecularTexture}.
+   */
+  get specularTextureBlend(): number {
+    return this._specularTextureBlend;
+  }
+
+  set specularTextureBlend(value: number) {
+    this._specularTextureBlend = Math.max(0, Math.min(1, value));
+    for (let i = 0, n = this._scenes.length; i < n; i++) {
+      this._scenes[i].shaderData.setFloat(AmbientLight._specularTextureBlendProperty, this._specularTextureBlend);
     }
   }
 
@@ -141,9 +186,11 @@ export class AmbientLight extends ReferResource {
     shaderData.setColor(AmbientLight._diffuseColorProperty, this._diffuseSolidColor);
     shaderData.setFloat(AmbientLight._diffuseIntensityProperty, this._diffuseIntensity);
     shaderData.setFloat(AmbientLight._specularIntensityProperty, this._specularIntensity);
+    shaderData.setFloat(AmbientLight._specularTextureBlendProperty, this._specularTextureBlend);
     shaderData.setFloatArray(AmbientLight._diffuseSHProperty, this._shArray);
 
     this._setDiffuseMode(shaderData);
+    this._setRealtimeSphericalHarmonicsMode(shaderData);
     this._setSpecularTexture(shaderData);
   }
 
@@ -151,17 +198,56 @@ export class AmbientLight extends ReferResource {
    * @internal
    */
   _removeFromScene(scene: Scene): void {
-    this._addReferCount(-1);
+    if (this._destroyed) return;
     const scenes = this._scenes;
     const index = scenes.indexOf(scene);
+    if (index === -1) return;
+    this._addReferCount(-1);
     scenes.splice(index, 1);
     const shaderData = scene.shaderData;
-    shaderData.setTexture(AmbientLight._specularTextureProperty, null);
-    shaderData.disableMacro(AmbientLight._specularMacro);
+    this._clearSpecularTextures(shaderData);
+    shaderData.disableMacro(AmbientLight._realtimeSHMacro);
+  }
+
+  /** @internal */
+  override _addReferCount(value: number): void {
+    super._addReferCount(value);
+    this._specularTexture?._addReferCount(value);
+    this._secondarySpecularTexture?._addReferCount(value);
   }
 
   constructor(engine: Engine) {
     super(engine);
+  }
+
+  protected override _onDestroy(): void {
+    super._onDestroy();
+    for (const scene of this._scenes) {
+      this._clearSpecularTextures(scene.shaderData);
+      scene.shaderData.disableMacro(AmbientLight._realtimeSHMacro);
+    }
+    this._scenes.length = 0;
+    this._specularTexture = null;
+    this._secondarySpecularTexture = null;
+    this._realtimeSphericalHarmonicsBuffer = null;
+  }
+
+  /** Installs or clears the GPU-authored realtime SH override. @internal */
+  _setRealtimeSphericalHarmonicsBuffer(buffer: Buffer | null): void {
+    const wasEnabled = this._realtimeSphericalHarmonicsBuffer !== null;
+    const isEnabled = buffer !== null;
+    this._realtimeSphericalHarmonicsBuffer = buffer;
+    if (wasEnabled !== isEnabled) {
+      const scenes = this._scenes;
+      for (let i = 0, n = scenes.length; i < n; i++) {
+        this._setRealtimeSphericalHarmonicsMode(scenes[i].shaderData);
+      }
+    }
+  }
+
+  /** Returns the CPU-authored pre-scaled SH fallback used to seed realtime GPU blending. @internal */
+  _getDiffuseSphericalHarmonicsData(): Float32Array {
+    return this._shArray;
   }
 
   private _setDiffuseMode(sceneShaderData: ShaderData): void {
@@ -172,13 +258,53 @@ export class AmbientLight extends ReferResource {
     }
   }
 
+  private _setRealtimeSphericalHarmonicsMode(sceneShaderData: ShaderData): void {
+    if (this._realtimeSphericalHarmonicsBuffer) {
+      sceneShaderData.enableMacro(AmbientLight._realtimeSHMacro);
+    } else {
+      sceneShaderData.disableMacro(AmbientLight._realtimeSHMacro);
+    }
+  }
+
+  private _replaceTextureReference(previous: TextureCube | null, next: TextureCube | null): void {
+    const refCount = this._getReferCount();
+    if (refCount > 0) {
+      previous?._addReferCount(-refCount);
+      next?._addReferCount(refCount);
+    }
+  }
+
+  private _updateSceneSpecularTextures(): void {
+    for (const scene of this._scenes) {
+      this._setSpecularTexture(scene.shaderData);
+    }
+  }
+
+  private _clearSpecularTextures(sceneShaderData: ShaderData): void {
+    sceneShaderData.setTexture(AmbientLight._specularTextureProperty, null);
+    sceneShaderData.setTexture(AmbientLight._secondarySpecularTextureProperty, null);
+    sceneShaderData.disableMacro(AmbientLight._specularMacro);
+    sceneShaderData.disableMacro(AmbientLight._specularBlendMacro);
+  }
+
   private _setSpecularTexture(sceneShaderData: ShaderData): void {
     if (this._specularTexture) {
       sceneShaderData.setTexture(AmbientLight._specularTextureProperty, this._specularTexture);
       sceneShaderData.setFloat(AmbientLight._mipLevelProperty, this._specularTexture.mipmapCount - 1);
       sceneShaderData.enableMacro(AmbientLight._specularMacro);
+      if (this._secondarySpecularTexture) {
+        sceneShaderData.setTexture(AmbientLight._secondarySpecularTextureProperty, this._secondarySpecularTexture);
+        sceneShaderData.setFloat(
+          AmbientLight._secondaryMipLevelProperty,
+          this._secondarySpecularTexture.mipmapCount - 1
+        );
+        sceneShaderData.enableMacro(AmbientLight._specularBlendMacro);
+      } else {
+        sceneShaderData.setTexture(AmbientLight._secondarySpecularTextureProperty, null);
+        sceneShaderData.disableMacro(AmbientLight._specularBlendMacro);
+      }
     } else {
-      sceneShaderData.disableMacro(AmbientLight._specularMacro);
+      this._clearSpecularTextures(sceneShaderData);
     }
   }
 

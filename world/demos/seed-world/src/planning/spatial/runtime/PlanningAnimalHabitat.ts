@@ -4,6 +4,7 @@ import { PlanningAnimalSurface, type PlanningAnimalSurfaceData } from "./Plannin
 import type { AnimalPopulationPosition, AnimalPopulationDistribution } from "@galacean/engine-animals/gameplay/animal/AnimalPopulation";
 import type { IslandPlan, PlanPoint } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
 import { planningWhiteboxes } from "@galacean/engine-world-planning/semantic-study/PlanningWhiteboxes";
+import { rockFormationFittedHeights } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/Variants";
 
 export type PlanningAnimalMedium = "ground" | "air" | "water";
 
@@ -88,6 +89,18 @@ interface Solid extends PlanningAnimalBounds {
   seen: number;
 }
 
+/** Dynamic runtime obstacle OBB (e.g. streamed companion stone meeting `RockCollisionPolicy`). */
+export interface PlanningAnimalDynamicObstacle {
+  readonly id: string;
+  readonly x: number;
+  readonly z: number;
+  readonly yaw: number;
+  readonly width: number;
+  readonly depth: number;
+  readonly bottom: number;
+  readonly top: number;
+}
+
 /** Fixed horizontal range in world metres, centered on the published player spawn. */
 export interface PlanningAnimalRange {
   distribution?: AnimalPopulationDistribution;
@@ -103,6 +116,7 @@ export class PlanningAnimalHabitat {
   readonly origin: Readonly<PlanPoint>;
   readonly surface: PlanningAnimalSurface;
   private readonly solids = new SpatialBins<Solid>();
+  private readonly dynamicSolidGroups = new Map<string, Solid[]>();
   private solidCount = 0;
   private readonly range: Readonly<PlanningAnimalRange>;
   private waterCandidates?: PlanPoint[];
@@ -211,6 +225,7 @@ export class PlanningAnimalHabitat {
       }
     }
     const ground = (p: PlanPoint) => navigation.sampleHeightInterpolated(p.x, p.z) ?? 0;
+    const fittedRockHeights = rockFormationFittedHeights(plan);
     for (const part of planningWhiteboxes(plan, ground)) {
       // Decks and approaches are navigation support; treating their thickness as an obstacle blocks sloped decks.
       if (part.layer === "bridge") continue;
@@ -223,6 +238,13 @@ export class PlanningAnimalHabitat {
         const extentX = Math.abs(cos) * halfX + Math.abs(sin) * halfZ;
         const extentZ = Math.abs(sin) * halfX + Math.abs(cos) * halfZ;
         const bottom = box.elevation ?? ground(box.center);
+        const fittedHeight =
+          part.layer === "rock"
+            ? fittedRockHeights?.rockBoxes.get(box.id)
+            : part.layer === "landscape-rock"
+              ? fittedRockHeights?.landscapes.get(box.id)
+              : undefined;
+        const heightM = fittedHeight ?? box.sizeY;
         const solid: Solid = {
           // Match publication dependency identities. Unrelated part edits must not
           // renumber obstacles already visited by a suspended search.
@@ -234,7 +256,7 @@ export class PlanningAnimalHabitat {
           halfX,
           halfZ,
           bottom,
-          top: bottom + box.sizeY,
+          top: bottom + heightM,
           seen: 0,
           minX: box.center.x - extentX,
           maxX: box.center.x + extentX,
@@ -245,6 +267,56 @@ export class PlanningAnimalHabitat {
         this.solids.add(solid);
       }
     }
+  }
+
+  /** Replaces or clears one dynamic obstacle group (e.g. a streamed companion-stone cell). */
+  setDynamicSolids(groupKey: string, obstacles?: readonly PlanningAnimalDynamicObstacle[]): void {
+    const previous = this.dynamicSolidGroups.get(groupKey);
+    if (previous) {
+      for (const box of previous) this.solids.remove(box);
+      this.solidCount -= previous.length;
+      this.dynamicSolidGroups.delete(groupKey);
+    }
+    if (!obstacles?.length) return;
+    const added: Solid[] = [];
+    for (let i = 0; i < obstacles.length; i++) {
+      const obs = obstacles[i]!;
+      const cos = Math.cos(obs.yaw),
+        sin = Math.sin(obs.yaw);
+      const halfX = obs.width / 2,
+        halfZ = obs.depth / 2;
+      const extentX = Math.abs(cos) * halfX + Math.abs(sin) * halfZ;
+      const extentZ = Math.abs(sin) * halfX + Math.abs(cos) * halfZ;
+      const solid: Solid = {
+        id: `dynamic:${groupKey}:${obs.id}`,
+        x: obs.x,
+        z: obs.z,
+        cos,
+        sin,
+        halfX,
+        halfZ,
+        bottom: obs.bottom,
+        top: obs.top,
+        seen: 0,
+        minX: obs.x - extentX,
+        maxX: obs.x + extentX,
+        minZ: obs.z - extentZ,
+        maxZ: obs.z + extentZ
+      };
+      this.solids.add(solid);
+      added.push(solid);
+    }
+    this.solidCount += added.length;
+    this.dynamicSolidGroups.set(groupKey, added);
+  }
+
+  /** Clears all dynamic obstacle groups while retaining static plan solids. */
+  clearDynamicSolids(): void {
+    for (const previous of this.dynamicSolidGroups.values()) {
+      for (const box of previous) this.solids.remove(box);
+      this.solidCount -= previous.length;
+    }
+    this.dynamicSolidGroups.clear();
   }
 
   /** Published convex map extent; independent of terrain samples and observer position. */
@@ -381,7 +453,8 @@ export class PlanningAnimalHabitat {
     ) return false;
     if (!this.containsFlightXY(from.x, from.z, radius) || !this.containsFlightXY(to.x, to.z, radius) ||
         this.firstSolidXY(from.x, from.z, to.x, to.z, radius, Math.min(from.y, to.y), Math.max(from.y, to.y) + height)) return false;
-    const steps = Math.max(1, Math.ceil(Math.hypot(to.x - from.x, to.z - from.z) / 0.5));
+    const dx = to.x - from.x, dz = to.z - from.z;
+    const steps = Math.max(1, Math.ceil(Math.sqrt(dx * dx + dz * dz) / 0.5));
     for (let i = 0; i <= steps; i++) {
       const t = i / steps, x = from.x + (to.x - from.x) * t, z = from.z + (to.z - from.z) * t;
       const ground = this.navigation.sampleHeightInterpolated(x, z);
@@ -392,9 +465,13 @@ export class PlanningAnimalHabitat {
 
   private containsFlightXY(x: number, z: number, radius: number): boolean {
     const area = this.range.distribution;
-    return area ? x - radius >= area.minX && x + radius <= area.maxX &&
-      z - radius >= area.minZ && z + radius <= area.maxZ :
-      Math.hypot(x - this.origin.x, z - this.origin.z) + radius <= this.range.roamRadius;
+    if (area) {
+      return x - radius >= area.minX && x + radius <= area.maxX &&
+        z - radius >= area.minZ && z + radius <= area.maxZ;
+    }
+    const ox = x - this.origin.x, oz = z - this.origin.z;
+    const limit = this.range.roamRadius - radius;
+    return limit >= 0 && ox * ox + oz * oz <= limit * limit;
   }
 
   private firstSolid(a: AnimalRoutePoint, b: AnimalRoutePoint, radius: number, bottom: number, top: number): Solid | undefined {
@@ -668,6 +745,22 @@ class SpatialBins<T extends PlanningAnimalBounds & { seen: number }> {
           bin = this.bins.get(key);
         if (bin) bin.push(item);
         else this.bins.set(key, [item]);
+      }
+    }
+  }
+
+  remove(item: T): void {
+    this.rows = undefined;
+    for (let x = Math.floor(item.minX / this.cellM); x <= Math.floor(item.maxX / this.cellM); x++) {
+      for (let z = Math.floor(item.minZ / this.cellM); z <= Math.floor(item.maxZ / this.cellM); z++) {
+        const key = `${x}:${z}`,
+          bin = this.bins.get(key);
+        if (!bin) continue;
+        const idx = bin.indexOf(item);
+        if (idx >= 0) {
+          bin.splice(idx, 1);
+          if (!bin.length) this.bins.delete(key);
+        }
       }
     }
   }

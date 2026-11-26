@@ -21,7 +21,7 @@ import { constructionPlasterGLSL, constructionPlasterFinishGLSL } from "./Constr
 import {
   destroyOwnedModelMesh,
   uploadRestorableModelMesh
-} from "@galacean/engine-modify/rendering/RestorableResources";
+} from "@galacean/engine-project/rendering/RestorableResources";
 import {
   masonryAppearance,
   masonryTintGLSL,
@@ -62,12 +62,12 @@ import {
   addV2Surface,
   destroyV2ViewResources,
   type V2ViewResources
-} from "@galacean/engine-modify/rendering/V2ViewGeometry";
+} from "@galacean/engine-project/rendering/V2ViewGeometry";
 import {
   SeedWorldArrayPickBatch,
   type SeedWorldPickBatch,
   type SeedWorldPickVisitor
-} from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+} from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 import { plasterPalette } from "./ConstructionPlasterPalette";
 import {
   type ConstructionPreview,

@@ -21,7 +21,7 @@ import {
 } from "@galacean/engine";
 import { GridUnitKernel, type GridKernelInput } from "../render/GridUnitKernel";
 import type { ConstructionTerrainGrid } from "./TerrainField";
-import { restoreResource } from "@galacean/engine-modify/rendering/RestorableResources";
+import { restoreResource } from "@galacean/engine-project/rendering/RestorableResources";
 
 export interface BrickPackFeedbackInput {
   kind: "pack";

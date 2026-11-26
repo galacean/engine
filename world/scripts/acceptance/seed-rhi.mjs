@@ -4,7 +4,7 @@ import path from "node:path";
 import { chromium } from "@playwright/test";
 
 const origin = process.env.SEED_BASE_URL ?? "http://127.0.0.1:5193";
-const templates = ["original", "sakura-pearl", "emerald-forest", "low-poly", "titan-wasteland"];
+const templates = ["original", "sakura-pearl", "emerald-forest", "low-poly", "titan-wasteland", "oil-paint"];
 const evidenceDir = process.env.SEED_EVIDENCE_DIR;
 const cases = ["webgl2", "webgpu"].flatMap(rhi => templates.map(template => ({ rhi, template, expected: rhi })));
 cases.push(
@@ -218,8 +218,8 @@ async function checkCase(browser, { rhi, template, expected, unavailable }) {
       assert.ok(storm.rain > day.rain && storm.snow === 0, JSON.stringify(storm));
       assert.ok(clear.rain === 0 && clear.snow === 0, JSON.stringify(clear));
       await page.waitForFunction(() => document.querySelector("canvas[data-status]").dataset.photoPreparation === "ready");
-      // At the fixed 1280 × 800 viewport this point is inside the photo button in the bottom-right HUD.
-      await page.mouse.click(box.x + box.width - 53, box.y + box.height - 50);
+      // At the fixed 1280 × 800 viewport (hudScale = 800/720), the markup/photo button sits directly above the Voice Orb.
+      await page.mouse.click(box.x + box.width - 211, box.y + box.height - 324);
       await page.waitForFunction(() => document.querySelector("canvas[data-status]").dataset.photoPhase === "editing");
       result.photo = "editing";
     }

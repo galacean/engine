@@ -26,7 +26,7 @@ import {
   addV2Surface,
   destroyV2ViewResources,
   type V2ViewResources
-} from "@galacean/engine-modify/rendering/V2ViewGeometry";
+} from "@galacean/engine-project/rendering/V2ViewGeometry";
 import { createWorldEngine } from "../rendering/createWorldEngine";
 import { OrbitControl } from "@galacean/engine-toolkit-controls/dist/es/OrbitControl.js";
 import { PLANNING_CAMERA_METRICS } from "../landforms/PlanningLandform";

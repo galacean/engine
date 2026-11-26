@@ -34,6 +34,31 @@ export function getMasonryResidencyBudget() {
   return DEFAULT_MASONRY_RESIDENCY_BUDGET;
 }
 
+/**
+ * Resolve DPR-normalized viewport height for screen-space masonry LOD selection so high-DPR
+ * (2×/3×) mobile displays cap effective DPR scaling at 1.25× CSS pixels — avoiding both 2×–3×
+ * physical-pixel LOD0/LOD1 over-promotion and premature LOD2 proxy popping on nearby village
+ * streets. Preserves raw physical height on 1× desktop, sub-1× render scale, and headless mocks.
+ */
+const MAX_MASONRY_LOD_EFFECTIVE_DPR = 1.25;
+
+export function resolveMasonryLodPixelHeight(
+  canvas: { height: number; _webCanvas?: { clientHeight?: number } } | undefined,
+  viewportFraction: number,
+  fallbackPhysicalHeight?: number
+): number {
+  const physicalHeight =
+    fallbackPhysicalHeight !== undefined ? fallbackPhysicalHeight : (canvas?.height ?? 0) * viewportFraction;
+  const clientHeight = canvas?._webCanvas?.clientHeight;
+  if (typeof clientHeight === "number" && clientHeight > 0 && canvas && canvas.height > 0) {
+    const effectiveDpr = canvas.height / clientHeight;
+    if (effectiveDpr > MAX_MASONRY_LOD_EFFECTIVE_DPR) {
+      return physicalHeight / (effectiveDpr / MAX_MASONRY_LOD_EFFECTIVE_DPR);
+    }
+  }
+  return physicalHeight;
+}
+
 export interface MasonryLodTuning {
   enterFullUnitPx: number;
   leaveFullUnitPx: number;

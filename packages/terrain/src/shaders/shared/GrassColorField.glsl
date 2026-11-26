@@ -118,16 +118,19 @@ vec2 grassColorFieldMirrorUv(vec2 uv) {
   return vec2(1.0) - abs(mod(uv, vec2(2.0)) - vec2(1.0));
 }
 
-vec2 grassColorFieldDetailUv(vec2 worldXZ) {
+vec2 grassColorFieldDetailCosSin() {
   #ifdef GRASS_COLOR_FIELD_PREPARED
-    vec2 cosineSine = GRASS_FIELD_PREPARED.xy;
+    return GRASS_FIELD_PREPARED.xy;
   #else
-    vec2 cosineSine = vec2(cos(GRASS_COLOR_FIELD_ANGLE), sin(GRASS_COLOR_FIELD_ANGLE));
+    return vec2(cos(GRASS_COLOR_FIELD_ANGLE), sin(GRASS_COLOR_FIELD_ANGLE));
   #endif
+}
+
+vec2 grassColorFieldDetailUv(vec2 worldXZ) {
   return grassColorFieldMirrorUv(
     grassColorFieldRotateUv(
       worldXZ * GRASS_COLOR_FIELD_SCALE + GRASS_COLOR_FIELD_DETAIL_OFFSET,
-      cosineSine
+      grassColorFieldDetailCosSin()
     )
   );
 }
@@ -168,23 +171,58 @@ float sampleGrassColorField(vec2 worldXZ) {
   return sampleGrassColorFieldAtLod(worldXZ, grassColorFieldSoftnessLod());
 }
 
+float finishGrassVistaField(float field) {
+  #ifdef GRASS_VISTA_SHARED_SOFTNESS
+    field = clamp((field - GRASS_VISTA_SHARED_MEAN) * max(GRASS_VISTA_SHARED_CONTRAST, 1.0) + GRASS_VISTA_SHARED_MEAN, 0.0, 1.0);
+  #endif
+  return decodeGrassColorField(field);
+}
+
+#ifdef GRASS_VISTA_SHARED_SOFTNESS
+  float sampleGrassVistaColorFieldSoft(vec2 worldXZ) {
+    float resolution = float(textureSize(GRASS_COLOR_FIELD_TEXTURE, 0).x);
+    float footprint = max(GRASS_VISTA_SHARED_SOFTNESS * GRASS_VISTA_SHARED_SCALE * resolution, 1.0);
+    float lod = min(log2(footprint), grassColorFieldMaximumLod());
+    return finishGrassVistaField(textureLod(GRASS_COLOR_FIELD_TEXTURE, grassColorFieldVistaUv(worldXZ), lod).r);
+  }
+#endif
+
 float sampleGrassVistaColorField(vec2 worldXZ) {
   if (GRASS_COLOR_FIELD_ENABLED < 0.5) return 0.5;
   #ifdef GRASS_VISTA_SHARED_SOFTNESS
-    float field;
-    if (GRASS_VISTA_SHARED_SOFTNESS <= 0.0) {
-      field = texture2D(GRASS_COLOR_FIELD_TEXTURE, grassColorFieldVistaUv(worldXZ)).r;
-    } else {
-      float resolution = float(textureSize(GRASS_COLOR_FIELD_TEXTURE, 0).x);
-      float footprint = max(GRASS_VISTA_SHARED_SOFTNESS * GRASS_VISTA_SHARED_SCALE * resolution, 1.0);
-      float lod = min(log2(footprint), grassColorFieldMaximumLod());
-      field = textureLod(GRASS_COLOR_FIELD_TEXTURE, grassColorFieldVistaUv(worldXZ), lod).r;
-    }
-    field = clamp((field - GRASS_VISTA_SHARED_MEAN) * max(GRASS_VISTA_SHARED_CONTRAST, 1.0) + GRASS_VISTA_SHARED_MEAN, 0.0, 1.0);
+    if (GRASS_VISTA_SHARED_SOFTNESS > 0.0) return sampleGrassVistaColorFieldSoft(worldXZ);
+    return finishGrassVistaField(texture2D(GRASS_COLOR_FIELD_TEXTURE, grassColorFieldVistaUv(worldXZ)).r);
   #else
-    float field = texture(GRASS_COLOR_FIELD_TEXTURE, grassColorFieldVistaUv(worldXZ)).g;
+    return finishGrassVistaField(texture(GRASS_COLOR_FIELD_TEXTURE, grassColorFieldVistaUv(worldXZ)).g);
   #endif
-  return decodeGrassColorField(field);
+}
+
+float sampleGrassColorFieldGrad(vec2 worldXZ, vec2 posDx, vec2 posDy) {
+  if (GRASS_COLOR_FIELD_ENABLED < 0.5) return 0.5;
+  if (GRASS_COLOR_FIELD_PARAMS.x > 0.0) return sampleGrassColorFieldAtLod(worldXZ, grassColorFieldSoftnessLod());
+  vec2 cs = grassColorFieldDetailCosSin();
+  return decodeGrassColorField(
+    textureGrad(
+      GRASS_COLOR_FIELD_TEXTURE,
+      grassColorFieldDetailUv(worldXZ),
+      grassColorFieldRotateUv(posDx * GRASS_COLOR_FIELD_SCALE, cs),
+      grassColorFieldRotateUv(posDy * GRASS_COLOR_FIELD_SCALE, cs)
+    ).r
+  );
+}
+
+float sampleGrassVistaColorFieldGrad(vec2 worldXZ, vec2 posDx, vec2 posDy) {
+  if (GRASS_COLOR_FIELD_ENABLED < 0.5) return 0.5;
+  #ifdef GRASS_VISTA_SHARED_SOFTNESS
+    if (GRASS_VISTA_SHARED_SOFTNESS > 0.0) return sampleGrassVistaColorFieldSoft(worldXZ);
+    return finishGrassVistaField(
+      textureGrad(GRASS_COLOR_FIELD_TEXTURE, grassColorFieldVistaUv(worldXZ), posDx * GRASS_VISTA_SHARED_SCALE, posDy * GRASS_VISTA_SHARED_SCALE).r
+    );
+  #else
+    return finishGrassVistaField(
+      textureGrad(GRASS_COLOR_FIELD_TEXTURE, grassColorFieldVistaUv(worldXZ), posDx * GRASS_COLOR_FIELD_VISTA_SCALE, posDy * GRASS_COLOR_FIELD_VISTA_SCALE).g
+    );
+  #endif
 }
 
 float grassColorFieldVistaBlendWeight(vec3 worldPosition) {

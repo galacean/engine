@@ -1,8 +1,10 @@
 import type { IslandPlan, PlanPoint } from "../semantic-study/IslandPlanModel";
+import { resolvePlanRockCollision } from "./RockCollisionPolicy";
+import { rockObbId, rockVariantPools } from "./RockVariantFit";
 import { createPlanningRingQuery } from "../semantic-study/WorldPlanningTerrain";
 import { buildWorldTemplateGeometry, templateNodeFootprint } from "./WorldTemplateGeometry";
 import { worldTemplate } from "./WorldTemplateCatalog";
-import { WORLD_TEMPLATE_ART } from "./WorldTemplateArtDirection";
+import { templateRockCollisionPolicy, WORLD_TEMPLATE_ART } from "./WorldTemplateArtDirection";
 import { poiTerritories } from "./ecology/PoiTerritories";
 import type { SubjectViewPose } from "./PlanningSubjectView";
 import { spatialCompositionParameters } from "./SpatialCompositionParameters";
@@ -203,7 +205,10 @@ export function planWorldTemplateSite(
 export function publishTemplateStones(plan: IslandPlan, ground: (point: PlanPoint) => number): void {
   const id = plan.parameters.worldTemplate?.id;
   const art = id ? WORLD_TEMPLATE_ART[id] : undefined;
-  if (!art?.stones?.length) return;
+  const resolvedStones = art?.resolveStones ? art.resolveStones(plan.parameters.seed) : art?.stones;
+  if (!resolvedStones?.length) return;
+  const collisionPolicy = templateRockCollisionPolicy(id);
+  const pools = collisionPolicy.minHeightM !== undefined ? rockVariantPools(plan) : undefined;
   const anchor = plan.worldTemplateSite?.center ?? {
     x: plan.parameters.width / 2,
     z: plan.parameters.depth / 2
@@ -214,7 +219,7 @@ export function publishTemplateStones(plan: IslandPlan, ground: (point: PlanPoin
   const retainedRocks = plan.rocks.filter((item) => !item.id.startsWith(cliffPrefix));
   const authoredStones: NonNullable<IslandPlan["landscapes"]> = [];
   const authoredCliffs: IslandPlan["rocks"] = [];
-  for (const stone of art.stones) {
+  for (const stone of resolvedStones) {
     const center = { x: anchor.x - stone.x, z: anchor.z + stone.z };
     const yaw = ((stone.yawDegrees ?? 0) * Math.PI) / 180;
     const c = Math.cos(yaw),
@@ -254,7 +259,20 @@ export function publishTemplateStones(plan: IslandPlan, ground: (point: PlanPoin
             sizeZ: stone.depth,
             elevation: baseHeight,
             yaw,
-            collision: stone.collision !== false,
+            ...(stone.collision !== undefined ? { collisionOverride: stone.collision } : {}),
+            collision: resolvePlanRockCollision(
+              plan,
+              {
+                id: rockObbId(rockId, rockId),
+                width: stone.width,
+                depth: stone.depth,
+                height: stone.height,
+                surfaceGrass: true
+              },
+              collisionPolicy,
+              stone.collision,
+              pools
+            ),
             occlusion: true
           }
         ]
@@ -276,7 +294,20 @@ export function publishTemplateStones(plan: IslandPlan, ground: (point: PlanPoin
         baseHeight,
         outline,
         collisionRadius: Math.hypot(hw, hd),
-        ...(stone.collision === false ? { collision: false as const } : {})
+        ...(stone.collision !== undefined ? { collisionOverride: stone.collision } : {}),
+        collision: resolvePlanRockCollision(
+          plan,
+          {
+            id: itemId,
+            width: stone.width,
+            depth: stone.depth,
+            height: stone.height,
+            surfaceGrass: false
+          },
+          collisionPolicy,
+          stone.collision,
+          pools
+        )
       });
     }
   }

@@ -17,7 +17,8 @@ import { ignoreClone } from "./clone/CloneDecorators";
 import type { ICloneHook } from "./clone/ICloneHook";
 import { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 import { Material } from "./material";
-import { ShaderMacro, ShaderProperty } from "./shader";
+import { ShaderMacro } from "./shader/ShaderMacro";
+import { ShaderProperty } from "./shader/ShaderProperty";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 
@@ -503,6 +504,7 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
   protected _update(context: RenderContext): void {
     const { layer } = this.entity;
     this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
+    this.scene!.environmentLighting._updateRendererProbeData(this.shaderData, this.entity.transform.worldPosition);
   }
 
   /**

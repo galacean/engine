@@ -6,13 +6,12 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
-import { engineModify } from "../../packages/modify/build/vite.mjs";
+import { workspaceEngine } from "../../packages/project/build/vite.mjs";
 import { buildingTranslator } from "./webgpu/building-translator.mjs";
 import { vertexES3, fragmentES3, textureES3, nativeBuilding } from "./webgpu/shader-stages.mjs";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const tools = process.argv[2] ?? process.env.SEED_WGSL_TOOLS;
-if (!tools) throw Error("Supply the glslang 16.6.0 and TWGSL directory as an argument or SEED_WGSL_TOOLS.");
 const load = createRequire(path.join(root, "packages/shader-compiler/package.json"));
 const { createWebGPUShaderCompiler, compileWebGPUShaderPass } = load("./dist/webgpu.main.js");
 const { ShaderPrecompiler } = load("./dist/precompile.main.js");
@@ -32,10 +31,10 @@ function exportShaders(compiler, server, scratch) {
   return Promise.all([
     modu("building/src/building/runtime/EngineShaderSource.ts"),
     modu("building/src/building/runtime/ConstructionSceneLighting.ts"),
-    modu("modify/.cache/webgpu/sources.ts"),
+    modu("shader/src/ShaderLibrary/index.ts"),
     modu("core/src/shader/WorldShaderInstructions.ts"),
     modu("shader-compiler/src/webgpu/WGSLBackend.ts"),
-    buildingTranslator(path.resolve(tools), scratch)
+    tools ? buildingTranslator(path.resolve(tools), scratch) : Promise.resolve(null)
   ]).then(
     ([
       { engineShaderSource },
@@ -45,7 +44,7 @@ function exportShaders(compiler, server, scratch) {
       { WGSLBackend },
       translator
     ]) => {
-      const buildingBackend = new WGSLBackend(translator);
+      const buildingBackend = translator ? new WGSLBackend(translator) : compiler;
       const includes = Object.fromEntries(shaderLibrary.map(({ path, source }) => [path, source]));
       includes["Masonry/SceneLighting.glsl"] = fs.readFileSync(
         path.join(root, "packages/building/src/building/runtime/ConstructionSceneLighting.glsl"),
@@ -85,6 +84,10 @@ function exportShaders(compiler, server, scratch) {
           fragmentShaderInstructions: productFragmentInstructions(data.name, pass.fragmentShaderInstructions)
         };
         if (data.name.startsWith("BuildingUnit/")) {
+          if (!translator && pass.wgsl?.vertex && pass.wgsl?.fragment) {
+            passes++;
+            return;
+          }
           if (
             source.fragmentShaderInstructions.some(
               ([op, text]) => op === 0 && text.includes("masonryResidentSceneLight")
@@ -214,7 +217,7 @@ createWebGPUShaderCompiler(fs.readFileSync(load.resolve("web-naga/web_naga_bg.wa
           root,
           cacheDir: path.join(scratch, "vite"),
           configFile: false,
-          plugins: [engineModify()],
+          plugins: [workspaceEngine()],
           server: { middlewareMode: true, hmr: false },
           optimizeDeps: { noDiscovery: true, entries: [] }
         })

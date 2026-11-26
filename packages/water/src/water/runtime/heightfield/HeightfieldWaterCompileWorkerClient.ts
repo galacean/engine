@@ -21,6 +21,7 @@ import type { HeightfieldWaterCompiledData } from "../../compiler/heightfield/He
 
 import { WaterBufferOwnership } from "../../compiler/shared/WaterBufferOwnership";
 import { preflightHeightfieldWaterDescriptorAllocation } from "../../compiler/heightfield/HeightfieldWaterValidator";
+import { createHeightfieldWaterCompileWorker } from "./HeightfieldWaterCompileWorkerFactory";
 import { HeightfieldWaterResource } from "./HeightfieldWaterResource";
 
 interface PendingCompile {
@@ -139,12 +140,7 @@ export class HeightfieldWaterCompileWorkerClient {
   private _nextRequestId = 1;
   private _disposed = false;
 
-  constructor(
-    createWorker: () => Worker = () =>
-      new Worker(new URL("../../compiler/heightfield/HeightfieldWaterCompileWorker.ts", import.meta.url), {
-        type: "module"
-      })
-  ) {
+  constructor(createWorker: () => Worker = createHeightfieldWaterCompileWorker) {
     this._createWorker = createWorker;
   }
 

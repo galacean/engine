@@ -76,7 +76,6 @@
     "@galacean/engine-ai-chat": "workspace:*",
     "@galacean/engine-farming": "workspace:*",
     "@galacean/engine-project": "workspace:*",
-    "@galacean/engine-modify": "workspace:*",
     "@galacean/engine-retrieval": "workspace:*",
     "@galacean/engine-rhi-webgl": "workspace:*",
     "@galacean/engine-rhi-webgpu": "workspace:*",

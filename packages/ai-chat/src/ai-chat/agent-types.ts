@@ -458,6 +458,7 @@ export type AgentContinuation = {
 
 export type AgentRunControl = {
   initialInputId?: string;
+  onAttachmentsAccepted?(inputId: string): void;
   continuation?: AgentContinuation;
   sessionTranscript?: import("./context-compaction").AgentContextTranscript;
   previousTurnFallbackMessage?: string;

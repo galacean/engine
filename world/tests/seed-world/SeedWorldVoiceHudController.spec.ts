@@ -139,14 +139,14 @@ describe("SeedWorldVoiceHudController lifecycle", () => {
     f.emit({ type: "task_started", taskId: "real", input: "原始需求", inputSource: "text" });
     expect(f.view.layout.setTranscript).toHaveBeenLastCalledWith("原始需求");
     f.emit({ type: "model_started", taskId: "real", step: 1 });
-    expect(f.view.layout.setTranscript).toHaveBeenLastCalledWith("正在分析请求");
+    expect(f.view.layout.setTranscript).toHaveBeenLastCalledWith("正在还原");
     f.emit({ type: "model_finished", taskId: "real", step: { step: 1,
       decision: { type: "execute", code: "return {}" },
       attempts: [{ attempt: 1, rawContent: "先检查天气，再核对时间。", error: null }] } });
     expect(f.view.layout.setTranscript).toHaveBeenLastCalledWith("先检查天气，再核对时间。");
     expect(f.view.layout.setTranscriptDetails).toHaveBeenLastCalledWith("原始需求\n\n先检查天气，再核对时间。");
     f.emit({ type: "model_started", taskId: "real", step: 2 });
-    expect(f.view.layout.setTranscript).toHaveBeenLastCalledWith("正在分析请求");
+    expect(f.view.layout.setTranscript).toHaveBeenLastCalledWith("正在还原");
     expect(f.view.layout.setTranscriptDetails).toHaveBeenLastCalledWith("原始需求\n\n先检查天气，再核对时间。");
     f.controller.destroy();
   });
@@ -315,11 +315,14 @@ describe("SeedWorldVoiceHudController lifecycle", () => {
     expect(() => debug.setContextCompactionBudget({ triggerTokens: 100 })).toThrow("destroyed");
     debug.destroy();
   });
-  it("accepts steering and followups while executing and exposes stop/continue controls", async () => {
+  it("accepts steering without showing a button while executing, then offers retry after stopping", async () => {
     const fixture = await createControllerFixture();
     fixture.session.running = true;
     fixture.session.state = "executing";
     fixture.emit({ type: "task_started", taskId: "original", input: "original", inputSource: "text" });
+    expect(fixture.view.controlButton.entity.isActive).toBe(false);
+    expect(fixture.view.controlButton.interactive).toBe(false);
+    expect(fixture.view.layout.setControlVisible).toHaveBeenLastCalledWith(false);
     await fixture.controller.submit("supplement");
     expect(fixture.runAgent).toHaveBeenLastCalledWith("supplement", expect.objectContaining({
       context: expect.objectContaining({ viewer_at_submission: { position: { x: 1, y: 2, z: 3 } } })
@@ -335,7 +338,7 @@ describe("SeedWorldVoiceHudController lifecycle", () => {
     fixture.session.canContinue = true;
     fixture.emit({ type: "session_state", state: "stopped", canContinue: true });
     expect(fixture.view.controlButton.interactive).toBe(true);
-    expect(fixture.view.controlIcon.sprite).toBe(fixture.view.resources.retrySprite);
+    expect(fixture.view.controlButton.entity.isActive).toBe(true);
     await fixture.controller.continue();
     expect(fixture.session.continue).toHaveBeenCalledOnce();
     fixture.controller.destroy();
@@ -346,9 +349,10 @@ describe("SeedWorldVoiceHudController lifecycle", () => {
     f.session.running = true;
     f.session.state = "executing";
     f.emit({ type: "task_started", taskId: "one", input: "one", inputSource: "text" });
-    const gesture = f.controller.beginTaskControlGesture()!;
+    expect(f.controller.beginTaskControlGesture()).toBeUndefined();
+    const dismiss = f.controller.beginTurnDismissGesture()!;
     expect(f.session.stop).not.toHaveBeenCalled();
-    gesture.dismiss();
+    dismiss();
     expect(f.session.stop).toHaveBeenCalledOnce();
     f.emit({ type: "session_state", state: "stopping", canContinue: false });
     expect(f.view.layout.setPanelVisible).toHaveBeenLastCalledWith(false, undefined);
@@ -362,8 +366,8 @@ describe("SeedWorldVoiceHudController lifecycle", () => {
     f.session.state = "executing";
     f.emit({ type: "task_started", taskId: "two", input: "two", inputSource: "text" });
     expect(f.view.layout.setPanelVisible).toHaveBeenLastCalledWith(true, undefined);
-    expect(f.view.controlButton.entity.isActive).toBe(true);
-    gesture.click(); // a stale release must not stop the new turn
+    expect(f.view.controlButton.entity.isActive).toBe(false);
+    dismiss(); // a stale release must not stop the new turn
     expect(f.session.stop).toHaveBeenCalledOnce();
     f.controller.destroy();
   });
@@ -677,12 +681,9 @@ async function createControllerFixture(realSession?: AIChatSession, activity?: S
   const view = {
     root: { isActive: true, destroy: vi.fn() },
     controlButton: { entity: { isActive: false }, interactive: false, cancelGesture: vi.fn() },
-    controlImage: { color: { set: vi.fn() } },
-    controlIcon: { sprite: undefined as unknown, color: { set: vi.fn() } },
     pendingLabel: { text: "", entity: { isActive: false } },
-    orbMaterial: { shaderData: { setFloat: vi.fn() } },
     layout,
-    resources: { destroy: vi.fn(), stopSprite: {}, retrySprite: {} }
+    resources: { destroy: vi.fn() }
   };
   const debugController = {
     enable: vi.fn(),
@@ -823,7 +824,7 @@ it("real Session stops preparing photos, restores the HUD on remount, and keeps 
   await f.controller.stop();
   expect(session.state).toBe("stopped"); expect(f.controller.busy).toBe(false);
   expect(f.view.layout.setTranscript).toHaveBeenLastCalledWith("任务已停止。");
-  expect(f.view.controlIcon.sprite).toBe(f.view.resources.retrySprite);
+  expect(f.view.controlButton.entity.isActive).toBe(true);
   f.controller.destroy();
   expect(session.state).toBe("stopped"); expect(release).not.toHaveBeenCalled();
   const restored = await createControllerFixture(session, f.activity);
@@ -887,7 +888,9 @@ it.each([
   const material = new Material({ resourceManager: {
     _addReferResource() {}, _deleteReferResource() {}, _deleteAsset() {}, _deleteContentRestorer() {}
   } } as any, { name: "hud-lifecycle", subShaders: [] } as any);
-  (f.view as any).orbMaterial = material;
+  f.view.layout.setTranscriptWorking.mockImplementation((working: boolean) => {
+    material.shaderData.setFloat("material_SeedWorldWorking", working ? 1 : 0);
+  });
   f.view.resources.destroy.mockImplementation(() => material.destroy());
   const first = f.controller.submit("original");
   await vi.waitFor(() => expect(request).toHaveBeenCalledOnce());
@@ -978,4 +981,195 @@ it("reuses canvas bounds for status refreshes and invalidates them on layout, vi
   expect(bounds).toHaveBeenCalledTimes(count);
   expect(disconnects.every(fn => fn.mock.calls.length === 1)).toBe(true);
   expect(dispose).toHaveBeenCalledOnce();
+});
+
+it("drives VoiceOrb breathing and press expansion via GPU shader uniforms without dirtying orbTransform or orbGlassImage.color", async () => {
+  const { VoiceHudLayout } = await import("../../demos/seed-world/assistant/SeedWorldChatPanel");
+  const layout = Object.create(VoiceHudLayout.prototype) as InstanceType<typeof VoiceHudLayout>;
+  const floatUniforms = new Map<string, number>();
+  const setScale = vi.fn();
+  const setQuadExpandPixels = vi.fn();
+  const setLayout = vi.fn();
+  const setRimHighlight = vi.fn();
+  const setOpacity = vi.fn();
+  const scheduleUpdate = vi.fn();
+  const webCanvas = { dataset: { photoPhase: "idle" } as Record<string, string> };
+  const orbGlassColor = {
+    r: 1,
+    g: 1,
+    b: 1,
+    a: 1,
+    set: vi.fn((r: number, g: number, b: number, a: number) => {
+      orbGlassColor.r = r;
+      orbGlassColor.g = g;
+      orbGlassColor.b = b;
+      orbGlassColor.a = a;
+    })
+  };
+  Object.assign(layout as any, {
+    _engine: { canvas: { width: 822, height: 1602, _webCanvas: webCanvas }, time: { actualElapsedTime: 0 } },
+    _scroll: { update: vi.fn(), cancel: vi.fn(), offset: 0, maximum: 0 },
+    readingPointers: [],
+    _width: 0,
+    _height: 0,
+    _panelBottom: 36,
+    _panelMaxHeight: 600,
+    _panelWidth: 500,
+    _panelHeight: 0,
+    _panelTargetHeight: 0,
+    _contentOpacity: 1,
+    _singleLinePanelHeight: 0,
+    _transcriptLayoutDirty: false,
+    _panelOpacity: 0,
+    _panelFadeStartOpacity: 0,
+    _panelTargetOpacity: 0,
+    _panelFadeElapsed: 0,
+    _panelFadeDuration: 0.22,
+    _transcriptWorking: false,
+    _transcriptWorkingStartedAt: 0,
+    _orbPhase: 0,
+    _orbBreathPhase: 0,
+    _orbListeningBlend: 0,
+    _orbBasePixelSize: 148,
+    _orbGlassShade: 1,
+    _orbPressState: "idle",
+    _panelHeld: false,
+    _motion: undefined,
+    _hintPulse: 0,
+    _lift: 0,
+    _angle: 0,
+    _panelX: 0,
+    _panelY: 0,
+    _anchorX: 0,
+    _anchorY: 0,
+    orbTransform: { alignRight: 0, alignBottom: 0, setScale },
+    orbGlassImage: { color: orbGlassColor },
+    orbCache: { scheduleUpdate },
+    orbDisplayMaterial: { shaderData: { setFloat: vi.fn((k: string, v: number) => floatUniforms.set(k, v)) } },
+    orbGlass: { setQuadExpandPixels, setLayout, setRimHighlight, setOpacity }
+  });
+
+  // 40 idle breathing frames (dt = 0.08s -> 3.2s, spanning full ±2.5% sine peak and trough).
+  let minExpand = Infinity;
+  let maxExpand = -Infinity;
+  for (let i = 0; i < 40; i++) {
+    layout.onUpdate(0.08);
+    const expand = floatUniforms.get("material_OrbScaleExpandPixels")!;
+    minExpand = Math.min(minExpand, expand);
+    maxExpand = Math.max(maxExpand, expand);
+    const [dx, dy] = setQuadExpandPixels.mock.calls.at(-1)!;
+    expect(dx).toBeCloseTo(expand, 6);
+    expect(dy).toBeCloseTo(expand, 6);
+  }
+  expect(setScale).not.toHaveBeenCalled();
+  expect(orbGlassColor.set).not.toHaveBeenCalled();
+  expect(setOpacity).not.toHaveBeenCalled();
+  expect(scheduleUpdate).toHaveBeenCalledTimes(40);
+  expect(scheduleUpdate.mock.calls.at(-1)![0]).toBeCloseTo(3.2, 5);
+  expect(scheduleUpdate.mock.calls.at(-1)![1]).toBe(0);
+  expect(scheduleUpdate.mock.calls.at(-1)![2]).toBe(0.08);
+  expect(floatUniforms.has("material_Time")).toBe(false);
+  expect(floatUniforms.has("material_Listening")).toBe(false);
+  // Base pixel size at 822x1602 = 148 * (822 / 720) ~= 168.967px -> ±2.5% is ±4.22px.
+  expect(minExpand).toBeLessThan(-3.5);
+  expect(maxExpand).toBeGreaterThan(3.5);
+
+  // Entering photo markup dims orbGlassImage.color smoothly to 0.56 and stops dirtying once settled.
+  webCanvas.dataset.photoPhase = "editing";
+  for (let i = 0; i < 15; i++) {
+    layout.onUpdate(0.08);
+  }
+  expect(orbGlassColor.r).toBe(0.56);
+  const callsAfterSettle = orbGlassColor.set.mock.calls.length;
+  expect(callsAfterSettle).toBeGreaterThan(0);
+  for (let i = 0; i < 10; i++) {
+    layout.onUpdate(0.08);
+  }
+  expect(orbGlassColor.set.mock.calls.length).toBe(callsAfterSettle);
+
+  // Press/holding state (~1.72x expansion) also animates purely via shader uniforms with zero setScale calls.
+  layout.setOrbPressState("holding");
+  for (let i = 0; i < 15; i++) {
+    layout.onUpdate(0.08);
+  }
+  expect(scheduleUpdate.mock.calls.at(-1)![1]).toBeGreaterThan(0.95);
+  const pressedExpand = floatUniforms.get("material_OrbScaleExpandPixels")!;
+  expect(pressedExpand).toBeGreaterThan(100);
+  const [pdx, pdy] = setQuadExpandPixels.mock.calls.at(-1)!;
+  expect(pdx).toBeCloseTo(pressedExpand, 6);
+  expect(pdy).toBeCloseTo(pressedExpand, 6);
+  expect(setScale).not.toHaveBeenCalled();
+});
+
+it("precomputes column-major VoiceOrb rotation matrices matching GLSL orbRotZ*orbRotX*orbRotY and paces 30Hz idle / 60Hz listening bakes", async () => {
+  const { Matrix } = await import("@galacean/engine");
+  const {
+    writeOrbRotationMatrixZXY,
+    shouldBakeVoiceOrbFrame,
+    buildVoiceOrbSpectrumLutPixels,
+    VOICE_ORB_CACHE_RESOLUTION
+  } = await import("../../demos/seed-world/assistant/SeedWorldVoiceOrbCache");
+
+  expect(VOICE_ORB_CACHE_RESOLUTION).toBe(96);
+  const lut = buildVoiceOrbSpectrumLutPixels(64);
+  expect(lut.length).toBe(64 * 4);
+  // Start and end of cyclic LUT wrap seamlessly back to cyan (0, 245, 255).
+  expect(lut[0]).toBeLessThan(15);
+  expect(lut[1]).toBeGreaterThan(220);
+  expect(lut[2]).toBe(255);
+  expect(lut[63 * 4 + 2]).toBe(255);
+
+  // Reference column-major multiplication matching original GLSL orbRotZ * orbRotX * orbRotY.
+  const mul3 = (a: number[], b: number[]) => {
+    const out = new Array<number>(9).fill(0);
+    for (let col = 0; col < 3; col++) {
+      for (let row = 0; row < 3; row++) {
+        out[col * 3 + row] =
+          a[0 * 3 + row]! * b[col * 3 + 0]! +
+          a[1 * 3 + row]! * b[col * 3 + 1]! +
+          a[2 * 3 + row]! * b[col * 3 + 2]!;
+      }
+    }
+    return out;
+  };
+  const rotX = (a: number) => {
+    const c = Math.cos(a), s = Math.sin(a);
+    return [1, 0, 0, 0, c, -s, 0, s, c];
+  };
+  const rotY = (a: number) => {
+    const c = Math.cos(a), s = Math.sin(a);
+    return [c, 0, s, 0, 1, 0, -s, 0, c];
+  };
+  const rotZ = (a: number) => {
+    const c = Math.cos(a), s = Math.sin(a);
+    return [c, -s, 0, s, c, 0, 0, 0, 1];
+  };
+
+  for (const [rz, rx, ry] of [
+    [-1.2, 0.35, 0.21],
+    [1.625, 0.87, -0.55],
+    [-0.4, -0.61, 0.48]
+  ]) {
+    const expected = mul3(mul3(rotZ(rz), rotX(rx)), rotY(ry));
+    const mat = new Matrix();
+    writeOrbRotationMatrixZXY(rz, rx, ry, mat);
+    const e = mat.elements;
+    const actual = [e[0], e[1], e[2], e[4], e[5], e[6], e[8], e[9], e[10]];
+    for (let i = 0; i < 9; i++) {
+      expect(actual[i]).toBeCloseTo(expected[i]!, 6);
+    }
+  }
+
+  // First frame always bakes immediately.
+  expect(shouldBakeVoiceOrbFrame(0, 0, false, false)).toBe(true);
+  // 120Hz idle (8.33ms): frames 1, 2, 3 skip bake; frame 4 (33.3ms >= 31.3ms) bakes!
+  expect(shouldBakeVoiceOrbFrame(1 / 120, 0, false, true)).toBe(false);
+  expect(shouldBakeVoiceOrbFrame(2 / 120, 0, false, true)).toBe(false);
+  expect(shouldBakeVoiceOrbFrame(3 / 120, 0, false, true)).toBe(false);
+  expect(shouldBakeVoiceOrbFrame(4 / 120, 0, false, true)).toBe(true);
+  // Idle -> listening transition bakes immediately even before 30Hz interval.
+  expect(shouldBakeVoiceOrbFrame(1 / 120, 0.05, false, true)).toBe(true);
+  // Active listening (60Hz pacing): skips 1/120s, bakes at 2/120s (16.7ms >= 14.7ms).
+  expect(shouldBakeVoiceOrbFrame(1 / 120, 0.8, true, true)).toBe(false);
+  expect(shouldBakeVoiceOrbFrame(2 / 120, 0.8, true, true)).toBe(true);
 });

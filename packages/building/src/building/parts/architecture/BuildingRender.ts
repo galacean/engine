@@ -17,6 +17,8 @@ export async function renderBuilding(
     terrainGrid?: ConstructionTerrainGrid;
     rigidDecorations?: { poses: ReadonlyMap<string, readonly number[]>; resolve(id: string): Entity | undefined };
     releasePackageAfterApply?: boolean;
+    /** Optional frame-pacing hook invoked between CPU package build and GPU upload during interactive roaming. */
+    yieldFrame?: () => Promise<void>;
   }
 ) {
   const { parent, camera, assets, signal } = options;
@@ -34,6 +36,10 @@ export async function renderBuilding(
       library.compilation.stoneGeometry,
       slim ? { skipDocumentClone: true } : undefined
     );
+    if (options.yieldFrame) {
+      await options.yieldFrame();
+      signal.throwIfAborted();
+    }
     runtime = new EngineResidentScene(parent.engine, parent, built.asset, options.bounds, options.terrainGrid);
     runtime.root.isActive = false;
     await runtime.load(built.package);

@@ -25,16 +25,28 @@ class TextureLoader extends Loader<Texture> {
     const url = item.url!;
     const remoteUrl = resourceManager._getRemoteUrl(url);
     const requestConfig = <RequestConfig>{ ...item, type: "arraybuffer" };
-    return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
+    return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress, onCancel) => {
+      let canceled = false;
+      let decoding: AssetPromise<Texture>;
+      onCancel(() => {
+        canceled = true;
+        decoding?.cancel();
+      });
       resourceManager
         ._requestByRemoteUrl<ArrayBuffer>(remoteUrl, requestConfig)
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
-        .then((buffer) =>
-          TextureLoader._decode(resourceManager.engine, buffer, url, item.params as Partial<TextureParams>)
-        )
-        .then((texture) => {
-          resourceManager.addContentRestorer(new TextureContentRestorer(texture, url, remoteUrl, requestConfig));
-          resolve(texture);
+        .then((buffer) => {
+          // The request can be shared; cancel this consumer, not its transport.
+          if (canceled || resourceManager.engine.destroyed) return;
+          decoding = TextureLoader._decode(resourceManager.engine, buffer, url, item.params as Partial<TextureParams>);
+          decoding.then((texture) => {
+            if (canceled || resourceManager.engine.destroyed) {
+              texture.destroy();
+              return;
+            }
+            resourceManager.addContentRestorer(new TextureContentRestorer(texture, url, remoteUrl, requestConfig));
+            resolve(texture);
+          }, reject);
         })
         .catch(reject);
     });
@@ -66,15 +78,28 @@ class TextureLoader extends Loader<Texture> {
         resolve(texture);
       });
     }
-
-    return ImageDecoder._decode(buffer, url).then((img) => {
-      const { format = TextureFormat.R8G8B8A8_UNorm, isSRGBColorSpace = true } = params ?? {};
-      const texture =
-        (restoredTexture as Texture2D) ||
-        TextureLoader._createTexture(engine, img.width, img.height, format, isSRGBColorSpace, url, params);
-      texture.setImageSource(img);
-      texture.generateMipmaps();
-      return texture;
+    return new AssetPromise((resolve, reject, _complete, _progress, onCancel) => {
+      const decoding = ImageDecoder._decode(buffer, url);
+      let canceled = false;
+      onCancel(() => {
+        canceled = true;
+        decoding.cancel();
+      });
+      decoding
+        .then((img) => {
+          if (canceled) return;
+          if (engine.destroyed) {
+            throw new Error("TextureLoader: engine destroyed during image decode.");
+          }
+          const { format = TextureFormat.R8G8B8A8_UNorm, isSRGBColorSpace = true } = params ?? {};
+          const texture =
+            (restoredTexture as Texture2D) ||
+            TextureLoader._createTexture(engine, img.width, img.height, format, isSRGBColorSpace, url, params);
+          texture.setImageSource(img);
+          texture.generateMipmaps();
+          resolve(texture);
+        })
+        .catch(reject);
     });
   }
 

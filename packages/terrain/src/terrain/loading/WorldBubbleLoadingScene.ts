@@ -7,6 +7,7 @@ import {
   Color,
   Material,
   MeshRenderer,
+  MSAASamples,
   PostProcess,
   PrimitiveMesh,
   Scene,
@@ -116,6 +117,8 @@ export interface WorldBubbleLoadingSnapshot {
 export interface WorldBubbleLoadingSceneOptions {
   readonly reducedMotion?: boolean;
   readonly motionEnabled?: boolean;
+  /** Whether creation waits for 2 warmup rAF frames before resolving. Defaults to true. */
+  readonly waitForWarmupFrames?: boolean;
   readonly onVisualProgress?: (progress: number) => void;
   readonly onRevealStart?: () => void;
 }
@@ -165,6 +168,7 @@ export class WorldBubbleLoadingScene {
   private _revealPromise: Promise<void> | null = null;
   private _resolveReveal: (() => void) | null = null;
   private _prepareReveal: (() => void) | undefined;
+  private _savedVSyncCount: number | undefined;
 
   private constructor(
     private readonly _canvas: HTMLCanvasElement | undefined,
@@ -223,7 +227,9 @@ export class WorldBubbleLoadingScene {
     engine.sceneManager.addScene(scene);
     try {
       const loadingScene = WorldBubbleLoadingScene._createInScene(undefined, engine, scene, false, options);
-      await WorldBubbleLoadingScene._waitForWarmupFrames();
+      if (options.waitForWarmupFrames !== false) {
+        await WorldBubbleLoadingScene._waitForWarmupFrames();
+      }
       return loadingScene;
     } catch (error) {
       scene.destroy();
@@ -243,6 +249,7 @@ export class WorldBubbleLoadingScene {
     const root = scene.createRootEntity("World LoadingOrb Fusion Scene");
     const cameraEntity = root.createChild("Loading Camera");
     const camera = cameraEntity.addComponent(Camera);
+    camera.msaaSamples = MSAASamples.None;
     camera.clearFlags = CameraClearFlags.All;
     camera.isAlphaOutputRequired = true;
     camera.enableFrustumCulling = false;
@@ -253,7 +260,9 @@ export class WorldBubbleLoadingScene {
     postProcess.isGlobal = true;
     const bloom = postProcess.addEffect(BloomEffect)!;
     bloom.downScale.value = BloomDownScaleMode.Quarter;
-    bloom.highQualityFiltering.value = true;
+    // Bilinear quarter-res bloom preserves the soft radial orb glow while avoiding multi-tap GPU
+    // contention with parallel WebGL shader compilation on mobile devices.
+    bloom.highQualityFiltering.value = false;
     bloom.threshold.value = 0.62;
     bloom.intensity.value = 3.8;
     bloom.scatter.value = 0.9;
@@ -313,6 +322,29 @@ export class WorldBubbleLoadingScene {
     this._motionEnabled = enabled;
   }
 
+  /**
+   * Throttles embedded Loading Orb rendering (~15fps on 60Hz) during heavy GPU shader warmup so
+   * the orb does not starve mobile GPU/rAF queues; automatically restores full rate on reveal/destroy.
+   */
+  setWarmupThrottled(throttled: boolean): void {
+    if (this._ownsEngine || this._state === "destroyed") return;
+    if (throttled) {
+      if (this._state !== "loading") return;
+      if (this._savedVSyncCount === undefined) {
+        this._savedVSyncCount = this._engine.vSyncCount;
+      }
+      this._engine.vSyncCount = Math.max(this._savedVSyncCount || 1, 4);
+    } else {
+      this._restoreEngineVSyncCount();
+    }
+  }
+
+  private _restoreEngineVSyncCount(): void {
+    if (this._savedVSyncCount === undefined) return;
+    this._engine.vSyncCount = this._savedVSyncCount;
+    this._savedVSyncCount = undefined;
+  }
+
   /** Advances the orb without replaying historical transfer particles. */
   synchronizeProgress(progress: number): void {
     if (this._state !== "loading") return;
@@ -337,6 +369,7 @@ export class WorldBubbleLoadingScene {
   reveal(prepareReveal?: () => void): Promise<void> {
     if (this._state === "destroyed" || this._state === "complete") return Promise.resolve();
     if (this._revealPromise) return this._revealPromise;
+    this._restoreEngineVSyncCount();
     this._prepareReveal = prepareReveal;
     if (this._reducedMotion) this.synchronizeProgress(1);
     this._targetProgress = 1;
@@ -423,6 +456,7 @@ export class WorldBubbleLoadingScene {
   /** Stops only the loading Scene while retaining it for the next generation. */
   suspend(): void {
     if (this._state === "destroyed") return;
+    this._restoreEngineVSyncCount();
     if (this._ownsEngine) this._engine.pause();
     else this._scene.isActive = false;
   }
@@ -584,6 +618,7 @@ export class WorldBubbleLoadingScene {
   /** Releases the standalone Engine, or only this Scene when embedded in the World Engine. */
   destroy(): void {
     if (this._state === "destroyed") return;
+    this._restoreEngineVSyncCount();
     if (this._ownsEngine) window.removeEventListener("resize", this._resizeListener);
     this._state = "destroyed";
     this._prepareReveal = undefined;

@@ -27,6 +27,20 @@ import {
   VolumetricCloudSkyRuntime,
   type VolumetricCloudSkyRuntimeSnapshot
 } from "@galacean/engine-environment/lighting/VolumetricCloudSkyRuntime";
+import {
+  cloneOilPaintSeasonPalettes,
+  createOilPaintSeasonUniforms,
+  OIL_PAINT_COOL_TINT,
+  OIL_PAINT_DAB0,
+  OIL_PAINT_DAB1,
+  OIL_PAINT_DAB2,
+  OIL_PAINT_DAB3,
+  OIL_PAINT_WARM_TINT,
+  resolveOilPaintSeasonPalette,
+  type MutableOilPaintSeasonPaletteTable,
+  type OilPaintSeasonPalette,
+  type OilPaintSeasonUniforms
+} from "../../../spatial/oil-paint/OilPaintSeasonPalette";
 import type { TerrainEnvironmentTransition, TerrainLightingRuntime } from "../lighting/TerrainLightingRuntime.ts";
 import type { TerrainRainImpactSurfaceProvider } from "./TerrainRainImpactSurface.ts";
 import type { TerrainWaterRainImpactSurfaceProvider } from "./TerrainWaterRainImpactPolicy.ts";
@@ -322,6 +336,8 @@ export class WorldEnvironmentRuntime {
     ...TERRAIN_DEFAULT_SURFACE_WATER_TUNING
   };
   private _season: TerrainSeason = TERRAIN_DEFAULT_WORLD_ENVIRONMENT_CONFIGURATION.season;
+  private _oilPaintPalettes: MutableOilPaintSeasonPaletteTable = cloneOilPaintSeasonPalettes();
+  private readonly _oilPaintSeasonUniforms: OilPaintSeasonUniforms = createOilPaintSeasonUniforms();
   private _seasonTransitionElapsed = 0;
   private _seasonTransitionDuration = 0;
   private _transitionDuration: number = TERRAIN_DEFAULT_WORLD_ENVIRONMENT_CONFIGURATION.transitionDuration;
@@ -436,6 +452,12 @@ export class WorldEnvironmentRuntime {
     shaderData.setColor(GRASS_SEASON_COLOR, this._grassSeasonColor);
     shaderData.setColor(TREE_LEAF_SEASON_COLOR, this._treeLeafSeasonColor);
     shaderData.setColor(TREE_BARK_SEASON_COLOR, this._treeBarkSeasonColor);
+    shaderData.setVector4(OIL_PAINT_DAB0, this._oilPaintSeasonUniforms.dab0);
+    shaderData.setVector4(OIL_PAINT_DAB1, this._oilPaintSeasonUniforms.dab1);
+    shaderData.setVector4(OIL_PAINT_DAB2, this._oilPaintSeasonUniforms.dab2);
+    shaderData.setVector4(OIL_PAINT_DAB3, this._oilPaintSeasonUniforms.dab3);
+    shaderData.setVector4(OIL_PAINT_COOL_TINT, this._oilPaintSeasonUniforms.coolTint);
+    shaderData.setVector4(OIL_PAINT_WARM_TINT, this._oilPaintSeasonUniforms.warmTint);
     shaderData.setVector4(SURFACE_CLIMATE, this._surfaceVector);
     shaderData.setVector4(TERRAIN_WATER_COVERAGE_PARAMS, this._terrainWaterCoverageParams);
     shaderData.setVector4(TERRAIN_WATER_SURFACE_PARAMS, this._terrainWaterSurfaceParams);
@@ -559,12 +581,59 @@ export class WorldEnvironmentRuntime {
     };
   }
 
+  /** Returns a detached oil-paint seasonal palette for authoring/inspector controls. */
+  getOilPaintSeasonPalette(season: TerrainSeason): OilPaintSeasonPalette {
+    this._assertAlive();
+    const palette = this._oilPaintPalettes[season];
+    if (!palette) throw new RangeError(`Unknown terrain season: ${String(season)}`);
+    return {
+      dabs: [
+        [palette.dabs[0][0], palette.dabs[0][1], palette.dabs[0][2]],
+        [palette.dabs[1][0], palette.dabs[1][1], palette.dabs[1][2]],
+        [palette.dabs[2][0], palette.dabs[2][1], palette.dabs[2][2]],
+        [palette.dabs[3][0], palette.dabs[3][1], palette.dabs[3][2]]
+      ],
+      coolTint: [palette.coolTint[0], palette.coolTint[1], palette.coolTint[2]],
+      warmTint: [palette.warmTint[0], palette.warmTint[1], palette.warmTint[2]],
+      paletteBlend: palette.paletteBlend,
+      chromaThreshold: palette.chromaThreshold
+    };
+  }
+
+  /** Updates one seasonal oil-paint palette entry and immediately republishes active scene uniforms. */
+  setOilPaintSeasonPalette(season: TerrainSeason, patch: Partial<OilPaintSeasonPalette>): void {
+    this._assertAlive();
+    const target = this._oilPaintPalettes[season];
+    if (!target) throw new RangeError(`Unknown terrain season: ${String(season)}`);
+    if (patch.dabs) {
+      for (let i = 0; i < 4; i++) {
+        target.dabs[i][0] = patch.dabs[i][0];
+        target.dabs[i][1] = patch.dabs[i][1];
+        target.dabs[i][2] = patch.dabs[i][2];
+      }
+    }
+    if (patch.coolTint) {
+      target.coolTint[0] = patch.coolTint[0];
+      target.coolTint[1] = patch.coolTint[1];
+      target.coolTint[2] = patch.coolTint[2];
+    }
+    if (patch.warmTint) {
+      target.warmTint[0] = patch.warmTint[0];
+      target.warmTint[1] = patch.warmTint[1];
+      target.warmTint[2] = patch.warmTint[2];
+    }
+    if (patch.paletteBlend !== undefined) target.paletteBlend = clamp01(patch.paletteBlend);
+    if (patch.chromaThreshold !== undefined) target.chromaThreshold = patch.chromaThreshold;
+    this._publishSeasonState();
+  }
+
   /** Restores all authored seasonal palettes and republishes the active mixture once. */
   resetSeasonPalettes(): void {
     this._assertAlive();
     for (const season of TERRAIN_SEASONS) {
       copySeasonPalette(TERRAIN_DEFAULT_SEASON_PALETTES[season], this._seasonPalettes[season]);
     }
+    this._oilPaintPalettes = cloneOilPaintSeasonPalettes();
     this._publishSeasonState();
   }
 
@@ -1163,6 +1232,7 @@ export class WorldEnvironmentRuntime {
       this._treeLeafSeasonColor,
       this._treeBarkSeasonColor
     );
+    resolveOilPaintSeasonPalette(this._seasonVector, this._oilPaintPalettes, this._oilPaintSeasonUniforms);
   }
 
   private _advanceSeason(deltaTime: number): boolean {

@@ -167,8 +167,42 @@ export class PlantSpeciesSources {
         engine,
         plantSpeciesResourceUrl("plant-species.json", engine)
       );
-      for (const descriptor of catalog.shrubRecipes.filter((entry) => pendingShrubIds.has(entry.id))) {
-        const source = await loadCatalogShrubSource(engine, descriptor);
+      const pendingShrubDescriptors = catalog.shrubRecipes.filter((entry) => pendingShrubIds.has(entry.id));
+      const settledShrubs = await Promise.allSettled(
+        pendingShrubDescriptors.map(async (descriptor) => ({
+          descriptor,
+          source: await loadCatalogShrubSource(engine, descriptor)
+        }))
+      );
+      const firstRejected = settledShrubs.find(
+        (result): result is PromiseRejectedResult => result.status === "rejected"
+      );
+      if (firstRejected) {
+        const destroyedMeshes = new Set<ModelMesh>();
+        for (const result of settledShrubs) {
+          if (result.status !== "fulfilled") continue;
+          for (const lod of result.value.source.lods) {
+            for (const part of lod.renderers) {
+              const mesh = part.mesh as ModelMesh | undefined;
+              if (mesh && !destroyedMeshes.has(mesh)) {
+                destroyedMeshes.add(mesh);
+                mesh.destroy();
+              }
+            }
+          }
+        }
+        throw firstRejected.reason;
+      }
+      const loadedShrubs = settledShrubs.map(
+        (result) =>
+          (
+            result as PromiseFulfilledResult<{
+              descriptor: (typeof pendingShrubDescriptors)[number];
+              source: Awaited<ReturnType<typeof loadCatalogShrubSource>>;
+            }>
+          ).value
+      );
+      for (const { descriptor, source } of loadedShrubs) {
         for (const lod of source.lods) for (const part of lod.renderers) this.meshes.add(part.mesh as ModelMesh);
         const entry = PLANT_SPECIES.find((entry) => entry.id === descriptor.id)!;
         this.transitionHeights.set(entry.id, source.lodGroup!.screenRelativeTransitionHeights);

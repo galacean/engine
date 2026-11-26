@@ -1,4 +1,5 @@
 import { rockLodScreenHeights } from "@galacean/engine-terrain/rock-formation/RockLodPolicy";
+import { LOD_SCREEN_HEIGHT_HYSTERESIS_RATIO } from "@galacean/engine-terrain/terrain/lod/TerrainLodGroupRuntime";
 import { Camera, type Engine, Entity } from "@galacean/engine";
 import type {
   AssetAssemblySourceLibrary,
@@ -399,7 +400,8 @@ function instantiateAcceptedRock(
       entity,
       camera,
       createAtomicRockLodGroup(source, placement.category),
-      crossFadeDurationSeconds
+      crossFadeDurationSeconds,
+      LOD_SCREEN_HEIGHT_HYSTERESIS_RATIO
     );
     bindSeedWorldRockSurfaceMaterial(engine, entity);
     lod.snapToCurrentLod(0);

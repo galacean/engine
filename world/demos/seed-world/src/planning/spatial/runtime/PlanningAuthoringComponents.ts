@@ -117,6 +117,7 @@ export class PlanningPostProcess extends VisualParameterAuthoring {
   declare bloomThreshold?: number;
   declare bloomIntensity?: number;
   declare bloomScatter?: number;
+  declare volumetricLight?: boolean;
 }
 export class PlanningFlowers extends VisualParameterAuthoring {
   /** Fraction of plantable ground occupied by flower regions. */
@@ -158,6 +159,7 @@ export class PlanningVegetation extends VisualParameterAuthoring {
   declare density?: number;
   declare edgeDensity?: number;
   declare falloffRatio?: number;
+  declare exclusionRadiusScale?: number;
   declare boundaryBlendM?: number;
   declare maxAltitudeM?: number;
   declare maxSlopeDegrees?: number;

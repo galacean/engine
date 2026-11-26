@@ -4,6 +4,7 @@ import {
   type RiverCompileWorkerRequest,
   type RiverCompileWorkerResponse
 } from "../../compiler/river/RiverCompileWorkerProtocol";
+import { createRiverCompileWorker } from "./RiverCompileWorkerFactory";
 import { RiverResource } from "./RiverResource";
 
 interface PendingCompile {
@@ -35,10 +36,7 @@ export class RiverCompileWorkerClient {
   private _nextRequestId = 1;
   private _disposed = false;
 
-  constructor(
-    createWorker: () => Worker = () =>
-      new Worker(new URL("../../compiler/river/RiverCompileWorker.ts", import.meta.url), { type: "module" })
-  ) {
+  constructor(createWorker: () => Worker = createRiverCompileWorker) {
     this._createWorker = createWorker;
   }
 

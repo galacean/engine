@@ -1,5 +1,5 @@
 import { Texture2D, TextureFormat, TextureFilterMode, TextureWrapMode, type Engine } from "@galacean/engine";
-import { restoreResource } from "@galacean/engine-modify/rendering/RestorableResources";
+import { restoreResource } from "@galacean/engine-project/rendering/RestorableResources";
 import type { ConstructionLodAppearance } from "./ConstructionLodAppearance";
 /** View-owned derived texture; retained bytes also restore a lost GL context. */
 export function createConstructionLodTexture(engine: Engine, appearance: ConstructionLodAppearance) {

@@ -96,19 +96,10 @@ for (const name of fs.readdirSync(path.join(root, "packages"))) {
     if (fs.existsSync(path.join(a, entry)) && !fs.existsSync(path.join(b, entry)))
       fs.symlinkSync(path.join(a, entry), path.join(b, entry));
 }
-for (const { original, replacement } of JSON.parse(
-  fs.readFileSync(path.join(root, "packages/modify/native-overrides.json"))
-)) {
-  const dest = path.join(nativeView, original.slice("packages/".length));
-  fs.mkdirSync(path.dirname(dest), { recursive: true });
-  if (fs.existsSync(dest)) fs.unlinkSync(dest);
-  fs.symlinkSync(path.join(root, replacement), dest);
-}
-// Node compiler subprocesses cannot use the Vite resolver. Publish the effective
-// raw shader inputs into the test view so CLI compilation exercises engine-modify.
+// Node compiler subprocesses cannot use the Vite resolver. Publish raw shader inputs into the test view.
 const shaderPackage = path.join(root, "world/.acceptance/node_modules/@galacean/engine-shader");
 fs.mkdirSync(shaderPackage, { recursive: true });
-const shaderInputs = path.join(root, "packages/modify/.cache/shader-src");
+const shaderInputs = path.join(root, "packages/shader/src");
 const shaderLibrary = [],
   shaders = [];
 function collectRaw(directory) {

@@ -27,8 +27,11 @@ import {
   ShaderMacroCollection,
   ShaderPass,
   ShaderProperty,
+  ShadowType,
+  SunLensFlareEffect,
   TextureFormat,
-  Vector3
+  Vector3,
+  VolumetricLightQuality
 } from "@galacean/engine";
 import photoCopySource from "./PhotoCopy.shader?raw";
 import {
@@ -87,6 +90,12 @@ export interface SeedWorldShaderWarmupOptions {
   readonly frameBudgetMilliseconds?: number;
   /** Maximum concurrent async-compiling WebGL shader programs in flight when KHR_parallel_shader_compile is available. */
   readonly maximumPendingPrograms?: number;
+  /**
+   * Optional timer polling interval (ms) used instead of `requestAnimationFrame` when
+   * `cooldownFrames === 0` and `maxFrameIntervalMs === 0` (e.g. `4` during pre-reveal startup warmup).
+   * Pass `0` to force animation-frame polling.
+   */
+  readonly pollIntervalMilliseconds?: number;
   /** Optional wall-clock cap for startup warmup; remaining unsubmitted entries are returned in `report.deferred`. */
   readonly maxElapsedMilliseconds?: number;
   /** Minimum clean animation frames to wait between newly submitted background shader compilations. */
@@ -114,6 +123,13 @@ export interface SeedWorldPostProcessWarmupState {
   readonly bloomDirt: boolean;
   readonly colorAdjustments: boolean;
   readonly sunLensFlare?: boolean;
+  /** Optional world-space sun travel direction override (same convention as `SunLensFlareEffect.sunDirectionOverride`). */
+  readonly sunDirectionOverride?:
+    | readonly [x: number, y: number, z: number]
+    | { readonly x: number; readonly y: number; readonly z: number };
+  readonly volumetricLight?: boolean;
+  readonly volumetricLightQuality?: number;
+  readonly volumetricLightHeightFog?: boolean;
   readonly tonemappingMode?: number;
 }
 
@@ -170,6 +186,13 @@ export interface SeedWorldRendererWarmupOptions extends SeedWorldShaderWarmupOpt
   readonly includeGenerationReveal?: boolean;
   /** Whether opaque SSR receivers (e.g. wet terrain during rain) are active in this template. Defaults to false when dry. */
   readonly includeOpaqueScreenSpaceReflection?: boolean;
+  /**
+   * Whether to also warm the history-color SSR fallback variants (Pass 1 `BuildHiZMip0` and
+   * Pass 4 `HiZTrace` without `SSR_CURRENT_FRAME_COLOR`) when `canReuseCurrentFrameColor` is true,
+   * preventing synchronous mid-exploration compilation hitches if runtime falls back to history color.
+   * Defaults to false (omitted from primary first-frame warmup; enabled in post-reveal background warmup).
+   */
+  readonly includeSsrHistoryFallback?: boolean;
   /** Whether to also warm the masked variant (`SEED_WORLD_GLASS_MASK`) for LiquidGlass overlay icons mounted after startup. Defaults to true. */
   readonly includeLiquidGlassMask?: boolean;
   /** Whether to warm `SeedWorld/PhotoCopy` used by the assistant screenshot capture pipeline. Defaults to false. */
@@ -188,7 +211,15 @@ export interface SeedWorldRendererWarmupOptions extends SeedWorldShaderWarmupOpt
 
 type RuntimeShaderProgram = ReturnType<ShaderPass["_getShaderProgram"]>;
 
-type RuntimeShaderPass = ShaderPass;
+type RuntimeShaderPass = ShaderPass & {
+  _getShaderProgram(
+    engine: Engine,
+    macroCollection: ShaderMacroCollection,
+    feedbackOrDefer?: string[] | boolean,
+    cacheOnly?: boolean,
+    deferCompletionOverride?: boolean
+  ): RuntimeShaderProgram;
+};
 
 interface RuntimeShaderRegistry {
   readonly _shaderMap: Readonly<Record<string, Shader>>;
@@ -242,6 +273,7 @@ const MASONRY_ENTRANCE_MACRO = ShaderMacro.getByName("RENDERER_MASONRY_ENTRANCE"
 const GLOBAL_PROXY_ENTRANCE_MACRO = ShaderMacro.getByName("GLOBAL_PROXY_ENTRANCE");
 const MASONRY_DITHER_MACRO = ShaderMacro.getByName("RENDERER_MASONRY_DITHER");
 const GLOBAL_PROXY_DITHER_MACRO = ShaderMacro.getByName("GLOBAL_PROXY_DITHER");
+const MASONRY_RESIDENT_SHADER_PATTERN = /^Masonry\/[0-9a-f]{64}$/;
 const SSR_ALL_FORWARD_MACROS = new Set([
   "CAMERA_ENABLE_SSR",
   "CAMERA_SSR_VERIFY_RECEIVER_DEPTH",
@@ -419,7 +451,7 @@ export async function warmupSeedWorldShaderVariants(
   const programs = new Map<RuntimeShaderProgram, ProgramState>();
   const pending = new Map<RuntimeShaderProgram, ProgramState>();
   // Slots belong to effective programs, not macro aliases. Refill as soon as any slot is freed.
-  const maximumPendingPrograms = Math.max(1, Math.floor(options.maximumPendingPrograms ?? 16));
+  const maximumPendingPrograms = Math.max(1, Math.floor(options.maximumPendingPrograms ?? 28));
   const cooldownFrames = Math.max(0, Math.floor(options.cooldownFrames ?? 0));
   const maxFrameIntervalMs =
     options.maxFrameIntervalMs !== undefined && Number.isFinite(options.maxFrameIntervalMs)
@@ -427,6 +459,11 @@ export async function warmupSeedWorldShaderVariants(
       : 0;
   const backoffMilliseconds = Math.max(0, options.backoffMilliseconds ?? 250);
   const parallelCompileSupported = hasParallelShaderCompile(engine);
+  const defaultPollIntervalMs = parallelCompileSupported && cooldownFrames === 0 && maxFrameIntervalMs === 0 ? 4 : 0;
+  const rawPollIntervalMs = options.pollIntervalMilliseconds ?? defaultPollIntervalMs;
+  const pollIntervalMilliseconds =
+    Number.isFinite(rawPollIntervalMs) && rawPollIntervalMs > 0 ? Math.max(1, Math.floor(rawPollIntervalMs)) : 0;
+  const useTimerPoll = pollIntervalMilliseconds > 0 && cooldownFrames === 0 && maxFrameIntervalMs === 0;
   let cooldownRemaining = 0;
   let backoffUntil = 0;
   let reportedCompleted = -1;
@@ -446,7 +483,11 @@ export async function warmupSeedWorldShaderVariants(
   const yieldFrame = async () => {
     reportProgress();
     const beforeYield = performance.now();
-    await nextAnimationFrame();
+    if (useTimerPoll) {
+      await nextTimerTick(pollIntervalMilliseconds);
+    } else {
+      await nextAnimationFrame();
+    }
     options.signal?.throwIfAborted();
     const now = performance.now();
     const frameInterval = now - beforeYield;
@@ -504,11 +545,10 @@ export async function warmupSeedWorldShaderVariants(
     const variantStartedAt = performance.now();
     try {
       const feedbackVaryings = resolveTransformFeedbackVaryings(alias.entry.shader, alias.pass, macros);
-      const program = alias.pass._getShaderProgram(
-        engine,
-        macros,
-        feedbackVaryings ?? true,
-        options.cacheOnly
+      const program = (
+        feedbackVaryings
+          ? alias.pass._getShaderProgram(engine, macros, feedbackVaryings, options.cacheOnly, true)
+          : alias.pass._getShaderProgram(engine, macros, true, options.cacheOnly)
       ) as RuntimeSsrShaderProgram;
       const elapsed = performance.now() - variantStartedAt;
       longestVariantMilliseconds = Math.max(longestVariantMilliseconds, elapsed);
@@ -920,6 +960,7 @@ function collectSeedWorldRendererVariantsInternal(
     depthPrepassEnabled,
     ssrEnabled,
     includeOpaqueSsr: options.includeOpaqueScreenSpaceReflection === true,
+    skipNonSsrForwardForReceivers: Boolean(options.onlyFrustumVisible) && ssrEnabled,
     isSsrReceiver,
     ssrReceiverExtraMacros,
     deferredSsrDepthOnly: [],
@@ -935,13 +976,13 @@ function collectSeedWorldRendererVariantsInternal(
     Object.freeze([]),
     ...additionalMacroSets.map((set) => Object.freeze([...set]))
   ]);
+  const gpuInstancedOnlyMacroVariants: readonly (readonly SeedWorldShaderVariantMacro[])[] = Object.freeze(
+    authoredMacroVariants.map((set) => Object.freeze([...set, { n: "RENDERER_GPU_INSTANCE" }]))
+  );
   const gpuInstancedMacroVariants: readonly (readonly SeedWorldShaderVariantMacro[])[] =
     options.includeGpuInstancing === false
       ? authoredMacroVariants
-      : Object.freeze([
-          ...authoredMacroVariants,
-          ...authoredMacroVariants.map((set) => Object.freeze([...set, { n: "RENDERER_GPU_INSTANCE" }]))
-        ]);
+      : Object.freeze([...authoredMacroVariants, ...gpuInstancedOnlyMacroVariants]);
 
   const uniqueRenderers = [...new Set(renderers)];
   let cameraFrustum: BoundingFrustum | undefined;
@@ -959,10 +1000,12 @@ function collectSeedWorldRendererVariantsInternal(
       cameraWorldPosition = camera.entity.transform.worldPosition;
     }
   }
+  // Finite Water/* chunks (Ocean/Lake/River) participate in frustum culling when they expose
+  // valid world bounds so offscreen water bodies and unused SSR passes defer to post-ready warmup.
+  // WaterFar/* remains global because it spans the distant horizon ring.
   const isGlobalWarmupShader = (shaderName: string): boolean =>
     shaderName.startsWith("Sky/") ||
     shaderName === "Terrain/Terrain" ||
-    shaderName.startsWith("Water/") ||
     shaderName.startsWith("WaterFar/") ||
     shaderName.startsWith("AIWorld/") ||
     shaderName.startsWith("World/") ||
@@ -976,7 +1019,7 @@ function collectSeedWorldRendererVariantsInternal(
     const dz = origin.z < box.min.z ? box.min.z - origin.z : origin.z > box.max.z ? origin.z - box.max.z : 0;
     return dx * dx + dy * dy + dz * dz <= maxDist * maxDist;
   };
-  const hasFiniteBoundedBox = (box: BoundingBox | undefined): box is BoundingBox => {
+  const hasFiniteBoundedBox = (box: BoundingBox | undefined, maxExtent = 1000): box is BoundingBox => {
     if (!box) return false;
     const { min, max } = box;
     if (
@@ -992,7 +1035,7 @@ function collectSeedWorldRendererVariantsInternal(
     const ex = max.x - min.x;
     const ey = max.y - min.y;
     const ez = max.z - min.z;
-    return ex >= 0 && ey >= 0 && ez >= 0 && ex + ey + ez > 1e-4 && Math.max(ex, ey, ez) < 1000;
+    return ex >= 0 && ey >= 0 && ez >= 0 && ex + ey + ez > 1e-4 && Math.max(ex, ey, ez) < maxExtent;
   };
   const subEmitterTargets = new Set<ParticleRenderer>();
   for (const sourceRenderer of uniqueRenderers) {
@@ -1011,6 +1054,38 @@ function collectSeedWorldRendererVariantsInternal(
   const sharedMeshMaterialCounts = options.onlySharedMeshGpuInstancing
     ? new Map<object, Map<object, number>>()
     : undefined;
+  type VisibleBatchBucket = { readonly leader: Renderer; count: number };
+  type PriorityBatchMap = Map<number, Map<string, VisibleBatchBucket[]>>;
+  const visibleBatchBuckets =
+    options.onlySharedMeshGpuInstancing && cameraFrustum ? new Map<object, Map<object, PriorityBatchMap>>() : undefined;
+  const rendererPriority = (sourceRenderer: Renderer): number =>
+    Number((sourceRenderer as unknown as { priority?: number }).priority ?? 0);
+  const meshHasSingleSubMesh = (mesh: unknown): boolean => {
+    const subMeshes = (mesh as { subMeshes?: readonly unknown[] } | undefined)?.subMeshes;
+    return !Array.isArray(subMeshes) || subMeshes.length === 1;
+  };
+  const batchSignatureForRenderer = (sourceRenderer: Renderer): string => {
+    const rMacros = (sourceRenderer.shaderData as unknown as RuntimeShaderData)._macroCollection;
+    const receiveShadows = Boolean((sourceRenderer as unknown as { receiveShadows?: boolean }).receiveShadows);
+    const layer = Number((sourceRenderer.entity as unknown as { layer?: number }).layer ?? 0);
+    const priority = rendererPriority(sourceRenderer);
+    const transform =
+      (
+        sourceRenderer as unknown as {
+          _entity?: { transform?: { _isFrontFaceInvert?: () => boolean } };
+          entity?: { transform?: { _isFrontFaceInvert?: () => boolean } };
+        }
+      )._entity?.transform ??
+      (sourceRenderer.entity as unknown as { transform?: { _isFrontFaceInvert?: () => boolean } })?.transform;
+    const frontFaceInvert =
+      typeof transform?._isFrontFaceInvert === "function" ? (transform._isFrontFaceInvert() ? 1 : 0) : 0;
+    return `${sourceRenderer.castShadows ? 1 : 0}|${receiveShadows ? 1 : 0}|${layer}|${priority}|${frontFaceInvert}|${shaderMacroCollectionKey(rMacros)}`;
+  };
+  const rendererBatchSharedMatches = (a: Renderer, b: Renderer): boolean => {
+    const fn = (a.shaderData as unknown as { _matchesRendererBatchShared?: (other: unknown) => boolean })
+      ._matchesRendererBatchShared;
+    return typeof fn === "function" ? fn.call(a.shaderData, b.shaderData) : true;
+  };
   if (sharedMeshMaterialCounts) {
     for (const sourceRenderer of uniqueRenderers) {
       if (
@@ -1027,7 +1102,22 @@ function collectSeedWorldRendererVariantsInternal(
         !forcedRenderers.has(sourceRenderer)
       )
         continue;
-      if (options.onlyEnabledRenderers && !sourceRenderer.enabled && !forcedRenderers.has(sourceRenderer)) continue;
+      if (options.onlyEnabledRenderers && !sourceRenderer.enabled && !forcedRenderers.has(sourceRenderer)) {
+        const keepActiveResidentMasonry =
+          sourceRenderer instanceof MeshRenderer &&
+          sourceRenderer.entity.isActiveInHierarchy &&
+          sourceRenderer
+            .getMaterials()
+            .some(
+              (m) =>
+                m &&
+                !m.destroyed &&
+                m.shader &&
+                !m.shader.destroyed &&
+                MASONRY_RESIDENT_SHADER_PATTERN.test(m.shader.name)
+            );
+        if (!keepActiveResidentMasonry) continue;
+      }
       if (!(sourceRenderer instanceof MeshRenderer) || sourceRenderer instanceof SkinnedMeshRenderer) continue;
       const mesh = (sourceRenderer as unknown as RuntimeMeshRenderer).mesh;
       if (!mesh) continue;
@@ -1040,9 +1130,61 @@ function collectSeedWorldRendererVariantsInternal(
       const materials = extraMaterials?.length
         ? [...sourceRenderer.getMaterials(), ...extraMaterials]
         : sourceRenderer.getMaterials();
+      // Only count real, active, enabled, non-forced, frustum-visible single-subMesh MeshRenderers
+      // into visibleBatchBuckets so forced/inactive/multi-subMesh renderers never inflate visible
+      // batch counts or suppress non-instanced primary variants.
+      let countIntoVisibleBatch = false;
+      if (
+        visibleBatchBuckets &&
+        cameraFrustum &&
+        !forcedRenderers.has(sourceRenderer) &&
+        sourceRenderer.entity.isActiveInHierarchy &&
+        sourceRenderer.enabled &&
+        meshHasSingleSubMesh(mesh)
+      ) {
+        const rawBounds = (sourceRenderer as unknown as { bounds?: BoundingBox }).bounds;
+        if (hasFiniteBoundedBox(rawBounds, 10000)) {
+          countIntoVisibleBatch = cameraFrustum.intersectsBox(rawBounds);
+        }
+      }
+      const batchPriority = countIntoVisibleBatch ? rendererPriority(sourceRenderer) : 0;
+      const batchSig = countIntoVisibleBatch ? batchSignatureForRenderer(sourceRenderer) : "";
+      const seenVisibleMaterials = countIntoVisibleBatch ? new Set<object>() : undefined;
       for (const material of materials) {
         if (!material || material.destroyed || material.shader.destroyed) continue;
         materialMap.set(material, (materialMap.get(material) ?? 0) + 1);
+        if (visibleBatchBuckets && countIntoVisibleBatch && !seenVisibleMaterials!.has(material)) {
+          seenVisibleMaterials!.add(material);
+          let matBatches = visibleBatchBuckets.get(mesh);
+          if (!matBatches) {
+            matBatches = new Map<object, PriorityBatchMap>();
+            visibleBatchBuckets.set(mesh, matBatches);
+          }
+          let priorityMap = matBatches.get(material);
+          if (!priorityMap) {
+            priorityMap = new Map<number, Map<string, VisibleBatchBucket[]>>();
+            matBatches.set(material, priorityMap);
+          }
+          let sigMap = priorityMap.get(batchPriority);
+          if (!sigMap) {
+            sigMap = new Map<string, VisibleBatchBucket[]>();
+            priorityMap.set(batchPriority, sigMap);
+          }
+          let buckets = sigMap.get(batchSig);
+          if (!buckets) {
+            buckets = [];
+            sigMap.set(batchSig, buckets);
+          }
+          let matchedBucket: VisibleBatchBucket | undefined;
+          for (let bi = 0; bi < buckets.length; bi++) {
+            if (rendererBatchSharedMatches(buckets[bi]!.leader, sourceRenderer)) {
+              matchedBucket = buckets[bi]!;
+              break;
+            }
+          }
+          if (matchedBucket) matchedBucket.count++;
+          else buckets.push({ leader: sourceRenderer, count: 1 });
+        }
       }
     }
   }
@@ -1062,7 +1204,26 @@ function collectSeedWorldRendererVariantsInternal(
       !forcedRenderers.has(sourceRenderer)
     )
       continue;
-    if (options.onlyEnabledRenderers && !sourceRenderer.enabled && !forcedRenderers.has(sourceRenderer)) continue;
+    if (options.onlyEnabledRenderers && !sourceRenderer.enabled && !forcedRenderers.has(sourceRenderer)) {
+      // Newly flushed resident Masonry/<sha256> unitLod draws sit under an active building root
+      // (`isActiveInHierarchy === true`) with `renderer.enabled === false` until the first engine
+      // `syncCamera()` tick populates unit-LOD counts. Retain active resident masonry renderers
+      // so portrait/wide spawn views never hit a frame-0 reveal compile miss.
+      const keepActiveResidentMasonry =
+        sourceRenderer instanceof MeshRenderer &&
+        sourceRenderer.entity.isActiveInHierarchy &&
+        sourceRenderer
+          .getMaterials()
+          .some(
+            (m) =>
+              m &&
+              !m.destroyed &&
+              m.shader &&
+              !m.shader.destroyed &&
+              MASONRY_RESIDENT_SHADER_PATTERN.test(m.shader.name)
+          );
+      if (!keepActiveResidentMasonry) continue;
+    }
     const isMesh = sourceRenderer instanceof MeshRenderer;
     const isParticle = sourceRenderer instanceof ParticleRenderer;
     if (!isMesh && !isParticle) continue;
@@ -1140,6 +1301,12 @@ function collectSeedWorldRendererVariantsInternal(
     const materials = extraMaterials?.length
       ? [...renderer.getMaterials(), ...extraMaterials]
       : renderer.getMaterials();
+    const isWaterMaterial = materials.some(
+      (m) => m && !m.destroyed && m.shader && !m.shader.destroyed && m.shader.name.startsWith("Water/")
+    );
+    const isSupportSurfaceMaterial = materials.some(
+      (m) => m && !m.destroyed && m.shader && !m.shader.destroyed && m.shader.name === "Masonry/SupportSurface"
+    );
     let frustumShadowOnly = forcedShadowOnlyRenderers.has(sourceRenderer);
     if (
       !frustumShadowOnly &&
@@ -1153,20 +1320,23 @@ function collectSeedWorldRendererVariantsInternal(
           !m.destroyed &&
           m.shader &&
           !m.shader.destroyed &&
-          (isGlobalWarmupShader(m.shader.name) || m.shader.name.startsWith("Masonry/"))
+          (isGlobalWarmupShader(m.shader.name) ||
+            (m.shader.name.startsWith("Masonry/") && m.shader.name !== "Masonry/SupportSurface"))
       )
     ) {
       const rawBounds = (sourceRenderer as unknown as { bounds?: BoundingBox }).bounds;
-      if (hasFiniteBoundedBox(rawBounds)) {
-        // Pad animated SkinnedMeshRenderer bounds slightly so nearby animals walking across the
-        // frustum boundary during orb.reveal never cause a first-frame compile miss.
-        const testBounds =
-          sourceRenderer instanceof SkinnedMeshRenderer
-            ? new BoundingBox(
-                new Vector3(rawBounds.min.x - 2, rawBounds.min.y - 1, rawBounds.min.z - 2),
-                new Vector3(rawBounds.max.x + 2, rawBounds.max.y + 1, rawBounds.max.z + 2)
-              )
-            : rawBounds;
+      const maxBoxExtent = isWaterMaterial ? 10000 : 1000;
+      if (hasFiniteBoundedBox(rawBounds, maxBoxExtent)) {
+        // Pad animated SkinnedMeshRenderer, displaced Water/*, and LOD1 SupportSurface bounds slightly
+        // so boundary motion / waves during orb.reveal never cause a first-frame compile miss.
+        const needsPadding =
+          sourceRenderer instanceof SkinnedMeshRenderer || isWaterMaterial || isSupportSurfaceMaterial;
+        const testBounds = needsPadding
+          ? new BoundingBox(
+              new Vector3(rawBounds.min.x - 2, rawBounds.min.y - 1, rawBounds.min.z - 2),
+              new Vector3(rawBounds.max.x + 2, rawBounds.max.y + 1, rawBounds.max.z + 2)
+            )
+          : rawBounds;
         if (!cameraFrustum.intersectsBox(testBounds)) {
           const canCastShadowInRange =
             Boolean(scene.castShadows) &&
@@ -1178,20 +1348,74 @@ function collectSeedWorldRendererVariantsInternal(
         }
       }
     }
+    const sourcePriority = visibleBatchBuckets ? rendererPriority(sourceRenderer) : 0;
+    const sourceBatchSig = visibleBatchBuckets ? batchSignatureForRenderer(sourceRenderer) : "";
+    const sourceBounds = visibleBatchBuckets
+      ? (sourceRenderer as unknown as { bounds?: BoundingBox }).bounds
+      : undefined;
+    const sourceHasFiniteBounds = visibleBatchBuckets ? hasFiniteBoundedBox(sourceBounds, 10000) : false;
+    const sourceIsSingleSubMesh = visibleBatchBuckets ? meshHasSingleSubMesh(renderer.mesh) : false;
+    const isRealVisibleBatchMember = Boolean(
+      visibleBatchBuckets &&
+        !forcedRenderers.has(sourceRenderer) &&
+        !forcedInstancedRenderers.has(sourceRenderer) &&
+        !frustumShadowOnly &&
+        sourceRenderer.entity.isActiveInHierarchy &&
+        sourceRenderer.enabled &&
+        sourceHasFiniteBounds &&
+        sourceIsSingleSubMesh
+    );
     for (const material of materials) {
       if (!material || material.destroyed || material.shader.destroyed) continue;
       // Masonry shaders own their custom instance/packed vertex streams and never enter the generic UBO batcher.
+      const totalSharedCount =
+        renderer.mesh !== undefined ? (sharedMeshMaterialCounts?.get(renderer.mesh)?.get(material) ?? 0) : 0;
+      let visibleBatchCount = totalSharedCount;
+      let distinctBucketsForSortKey = 0;
+      if (isRealVisibleBatchMember && visibleBatchBuckets && renderer.mesh !== undefined) {
+        const sigMap = visibleBatchBuckets.get(renderer.mesh)?.get(material)?.get(sourcePriority);
+        visibleBatchCount = 0;
+        if (sigMap) {
+          for (const bucketList of sigMap.values()) {
+            distinctBucketsForSortKey += bucketList.length;
+          }
+          const buckets = sigMap.get(sourceBatchSig);
+          if (buckets) {
+            for (let bi = 0; bi < buckets.length; bi++) {
+              if (rendererBatchSharedMatches(buckets[bi]!.leader, sourceRenderer)) {
+                visibleBatchCount = buckets[bi]!.count;
+                break;
+              }
+            }
+          }
+        }
+      }
+      const useVisibleBatchCheck = isRealVisibleBatchMember;
       const useGpuInstancingForMaterial =
         canGpuInstanceRenderer &&
         !material.shader.name.startsWith("Masonry/") &&
         (!sharedMeshMaterialCounts ||
           forcedInstancedRenderers.has(sourceRenderer) ||
-          (renderer.mesh !== undefined && (sharedMeshMaterialCounts.get(renderer.mesh)?.get(material) ?? 0) >= 2));
+          (useVisibleBatchCheck ? visibleBatchCount >= 2 : totalSharedCount >= 2));
+      const isTransparentMaterial = Boolean((material as unknown as { isTransparent?: boolean }).isTransparent);
+      // Only suppress the non-instanced primary variant when every visible renderer under the
+      // RenderQueue.compareForOpaque sort key (priority, material, mesh) falls into a single
+      // compatible batch bucket with >= 3 real visible instances (guarantees adjacency under quicksort).
+      const onlyGpuInstancingInPrimary =
+        useGpuInstancingForMaterial &&
+        options.includeGpuInstancing !== false &&
+        useVisibleBatchCheck &&
+        !sourceRenderer.castShadows &&
+        !isTransparentMaterial &&
+        distinctBucketsForSortKey === 1 &&
+        visibleBatchCount >= 3;
       const materialMacroVariants = isParticle
         ? particleMacroVariants
-        : useGpuInstancingForMaterial
-          ? gpuInstancedMacroVariants
-          : authoredMacroVariants;
+        : onlyGpuInstancingInPrimary
+          ? gpuInstancedOnlyMacroVariants
+          : useGpuInstancingForMaterial
+            ? gpuInstancedMacroVariants
+            : authoredMacroVariants;
       // Material admission is not a shader macro: an opted-in contributor or SSR receiver must not be deduplicated
       // against an otherwise identical non-participant before its extra passes are collected.
       const contribDepthEnabled =
@@ -1373,28 +1597,49 @@ function collectSeedWorldRendererVariantsInternal(
       _uberMaterial?: Material;
       _bloomMaterial?: Material;
       _sunLensFlareMaterial?: Material | null;
+      _volumetricLightMaterial?: Material | null;
+      _material?: Material | null;
     }[];
   };
   const blit = runtimeEngine._basicResources?.blitMaterial;
-  if (blit) auxiliary.push([blit, true], [blit, false]);
+  if (blit) {
+    if (options.onlyFrustumVisible) {
+      auxiliary.push([blit, renderToTexture]);
+    } else {
+      auxiliary.push([blit, true], [blit, false]);
+    }
+  }
   const pipeline = camera as unknown as {
     _renderPipeline?: {
       _finalPass?: { _sRGBmaterial?: Material; _antiAliasingMaterial?: Material };
     };
     _needFinalPass?: () => boolean;
   };
-  if (pipeline._needFinalPass?.()) {
+  const needFinalPass = Boolean(pipeline._needFinalPass?.());
+  if (needFinalPass) {
     const final = pipeline._renderPipeline?._finalPass;
     const fxaa = camera.antiAliasing === AntiAliasing.FXAA;
     auxiliary.push([final?._sRGBmaterial, fxaa || Boolean(camera.renderTarget)]);
     if (fxaa) auxiliary.push([final?._antiAliasingMaterial, Boolean(camera.renderTarget)]);
   }
+  const sunLensFlareVisibleInPrimary =
+    !options.onlyFrustumVisible || isSunLensFlareVisibleForCamera(camera, scene, options.postProcessState);
+  const volumetricLightWarmup = resolveVolumetricLightWarmupMode(
+    camera,
+    scene,
+    options.postProcessState,
+    depthPrepassEnabled || forwardDepthResolveEnabled
+  );
+  const volumetricLightActiveInPass =
+    Boolean(options.postProcessState?.volumetricLight) &&
+    (!options.onlyFrustumVisible || volumetricLightWarmup.visibleAtSpawn);
+  const finalPostProcessTarget = needFinalPass || Boolean(camera.renderTarget);
   if (camera.enablePostProcess && options.postProcessState?.enabled !== false)
     for (const pass of runtimeEngine._getActivePostProcessPasses?.() ?? []) {
       if (!pass.isActive) continue;
       if (!options.postProcessState || options.postProcessState.bloom)
         auxiliary.push([pass._bloomMaterial, true, "bloom"]);
-      if (options.postProcessState?.sunLensFlare && pass._sunLensFlareMaterial) {
+      if (options.postProcessState?.sunLensFlare && pass._sunLensFlareMaterial && sunLensFlareVisibleInPrimary) {
         auxiliary.push([pass._sunLensFlareMaterial, true]);
         if (supportsRendering) {
           const visibilityShader = Shader.find("PostProcess/SunLensFlareVisibility");
@@ -1411,7 +1656,53 @@ function collectSeedWorldRendererVariantsInternal(
           }
         }
       }
-      auxiliary.push([pass._uberMaterial, true, "uber"]);
+      if (volumetricLightActiveInPass && pass._volumetricLightMaterial) {
+        const vlMaterial = pass._volumetricLightMaterial;
+        if (!vlMaterial.destroyed && !vlMaterial.shader.destroyed) {
+          const vlSubShader = vlMaterial.shader.subShaders[0];
+          if (vlSubShader) {
+            const vlMacros = new ShaderMacroCollection();
+            ShaderMacroCollection.unionCollection(
+              cameraMacros,
+              (vlMaterial.shaderData as unknown as RuntimeShaderData)._macroCollection,
+              vlMacros
+            );
+            vlMacros.unionCollection((engine as RuntimeEngine)._macroCollection);
+            const vlOld: ShaderMacro[] = [];
+            (ShaderMacro as unknown as RuntimeShaderMacroConstructor)._getMacrosElements(vlMacros, vlOld);
+            for (const macro of vlOld) {
+              if (
+                macro.name === "VOLUMETRIC_LIGHT_QUALITY" ||
+                macro.name === "VOLUMETRIC_LIGHT_HEIGHT_FOG" ||
+                macro.name === "ENGINE_OUTPUT_SRGB_CORRECT"
+              ) {
+                vlMacros.disable(macro);
+              }
+            }
+            if (volumetricLightWarmup.useRaymarch) {
+              vlMacros.enable(ShaderMacro.getByName("VOLUMETRIC_LIGHT_QUALITY", String(volumetricLightWarmup.quality)));
+              if (options.postProcessState?.volumetricLightHeightFog) {
+                vlMacros.enable(ShaderMacro.getByName("VOLUMETRIC_LIGHT_HEIGHT_FOG"));
+              }
+            }
+            const vlElements: ShaderMacro[] = [];
+            (ShaderMacro as unknown as RuntimeShaderMacroConstructor)._getMacrosElements(vlMacros, vlElements);
+            const vlRecorded = vlElements.map((macro) =>
+              macro.value === undefined ? { n: macro.name } : { n: macro.name, v: macro.value }
+            );
+            const vlPassIndices = volumetricLightWarmup.useRaymarch ? [3, 4] : [0, 1, 2];
+            for (const pi of vlPassIndices) {
+              if (!vlSubShader.passes[pi]) continue;
+              variants.push({ shader: vlMaterial.shader.name, si: 0, pi, macros: vlRecorded });
+            }
+          }
+        }
+      }
+      if (pass._uberMaterial) {
+        auxiliary.push([pass._uberMaterial, true, "uber"]);
+      } else if (pass._material) {
+        auxiliary.push([pass._material, finalPostProcessTarget]);
+      }
     }
   for (const [material, target, kind] of auxiliary) {
     if (!material || material.destroyed || material.shader.destroyed) continue;
@@ -1433,6 +1724,8 @@ function collectSeedWorldRendererVariantsInternal(
               "ENABLE_EFFECT_BLOOM",
               "ENABLE_EFFECT_COLOR_ADJUSTMENTS",
               "ENABLE_EFFECT_SUN_LENS_FLARE",
+              "ENABLE_EFFECT_VOLUMETRIC_LIGHT",
+              "VOLUMETRIC_LIGHT_RAYMARCH",
               "ENABLE_EFFECT_TONEMAPPING",
               "TONEMAPPING_MODE"
             ]
@@ -1446,6 +1739,12 @@ function collectSeedWorldRendererVariantsInternal(
         if (state.bloomDirt) macros.enable(ShaderMacro.getByName("BLOOM_DIRT"));
         if (state.colorAdjustments) macros.enable(ShaderMacro.getByName("ENABLE_EFFECT_COLOR_ADJUSTMENTS"));
         if (state.sunLensFlare) macros.enable(ShaderMacro.getByName("ENABLE_EFFECT_SUN_LENS_FLARE"));
+        if (volumetricLightActiveInPass) {
+          macros.enable(ShaderMacro.getByName("ENABLE_EFFECT_VOLUMETRIC_LIGHT"));
+          if (volumetricLightWarmup.useRaymarch) {
+            macros.enable(ShaderMacro.getByName("VOLUMETRIC_LIGHT_RAYMARCH"));
+          }
+        }
         if (state.tonemappingMode !== undefined) {
           macros.enable(ShaderMacro.getByName("ENABLE_EFFECT_TONEMAPPING"));
           macros.enable(ShaderMacro.getByName("TONEMAPPING_MODE", String(state.tonemappingMode)));
@@ -1453,21 +1752,45 @@ function collectSeedWorldRendererVariantsInternal(
       }
     }
     appendShaderVariants(material.shader, macros, variants, false, target, undefined, supportsRendering);
+    // In 2D Low volumetric-light mode, rotating the camera away from the sun toggles
+    // ENABLE_EFFECT_VOLUMETRIC_LIGHT off dynamically; warm the off-state partner during
+    // full/background warmup so 360-degree exploration never misses PostProcess/Uber.
+    if (
+      state &&
+      kind === "uber" &&
+      volumetricLightActiveInPass &&
+      !options.onlyFrustumVisible &&
+      !volumetricLightWarmup.useRaymarch
+    ) {
+      const noVlMacros = new ShaderMacroCollection();
+      noVlMacros.unionCollection(macros);
+      noVlMacros.disable(ShaderMacro.getByName("ENABLE_EFFECT_VOLUMETRIC_LIGHT"));
+      noVlMacros.disable(ShaderMacro.getByName("VOLUMETRIC_LIGHT_RAYMARCH"));
+      appendShaderVariants(material.shader, noVlMacros, variants, false, target, undefined, supportsRendering);
+    }
   }
   // Warm deferred SSR DepthOnly / Forward SSR variants + exact Lighting/ScreenSpaceReflection v2 passes when receivers exist.
   const hasAnySsrReceivers = ssrContext.hasTransparentSsr || ssrContext.hasOpaqueSsr;
+  const useHighVirtual =
+    ssrQuality === ScreenSpaceReflectionQuality.High || ssrQuality === ScreenSpaceReflectionQuality.XHigh;
+  const isXHigh = ssrQuality === ScreenSpaceReflectionQuality.XHigh;
+  const deferSSRToPostOpaque =
+    !ssrContext.hasOpaqueSsr && ssrContext.hasTransparentSsr && forwardDepthResolveEnabled && !depthPrepassEnabled;
+  const hasFullDepthForSsr = depthPrepassEnabled || deferSSRToPostOpaque;
+  const cameraOpaqueTextureEnabled = Boolean(
+    (camera as unknown as { opaqueTextureEnabled?: boolean }).opaqueTextureEnabled
+  );
+  const canReuseCurrentFrameColor =
+    deferSSRToPostOpaque && cameraOpaqueTextureEnabled && !isXHigh && !ssrContext.hasContribDepth;
+  if (ssrContext.skipNonSsrForwardForReceivers && (!(ssrEnabled && hasAnySsrReceivers) || !canReuseCurrentFrameColor)) {
+    // Safety net: keep non-SSR Forward variants whenever SSR will not run on Frame 0 — either because
+    // no SSRReceiver pass is active or because `!canReuseCurrentFrameColor` enters `WarmupColor` on
+    // cold Frame 0 (clearing `ssrState.enabled = false` before Forward).
+    for (const entry of ssrContext.deferredSsrForward ?? []) {
+      variants.push({ shader: entry.shader, si: entry.si, pi: entry.pi, macros: entry.macros });
+    }
+  }
   if (ssrEnabled && hasAnySsrReceivers) {
-    const useHighVirtual =
-      ssrQuality === ScreenSpaceReflectionQuality.High || ssrQuality === ScreenSpaceReflectionQuality.XHigh;
-    const isXHigh = ssrQuality === ScreenSpaceReflectionQuality.XHigh;
-    const deferSSRToPostOpaque =
-      !ssrContext.hasOpaqueSsr && ssrContext.hasTransparentSsr && forwardDepthResolveEnabled && !depthPrepassEnabled;
-    const hasFullDepthForSsr = depthPrepassEnabled || deferSSRToPostOpaque;
-    const cameraOpaqueTextureEnabled = Boolean(
-      (camera as unknown as { opaqueTextureEnabled?: boolean }).opaqueTextureEnabled
-    );
-    const canReuseCurrentFrameColor =
-      deferSSRToPostOpaque && cameraOpaqueTextureEnabled && !isXHigh && !ssrContext.hasContribDepth;
     if (!hasFullDepthForSsr && ssrContext.deferredSsrDepthOnly?.length) {
       variants.push(...ssrContext.deferredSsrDepthOnly);
     }
@@ -1551,7 +1874,8 @@ function collectSeedWorldRendererVariantsInternal(
             appendSsrPass(8, [...baseHiZ0Macros, { n: "SSR_HAS_CONTRIB_DEPTH" }]);
           }
         }
-        if (!hasFullDepthForSsr || !canReuseCurrentFrameColor || !subShader.passes[8]) {
+        const warmHistoryFallback = Boolean(options.includeSsrHistoryFallback) && canReuseCurrentFrameColor;
+        if (!hasFullDepthForSsr || !canReuseCurrentFrameColor || warmHistoryFallback || !subShader.passes[8]) {
           // WarmupColor frame 0 (when history color isn't reused) or fallback DepthOnly path uses Pass 1.
           appendSsrPass(1, baseHiZ0Macros);
           if (ssrContext.hasContribDepth) {
@@ -1567,6 +1891,10 @@ function collectSeedWorldRendererVariantsInternal(
         if (canReuseCurrentFrameColor) traceMacros.push({ n: "SSR_CURRENT_FRAME_COLOR" });
         if (ssrUseLinearTrace) traceMacros.push({ n: "SSR_LINEAR_TRACE" });
         appendSsrPass(4, traceMacros.length > 0 ? traceMacros : undefined); // Pass 4: HiZTrace
+        if (warmHistoryFallback) {
+          const fallbackTraceMacros = traceMacros.filter((macro) => macro.n !== "SSR_CURRENT_FRAME_COLOR");
+          appendSsrPass(4, fallbackTraceMacros.length > 0 ? fallbackTraceMacros : undefined);
+        }
         if (ssrQuality !== ScreenSpaceReflectionQuality.Low) {
           appendSsrPass(
             5,
@@ -1627,6 +1955,24 @@ function collectSeedWorldRendererVariantsInternal(
         maskedMacros.enable(ShaderMacro.getByName("SEED_WORLD_GLASS_MASK"));
         appendShaderVariants(material.shader, maskedMacros, variants, false, false, material);
       }
+      if (material.shader.name === "SeedWorld/VoiceOrbDisplayV1") {
+        const bakeShader = Shader.find("SeedWorld/VoiceOrbBakeV1");
+        if (bakeShader && !bakeShader.destroyed) {
+          const bakeMacros = new ShaderMacroCollection();
+          bakeMacros.unionCollection(engine._macroCollection);
+          appendShaderVariants(bakeShader, bakeMacros, variants, false, true, undefined, supportsRendering);
+        }
+      }
+    }
+  }
+  if ((options.overlayRenderers?.length ?? 0) > 0 || options.includePhotoCopy) {
+    const atlasTileShader = Shader.find("SeedWorld/UIAtlasTileV1");
+    if (atlasTileShader && !atlasTileShader.destroyed) {
+      const atlasMacros = new ShaderMacroCollection();
+      atlasMacros.unionCollection(engine._macroCollection);
+      atlasMacros.enable(ShaderMacro.getByName("ENGINE_SHOULD_SRGB_CORRECT"));
+      atlasMacros.enable(ShaderMacro.getByName("RENDERER_IS_RECEIVE_SHADOWS"));
+      appendShaderVariants(atlasTileShader, atlasMacros, variants, false, false, undefined, supportsRendering);
     }
   }
   // Resource preparation compiles the actual scene/material contract. A
@@ -1818,6 +2164,8 @@ interface AppendShaderVariantContext {
   readonly depthPrepassEnabled: boolean;
   readonly ssrEnabled: boolean;
   readonly includeOpaqueSsr: boolean;
+  /** When true (primary startup warmup with SSR active), active SSR receivers only warm their SSR Forward variant and defer their non-SSR fallback to secondary warmup. */
+  readonly skipNonSsrForwardForReceivers?: boolean;
   readonly isSsrReceiver?: (material: Material) => boolean;
   readonly ssrReceiverExtraMacros?: readonly SeedWorldShaderVariantMacro[];
   readonly deferredSsrDepthOnly?: SeedWorldShaderVariantEntry[];
@@ -1825,6 +2173,217 @@ interface AppendShaderVariantContext {
   hasOpaqueSsr: boolean;
   hasTransparentSsr: boolean;
   hasContribDepth: boolean;
+}
+
+function readSunDirectionOverrideXYZ(value: unknown): readonly [x: number, y: number, z: number] | undefined {
+  if (!value) return undefined;
+  let x: number;
+  let y: number;
+  let z: number;
+  if (Array.isArray(value)) {
+    if (value.length < 3) return undefined;
+    x = Number(value[0]);
+    y = Number(value[1]);
+    z = Number(value[2]);
+  } else if (typeof value === "object") {
+    const v = value as { x?: unknown; y?: unknown; z?: unknown };
+    x = Number(v.x);
+    y = Number(v.y);
+    z = Number(v.z);
+  } else {
+    return undefined;
+  }
+  const lenSq = x * x + y * y + z * z;
+  if (!Number.isFinite(lenSq) || lenSq <= 1e-6) return undefined;
+  return [x, y, z];
+}
+
+function resolveSunLensFlareDirectionOverride(
+  scene: Scene,
+  postProcessState?: SeedWorldPostProcessWarmupState
+): readonly [x: number, y: number, z: number] | undefined {
+  const fromState = readSunDirectionOverrideXYZ(postProcessState?.sunDirectionOverride);
+  if (fromState) return fromState;
+  const ppm = (
+    scene as unknown as {
+      postProcessManager?: {
+        getBlendEffect?: (
+          effectType: typeof SunLensFlareEffect
+        ) => { sunDirectionOverride?: { value?: unknown } } | undefined;
+        _activePostProcesses?: readonly {
+          enabled?: boolean;
+          isGlobal?: boolean;
+          entity?: { isActiveInHierarchy?: boolean };
+          getEffect?: (
+            effectType: typeof SunLensFlareEffect
+          ) => { enabled?: boolean; sunDirectionOverride?: { value?: unknown } } | undefined;
+          _effects?: readonly { enabled?: boolean; sunDirectionOverride?: { value?: unknown } }[];
+        }[];
+      };
+    }
+  ).postProcessManager;
+  if (!ppm) return undefined;
+  const blendEffect = typeof ppm.getBlendEffect === "function" ? ppm.getBlendEffect(SunLensFlareEffect) : undefined;
+  const fromBlend = readSunDirectionOverrideXYZ(blendEffect?.sunDirectionOverride?.value);
+  if (fromBlend) return fromBlend;
+  const active = ppm._activePostProcesses;
+  if (Array.isArray(active)) {
+    for (let i = active.length - 1; i >= 0; i--) {
+      const pp = active[i];
+      if (!pp || pp.enabled === false || pp.isGlobal === false || pp.entity?.isActiveInHierarchy === false) continue;
+      const effect =
+        typeof pp.getEffect === "function"
+          ? pp.getEffect(SunLensFlareEffect)
+          : pp._effects?.find(
+              (item: { enabled?: boolean; sunDirectionOverride?: { value?: unknown } }) =>
+                item && "sunDirectionOverride" in item
+            );
+      if (!effect || effect.enabled === false) continue;
+      const fromActive = readSunDirectionOverrideXYZ(effect.sunDirectionOverride?.value);
+      if (fromActive) return fromActive;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Mirrors `SunLensFlareEffect._resolveScreenState` with a slightly generous screen-border margin so
+ * primary warmup only compiles `PostProcess/SunLensFlare*` when the sun is actually in front of the
+ * spawn camera (deferring behind-camera sun lens flare shaders to post-ready secondary warmup).
+ */
+function isSunLensFlareVisibleForCamera(
+  camera: Camera,
+  scene: Scene,
+  postProcessState?: SeedWorldPostProcessWarmupState
+): boolean {
+  if ((camera as unknown as { isOrthographic?: boolean }).isOrthographic) return false;
+  const viewMatrix = (camera as unknown as { viewMatrix?: Matrix }).viewMatrix;
+  const projectionMatrix = (camera as unknown as { projectionMatrix?: Matrix }).projectionMatrix;
+  if (!viewMatrix || !projectionMatrix) return true;
+  let dx: number;
+  let dy: number;
+  let dz: number;
+  const overrideDir = resolveSunLensFlareDirectionOverride(scene, postProcessState);
+  if (overrideDir) {
+    const lenSq = overrideDir[0] * overrideDir[0] + overrideDir[1] * overrideDir[1] + overrideDir[2] * overrideDir[2];
+    const invLen = -1 / Math.sqrt(lenSq);
+    dx = overrideDir[0] * invLen;
+    dy = overrideDir[1] * invLen;
+    dz = overrideDir[2] * invLen;
+  } else {
+    const sceneLights = scene as unknown as {
+      _lightManager?: { _sunlight?: { reverseDirection?: Vector3 } | null };
+      sun?: { reverseDirection?: Vector3 } | null;
+    };
+    const sunlight = sceneLights._lightManager?._sunlight ?? sceneLights.sun;
+    if (!sunlight) return true;
+    const reverseDir = sunlight.reverseDirection;
+    if (!reverseDir) return true;
+    const lenSq = reverseDir.x * reverseDir.x + reverseDir.y * reverseDir.y + reverseDir.z * reverseDir.z;
+    if (!Number.isFinite(lenSq) || lenSq <= 1e-6) return false;
+    const invLen = 1 / Math.sqrt(lenSq);
+    dx = reverseDir.x * invLen;
+    dy = reverseDir.y * invLen;
+    dz = reverseDir.z * invLen;
+  }
+  // Below-horizon fade drops to 0 at y <= -0.02; keep a conservative -0.05 floor.
+  if (dy <= -0.05) return false;
+  const dirToSun = new Vector3(dx, dy, dz);
+  const viewDir = new Vector3();
+  Vector3.transformNormal(dirToSun, viewMatrix, viewDir);
+  const forwardDot = -viewDir.z;
+  if (forwardDot <= 1e-3) return false;
+  const p = projectionMatrix.elements;
+  const clipX = p[0] * viewDir.x + p[4] * viewDir.y + p[8] * viewDir.z;
+  const clipY = p[1] * viewDir.x + p[5] * viewDir.y + p[9] * viewDir.z;
+  const clipW = p[3] * viewDir.x + p[7] * viewDir.y + p[11] * viewDir.z;
+  if (clipW <= 1e-4) return false;
+  const sunU = (clipX / clipW + 1) * 0.5;
+  const sunV = (1 - clipY / clipW) * 0.5;
+  const edgeDist = Math.max(Math.abs(sunU - 0.5), Math.abs(sunV - 0.5));
+  // Runtime fades to 0 at edgeDist >= 0.88; keep a generous 0.95 margin for startup safety.
+  return edgeDist < 0.95;
+}
+
+/**
+ * Mirrors `VolumetricLightEffect._resolveScreenState` + `PostProcessUberPass._setupVolumetricLight`
+ * with a slightly generous phase margin so primary warmup compiles the exact active VolumetricLight
+ * tier (`Low` passes 0..2 vs `Medium`/`High` raymarch passes 3..4) and `PostProcess/Uber` macro state
+ * without over-compiling behind-camera Low passes at spawn.
+ */
+function resolveVolumetricLightWarmupMode(
+  camera: Camera,
+  scene: Scene,
+  postProcessState: SeedWorldPostProcessWarmupState | undefined,
+  hasDepthTexture: boolean
+): { readonly visibleAtSpawn: boolean; readonly useRaymarch: boolean; readonly quality: number } {
+  const quality = postProcessState?.volumetricLightQuality ?? VolumetricLightQuality.Low;
+  if (!postProcessState?.volumetricLight) {
+    return { visibleAtSpawn: false, useRaymarch: false, quality };
+  }
+  const sceneLights = scene as unknown as {
+    castShadows?: boolean;
+    shadowDistance?: number;
+    _lightManager?: {
+      _sunlight?: { reverseDirection?: Vector3; shadowType?: ShadowType; shadowStrength?: number } | null;
+    };
+    sun?: { reverseDirection?: Vector3; shadowType?: ShadowType; shadowStrength?: number } | null;
+  };
+  const sunlight = sceneLights._lightManager?._sunlight ?? sceneLights.sun;
+  const canRaymarch =
+    quality !== VolumetricLightQuality.Low &&
+    hasDepthTexture &&
+    Boolean(
+      sceneLights.castShadows &&
+        (sceneLights.shadowDistance ?? 0) > 0.01 &&
+        sunlight &&
+        sunlight.shadowType !== ShadowType.None &&
+        (sunlight.shadowStrength ?? 0) > 0
+    );
+  if ((camera as unknown as { isOrthographic?: boolean }).isOrthographic) {
+    return { visibleAtSpawn: false, useRaymarch: canRaymarch, quality };
+  }
+  const viewMatrix = (camera as unknown as { viewMatrix?: Matrix }).viewMatrix;
+  if (!viewMatrix) {
+    return { visibleAtSpawn: true, useRaymarch: canRaymarch, quality };
+  }
+  let dx: number;
+  let dy: number;
+  let dz: number;
+  const overrideDir = resolveSunLensFlareDirectionOverride(scene, postProcessState);
+  if (overrideDir) {
+    const lenSq = overrideDir[0] * overrideDir[0] + overrideDir[1] * overrideDir[1] + overrideDir[2] * overrideDir[2];
+    const invLen = -1 / Math.sqrt(lenSq);
+    dx = overrideDir[0] * invLen;
+    dy = overrideDir[1] * invLen;
+    dz = overrideDir[2] * invLen;
+  } else {
+    const reverseDir = sunlight?.reverseDirection;
+    if (!reverseDir) {
+      return { visibleAtSpawn: true, useRaymarch: canRaymarch, quality };
+    }
+    const lenSq = reverseDir.x * reverseDir.x + reverseDir.y * reverseDir.y + reverseDir.z * reverseDir.z;
+    if (!Number.isFinite(lenSq) || lenSq <= 1e-6) {
+      return { visibleAtSpawn: false, useRaymarch: canRaymarch, quality };
+    }
+    const invLen = 1 / Math.sqrt(lenSq);
+    dx = reverseDir.x * invLen;
+    dy = reverseDir.y * invLen;
+    dz = reverseDir.z * invLen;
+  }
+  // Horizon fade drops to 0 at dirToSun.y <= -0.04; keep a conservative -0.06 floor.
+  if (dy <= -0.06) {
+    return { visibleAtSpawn: false, useRaymarch: canRaymarch, quality };
+  }
+  if (canRaymarch) {
+    return { visibleAtSpawn: true, useRaymarch: true, quality };
+  }
+  const dirToSun = new Vector3(dx, dy, dz);
+  const viewDir = new Vector3();
+  Vector3.transformNormal(dirToSun, viewMatrix, viewDir);
+  const forwardDot = -viewDir.z;
+  // Runtime Low phaseVisibility reaches 0 below -0.34 - 0.147 = -0.487; keep a generous -0.55 margin.
+  return { visibleAtSpawn: forwardDot > -0.55, useRaymarch: false, quality };
 }
 
 function resolveDepthMode(
@@ -1987,12 +2546,13 @@ function appendShaderVariants(
           ((material as { isTransparent?: boolean }).isTransparent
             ? RenderQueueType.Transparent
             : RenderQueueType.Opaque);
+        const materialIsSsrReceiver = context.isSsrReceiver ? context.isSsrReceiver(material) : ssrIntensity > 0;
         const forceTerrainOpaque =
           ssrIntensity <= 0 &&
           queue !== RenderQueueType.Transparent &&
           context.includeOpaqueSsr &&
           shader.name.startsWith("Terrain/");
-        if (ssrIntensity > 0 || forceTerrainOpaque) {
+        if (materialIsSsrReceiver || ssrIntensity > 0 || forceTerrainOpaque) {
           const allowBilateral =
             (material as unknown as { screenSpaceReflectionBilateral?: boolean }).screenSpaceReflectionBilateral !==
             false;
@@ -2004,6 +2564,12 @@ function appendShaderVariants(
             allowBilateral,
             isOpaque: queue !== RenderQueueType.Transparent
           });
+          // When SSR is active during primary startup warmup, RenderQueue always resolves active SSR
+          // receivers through SSRProgramResolver (CAMERA_ENABLE_SSR) and only falls back on texture-unit
+          // overflow (already handled by warmupSeedWorldShaderVariants). Defer the non-SSR Forward twin.
+          if (context.skipNonSsrForwardForReceivers && materialIsSsrReceiver) {
+            continue;
+          }
         }
       }
       variants.push({ shader: shader.name, si, pi, macros: passMacros });
@@ -2036,4 +2602,8 @@ function enableMeshVertexMacros(renderer: RuntimeMeshRenderer, macros: ShaderMac
 
 function nextAnimationFrame(): Promise<void> {
   return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+}
+
+function nextTimerTick(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }

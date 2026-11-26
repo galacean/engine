@@ -19,6 +19,7 @@ import {
   OCEAN_NEARSHORE_MAXIMUM_CELL_SIZE,
   OCEAN_NEARSHORE_MAXIMUM_DEPTH
 } from "./constants";
+import { isImmutableWaterSnapshot } from "../../authoring/identity/WaterImmutableSnapshot";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -164,10 +165,13 @@ function readFloat32Array(
       `Expected ${length} values, received ${value.length}.`
     );
   }
-  if (!value.every(Number.isFinite)) {
-    addError(diagnostics, OceanNearshoreDiagnosticCode.InvalidNumber, path, "Every value must be finite.");
+  for (let i = 0, len = value.length; i < len; i++) {
+    if (!Number.isFinite(value[i])) {
+      addError(diagnostics, OceanNearshoreDiagnosticCode.InvalidNumber, path, "Every value must be finite.");
+      break;
+    }
   }
-  return new Float32Array(value);
+  return isImmutableWaterSnapshot(value) ? value : new Float32Array(value);
 }
 
 function readMinimumDepth(value: unknown, diagnostics: OceanNearshoreDiagnostic[]): number {
@@ -223,15 +227,23 @@ function readWetSource(
       `Expected ${texelCount} values, received ${value.mask.length}.`
     );
   }
-  if (!value.mask.every((entry) => entry === 0 || entry === 1)) {
-    addError(
-      diagnostics,
-      OceanNearshoreDiagnosticCode.ValueOutOfRange,
-      "$.wetSource.mask",
-      "Mask values must be 0 or 1."
-    );
+  for (let i = 0, len = value.mask.length; i < len; i++) {
+    const entry = value.mask[i];
+    if (entry !== 0 && entry !== 1) {
+      addError(
+        diagnostics,
+        OceanNearshoreDiagnosticCode.ValueOutOfRange,
+        "$.wetSource.mask",
+        "Mask values must be 0 or 1."
+      );
+      break;
+    }
   }
-  return Object.freeze({ kind: "mask", mask: new Uint8Array(value.mask), minimumDepth });
+  return Object.freeze({
+    kind: "mask",
+    mask: isImmutableWaterSnapshot(value.mask) ? value.mask : new Uint8Array(value.mask),
+    minimumDepth
+  });
 }
 
 function readOutsidePolicies(

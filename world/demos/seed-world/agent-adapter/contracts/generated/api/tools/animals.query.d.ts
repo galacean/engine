@@ -35,6 +35,10 @@ declare global {
             typeId: string;
             /** 物种身份；多个模型 typeId 可以属于同一物种。 */
             speciesId: string;
+            /** 当前使用的外观/配色 ID，可与 animals.catalog 对照后通过 animals.update 切换。 */
+            appearanceId?: string;
+            /** 当前实例缩放倍数，可通过 animals.update 调整。 */
+            scale?: number;
             label: string;
             /** 模型资源是否已加载；false 不代表没有移动或逻辑活动。 */
             loaded: boolean;

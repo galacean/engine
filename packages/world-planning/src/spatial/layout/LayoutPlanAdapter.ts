@@ -4,6 +4,9 @@ import { publishRoadPath } from "./RoadGeometry";
 import { envelope } from "../../semantic-study/IslandPlanAtoms";
 import { boxOutline } from "./Volumes";
 import { volumeEnvelope, type LayoutGroup } from "./LayoutKernel";
+import { resolvePlanRockCollision } from "../RockCollisionPolicy";
+import { rockObbId, rockVariantPools } from "../RockVariantFit";
+import { templateRockCollisionPolicy } from "../WorldTemplateArtDirection";
 
 /** Renderer-only bindings. Adding an asset mapping does not add a spatial rule or an exclusion. */
 export type LayoutAppearance = "building" | "rock" | "region";
@@ -25,6 +28,8 @@ export function projectLayoutGroups(
   plan.regions = plan.regions.filter((r) => r.kind === "island");
   plan.planning!.ports = [];
   plan.planning!.modules = plan.planning!.modules.filter((m) => m.kind === "land" || m.kind === "island");
+  const rockCollisionPolicy = templateRockCollisionPolicy(plan.parameters?.worldTemplate?.id);
+  const pools = rockCollisionPolicy.minHeightM !== undefined ? rockVariantPools(plan) : undefined;
   for (const group of groups) {
     const outline = envelope(group.center, group.rule.radiusM * 2, group.rule.radiusM * 2, 0);
     plan.planning!.modules.push({
@@ -76,7 +81,22 @@ export function projectLayoutGroups(
         sizeY: b.height,
         yaw: b.yaw,
         elevation: b.elevation,
-        collision: true,
+        collision:
+          binding === "rock"
+            ? resolvePlanRockCollision(
+                plan,
+                {
+                  id: rockObbId(v.id, `${v.id}:part:${i}`),
+                  width: b.width,
+                  depth: b.depth,
+                  height: b.height,
+                  surfaceGrass: true
+                },
+                rockCollisionPolicy,
+                undefined,
+                pools
+              )
+            : true,
         occlusion: true
       }));
       if (binding === "building")

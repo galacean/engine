@@ -37,7 +37,7 @@ import type { ConstructionDecorationPart } from "./ConstructionDecorations";
 import { DecorationMaterial } from "./ConstructionDecorationMaterial";
 import { buildingGroupKey, buildingInstanceKey, buildingPartKey } from "./BuildingObjectIdentity";
 import type { masonryAppearance } from "./MasonryAppearance";
-import type { SeedWorldPickBatch } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+import type { SeedWorldPickBatch } from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 import {
   SURFACE_KIND_DECORATION,
   SURFACE_KIND_DECORATION_GLASS,
@@ -50,6 +50,8 @@ import {
   packU16Scaled,
   packU8Scaled,
   previewPartSurfaceKind,
+  proxyDecorationNormalBias,
+  proxyPartNormalBias,
   writeCompactFarProxyColors
 } from "./BuildingFarProxy";
 
@@ -396,7 +398,7 @@ interface BucketRenderState {
 class GlobalProxyFlushScript extends Script {
   owner!: BuildingGlobalProxy;
   override onLateUpdate(): void {
-    this.owner.flushIfDirty();
+    this.owner.flushOnLateUpdate();
   }
   override onDestroy(): void {
     this.owner?.destroy();
@@ -404,6 +406,7 @@ class GlobalProxyFlushScript extends Script {
 }
 
 const GLOBAL_PROXIES = new WeakMap<Scene, BuildingGlobalProxy>();
+const SCENE_BATCH_DEPTH = new WeakMap<Scene, number>();
 
 /** Detach a mesh from its MeshRenderer before destroying so ReferResource._refCount drops to 0 synchronously. */
 function detachAndDestroyMesh(renderer: MeshRenderer, mesh: BufferMesh | undefined): void {
@@ -441,6 +444,27 @@ export class BuildingGlobalProxy {
     return p && !p.destroyed ? p : undefined;
   }
 
+  /** Suspend automatic GPU bucket rebuilds for a scene while multiple buildings prepare together.
+   * Safe to call before any BuildingGlobalProxy instance exists on the scene. */
+  static beginSceneBatch(scene: Scene): void {
+    SCENE_BATCH_DEPTH.set(scene, (SCENE_BATCH_DEPTH.get(scene) ?? 0) + 1);
+  }
+
+  /** Resume automatic flushes for a scene; when the outermost batch completes, flushes any dirty buckets once. */
+  static endSceneBatch(scene: Scene, flushNow = true): void {
+    const depth = SCENE_BATCH_DEPTH.get(scene) ?? 0;
+    if (depth <= 1) {
+      SCENE_BATCH_DEPTH.delete(scene);
+      const existing = BuildingGlobalProxy.existing(scene);
+      if (existing && !existing.isBatching) {
+        if (flushNow) existing.flushIfDirty();
+        else existing.scheduleFlush();
+      }
+    } else {
+      SCENE_BATCH_DEPTH.set(scene, depth - 1);
+    }
+  }
+
   readonly root: Entity;
   private readonly engine: Engine;
   private readonly shader: Shader;
@@ -451,7 +475,33 @@ export class BuildingGlobalProxy {
   private nextSlotId = 1;
   private nextBucketId = 0;
   private flushScheduled = false;
+  private batchDepth = 0;
   destroyed = false;
+
+  private get isBatching(): boolean {
+    return this.batchDepth > 0 || (SCENE_BATCH_DEPTH.get(this.scene) ?? 0) > 0;
+  }
+
+  /** Suspend automatic microtask/late-update GPU bucket rebuilds until matching endBatch(). */
+  beginBatch(): void {
+    this.batchDepth++;
+  }
+
+  /** End a batch scope; when the outermost batch closes, builds each dirty GPU bucket once. */
+  endBatch(flushNow = true): void {
+    if (this.batchDepth <= 0) return;
+    this.batchDepth--;
+    if (!this.isBatching && !this.destroyed && !this.root.destroyed && !this.scene.destroyed) {
+      if (flushNow) this.flushIfDirty();
+      else this.scheduleFlush();
+    }
+  }
+
+  /** @internal Called by GlobalProxyFlushScript.onLateUpdate; respects active batch scopes. */
+  flushOnLateUpdate(): void {
+    if (this.isBatching) return;
+    this.flushIfDirty();
+  }
 
   private readonly handleDeviceRestored = (): void => {
     if (this.destroyed) return;
@@ -561,11 +611,11 @@ export class BuildingGlobalProxy {
   }
 
   private scheduleFlush(): void {
-    if (this.flushScheduled || this.destroyed || this.root.destroyed || this.scene.destroyed) return;
+    if (this.isBatching || this.flushScheduled || this.destroyed || this.root.destroyed || this.scene.destroyed) return;
     this.flushScheduled = true;
     queueMicrotask(() => {
       this.flushScheduled = false;
-      if (!this.destroyed && !this.root.destroyed && !this.scene.destroyed) this.flushIfDirty();
+      if (!this.isBatching && !this.destroyed && !this.root.destroyed && !this.scene.destroyed) this.flushIfDirty();
     });
   }
 
@@ -1121,7 +1171,7 @@ export class BuildingGlobalProxy {
             normals: norms,
             indices: p.indices,
             uvs: p.uvs,
-            normalBias: p.plaster ? 0.06 : p.stonePaving ? 0.02 : 0,
+            normalBias: proxyPartNormalBias(p),
             kind,
             wear: p.plaster ? p.plaster.wear : 0,
             wallLength: p.plaster ? p.plaster.wallLength : p.placement === "unit" ? 1 : 0,
@@ -1143,7 +1193,10 @@ export class BuildingGlobalProxy {
         const pickKey = d.decorationId === undefined ? buildingGroupKey(d.ownerId) : buildingPartKey(d.decorationId);
         const appKind = d.appearance?.kinds?.[0];
         const kind =
-          appKind === DecorationMaterial.glass || appKind === DecorationMaterial.texturedGlass
+          appKind === DecorationMaterial.glass ||
+          appKind === DecorationMaterial.texturedGlass ||
+          appKind === DecorationMaterial.lattice ||
+          appKind === DecorationMaterial.texturedLattice
             ? SURFACE_KIND_DECORATION_GLASS
             : SURFACE_KIND_DECORATION;
         const lb = decBoxes[i];
@@ -1169,6 +1222,7 @@ export class BuildingGlobalProxy {
           });
         } else {
           const norms = decNormals[i]!;
+          const isCollapsedBox = d.uvs === undefined && d.indices.length === 36 && d.positions.length === 72;
           structParts.push({
             slot: sIdx,
             slotId: slot.id,
@@ -1179,7 +1233,7 @@ export class BuildingGlobalProxy {
             normals: norms,
             indices: d.indices,
             uvs: d.uvs ?? d.appearance?.materialUVs,
-            normalBias: 0,
+            normalBias: isCollapsedBox ? 0 : proxyDecorationNormalBias(appKind),
             kind,
             wear: 0,
             wallLength: 0,

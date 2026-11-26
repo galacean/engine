@@ -116,6 +116,28 @@ const cores = new Map<
   string,
   { anchor: { x: number; z: number }; resources: PlanningResource[]; lakes: SpatialEntity[] }
 >();
+function buildTemplatePlantings(
+  id: string,
+  anchor: { x: number; z: number },
+  plantings: NonNullable<(typeof WORLD_TEMPLATE_ART)[string]["plantings"]>
+): PlanningResource[] {
+  return plantings.map((grove) => ({
+    resourceType: "vegetation-brush",
+    resourceId: `template:${id}:vegetation:${grove.id}`,
+    properties: {
+      category: grove.kind,
+      plantKind: grove.kind,
+      distributionKind: grove.single ? "single" : "area",
+      ...(grove.single ? { requestedPlantCount: 1 } : {}),
+      x: anchor.x - grove.x,
+      z: anchor.z + grove.z,
+      radiusMetres: grove.radius,
+      densityScale: grove.densityScale,
+      seed: templateBaseSeed(`${id}:${grove.id}`)
+    }
+  }));
+}
+
 function buildTemplateLakes(
   id: string,
   anchor: { x: number; z: number },
@@ -227,21 +249,7 @@ function templateCore(template: WorldTemplate) {
         }
   );
   const lakes = buildTemplateLakes(id, anchor, art.water ?? []);
-  for (const grove of art.plantings ?? [])
-    resources.push({
-      resourceType: "vegetation-brush",
-      resourceId: `template:${id}:vegetation:${grove.id}`,
-      properties: {
-        category: grove.kind,
-        plantKind: grove.kind,
-        distributionKind: "area",
-        x: anchor.x - grove.x,
-        z: anchor.z + grove.z,
-        radiusMetres: grove.radius,
-        densityScale: grove.densityScale,
-        seed: templateBaseSeed(`${id}:${grove.id}`)
-      }
-    });
+  resources.push(...buildTemplatePlantings(id, anchor, art.plantings ?? []));
   const core = { anchor, resources, lakes };
   cores.set(id, core);
   return core;
@@ -421,6 +429,11 @@ export function prepareTemplatePlanningDocument(
     }
   };
   Object.assign(components.landscape.values, art.landscape, art.initialLandscape);
+  if (art.initialLandscapePopulation) {
+    components.landscapePopulation = {
+      values: { ...components.landscapePopulation?.values, ...art.initialLandscapePopulation }
+    };
+  }
   if (art.flowerCoverage !== undefined) components.flowers.values.coverage = art.flowerCoverage;
   Object.assign(components.flowers.values, art.initialFlowers);
   components.animals = { values: templateAnimalValues(id, anchor) };
@@ -461,9 +474,81 @@ export function prepareTemplatePlanningDocument(
     values.referenceLevel = Math.fround(level) - 0.02;
     document.entities[lake.id] = lake;
   }
+  let spawnPoiLayout: Record<string, string | number | boolean> | undefined;
+  if (art.spawnPoi) {
+    const anchorOffset = art.spawnPoi.resolveAnchorOffset?.(seed) ?? art.spawnPoi.anchorOffset;
+    const spawnPos = {
+      x: anchor.x - (art.spawnOffset?.[0] ?? 0) + (anchorOffset?.[0] ?? 0),
+      z: anchor.z + (art.spawnOffset?.[1] ?? 0) + (anchorOffset?.[1] ?? 0)
+    };
+    const poiLayout = exportPlanningRecipe(document).parameters.poiLayout ?? defaultPoiLayout();
+    const { candidates } = distributePois(
+      {
+        width: terrainPlan.parameters.width,
+        depth: terrainPlan.parameters.depth,
+        seed,
+        domains: [
+          { id: "land-main", outline: terrainPlan.land },
+          ...terrainPlan.islands.map((outline, i) => ({ id: `offshore-${i}`, outline }))
+        ]
+      },
+      poiLayout
+    );
+    const sampleRange = (key: string, spec: number | readonly [number, number]) => {
+      if (typeof spec === "number") return spec;
+      const [min, max] = spec;
+      if (!Number.isFinite(min) || !Number.isFinite(max) || min > max)
+        throw new Error(`模板出生点 POI 参数范围无效：${key}`);
+      return min + (max - min) * settlementRandom(seed, `template:${id}:spawnPoi:${key}`);
+    };
+    const sampleValue = (key: string, spec: string | number | boolean | readonly [number, number]) =>
+      Array.isArray(spec) ? sampleRange(key, spec as readonly [number, number]) : spec;
+    if (art.spawnPoi.layout) {
+      spawnPoiLayout = Object.fromEntries(
+        Object.entries(art.spawnPoi.layout).map(([key, spec]) => [key, sampleValue(`layout:${key}`, spec)])
+      );
+    }
+    (document.passthrough.parameters.poiLayout ??= defaultPoiLayout()).candidates = [
+      ...candidates,
+      { id: TEMPLATE_SPAWN_POI_ID, origin: spawnPos, domainId: "land-main" }
+    ];
+    document.entities[TEMPLATE_SPAWN_POI_ID] = {
+      id: TEMPLATE_SPAWN_POI_ID,
+      name: "出生点",
+      parent: "world",
+      origin: "generated",
+      components: {
+        anchor: { values: { ...spawnPos } },
+        ...(art.spawnPoi.sizeWeight && {
+          poi: { values: { sizeWeight: sampleRange("sizeWeight", art.spawnPoi.sizeWeight) } }
+        }),
+        ...(spawnPoiLayout && {
+          layout: { values: { ...spawnPoiLayout } }
+        }),
+        ...(art.spawnPoi.landscape && {
+          landscape: {
+            values: Object.fromEntries(
+              Object.entries(art.spawnPoi.landscape).map(([key, spec]) => [key, sampleRange(`landscape:${key}`, spec)])
+            )
+          }
+        })
+      }
+    };
+  }
   const prepared = preparePlanningPopulation(document, { ...art.initialPlanning?.population, ...options });
   const initialized = prepared.document;
   const beforeKey = JSON.stringify({ ...exportPlanningAuthoring(initialized), revision: 0 });
+  if (spawnPoiLayout && initialized.entities[TEMPLATE_SPAWN_POI_ID]) {
+    const spawnLayout = (initialized.entities[TEMPLATE_SPAWN_POI_ID].components.layout ??= { values: {} });
+    Object.assign(spawnLayout.values, spawnPoiLayout);
+  }
+  if (art.spawnPoi && initialized.entities.world.components.animals?.values?.enabled) {
+    const spawnSite = prepared.result.plan.poiDistribution?.sites.find((site) => site.id === TEMPLATE_SPAWN_POI_ID);
+    if (spawnSite && spawnSite.areaM2 > 0 && !initialized.entities.world.components.animals.values.homeRadius) {
+      const poiRadiusM = Math.max(24, Math.round(Math.sqrt(spawnSite.areaM2 / Math.PI)));
+      initialized.entities.world.components.animals.values.homeRadius = poiRadiusM;
+    }
+  }
   if (art.initialPlanning?.poiMemberMax !== undefined) {
     const layout = (initialized.entities.world.components.layout ??= { values: {} });
     layout.values.memberMax = art.initialPlanning.poiMemberMax;

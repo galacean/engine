@@ -26,6 +26,9 @@ class NullTexture implements IPlatformTexture {
 export class NullTexture2D extends NullTexture implements IPlatformTexture2D {
   setPixelBuffer(): void {}
   setImageSource(): void {}
+  getPixelBufferAsync(): Promise<never> {
+    return Promise.reject(new Error("Pixel readback requires a graphics device."));
+  }
 }
 
 export class NullTexture2DArray extends NullTexture implements IPlatformTexture2DArray {

@@ -41,6 +41,7 @@ import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModu
 import { MeshShape } from "./modules/shape/MeshShape";
 import { NoiseModule } from "./modules/NoiseModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
+import { WindOverLifetimeModule } from "./modules/WindOverLifetimeModule";
 import { SubEmittersModule, type ParticleSubEmitterCommand } from "./modules/SubEmittersModule";
 import type { BirthSubEmitterCommand } from "./modules/BirthSubEmitterCommand";
 
@@ -84,6 +85,8 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   readonly velocityOverLifetime: VelocityOverLifetimeModule;
   /** Force over lifetime module. */
   readonly forceOverLifetime: ForceOverLifetimeModule;
+  /** Wind over lifetime module. */
+  readonly windOverLifetime: WindOverLifetimeModule;
   /** Limit velocity over lifetime module. */
   readonly limitVelocityOverLifetime: LimitVelocityOverLifetimeModule;
   /** Size over lifetime module. */
@@ -175,6 +178,14 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   }
 
   /**
+   * Current particle simulation time in seconds.
+   * @remarks The clock advances by frame delta time multiplied by {@link MainModule.simulationSpeed}.
+   */
+  get simulationTime(): number {
+    return this._playTime;
+  }
+
+  /**
    * Random seed.
    *
    * @remarks
@@ -205,6 +216,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     this.main = new MainModule(this);
     this.velocityOverLifetime = new VelocityOverLifetimeModule(this);
     this.forceOverLifetime = new ForceOverLifetimeModule(this);
+    this.windOverLifetime = new WindOverLifetimeModule(this);
     this.sizeOverLifetime = new SizeOverLifetimeModule(this);
     this.limitVelocityOverLifetime = new LimitVelocityOverLifetimeModule(this);
     this.noise = new NoiseModule(this);
@@ -489,8 +501,12 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
     const isAlive = this.isAlive;
     if (isAlive) {
+      if (main.simulationSpace === ParticleSimulationSpace.Local) {
+        this._bounds.updateLocalWindBoundsHistory();
+      }
       this._bounds.generateTransformed();
     } else {
+      this._bounds.clearLocalWindBoundsHistory();
       if (lastAlive) {
         this._bounds.resetEmissionRecords();
       }
@@ -614,6 +630,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     this.emission._updateShaderData(shaderData);
     this.velocityOverLifetime._updateShaderData(shaderData);
     this.forceOverLifetime._updateShaderData(shaderData);
+    this.windOverLifetime._updateShaderData(shaderData);
     this.limitVelocityOverLifetime._updateShaderData(shaderData);
     this.textureSheetAnimation._updateShaderData(shaderData);
     this.sizeOverLifetime._updateShaderData(shaderData);
@@ -664,6 +681,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const useFeedback =
       supportsFeedback &&
       (useTrajectory ||
+        this.windOverLifetime.enabled ||
         this.limitVelocityOverLifetime.enabled ||
         this.noise.enabled ||
         this.inheritVelocity._needTransformFeedback() ||
@@ -703,6 +721,13 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     } else {
       this._reorganizeGeometryBuffers();
     }
+  }
+
+  /**
+   * @internal
+   */
+  _onWindBoundsChanged(): void {
+    this._bounds.onWindBoundsChanged();
   }
 
   /**

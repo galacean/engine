@@ -68,19 +68,32 @@ import type {
   PlotStatusView
 } from "../domain/index";
 import {
+  FARM_APPROXIMATE_OFFLINE_MAX_CATCH_UP_MS,
   applyFarmCommand,
   type ApplyFarmCommandResult,
+  type SettleFarmTimeResult,
   createInitialFarmSnapshot,
   freezeSnapshot,
   getActionAvailability,
   settleFarmTime,
+  settleFarmTimeApproximate,
   validateDefinitions,
   validateFarmSnapshot,
   validatePlotDefinitions
 } from "../domain/index";
+import { requirePositiveInteger } from "../domain/validationUtils";
 import type { FarmRepositoryTransaction } from "../persistence/FarmRepository";
 import type { FarmRepository } from "../persistence/FarmRepository";
 import { BrowserSystemClock, type FarmClock } from "./FarmClock";
+
+export interface FarmingOfflineCatchUpOptions {
+  readonly mode: "exact" | "approximate";
+  readonly maximumCatchUpMs?: number;
+  /** Approximate mode defaults to snapshot.environment so transient reopen weather does not erase offline growth. */
+  readonly preserveSavedEnvironment?: boolean;
+  /** When set in approximate mode, live ticks spanning at least this many ms also use O(1) approximate catch-up. */
+  readonly backgroundApproximateThresholdMs?: number;
+}
 
 export interface FarmingServiceOptions {
   readonly captureWaterSupply?: () => import("../domain/FarmWaterSupply").FarmWaterSupplyInput | undefined;
@@ -108,6 +121,7 @@ export interface FarmingServiceOptions {
   readonly simulationStepMs?: number;
   readonly maximumCatchUpMs?: number;
   readonly checkpointIntervalMs?: number;
+  readonly offlineCatchUp?: FarmingOfflineCatchUpOptions;
 }
 
 export type FarmingServiceErrorOperation = "checkpoint" | "clock" | "refresh" | "listener";
@@ -146,6 +160,7 @@ export class FarmingService {
   }
   private readonly simulationStepMs: number;
   private readonly checkpointIntervalMs: number;
+  private readonly offlineCatchUp?: FarmingOfflineCatchUpOptions;
   private readonly listeners = new Set<(change: FarmingServiceChange) => void>();
   private readonly errorListeners = new Set<(failure: FarmingServiceError) => void>();
   private readonly failureListeners = new Set<(message: string) => void>();
@@ -235,6 +250,16 @@ export class FarmingService {
     this.autoAdvance = options.autoAdvance ?? false;
     this.simulationStepMs = this.simulationConfig.stepMs;
     this.checkpointIntervalMs = this.simulationConfig.checkpointIntervalMs;
+    if (options.offlineCatchUp) {
+      if (options.offlineCatchUp.maximumCatchUpMs !== undefined)
+        requirePositiveInteger(options.offlineCatchUp.maximumCatchUpMs, "Offline maximum catch-up duration");
+      if (options.offlineCatchUp.backgroundApproximateThresholdMs !== undefined)
+        requirePositiveInteger(
+          options.offlineCatchUp.backgroundApproximateThresholdMs,
+          "Background approximate catch-up threshold"
+        );
+      this.offlineCatchUp = Object.freeze({ ...options.offlineCatchUp });
+    }
   }
 
   async initialize(): Promise<FarmSnapshot> {
@@ -283,7 +308,7 @@ export class FarmingService {
                   }
             )
           });
-          const settled = settleFarmTime(conservative, nowMs, this.definitions, timeOptions);
+          const settled = this.settleOffline(conservative, nowMs, timeOptions);
           const advanced = {
             ...settled,
             snapshot: freezeSnapshot({
@@ -305,6 +330,7 @@ export class FarmingService {
           return {
             snapshot,
             clockOnly: changed ? undefined : "volatile",
+            userEdit: false,
             value: {
               snapshot,
               summary: Object.freeze({
@@ -341,7 +367,7 @@ export class FarmingService {
           const time = rebaseTime && this.clock.rebase ? savedTime : Math.max(savedTime, this.clock.nowMs());
           if (mergeSettlement && time > previous.simulation.lastSystemTimeMs) {
             // The candidate is still private. Settle the old topology and its water supply before switching.
-            const settled = settleFarmTime(previous, time, this.definitions, this.timeOptions()).snapshot;
+            const settled = this.settleTickTime(previous, time, this.timeOptions()).snapshot;
             snapshot = mergeSettlement(settled);
           }
           return refreshWaterLayout(
@@ -841,7 +867,7 @@ export class FarmingService {
           const snapshot = grounded.changes.length
             ? freezeSnapshot({ ...validated, items: grounded.items, revision: validated.revision + 1 })
             : validated;
-          return { snapshot, value: { snapshot, ...grounded } };
+          return { snapshot, userEdit: false, value: { snapshot, ...grounded } };
         },
         this.lifetime.signal
       );
@@ -911,7 +937,7 @@ export class FarmingService {
       await this.checkpointNow(this.captureSettlementTime(nowMs), timeOptions);
       return;
     }
-    const advanced = settleFarmTime(this.snapshot, nowMs, this.definitions, timeOptions);
+    const advanced = this.settleTickTime(this.snapshot, nowMs, timeOptions);
     if (advanced.snapshot !== this.snapshot) {
       this.snapshot = advanced.snapshot;
       if (advanced.changes.length)
@@ -943,7 +969,7 @@ export class FarmingService {
           false,
           this.groundInspections
         );
-        const settled = settleFarmTime(refreshed.snapshot, targetSystemTimeMs, this.definitions, timeOptions);
+        const settled = this.settleTickTime(refreshed.snapshot, targetSystemTimeMs, timeOptions);
         const advanced = { ...settled, changes: [...refreshed.changes, ...settled.changes] };
         const changed = validated !== current || refreshed.changes.length > 0 || settled.stateChanged;
         const snapshot = changed
@@ -953,6 +979,7 @@ export class FarmingService {
         return {
           snapshot,
           clockOnly: changed ? undefined : clockOnly,
+          userEdit: false,
           value: {
             snapshot,
             changes: advanced.changes,
@@ -1038,7 +1065,8 @@ export class FarmingService {
             groundView: view,
             createCropInstanceId: this.createCropInstanceId,
             targetSystemTimeMs,
-            ...timeOptions
+            ...timeOptions,
+            settleTime: (state, targetMs) => this.settleTickTime(state, targetMs, timeOptions)
           });
           if (requestSignature && applied.result.ok && !applied.result.replayed) {
             const binding = freezeCommandBinding({ requestSignature, command });
@@ -1164,7 +1192,7 @@ export class FarmingService {
       (current) => {
         const time = readTime();
         const validated = this.validatedSnapshot(current);
-        const settled = settleFarmTime(validated, time, this.definitions, timeOptions);
+        const settled = this.settleTickTime(validated, time, timeOptions);
         const refreshed = refreshPlotGround(settled.snapshot, view, time, change, false, this.groundInspections);
         const regrounded = regroundFarmItems(refreshed.snapshot, this.definitions, view);
         const changed =
@@ -1179,6 +1207,7 @@ export class FarmingService {
         return {
           snapshot,
           clockOnly: changed ? undefined : "volatile",
+          userEdit: false,
           value: { snapshot, changes: [...settled.changes, ...refreshed.changes, ...regrounded.changes] }
         };
       }
@@ -1292,6 +1321,41 @@ export class FarmingService {
       environment: this.sampleEnvironment?.(),
       waterSupply: this.captureWaterSupply?.()
     };
+  }
+
+  private settleOffline(
+    snapshot: FarmSnapshot,
+    targetSystemTimeMs: number,
+    timeOptions: ReturnType<FarmingService["timeOptions"]>
+  ): SettleFarmTimeResult {
+    if (this.offlineCatchUp?.mode === "approximate") {
+      return settleFarmTimeApproximate(snapshot, targetSystemTimeMs, this.definitions, {
+        ...timeOptions,
+        maximumCatchUpMs: this.offlineCatchUp.maximumCatchUpMs ?? FARM_APPROXIMATE_OFFLINE_MAX_CATCH_UP_MS,
+        preserveSavedEnvironment: this.offlineCatchUp.preserveSavedEnvironment ?? true
+      });
+    }
+    return settleFarmTime(snapshot, targetSystemTimeMs, this.definitions, timeOptions);
+  }
+
+  private settleTickTime(
+    snapshot: FarmSnapshot,
+    targetSystemTimeMs: number,
+    timeOptions: ReturnType<FarmingService["timeOptions"]>
+  ): SettleFarmTimeResult {
+    const threshold = this.offlineCatchUp?.backgroundApproximateThresholdMs;
+    if (
+      this.offlineCatchUp?.mode === "approximate" &&
+      threshold !== undefined &&
+      targetSystemTimeMs - snapshot.simulation.lastSystemTimeMs >= threshold
+    ) {
+      return settleFarmTimeApproximate(snapshot, targetSystemTimeMs, this.definitions, {
+        ...timeOptions,
+        maximumCatchUpMs: this.offlineCatchUp.maximumCatchUpMs ?? FARM_APPROXIMATE_OFFLINE_MAX_CATCH_UP_MS,
+        preserveSavedEnvironment: this.offlineCatchUp.preserveSavedEnvironment ?? true
+      });
+    }
+    return settleFarmTime(snapshot, targetSystemTimeMs, this.definitions, timeOptions);
   }
 
   private publish(change: FarmingServiceChange): void {

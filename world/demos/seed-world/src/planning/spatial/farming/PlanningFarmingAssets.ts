@@ -68,8 +68,16 @@ export const planningFarmingAssetFormats: ReadonlyMap<string, RuntimeAssetFormat
           typeof value.farms !== "object" ||
           Array.isArray(value.farms) ||
           Object.keys(value.farms).length ||
-          (value.initializations !== undefined && (!value.initializations || typeof value.initializations !== "object" ||
-            Array.isArray(value.initializations) || Object.keys(value.initializations).length))
+          (value.initializations !== undefined &&
+            (!value.initializations ||
+              typeof value.initializations !== "object" ||
+              Array.isArray(value.initializations) ||
+              Object.keys(value.initializations).length)) ||
+          (value.wallClockAnchors !== undefined &&
+            (!value.wallClockAnchors ||
+              typeof value.wallClockAnchors !== "object" ||
+              Array.isArray(value.wallClockAnchors) ||
+              Object.keys(value.wallClockAnchors).length))
         )
           throw new Error("Create farming state with {version:1, farms:{}}; populate it through FarmingSystem methods");
       },

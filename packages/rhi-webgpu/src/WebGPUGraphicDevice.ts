@@ -26,7 +26,7 @@ import {
   TextureFormat,
   WebCanvas
 } from "@galacean/engine-core";
-import { RenderBufferLoadAction, RenderBufferStoreAction } from "@galacean/engine-core";
+import { RenderPassDescriptor, RenderPassLoadAction, RenderPassStoreAction } from "@galacean/engine-core";
 import type { Buffer, RenderStateElementMap, Texture } from "@galacean/engine-core";
 import { WebGPUTexture } from "./WebGPUTexture";
 import { WebGPUDrawBundles, type RenderDrawCommands } from "./WebGPUDrawBundles";
@@ -267,8 +267,8 @@ export class WebGPUGraphicDevice implements IHardwareRenderer {
   private readonly _deferredPass: WebGPUDeferredPass;
   private _computePass?: GPUComputePassEncoder;
   private _pendingClearFlags = CameraClearFlags.None;
-  private _colorStore = RenderBufferStoreAction.Store;
-  private _depthStore = RenderBufferStoreAction.Store;
+  private _colorStore = RenderPassStoreAction.Store;
+  private _depthStore = RenderPassStoreAction.Store;
   private _pendingClearColor = new Color();
   private _mainDepthTexture?: GPUTexture;
   private _externalTarget?: WebGPUProjectionTarget;
@@ -738,21 +738,54 @@ export class WebGPUGraphicDevice implements IHardwareRenderer {
     viewport: Vector4,
     _isFlipProjection?: boolean | null,
     mipLevel: number = 0,
-    faceIndex?: number,
-    colorLoad: RenderBufferLoadAction = RenderBufferLoadAction.Load,
-    colorStore: RenderBufferStoreAction = RenderBufferStoreAction.Store,
-    depthLoad: RenderBufferLoadAction = RenderBufferLoadAction.Load,
-    depthStore: RenderBufferStoreAction = RenderBufferStoreAction.Store,
-    label?: string
+    faceIndex?: number
   ): void {
     this.endRenderPass();
-    this._colorStore = colorStore;
-    this._depthStore = depthStore;
-    this._renderPassLabel = label ?? (renderTarget ? "offscreen-render" : "main-render");
-    if (viewport.x === 0 && viewport.y === 0 && viewport.z === 1 && viewport.w === 1) {
-      if (colorLoad === RenderBufferLoadAction.DontCare) this._pendingClearFlags |= CameraClearFlags.Color;
-      if (depthLoad === RenderBufferLoadAction.DontCare) this._pendingClearFlags |= CameraClearFlags.DepthStencil;
+    this._colorStore = RenderPassStoreAction.Store;
+    this._depthStore = RenderPassStoreAction.Store;
+    this._renderPassLabel = renderTarget ? "offscreen-render" : "main-render";
+    this._bindTargetAndViewport(renderTarget, viewport, mipLevel, faceIndex);
+  }
+
+  beginRenderPass(descriptor: RenderPassDescriptor): void {
+    this.endRenderPass();
+    const { renderTarget, viewport, mipLevel, faceIndex } = descriptor;
+    this._colorStore = descriptor.colorStoreAction;
+    this._depthStore = descriptor.depthStoreAction;
+    this._renderPassLabel = descriptor.label ?? (renderTarget ? "offscreen-render" : "main-render");
+    const fullViewport = viewport.x === 0 && viewport.y === 0 && viewport.z === 1 && viewport.w === 1;
+    if (
+      descriptor.colorLoadAction === RenderPassLoadAction.Clear ||
+      (fullViewport && descriptor.colorLoadAction === RenderPassLoadAction.DontCare)
+    ) {
+      this._pendingClearFlags |= CameraClearFlags.Color;
+      if (descriptor.colorLoadAction === RenderPassLoadAction.Clear) {
+        this._pendingClearColor.copyFrom(descriptor.clearColor);
+      } else {
+        this._pendingClearColor.set(0, 0, 0, 0);
+      }
     }
+    if (
+      descriptor.depthLoadAction === RenderPassLoadAction.Clear ||
+      (fullViewport && descriptor.depthLoadAction === RenderPassLoadAction.DontCare)
+    ) {
+      this._pendingClearFlags |= CameraClearFlags.Depth;
+    }
+    if (
+      descriptor.stencilLoadAction === RenderPassLoadAction.Clear ||
+      (fullViewport && descriptor.stencilLoadAction === RenderPassLoadAction.DontCare)
+    ) {
+      this._pendingClearFlags |= CameraClearFlags.Stencil;
+    }
+    this._bindTargetAndViewport(renderTarget, viewport, mipLevel, faceIndex);
+  }
+
+  private _bindTargetAndViewport(
+    renderTarget: RenderTarget | null,
+    viewport: Vector4,
+    mipLevel: number = 0,
+    faceIndex?: number
+  ): void {
     if (renderTarget) {
       (
         renderTarget as RenderTarget & { _platformRenderTarget: IPlatformRenderTarget }
@@ -1081,9 +1114,9 @@ export class WebGPUGraphicDevice implements IHardwareRenderer {
     this._gpuTimingProfiler.addTimestampWrites(descriptor, "render");
     const target = this._getAttachmentState();
     const deferred =
-      (this._colorStore === RenderBufferStoreAction.DontCare && target.colorFormats.length > 0) ||
-      (this._colorStore === RenderBufferStoreAction.Resolve && target.sampleCount > 1) ||
-      (this._depthStore === RenderBufferStoreAction.DontCare && !!target.depthStencilFormat);
+      (this._colorStore === RenderPassStoreAction.Discard && target.colorFormats.length > 0) ||
+      (this._colorStore === RenderPassStoreAction.Resolve && target.sampleCount > 1) ||
+      (this._depthStore === RenderPassStoreAction.Discard && !!target.depthStencilFormat);
     if (deferred) {
       this._deferredPass.begin(descriptor, {
         colorFormats: target.colorFormats,
@@ -1480,11 +1513,11 @@ export class WebGPUGraphicDevice implements IHardwareRenderer {
     this._bundles.end();
     if (pass instanceof WebGPUDeferredPass) {
       const resolve =
-        final && this._colorStore === RenderBufferStoreAction.Resolve && this._getAttachmentState().sampleCount > 1;
+        final && this._colorStore === RenderPassStoreAction.Resolve && this._getAttachmentState().sampleCount > 1;
       pass.end(
         this._commandEncoder!,
-        resolve || (final && this._colorStore === RenderBufferStoreAction.DontCare),
-        final && this._depthStore === RenderBufferStoreAction.DontCare,
+        resolve || (final && this._colorStore === RenderPassStoreAction.Discard),
+        final && this._depthStore === RenderPassStoreAction.Discard,
         resolve
       );
     } else pass.end();

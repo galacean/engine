@@ -61,6 +61,7 @@ export abstract class Mesh extends ReferResource {
     super(engine);
     this.name = name;
     this._primitive = new Primitive(engine);
+    this._primitive._associationSuperResource(this);
     this._onBoundsChanged = this._onBoundsChanged.bind(this);
 
     const bounds = this._bounds;

@@ -80,31 +80,58 @@ export function calculateProceduralTreeCanopyOpticalDepths(
 }
 
 function calculatePreparedCanopyOpticalDepths(prepared: readonly PreparedCanopyFrame[]): readonly number[] {
-  return prepared.map((target, targetIndex) => {
+  const count = prepared.length;
+  const result = new Array<number>(count);
+  if (count === 0) return result;
+  const cx = new Float64Array(count);
+  const cy = new Float64Array(count);
+  const cz = new Float64Array(count);
+  const nx = new Float64Array(count);
+  const ny = new Float64Array(count);
+  const nz = new Float64Array(count);
+  const areas = new Float64Array(count);
+  for (let i = 0; i < count; i++) {
+    const f = prepared[i];
+    cx[i] = f.center[0];
+    cy[i] = f.center[1];
+    cz[i] = f.center[2];
+    nx[i] = f.normal[0];
+    ny[i] = f.normal[1];
+    nz[i] = f.normal[2];
+    areas[i] = f.area;
+  }
+  const invPi = 1 / Math.PI;
+  const ln2 = Math.LN2;
+  for (let targetIndex = 0; targetIndex < count; targetIndex++) {
+    const tcx = cx[targetIndex];
+    const tcy = cy[targetIndex];
+    const tcz = cz[targetIndex];
+    const tnx = nx[targetIndex];
+    const tny = ny[targetIndex];
+    const tnz = nz[targetIndex];
     let opticalDepth = 0;
-    for (let occluderIndex = 0; occluderIndex < prepared.length; occluderIndex++) {
+    for (let occluderIndex = 0; occluderIndex < count; occluderIndex++) {
       if (occluderIndex === targetIndex) continue;
-      const occluder = prepared[occluderIndex];
-      const offset: Point = [
-        occluder.center[0] - target.center[0],
-        occluder.center[1] - target.center[1],
-        occluder.center[2] - target.center[2]
-      ];
-      const distanceSquared = dot(offset, offset);
+      const ox = cx[occluderIndex] - tcx;
+      const oy = cy[occluderIndex] - tcy;
+      const oz = cz[occluderIndex] - tcz;
+      const distanceSquared = ox * ox + oy * oy + oz * oz;
       if (distanceSquared <= AXIS_EPSILON) {
         // Coincident cards cover half of an unresolved local hemisphere. Accumulating
         // -log(visibility) keeps the result composable with Beer-Lambert density.
-        opticalDepth += Math.LN2;
+        opticalDepth += ln2;
         continue;
       }
-      const distance = Math.sqrt(distanceSquared);
-      const inverseDistance = 1 / distance;
-      const direction: Point = [offset[0] * inverseDistance, offset[1] * inverseDistance, offset[2] * inverseDistance];
-      const targetCosine = Math.max(dot(target.normal, direction), 0);
+      // Reject occluders behind the target's receiving hemisphere before computing sqrt.
+      const targetDot = tnx * ox + tny * oy + tnz * oz;
+      if (targetDot <= 0) continue;
+      const inverseDistance = 1 / Math.sqrt(distanceSquared);
+      const targetCosine = targetDot * inverseDistance;
       if (targetCosine <= AXIS_EPSILON) continue;
-      const projectedArea = occluder.area * Math.abs(dot(occluder.normal, direction));
+      const occluderDot = nx[occluderIndex] * ox + ny[occluderIndex] * oy + nz[occluderIndex] * oz;
+      const projectedArea = areas[occluderIndex] * Math.abs(occluderDot * inverseDistance);
       if (projectedArea <= AXIS_EPSILON) continue;
-      const equivalentRadiusSquared = projectedArea / Math.PI;
+      const equivalentRadiusSquared = projectedArea * invPi;
       // A disk of radius r at axial distance d covers sin^2(alpha) = r^2 / (d^2 + r^2)
       // of a cosine-weighted hemisphere. Multiplying by the receiver cosine preserves the
       // small-disk limit while keeping every finite, non-coincident occluder strictly below
@@ -114,8 +141,9 @@ function calculatePreparedCanopyOpticalDepths(prepared: readonly PreparedCanopyF
       const blockedAmbientFraction = cosineWeightedDiskFraction * targetCosine;
       opticalDepth -= Math.log1p(-blockedAmbientFraction);
     }
-    return opticalDepth;
-  });
+    result[targetIndex] = opticalDepth;
+  }
+  return result;
 }
 
 /** Adds generator-derived optical depth without changing card identity or geometry. */

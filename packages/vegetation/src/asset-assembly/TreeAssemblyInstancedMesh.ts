@@ -22,7 +22,7 @@ export const TREE_ASSEMBLY_COMPACT_REVEAL_INSTANCE_FLOATS = TREE_ASSEMBLY_COMPAC
 export const TREE_ASSEMBLY_GPU_VARIATION_INSTANCE_FLOATS = TREE_ASSEMBLY_INSTANCE_FLOATS + 8;
 /** The compact position record's W lane is owned exclusively by signed LOD dither coverage. */
 export const TREE_ASSEMBLY_COMPACT_LOD_FADE_FLOAT_OFFSET = 3;
-/** The common color record's W lane is owned exclusively by signed LOD dither coverage. */
+/** Signed LOD coverage. A full-coverage native plant can store its pigment outside the fade range. */
 export const TREE_ASSEMBLY_LOD_FADE_FLOAT_OFFSET = TREE_ASSEMBLY_INSTANCE_FLOATS - 1;
 /** GPU leaves duplicate signed coverage in an already-active attribute to stay within the vertex-input budget. */
 export const TREE_ASSEMBLY_GPU_VARIATION_LEAF_LOD_FADE_FLOAT_OFFSET = TREE_ASSEMBLY_GPU_VARIATION_INSTANCE_FLOATS - 1;
@@ -158,15 +158,36 @@ export function uploadTreeAssemblyInstances(resources: TreeAssemblyInstancedMesh
 
 /** Uploads one edited instance record without rewriting the other records sharing this storage. */
 export function uploadTreeAssemblyInstance(storage: TreeAssemblyInstanceStorage, index: number): void {
-  if (!Number.isInteger(index) || index < 0 || index >= storage.capacity) {
+  uploadTreeAssemblyInstanceRange(storage, index, 1);
+}
+
+/** Preserve the rest of a resident buffer when only some of its packed records changed. */
+export function uploadTreeAssemblyInstanceRange(
+  storage: Pick<TreeAssemblyInstanceStorage, "instanceBuffer" | "staging" | "recordFloats">,
+  index: number,
+  count: number
+): void {
+  const { instanceBuffer, staging, recordFloats } = storage;
+  if (
+    !Number.isInteger(index) ||
+    index < 0 ||
+    !Number.isInteger(count) ||
+    count < 1 ||
+    (index + count) * recordFloats > staging.length
+  ) {
     throw new RangeError("Tree Assembly instance index is outside its storage capacity");
   }
-  const dataOffset = index * storage.recordFloats;
-  storage.instanceBuffer.setData(
-    storage.staging,
+  // A partial upload clears Buffer.isContentLost even though the untouched records are still missing.
+  if (instanceBuffer.isContentLost) {
+    instanceBuffer.setData(staging);
+    return;
+  }
+  const dataOffset = index * recordFloats;
+  instanceBuffer.setData(
+    staging,
     dataOffset * Float32Array.BYTES_PER_ELEMENT,
     dataOffset,
-    storage.recordFloats,
+    count * recordFloats,
     SetDataOptions.None
   );
 }

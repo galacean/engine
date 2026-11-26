@@ -11,6 +11,7 @@ import {
 import { SEED_WORLD_TREE_SPECIES_PROFILES } from "@galacean/engine-vegetation/world/SeedWorldTreeSpecies";
 import { SEED_WORLD_MAXIMUM_EXACT_VEGETATION_INSTANCES } from "../../world/SeedWorldPlanner";
 import { planningTreeAssetScale } from "../runtime/PlanningTreeAssets";
+import type { SeedWorldOwnerSamples } from "../ecology/CoverageRaster";
 
 export function authoredVegetationRank(text: string): number {
   let hash = 2166136261;
@@ -158,7 +159,7 @@ export function applyAuthoredDetailCoverage(
   resources: readonly PlanningResource[],
   category: "grass" | "flower" | "water-grass",
   water: Uint8Array,
-  ownership?: { ids: string[]; samples: Uint32Array }
+  ownership?: { ids: string[]; samples: SeedWorldOwnerSamples }
 ): number {
   const matching = resources
     .filter((resource) => resource.resourceType === "vegetation-brush")
@@ -171,6 +172,11 @@ export function applyAuthoredDetailCoverage(
     if (ownership && !owner) {
       ownership.ids.push(resourceId);
       owner = ownership.ids.length;
+      if (owner > 0xffff && !(ownership.samples instanceof Uint32Array)) {
+        ownership.samples = Uint32Array.from(ownership.samples);
+      } else if (owner > 0xff && ownership.samples instanceof Uint8Array) {
+        ownership.samples = Uint16Array.from(ownership.samples);
+      }
     }
     if (value.x < 0 || value.z < 0 || value.x > size || value.z > size)
       throw new Error("Authored vegetation is outside the world");

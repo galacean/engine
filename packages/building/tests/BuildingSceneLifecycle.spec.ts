@@ -471,6 +471,57 @@ it("does not hide genuinely broken author ownership behind inactive state", asyn
   await expect(manager.flushAsync()).rejects.toThrow(/Missing group/);
 });
 
+it("clears a failed build on an empty terrain commit and restores it on rollback", async () => {
+  const s = scene();
+  const manager = BuildingManager.forScene(s);
+  const originalTerrain = {
+    revision: 1,
+    grid: {
+      samples: new Uint16Array(4),
+      resolution: 2,
+      origin: [0, 0] as [number, number],
+      size: 1024,
+      decode: { offset: 0, scale: 1 }
+    }
+  };
+  manager.bind({
+    terrain: originalTerrain,
+    camera: {
+      engine,
+      destroyed: false,
+      entity: s.createRootEntity("camera"),
+      viewMatrix: new Matrix(),
+      projectionMatrix: new Matrix(),
+      viewport: { z: 1, w: 1 },
+      isOrthographic: false,
+      nearClipPlane: 0.1,
+      farClipPlane: 1000
+    } as unknown as import("@galacean/engine").Camera
+  });
+  const frame = manager.create(s.createRootEntity(), European.buildHouses({ id: "house" }));
+  const group = manager.groupFor(manager.get("house-wall-0", frame)!);
+  group.enabled = false;
+  group.destroy();
+  await expect(manager.flush()).rejects.toThrow(/Missing group/);
+  const previousErrors = manager.errors();
+  frame.destroy();
+
+  const nextTerrain = { ...originalTerrain, revision: 2 };
+  const candidate = await manager.prepareTerrain(nextTerrain);
+  candidate.commit();
+  expect(manager.terrainSource).toBe(nextTerrain);
+  expect(manager.errors()).toEqual([]);
+
+  candidate.rollback();
+  expect(manager.terrainSource).toBe(originalTerrain);
+  expect(manager.errors()).toEqual(previousErrors);
+
+  candidate.commit();
+  candidate.finalize();
+  await expect(manager.flush()).resolves.toBeUndefined();
+  expect(manager.errors()).toEqual([]);
+});
+
 it("rejects an invalid deletion plan before destroying objects or editing connections", () => {
   const s = scene(),
     manager = BuildingManager.forScene(s);

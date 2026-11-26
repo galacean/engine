@@ -32,7 +32,7 @@ vi.mock("@galacean/engine-vegetation/asset-assembly/TreeAssemblyInstancedMesh", 
       capacity,
       recordFloats,
       staging: new Float32Array(capacity * recordFloats),
-      instanceBuffer: { destroy: vi.fn() }
+      instanceBuffer: { destroy: vi.fn(), isContentLost: false }
     })),
     createTreeAssemblyInstancedMesh: vi.fn(
       (_engine: unknown, _mesh: unknown, _capacity: number, bounds: BoundingBox, _name: string, storage: any) => ({
@@ -41,6 +41,7 @@ vi.mock("@galacean/engine-vegetation/asset-assembly/TreeAssemblyInstancedMesh", 
           instanceCount: 0,
           destroy: vi.fn()
         },
+        instanceBuffer: storage.instanceBuffer,
         staging: storage.staging,
         recordFloats: storage.recordFloats,
         capacity: storage.capacity
@@ -48,7 +49,9 @@ vi.mock("@galacean/engine-vegetation/asset-assembly/TreeAssemblyInstancedMesh", 
     ),
     uploadTreeAssemblyInstances: vi.fn((view: any, count: number) => {
       view.mesh.instanceCount = count;
-    })
+      if (view.instanceBuffer) view.instanceBuffer.isContentLost = false;
+    }),
+    uploadTreeAssemblyInstanceRange: vi.fn()
   };
 });
 
@@ -256,6 +259,43 @@ describe("NaturalUnderstoryInstancedPool", () => {
     expect(canInstanceUnderstoryLevels(makeLevels(unlit)[0]!.specimen, makeLevels(unlit))).toBe(false);
     expect(canInstanceUnderstoryLevels(makeLevels(catalog)[0]!.specimen, makeLevels(catalog))).toBe(false);
     expect(canInstanceUnderstoryLevels(makeLevels(sharedGrass)[0]!.specimen, makeLevels(sharedGrass))).toBe(false);
+  });
+
+  it.each([false, true])("updates one resident's pigment in the same batch (GPU variation %s)", async (gpu) => {
+    const { parent, camera } = createMockParentAndCamera();
+    const pool = new NaturalUnderstoryInstancedPool(parent, camera, "paint");
+    const spec: InstancedUnderstoryBucketSpec = {
+      key: "one-material",
+      mesh: createMockMesh(),
+      material: createMockMaterial("Terrain/Vegetation"),
+      macros: [],
+      castShadows: false,
+      receiveShadows: true,
+      enableVertexColor: false,
+      usesGpuVariation: gpu,
+      interactionOccluder: true
+    };
+    const trees = ["target", "neighbor"].map((id, i) => makeRecord({ id, x: i, z: -12, spec }));
+    pool.setCell("trees", trees);
+    pool.update(300, true);
+    const bucket = (pool as any).buckets.get(spec.key);
+    const original = bucket.view.staging.slice();
+    const { encodePlantPigment } = await import("@galacean/engine-world-planning/spatial/VegetationColors");
+    const { uploadTreeAssemblyInstanceRange } = await import(
+      "@galacean/engine-vegetation/asset-assembly/TreeAssemblyInstancedMesh"
+    );
+    const dye = encodePlantPigment([200, 0, 255], 1)!;
+    const target = (instance: LandscapePlantInstance) => instance.id === "target";
+    pool.refreshLocalColors(target, () => dye);
+    expect(uploadTreeAssemblyInstanceRange).toHaveBeenLastCalledWith(bucket.storage, 0, 1);
+    expect(bucket.view.staging[15]).toBe(dye);
+    if (gpu) expect(bucket.view.staging[23]).toBe(dye);
+    expect(bucket.view.staging.slice(bucket.view.recordFloats)).toEqual(original.slice(bucket.view.recordFloats));
+    expect(pool.bucketCount).toBe(1);
+    expect(bucket.view.mesh.instanceCount).toBe(2);
+    pool.refreshLocalColors(target, () => undefined);
+    expect(bucket.view.staging).toEqual(original);
+    pool.dispose();
   });
 
   it("transfers shared GPU leaf-frame uniforms and enables RENDERER_ASSET_ASSEMBLY_INSTANCE on bucket renderers", () => {
@@ -629,6 +669,93 @@ describe("NaturalUnderstoryInstancedPool", () => {
     primary.dispose();
     // Temporary mesh reference is cleaned up without disturbing real shadow views.
     expect(primary.shadowOnlyRenderers[0]!.mesh).toBeNull();
+
+    pool.dispose();
+  });
+
+  it("re-uploads camera and shadow instance buffers after WebGL context loss even when the camera is stationary", async () => {
+    const { uploadTreeAssemblyInstances } = await import(
+      "@galacean/engine-vegetation/asset-assembly/TreeAssemblyInstancedMesh"
+    );
+    const uploadSpy = vi.mocked(uploadTreeAssemblyInstances);
+    uploadSpy.mockClear();
+
+    const { parent, camera } = createMockParentAndCamera();
+    (camera as any).enableFrustumCulling = true;
+    (camera as any).registerRenderViewCullingSource = vi.fn(() => ({ unregister: vi.fn() }));
+
+    const pool = new NaturalUnderstoryInstancedPool(parent, camera, "ContextLossPool", {
+      maxShadowCascadeIndex: 0,
+      shadowLodPolicy: "lowest"
+    });
+    const spec: InstancedUnderstoryBucketSpec = {
+      key: "shrub-lod0",
+      mesh: createMockMesh("shrub-lod0"),
+      material: createMockMaterial("Terrain/Vegetation"),
+      macros: ["RENDERER_ASSET_ASSEMBLY_INSTANCE"],
+      castShadows: true,
+      receiveShadows: true,
+      enableVertexColor: false,
+      usesGpuVariation: true,
+      interactionOccluder: false
+    };
+    pool.setCell("cell-0", [makeRecord({ id: "shrub-1", x: 0, y: 0, z: -20, spec })]);
+    pool.update(Infinity, true, 120);
+
+    const bucket = (pool as any).buckets.get("shrub-lod0");
+    const camContext: RenderViewCullingContext = {
+      viewType: RenderViewType.Camera,
+      camera,
+      virtualCamera: { viewProjectionMatrix: new Matrix() } as any,
+      shadowCascadeIndex: -1,
+      classifyBounds: () => ContainmentType.Intersects,
+      isVisible: () => true,
+      submit: vi.fn()
+    };
+    const shadowClassifySpy = vi.fn(() => ContainmentType.Intersects);
+    const shadowContext: RenderViewCullingContext = {
+      viewType: RenderViewType.ShadowCascade,
+      camera,
+      virtualCamera: { viewProjectionMatrix: new Matrix() } as any,
+      shadowCascadeIndex: 0,
+      classifyBounds: shadowClassifySpy,
+      isVisible: () => true,
+      submit: vi.fn()
+    };
+
+    // Initial camera + shadow cull uploads both views once.
+    pool.cull(camContext);
+    pool.cull(shadowContext);
+    const afterInitialUploads = uploadSpy.mock.calls.length;
+    expect(afterInitialUploads).toBe(2); // 1 camera + 1 shadow
+
+    // Stationary camera non-forced cull hits both early-return/cache-hit paths and skips both uploads.
+    shadowClassifySpy.mockClear();
+    pool.update(Infinity, false, 120);
+    pool.cull(camContext);
+    pool.cull(shadowContext);
+    expect(uploadSpy.mock.calls.length).toBe(afterInitialUploads);
+    expect(shadowClassifySpy).not.toHaveBeenCalled();
+
+    // Simulate WebGL context loss/restore marking both GPU buffers content-lost.
+    bucket.view.instanceBuffer.isContentLost = true;
+    bucket.shadowViews[0].view.instanceBuffer.isContentLost = true;
+
+    // Stationary non-forced cull MUST hit !cameraChanged early-return (L1095) and shadow cache-hit (L1019)
+    // and re-upload both buffers immediately without re-culling shadow cascades.
+    shadowClassifySpy.mockClear();
+    pool.cull(camContext);
+    pool.cull(shadowContext);
+    expect(uploadSpy.mock.calls.length).toBe(afterInitialUploads + 2);
+    expect(shadowClassifySpy).not.toHaveBeenCalled();
+    expect(bucket.view.instanceBuffer.isContentLost).toBe(false);
+    expect(bucket.shadowViews[0].view.instanceBuffer.isContentLost).toBe(false);
+
+    // Forced update with unchanged visibility (!anyChanged early-return) must also restore lost camera buffer.
+    bucket.view.instanceBuffer.isContentLost = true;
+    pool.update(Infinity, true, 120);
+    expect(uploadSpy.mock.calls.length).toBe(afterInitialUploads + 3);
+    expect(bucket.view.instanceBuffer.isContentLost).toBe(false);
 
     pool.dispose();
   });

@@ -519,6 +519,7 @@ export type SeedWorldVegetationCreateInput = SeedWorldMutationControl &
 
 /** Public update shape for an authored vegetation asset. Runtime brush fields stay internal. */
 export type SeedWorldVegetationFeaturePatch = Readonly<{
+  colorOverride?: import("../../spatial/VegetationColors").VegetationColorPatch;
   treeShape?: import("@galacean/engine-vegetation/world/SeedWorldTreeShapeControls").SeedWorldTreeShapePatch;
   treeShapeScope?: "shared-effect";
   treeEffectIndex?: number;
@@ -610,6 +611,7 @@ export type SeedWorldAuthoringResourceOf<ResourceType extends SeedWorldResourceT
 >;
 
 export interface SeedWorldAuthoringSnapshot {
+  readonly vegetationColors?: readonly import("../../spatial/VegetationColors").VegetationColorResource[];
   readonly activeRevision: number;
   readonly draftRevision: number;
   readonly authoringStateHash: string;
@@ -626,6 +628,13 @@ export interface SeedWorldObjectRemovalInput {
 }
 
 export type SeedWorldResourceMutation =
+  | Readonly<{
+      action: "update";
+      resourceType: "vegetation-color";
+      target: import("../../spatial/VegetationColors").VegetationColorTarget;
+      patch: import("../../spatial/VegetationColors").VegetationColorPatch;
+      ref?: SeedWorldRef;
+    }>
   | Readonly<{
       action: "update";
       resourceType: "tree-variation";

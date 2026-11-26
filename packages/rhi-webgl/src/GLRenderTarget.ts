@@ -1,6 +1,5 @@
 import {
   IPlatformRenderTarget,
-  RenderBufferStoreAction,
   RenderTarget,
   Texture,
   TextureCube,
@@ -31,8 +30,10 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   private _MSAADepthRenderBuffer: WebGLRenderbuffer | null;
   private _blitDrawBuffers: GLenum[] | null;
   private _curMipLevel: number = 0;
+  private _mainFBOMipLevel: number = 0;
   private _curFaceIndex: TextureCubeFace | undefined = undefined;
   private _antiAliasing: number;
+  private _mipFrameBuffers: (WebGLFramebuffer | null)[] | null = null;
 
   /**
    * Create render target in WebGL platform.
@@ -84,9 +85,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       this._hasStencil = depthAttachment === gl.STENCIL_ATTACHMENT || depthAttachment === gl.DEPTH_STENCIL_ATTACHMENT;
     }
 
-    // Flush any active render target's pending store actions before binding the new FBOs
-    rhi._flushAndResetActiveRenderTarget();
-
     this._frameBuffer = this._gl.createFramebuffer();
 
     // bind main FBO
@@ -106,15 +104,50 @@ export class GLRenderTarget implements IPlatformRenderTarget {
    */
   activeRenderTarget(mipLevel: number, faceIndex?: TextureCubeFace): void {
     // @todo: support MRT
-    const { _gl: gl, _target: target } = this;
+    const { _rhi: rhi, _gl: gl, _target: target } = this;
+    const level = mipLevel ?? 0;
 
-    const mipChanged = mipLevel !== this._curMipLevel;
+    const colorTexture = target.getColorTexture(0);
+    // Fast-path per-mip FBO cache for 2D non-MSAA, color-only, single-attachment mipmapped targets (e.g. Hi-Z / ColorPyramid).
+    if (
+      level > 0 &&
+      !this._MSAAFrameBuffer &&
+      !this._depthRenderBuffer &&
+      !target.depthTexture &&
+      target.colorTextureCount === 1 &&
+      colorTexture &&
+      !(colorTexture instanceof TextureCube) &&
+      level < colorTexture.mipmapCount
+    ) {
+      let mipFBO = this._mipFrameBuffers?.[level] ?? null;
+      if (!mipFBO) {
+        mipFBO = gl.createFramebuffer();
+        if (!mipFBO) {
+          return;
+        }
+        (this._mipFrameBuffers ??= [])[level] = mipFBO;
+        rhi._bindFramebuffer(gl.FRAMEBUFFER, mipFBO);
+        gl.framebufferTexture2D(
+          gl.FRAMEBUFFER,
+          gl.COLOR_ATTACHMENT0,
+          gl.TEXTURE_2D,
+          (colorTexture._platformTexture as GLTexture)._glTexture,
+          level
+        );
+      } else {
+        rhi._bindFramebuffer(gl.FRAMEBUFFER, mipFBO);
+      }
+      this._curMipLevel = level;
+      this._curFaceIndex = faceIndex;
+      return;
+    }
+
+    const mipChanged = level !== this._mainFBOMipLevel;
     const faceChanged = faceIndex !== this._curFaceIndex;
 
     if (!this._MSAAFrameBuffer || mipChanged || faceChanged || target.depthTexture instanceof TextureCube) {
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
+      rhi._bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
 
-      const colorTexture = target.getColorTexture(0);
       if (colorTexture) {
         const isCube = colorTexture instanceof TextureCube;
         if (mipChanged || (isCube && faceChanged)) {
@@ -123,11 +156,10 @@ export class GLRenderTarget implements IPlatformRenderTarget {
             gl.COLOR_ATTACHMENT0,
             isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex! : gl.TEXTURE_2D,
             (colorTexture._platformTexture as GLTexture)._glTexture,
-            mipLevel
+            level
           );
         }
       }
-
       const { depthTexture } = target;
       if (depthTexture) {
         const isCube = depthTexture instanceof TextureCube;
@@ -138,83 +170,95 @@ export class GLRenderTarget implements IPlatformRenderTarget {
             platformTexture._formatDetail.attachment!,
             isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex! : gl.TEXTURE_2D,
             platformTexture._glTexture,
-            mipLevel
+            level
           );
         }
-      } else {
-        if (mipChanged && this._depthRenderBuffer) {
+      } else if (this._depthRenderBuffer) {
+        if (mipChanged) {
           // @ts-ignore
           const { internalFormat } = GLTexture._getRenderBufferDepthFormatDetail(target._depth, gl);
           gl.bindRenderbuffer(gl.RENDERBUFFER, this._depthRenderBuffer);
-          gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, target.width >> mipLevel, target.height >> mipLevel);
+          gl.renderbufferStorage(
+            gl.RENDERBUFFER,
+            internalFormat,
+            Math.max(1, target.width >> level),
+            Math.max(1, target.height >> level)
+          );
         }
       }
 
-      this._curMipLevel = mipLevel;
+      this._mainFBOMipLevel = level;
+      this._curMipLevel = level;
       this._curFaceIndex = faceIndex;
     }
 
     if (this._MSAAFrameBuffer) {
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this._MSAAFrameBuffer);
+      rhi._bindFramebuffer(gl.FRAMEBUFFER, this._MSAAFrameBuffer);
     }
   }
 
   /**
-   * Blit FBO.
+   * Resolve MSAA FBO to the color/depth textures while keeping MSAA samples and depth/stencil intact.
+   * @remarks
+   * Render passes with declared store actions use `_resolveRenderTarget` via `endRenderPass()`.
    */
   blitRenderTarget(): void {
+    this._resolveRenderTarget(this._target.colorTextureCount > 0, false, !!this._target.depthTexture, false, false);
+  }
+
+  /** @internal */
+  _resolveRenderTarget(
+    resolveColor: boolean,
+    discardMSAAColor: boolean,
+    resolveDepth: boolean,
+    discardDepth: boolean,
+    discardStencil: boolean
+  ): void {
     if (!this._MSAAFrameBuffer) return;
 
     const gl = this._gl;
     const rhi = this._rhi;
     const target = this._target;
-    const isActive = rhi._activeRenderTarget === target;
-    const discardMSAA =
-      isActive &&
-      (rhi._activeColorStoreAction === RenderBufferStoreAction.Resolve ||
-        rhi._activeColorStoreAction === RenderBufferStoreAction.DontCare);
-    const discardDepth = isActive && rhi._activeDepthStoreAction === RenderBufferStoreAction.DontCare;
-
-    if (!isActive) {
-      rhi._flushAndResetActiveRenderTarget();
-    }
-
-    const resolveDepth = !!target.depthTexture;
-    const mask = gl.COLOR_BUFFER_BIT | (resolveDepth ? gl.DEPTH_BUFFER_BIT : 0);
     const { colorTextureCount, width, height } = target;
+    resolveColor = resolveColor && colorTextureCount > 0;
+    resolveDepth = resolveDepth && !!target.depthTexture;
 
-    // Discard transient MSAA depth/stencil while _MSAAFrameBuffer is still the bound DRAW_FRAMEBUFFER
-    // so TBDR GPUs skip flushing depth before DRAW_FRAMEBUFFER switches to the resolve target (matches Unity TextureReadbackGLES.cpp)
-    if (discardDepth && !resolveDepth) {
-      rhi._invalidateFrameBufferAttachments(gl.FRAMEBUFFER, target, false, true, true);
+    // Discard non-resolved MSAA attachments while _MSAAFrameBuffer is still the bound DRAW_FRAMEBUFFER
+    // so TBDR GPUs skip flushing them before DRAW_FRAMEBUFFER switches to the resolve target.
+    const preDiscardColor = discardMSAAColor && !resolveColor;
+    const preDiscardDepth = discardDepth && !resolveDepth;
+    if (preDiscardColor || preDiscardDepth || discardStencil) {
+      rhi._invalidateFrameBufferAttachments(gl.FRAMEBUFFER, target, preDiscardColor, preDiscardDepth, discardStencil);
     }
 
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this._MSAAFrameBuffer);
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this._frameBuffer);
+    rhi._bindFramebuffer(gl.DRAW_FRAMEBUFFER, this._frameBuffer);
+    rhi._disableScissorTest();
 
-    for (let textureIndex = 0; textureIndex < colorTextureCount; textureIndex++) {
-      const attachment = gl.COLOR_ATTACHMENT0 + textureIndex;
+    if (resolveColor) {
+      for (let textureIndex = 0; textureIndex < colorTextureCount; textureIndex++) {
+        const attachment = gl.COLOR_ATTACHMENT0 + textureIndex;
+        const mask = gl.COLOR_BUFFER_BIT | (resolveDepth && textureIndex === 0 ? gl.DEPTH_BUFFER_BIT : 0);
 
-      this._blitDrawBuffers![textureIndex] = attachment;
+        this._blitDrawBuffers![textureIndex] = attachment;
 
-      gl.readBuffer(attachment);
-      gl.drawBuffers(this._blitDrawBuffers!);
-      gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, mask, gl.NEAREST);
+        gl.readBuffer(attachment);
+        gl.drawBuffers(this._blitDrawBuffers!);
+        gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, mask, gl.NEAREST);
 
-      this._blitDrawBuffers![textureIndex] = gl.NONE;
+        this._blitDrawBuffers![textureIndex] = gl.NONE;
+      }
+    } else if (resolveDepth) {
+      gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, gl.DEPTH_BUFFER_BIT, gl.NEAREST);
     }
 
-    if (discardMSAA || (discardDepth && resolveDepth)) {
-      rhi._invalidateFrameBufferAttachments(
-        gl.READ_FRAMEBUFFER,
-        target,
-        discardMSAA,
-        discardDepth && resolveDepth,
-        discardDepth && resolveDepth
-      );
+    const postDiscardColor = discardMSAAColor && resolveColor;
+    const postDiscardDepth = discardDepth && resolveDepth;
+    if (postDiscardColor || postDiscardDepth) {
+      rhi._invalidateFrameBufferAttachments(gl.READ_FRAMEBUFFER, target, postDiscardColor, postDiscardDepth, false);
     }
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    rhi._bindFramebuffer(gl.FRAMEBUFFER, null);
     rhi._clearActiveRenderTargetState();
   }
 
@@ -228,6 +272,25 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       this._rhi._clearActiveRenderTargetState();
     }
 
+    if (
+      (this._frameBuffer && this._rhi._currentDrawFrameBuffer === this._frameBuffer) ||
+      (this._MSAAFrameBuffer && this._rhi._currentDrawFrameBuffer === this._MSAAFrameBuffer)
+    ) {
+      this._rhi._currentDrawFrameBuffer = null;
+    }
+
+    if (this._mipFrameBuffers) {
+      for (let i = 0, n = this._mipFrameBuffers.length; i < n; i++) {
+        const mipFBO = this._mipFrameBuffers[i];
+        if (mipFBO) {
+          if (this._rhi._currentDrawFrameBuffer === mipFBO) {
+            this._rhi._currentDrawFrameBuffer = null;
+          }
+          gl.deleteFramebuffer(mipFBO);
+        }
+      }
+      this._mipFrameBuffers = null;
+    }
     this._frameBuffer && gl.deleteFramebuffer(this._frameBuffer);
     this._depthRenderBuffer && gl.deleteRenderbuffer(this._depthRenderBuffer);
     this._MSAAFrameBuffer && gl.deleteFramebuffer(this._MSAAFrameBuffer);
@@ -250,7 +313,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     const { _depth, colorTextureCount, width, height } = this._target;
     const drawBuffers = new Array(colorTextureCount);
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
+    this._rhi._bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
 
     /** color render buffer */
     for (let i = 0; i < colorTextureCount; i++) {
@@ -294,7 +357,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       }
     }
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    this._rhi._bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.bindRenderbuffer(gl.RENDERBUFFER, null);
   }
 
@@ -305,7 +368,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
     this._blitDrawBuffers = new Array(colorTextureCount);
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this._MSAAFrameBuffer);
+    this._rhi._bindFramebuffer(gl.FRAMEBUFFER, this._MSAAFrameBuffer);
 
     // prepare MRT+MSAA color RBOs
     for (let i = 0; i < colorTextureCount; i++) {
@@ -329,7 +392,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     }
 
     this._checkFrameBuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    this._rhi._bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.bindRenderbuffer(gl.RENDERBUFFER, null);
   }
 

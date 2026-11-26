@@ -9,7 +9,12 @@ import type { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain
 import type { OrbitControl } from "@galacean/engine-toolkit-controls";
 import { SEED_WORLD_SURFACE_PALETTE_PRESETS } from "@galacean/engine-vegetation/world/SeedWorldGrassColorField";
 import { mountWaterDevTools } from "@galacean/engine-water/water/devtools/index";
-import type { TerrainVistaDebugControl } from "@galacean/engine-world-planning/integrations/terrain/debug/TerrainRuntimeDebugInspector";
+import type { DebugInspectorPanelHost } from "@galacean/engine-terrain/terrain/debug/DebugInspector";
+import type {
+  TerrainOilPaintDebugControl,
+  TerrainRuntimeDebugInspector,
+  TerrainVistaDebugControl
+} from "@galacean/engine-world-planning/integrations/terrain/debug/TerrainRuntimeDebugInspector";
 import { createTerrainRuntimeDebugOwner } from "@galacean/engine-world-planning/integrations/terrain/debug/TerrainRuntimeDebugOwnerFactory";
 import type { WorldEnvironmentRuntime } from "@galacean/engine-world-planning/integrations/terrain/environment/WorldEnvironmentRuntime";
 import type { TerrainLightingRuntime } from "@galacean/engine-world-planning/integrations/terrain/lighting/TerrainLightingRuntime";
@@ -39,9 +44,19 @@ import type { PlanningSeedWorldPublished } from "./PlanningSeedWorldSession.ts";
 import { PlanningTreeAuthoring, type PlanningTreeAuthoringOptions } from "./PlanningTreeAuthoring";
 import { PlanningTreePanel, type PlanningTreePanelState } from "./PlanningTreePanel";
 
+export interface PlanningSeedEmbeddedComponentPanels {
+  readonly mountWater?: (container: HTMLElement) => { destroy(): void; stop?: () => Promise<void> };
+  readonly mountBuilding?: (container: HTMLElement) => { destroy(): void };
+}
+
 export interface PlanningSeedRuntimeDebugOptions {
   /** Page-owned controls mounted with the shared inspector lifecycle. */
   readonly extraControls?: (gui: import("dat.gui").GUI) => void | Promise<void>;
+  /** Unified LOD controls mounted into Grass & Buildings dat.gui folders. */
+  readonly mountLodControls?: (hosts: {
+    grassHost: DebugInspectorPanelHost;
+    buildingHost: DebugInspectorPanelHost;
+  }) => { update(): void; dispose(): void };
   readonly trees?: PlanningTreeAuthoringOptions;
   readonly farming?: PlanningFarmingControlsOptions;
   readonly animals?: Omit<PlanningAnimalPanelOptions, "host">;
@@ -60,6 +75,7 @@ export interface PlanningSeedRuntimeDebugOptions {
   readonly environment: WorldEnvironmentRuntime;
   readonly audio?: EnvironmentAudioRuntime;
   readonly vista: TerrainVistaDebugControl;
+  readonly oilPaint?: TerrainOilPaintDebugControl;
   readonly water: PlanningWaterRuntime;
   readonly setGrassGroundFusion?: (enabled: boolean) => Promise<unknown>;
   readonly readSolidsRoot: () => Entity | undefined;
@@ -71,6 +87,11 @@ export class PlanningSeedRuntimeDebug {
   private readonly owner = createTerrainRuntimeDebugOwner();
   private readonly performance: TerrainPerformancePanel;
   private readonly extensions: { destroy(): void }[] = [];
+  private activeInspector?: TerrainRuntimeDebugInspector;
+  private lodControls?: { update(): void; dispose(): void };
+  private componentPanelsConfig?: PlanningSeedEmbeddedComponentPanels;
+  private mountedWaterPanel?: { destroy(): void; stop?: () => Promise<void> };
+  private mountedBuildingPanel?: { destroy(): void };
   private probe?: TerrainProbeVolumeAuthoring;
   private probeRoot?: Entity;
   private world?: PlanningSeedWorldPublished["world"];
@@ -154,6 +175,45 @@ export class PlanningSeedRuntimeDebug {
     else void this.farming?.refresh();
   }
 
+  /** Updates live LOD statistics inside the unified dat.gui folders. */
+  updateLod(): void {
+    this.lodControls?.update();
+  }
+
+  /** Embeds Source Water & Building component editors cleanly inside dat.gui Water / Buildings folders. */
+  attachNativeComponentPanels(config: PlanningSeedEmbeddedComponentPanels): void {
+    this.componentPanelsConfig = config;
+    this.mountEmbeddedComponentPanels();
+  }
+
+  /** Stops any pending async Source Water edit before runtime shutdown. */
+  async stopEmbeddedPanels(): Promise<void> {
+    await this.mountedWaterPanel?.stop?.();
+  }
+
+  private mountEmbeddedComponentPanels(): void {
+    this.mountedWaterPanel?.destroy();
+    this.mountedWaterPanel = undefined;
+    this.mountedBuildingPanel?.destroy();
+    this.mountedBuildingPanel = undefined;
+    const inspector = this.activeInspector;
+    const config = this.componentPanelsConfig;
+    if (!inspector || !config || this.disposed) return;
+
+    if (config.mountWater) {
+      const folder = inspector.waterFolderHost.folder("Source 水体组件 (持久化编辑)", false);
+      const container = inspector.waterFolderHost.addCustomContainer(folder);
+      this.mountedWaterPanel = config.mountWater(container);
+      inspector.waterFolderHost.refreshLayout();
+    }
+    if (config.mountBuilding) {
+      const folder = inspector.buildingFolderHost.folder("Building Component / 建筑组件", false);
+      const container = inspector.buildingFolderHost.addCustomContainer(folder);
+      this.mountedBuildingPanel = config.mountBuilding(container);
+      inspector.buildingFolderHost.refreshLayout();
+    }
+  }
+
   destroy(): void {
     if (this.disposed) return;
     this.disposed = true;
@@ -207,12 +267,13 @@ export class PlanningSeedRuntimeDebug {
           details: world.population.details,
           trees: world.population.trees,
           ...(solidsRoot ? { prefabs: solidsRoot } : {}),
-          lodControls: [world],
+          lodControls: [world, ...(published.vegetation ? [published.vegetation] : [])],
           capabilities: { prefabs: { category: "rocks", label: "Planning solids / 规划实体" } }
         },
         inspector: {
           audio: options.audio,
           vista: options.vista,
+          oilPaint: options.oilPaint,
           postProcess: options.post,
           lighting: options.lighting,
           environment: options.environment,
@@ -273,6 +334,15 @@ export class PlanningSeedRuntimeDebug {
     const session = await creation;
     if (!session || this.disposed) return;
     this.world = world;
+    this.activeInspector = session.inspector;
+    if (options.mountLodControls) {
+      this.lodControls = options.mountLodControls({
+        grassHost: session.inspector.grassFolderHost,
+        buildingHost: session.inspector.buildingFolderHost
+      });
+      this.lodControls.update();
+    }
+    this.mountEmbeddedComponentPanels();
     await options.extraControls?.(session.inspector.gui);
     if (options.rocks && published.sourcePlan) {
       this.rocks = new RockFormationPanel(session.inspector.rockFolderHost, options.rocks.apply, options.rocks.grass);
@@ -391,6 +461,13 @@ export class PlanningSeedRuntimeDebug {
   private releaseSession(): void {
     this.refreshGroundFusion = undefined;
     if (this.world) this.world.terrainOcclusion.profilingEnabled = false;
+    this.lodControls?.dispose();
+    this.lodControls = undefined;
+    this.mountedWaterPanel?.destroy();
+    this.mountedWaterPanel = undefined;
+    this.mountedBuildingPanel?.destroy();
+    this.mountedBuildingPanel = undefined;
+    this.activeInspector = undefined;
     for (const extension of this.extensions.splice(0)) extension.destroy();
     this.treePanel = undefined;
     this.understoryPanel = undefined;

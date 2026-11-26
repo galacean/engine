@@ -1,105 +1,218 @@
-import { HUD_REFERENCE_SHORT_SIDE, resolveSeedWorldHudScale } from "./SeedWorldHudLayout.ts";
-import { Camera, Script, Sprite, Texture2D, TextureFormat, type Entity, type PointerEventData } from "@galacean/engine";
-import { CanvasRenderMode, HorizontalAlignmentMode, Image, ResolutionAdaptationMode, UICanvas, UITransform, VerticalAlignmentMode } from "@galacean/engine-ui";
-import { SeedWorldLiquidGlassUiMaterial } from "@galacean/engine-modify/rendering/LiquidGlassPostProcessPass";
+import {
+  HUD_REFERENCE_SHORT_SIDE,
+  SEED_WORLD_VOICE_ORB_LAYOUT,
+  resolveSeedWorldVoiceOrbLayout
+} from "./SeedWorldHudLayout.ts";
+import atlas from "../assets/markup-pen.json";
+import uiAtlasTileShaderSource from "./shaders/SeedWorldUIAtlasTile.shader?raw";
+import {
+  AssetType,
+  Camera,
+  Entity,
+  Material,
+  Rect,
+  Script,
+  Shader,
+  Sprite,
+  Texture2D,
+  Vector2,
+  Vector4,
+  type PointerEventData
+} from "@galacean/engine";
+import {
+  CanvasRenderMode,
+  HorizontalAlignmentMode,
+  Image,
+  ResolutionAdaptationMode,
+  UICanvas,
+  UITransform,
+  VerticalAlignmentMode
+} from "@galacean/engine-ui";
 
-class CameraButtonInput extends Script {
-  update?: () => void;
+// Borderless animated Pen + live-drawing S-curve stroke UI (Pinterest Tile 3 motion iconography):
+// docked directly ABOVE the Voice Orb, horizontally centered on the orb's vertical axis in both wide & narrow HUD layouts.
+const ICON_SIZE = 112;
+const UI_ATLAS_TILE_SHADER_NAME = "SeedWorld/UIAtlasTileV1";
+const ATLAS_UV_OFFSET_PROPERTY = "material_AtlasUvOffset";
+const ORB_SIZE = SEED_WORLD_VOICE_ORB_LAYOUT.size;
+const BUTTON_GAP_WIDE = 24;
+const BUTTON_GAP_NARROW = 20;
+const BUTTON_RIGHT_WIDE = SEED_WORLD_VOICE_ORB_LAYOUT.rightWide + (ORB_SIZE - ICON_SIZE) * 0.5;
+const BUTTON_BOTTOM_WIDE = SEED_WORLD_VOICE_ORB_LAYOUT.bottomWide + ORB_SIZE + BUTTON_GAP_WIDE;
+const BUTTON_RIGHT_NARROW = SEED_WORLD_VOICE_ORB_LAYOUT.rightNarrow + (ORB_SIZE - ICON_SIZE) * 0.5;
+const BUTTON_BOTTOM_NARROW = SEED_WORLD_VOICE_ORB_LAYOUT.bottomNarrow + ORB_SIZE + BUTTON_GAP_NARROW;
+
+class MarkupButtonInput extends Script {
+  update?: (deltaTime: number) => void;
   activate?: () => void;
   pressed?: (value: boolean) => void;
-  override onUpdate(): void { this.update?.(); }
+  override onUpdate(deltaTime: number): void { this.update?.(deltaTime); }
   override onPointerDown(_event: PointerEventData): void { this.pressed?.(true); }
   override onPointerUp(_event: PointerEventData): void { this.pressed?.(false); }
   override onPointerExit(_event: PointerEventData): void { this.pressed?.(false); }
   override onPointerClick(_event: PointerEventData): void { this.activate?.(); }
 }
 
-/** Engine UI silhouette and the same live scene-refraction material as the joystick. */
+/** Keep the control visible and usable while the animation atlas loads, including offline failures. */
+function createRestingPen(camera: Camera): Texture2D {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = ICON_SIZE;
+  const ctx = canvas.getContext("2d")!;
+  ctx.translate(ICON_SIZE / 2 - 2, ICON_SIZE * 0.54 + 12);
+  ctx.rotate(Math.PI / 5);
+  ctx.strokeStyle = "#fff";
+  ctx.lineCap = ctx.lineJoin = "round";
+  ctx.lineWidth = 4.8;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(-7.4, -13.5);
+  ctx.lineTo(-7.4, -45);
+  ctx.arcTo(-7.4, -50, 0, -50, 5);
+  ctx.arcTo(7.4, -50, 7.4, -45, 5);
+  ctx.lineTo(7.4, -13.5);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.lineWidth = 3.6;
+  ctx.beginPath();
+  ctx.moveTo(-6.4, -14);
+  ctx.lineTo(6.4, -14);
+  ctx.stroke();
+  const texture = new Texture2D(camera.engine, ICON_SIZE, ICON_SIZE, undefined, false);
+  texture.setImageSource(canvas);
+  return texture;
+}
+
+/**
+ * Borderless animated Screen-Markup entry button (Pinterest Tile 3 motion iconography):
+ * pure floating minimalist stylus + live S-curve stroke animation, zero circular backdrop.
+ */
 export class SeedWorldCameraButton {
   private readonly root: Entity;
-  private readonly glass: SeedWorldLiquidGlassUiMaterial;
-  private readonly bodyGlass: SeedWorldLiquidGlassUiMaterial;
-  private readonly textures: Texture2D[] = [];
-  private readonly sprites: Sprite[] = [];
+  private restingPen?: Texture2D;
+  private readonly sprite: Sprite;
+  private readonly material: Material;
+  private readonly uvOffset = new Vector2(0, 0);
+  private pressBlend = 0;
+  private isPressed = false;
+
   constructor(camera: Camera, control: HTMLButtonElement) {
     const engine = camera.engine;
-    this.root = camera.scene!.createRootEntity("Screenshot button UI");
-    const canvas = this.root.addComponent(UICanvas);
-    canvas.renderMode = CanvasRenderMode.ScreenSpaceOverlay;
-    canvas.camera = camera;
-    canvas.referenceResolution.set(HUD_REFERENCE_SHORT_SIDE, HUD_REFERENCE_SHORT_SIDE);
-    canvas.resolutionAdaptationMode = ResolutionAdaptationMode.ExpandAdaptation;
-    canvas.sortOrder = 32_100;
-    const target = this.root.createChild("Camera capture");
-    const hit = target.addComponent(Image);
-    hit.color.a = 0;
-    const transform = target.transform as UITransform;
-    transform.size.set(60, 60);
-    transform.horizontalAlignment = HorizontalAlignmentMode.Right;
-    transform.verticalAlignment = VerticalAlignmentMode.Bottom;
-    transform.alignRight = transform.alignBottom = 18;
+    const scene = camera.scene!;
 
-    // A static icon asset; drawing and interaction are Engine UI, not DOM/CSS.
-    const pixels = document.createElement("canvas");
-    pixels.width = pixels.height = 128;
-    const ctx = pixels.getContext("2d")!;
-    ctx.scale(2, 2);
-    ctx.fillStyle = "white";
-    ctx.beginPath();
-    ctx.roundRect(4, 16, 56, 42, 10);
-    ctx.roundRect(19, 10, 26, 20, 7);
-    ctx.fill();
-    ctx.globalCompositeOperation = "destination-out";
-    ctx.beginPath(); ctx.arc(32, 36, 14, 0, Math.PI * 2); ctx.fill();
-    const bodyTexture = new Texture2D(engine, 128, 128, TextureFormat.R8G8B8A8_UNorm, false);
-    bodyTexture.setImageSource(pixels);
-    const bodySprite = new Sprite(engine, bodyTexture);
-    this.textures.push(bodyTexture); this.sprites.push(bodySprite);
-    const body = target.createChild("Frosted glass camera silhouette").addComponent(Image);
-    body.sprite = bodySprite;
-    body.raycastEnabled = false;
-    (body.entity.transform as UITransform).size.set(56, 56);
-    this.bodyGlass = new SeedWorldLiquidGlassUiMaterial(camera);
-    this.bodyGlass.setCoverageTexture(bodyTexture);
-    this.bodyGlass.setRoughness(1);
-    this.bodyGlass.setWhiteTint(0.48);
-    this.bodyGlass.setInteriorRefractionStrength(0);
-    body.setMaterial(this.bodyGlass.material);
+    this.root = scene.createRootEntity("Screen markup button UI");
+    const uiCanvas = this.root.addComponent(UICanvas);
+    uiCanvas.renderMode = CanvasRenderMode.ScreenSpaceOverlay;
+    uiCanvas.camera = camera;
+    uiCanvas.referenceResolution.set(HUD_REFERENCE_SHORT_SIDE, HUD_REFERENCE_SHORT_SIDE);
+    uiCanvas.resolutionAdaptationMode = ResolutionAdaptationMode.ExpandAdaptation;
+    uiCanvas.sortOrder = 32_100;
 
-    const white = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false);
-    white.setPixelBuffer(new Uint8Array([255, 255, 255, 255]));
-    const whiteSprite = new Sprite(engine, white);
-    this.textures.push(white); this.sprites.push(whiteSprite);
-    const lens = target.createChild("Liquid glass lens").addComponent(Image);
-    lens.sprite = whiteSprite; lens.raycastEnabled = false;
-    (lens.entity.transform as UITransform).size.set(24, 24);
-    lens.entity.transform.setPosition(0, -3.5, 0);
-    this.glass = new SeedWorldLiquidGlassUiMaterial(camera);
-    this.glass.setRoughness(0.18);
-    this.glass.setInteriorRefractionStrength(0.35);
-    lens.setMaterial(this.glass.material);
+    this.restingPen = createRestingPen(camera);
+    this.sprite = new Sprite(engine, this.restingPen);
+    const shader = Shader.find(UI_ATLAS_TILE_SHADER_NAME) ?? Shader.create(uiAtlasTileShaderSource);
+    this.material = new Material(engine, shader);
+    this.material.isGCIgnored = true;
+    this.material.shaderData.setVector2(ATLAS_UV_OFFSET_PROPERTY, this.uvOffset);
 
-    const input = target.addComponent(CameraButtonInput);
+    const target = this.root.createChild("Screen markup trigger");
+    const iconImage = target.addComponent(Image);
+    iconImage.sprite = this.sprite;
+    iconImage.color.set(1, 1, 1, 1);
+    iconImage.setMaterial(this.material);
+
+    const iconTransform = target.transform as UITransform;
+    iconTransform.size.set(ICON_SIZE, ICON_SIZE);
+    iconTransform.horizontalAlignment = HorizontalAlignmentMode.Right;
+    iconTransform.verticalAlignment = VerticalAlignmentMode.Bottom;
+    iconTransform.alignRight = BUTTON_RIGHT_WIDE;
+    iconTransform.alignBottom = BUTTON_BOTTOM_WIDE;
+
+    const input = target.addComponent(MarkupButtonInput);
     input.activate = () => { if (!control.disabled && !control.hidden) control.click(); };
     input.pressed = value => {
-      const scale = value && !control.disabled ? 0.93 : 1;
-      target.transform.setScale(scale, scale, 1);
-      this.glass.setRimHighlight(value ? 0.3 : 0);
+      this.isPressed = value && !control.disabled;
     };
-    // This controller stays active while the child button is hidden during capture.
-    this.root.addComponent(CameraButtonInput).update = () => {
-      target.isActive = !control.hidden && control.style.display !== "none";
-      body.color.a = control.disabled ? 0.4 : 0.96;
-      this.glass.setOpacity(control.disabled ? 0.4 : 1);
-      const diameter = 24 * resolveSeedWorldHudScale(engine.canvas.width, engine.canvas.height);
-      this.glass.setLayout(diameter, diameter, diameter / 2);
-      const bodySize = diameter * 56 / 24;
-      this.bodyGlass.setLayout(bodySize, bodySize, bodySize * 0.12);
+
+    const webCanvas = (engine.canvas as { _webCanvas?: HTMLCanvasElement })._webCanvas;
+    let lastWidth = -1;
+    let lastHeight = -1;
+
+    const baseRegion = new Rect(0, 0, 1 / atlas.columns, 1 / atlas.rows);
+    let tile = 0;
+    let time = 0;
+    let atlasReady = false;
+    engine.resourceManager.load<Texture2D>({
+      url: new URL("../assets/markup-pen.ktx2", import.meta.url).href,
+      type: AssetType.KTX2
+    }).then(texture => {
+      if (this.sprite.destroyed || this.material.destroyed) return;
+      this.sprite.texture = texture;
+      const [left, top, right, bottom] = atlas.trim;
+      this.sprite.atlasRegionOffset = new Vector4(left, top, right, bottom);
+      this.sprite.atlasRegion = baseRegion;
+      this.uvOffset.set(0, 0);
+      this.material.shaderData.setVector2(ATLAS_UV_OFFSET_PROPERTY, this.uvOffset);
+      this.restingPen?.destroy();
+      this.restingPen = undefined;
+      atlasReady = true;
+    }).catch(() => { /* The resting pen remains interactive. */ });
+
+    this.root.addComponent(MarkupButtonInput).update = (deltaTime: number) => {
+      const { width, height } = engine.canvas;
+      if (width !== lastWidth || height !== lastHeight) {
+        lastWidth = width;
+        lastHeight = height;
+        const { useWideLayout } = resolveSeedWorldVoiceOrbLayout(width, height);
+        iconTransform.alignRight = useWideLayout ? BUTTON_RIGHT_WIDE : BUTTON_RIGHT_NARROW;
+        iconTransform.alignBottom = useWideLayout ? BUTTON_BOTTOM_WIDE : BUTTON_BOTTOM_NARROW;
+      }
+      const orbExpand = Math.max(0, Math.min(1, Number(webCanvas?.dataset.voiceOrbExpand) || 0));
+      // Smoothly dissolve & hide the pen icon while long-pressing / speaking to the Voice Orb.
+      const voiceHide = Math.min(1, orbExpand * 2.4);
+      const voiceAlpha = 1 - voiceHide * voiceHide * (3 - 2 * voiceHide);
+
+      const dt = Number.isFinite(deltaTime) ? Math.min(Math.max(deltaTime, 0), 0.1) : 0;
+      const photoPhase = webCanvas?.dataset.photoPhase;
+      const photoActive = Boolean(photoPhase && photoPhase !== "idle");
+      const visible = !control.hidden && control.style.display !== "none" && !photoActive && voiceAlpha > 0.02;
+      if (target.isActive !== visible) target.isActive = visible;
+      if (!visible) {
+        this.isPressed = false;
+        this.pressBlend = 0;
+        return;
+      }
+
+      const pressTarget = this.isPressed ? 1 : 0;
+      if (this.pressBlend !== pressTarget) {
+        this.pressBlend += (pressTarget - this.pressBlend) * (1 - Math.exp(-16 * dt));
+        if (Math.abs(pressTarget - this.pressBlend) < 0.001) this.pressBlend = pressTarget;
+      }
+      const scale = (1 - this.pressBlend * 0.12) * (0.86 + 0.14 * voiceAlpha);
+      if (iconTransform.scale.x !== scale) iconTransform.setScale(scale, scale, 1);
+      const opacity = (control.disabled ? 0.42 : 1) * voiceAlpha;
+      if (iconImage.color.a !== opacity) iconImage.color.a = opacity;
+
+      if (atlasReady) {
+        time = (time + dt) % (atlas.frames.length / atlas.fps);
+        const next = atlas.frames[Math.floor(time * atlas.fps)];
+        if (next !== tile) {
+          tile = next;
+          // Shift atlas tiles via GPU vertex-shader UV offset so the shared UI PrimitiveChunk
+          // stays completely static (0 CPU UV rebuilds and 0 VBO uploads during idle).
+          this.uvOffset.set(
+            (tile % atlas.columns) / atlas.columns,
+            Math.floor(tile / atlas.columns) / atlas.rows
+          );
+          this.material.shaderData.setVector2(ATLAS_UV_OFFSET_PROPERTY, this.uvOffset);
+        }
+      }
     };
   }
+
   dispose(): void {
-    this.root.destroy(); this.glass.destroy(); this.bodyGlass.destroy();
-    for (const sprite of this.sprites) sprite.destroy();
-    for (const texture of this.textures) texture.destroy();
+    this.root.destroy();
+    this.material.destroy(true);
+    this.sprite.destroy(true);
+    this.restingPen?.destroy(true);
   }
 }

@@ -1,5 +1,5 @@
 import { Color, type Engine, Entity, Matrix, ModelMesh, PrimitiveMesh, Vector2, Vector3 } from "@galacean/engine";
-import { destroyOwnedMesh, destroyOwnedMeshSet } from "@galacean/engine-modify/geometry/destroyOwnedMesh";
+import { destroyOwnedMesh, destroyOwnedMeshSet } from "@galacean/engine-project/geometry/destroyOwnedMesh";
 import { buildHarvestProduce } from "./HarvestProduceShape";
 import { createWheatProduceGeometry } from "./WheatProduceGeometry";
 
@@ -11,6 +11,99 @@ interface PrimitiveGeometry {
   revealRange?: readonly [minimum: number, height: number];
 }
 let templates: ReadonlyMap<string, PrimitiveGeometry> | undefined;
+let sizeTemplates: ReadonlyMap<string, readonly Vector3[]> | undefined;
+
+/** Pure-CPU primitive hulls for bounding-box sizing without creating or uploading any GPU ModelMesh. */
+function produceSizeTemplates(): ReadonlyMap<string, readonly Vector3[]> {
+  if (sizeTemplates) return sizeTemplates;
+  const result = new Map<string, readonly Vector3[]>();
+  const spherePoints: Vector3[] = [new Vector3(0, 0.5, 0), new Vector3(0, -0.5, 0)];
+  const latBands = 6;
+  const lonBands = 12;
+  for (let lat = 1; lat < latBands; lat++) {
+    const theta = (lat * Math.PI) / latBands;
+    const sinTheta = Math.sin(theta);
+    const cosTheta = Math.cos(theta);
+    for (let lon = 0; lon < lonBands; lon++) {
+      const phi = (lon * Math.PI * 2) / lonBands;
+      spherePoints.push(new Vector3(0.5 * sinTheta * Math.cos(phi), 0.5 * cosTheta, 0.5 * sinTheta * Math.sin(phi)));
+    }
+  }
+  result.set("sphere", spherePoints);
+  const conePoints: Vector3[] = [new Vector3(0, 0.5, 0)];
+  for (let i = 0; i < 6; i++) {
+    const angle = Math.PI + (i * Math.PI * 2) / 6;
+    conePoints.push(new Vector3(0.5 * Math.sin(angle), -0.5, 0.5 * Math.cos(angle)));
+  }
+  result.set("cone", conePoints);
+  const strawPoints: Vector3[] = [];
+  for (const x of [-0.5, 0.5])
+    for (const y of [-0.5, 0.5]) for (const z of [-0.5, 0.5]) strawPoints.push(new Vector3(x, y, z));
+  result.set("straw", strawPoints);
+  result.set("grain", [
+    new Vector3(0.5, 0, 0),
+    new Vector3(-0.5, 0, 0),
+    new Vector3(0, 0.5, 0),
+    new Vector3(0, -0.5, 0),
+    new Vector3(0, 0, 0.5),
+    new Vector3(0, 0, -0.5)
+  ]);
+  const wheat = createWheatProduceGeometry();
+  result.set(
+    "wheat sheaf",
+    wheat.positions.map((p) => new Vector3(...p))
+  );
+  sizeTemplates = result;
+  return result;
+}
+
+function producePieceKind(name: string, cone: boolean): string {
+  return name === "wheat sheaf"
+    ? name
+    : name === "straw" || name === "stem" || name === "stalk"
+      ? "straw"
+      : name === "grain" || name === "seed"
+        ? "grain"
+        : cone
+          ? "cone"
+          : "sphere";
+}
+
+/** Measure a crop unit's local bounding dimensions on CPU without allocating or uploading GPU buffers. */
+export function measureHarvestProduceSize(
+  engine: Engine,
+  cropId: string,
+  warehouse = true
+): readonly [number, number, number] {
+  const hulls = produceSizeTemplates();
+  const root = new Entity(engine, "produce-size-template");
+  const pieces: { entity: Entity; points: readonly Vector3[] }[] = [];
+  try {
+    if (warehouse) root.transform.setRotation(cropId === "wheat" || cropId === "rice" ? 0 : -90, 0, 0);
+    buildHarvestProduce(root, cropId, 1, (name, position, size, _rgb, _delay = 0, cone = false) => {
+      const entity = root.createChild(name);
+      entity.transform.setPosition(position[0], position[1], position[2]);
+      entity.transform.setRotation(90, 0, 0);
+      entity.transform.setScale(size[0], size[1], size[2]);
+      pieces.push({ entity, points: hulls.get(producePieceKind(name, cone))! });
+      return entity;
+    });
+    const minimum = new Vector3(Infinity, Infinity, Infinity),
+      maximum = new Vector3(-Infinity, -Infinity, -Infinity),
+      transformed = new Vector3();
+    for (const piece of pieces) {
+      const matrix = piece.entity.transform.worldMatrix;
+      for (const point of piece.points) {
+        Vector3.transformCoordinate(point, matrix, transformed);
+        Vector3.min(minimum, transformed, minimum);
+        Vector3.max(maximum, transformed, maximum);
+      }
+    }
+    return [maximum.x - minimum.x, maximum.y - minimum.y, maximum.z - minimum.z];
+  } finally {
+    root.destroy();
+  }
+}
 
 /** CPU-only templates survive engine changes; no cached Entity, Material or GPU allocation. */
 function produceTemplates(engine: Engine): ReadonlyMap<string, PrimitiveGeometry> {

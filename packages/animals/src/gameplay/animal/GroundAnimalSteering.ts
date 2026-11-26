@@ -45,7 +45,7 @@ export function advanceGroundAnimalMotion(
 ): boolean {
   const dx = target[0] - motion.x,
     dz = target[1] - motion.z;
-  const distance = Math.hypot(dx, dz);
+  const distance = Math.sqrt(dx * dx + dz * dz);
   const arrivalRadius = steering?.arrivalRadius ?? groundAnimalArrivalRadius(bodyLength);
   if (!steering?.continuous && distance < arrivalRadius) {
     motion.speed = motion.angularSpeed = 0;

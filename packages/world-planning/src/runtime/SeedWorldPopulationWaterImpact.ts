@@ -63,10 +63,23 @@ export function seedWorldWaterDetailCellChanged(
       old.resolution !== field.resolution ||
       old.maximumDensityPerSquareMetre !== field.maximumDensityPerSquareMetre ||
       (old.candidateSeed ?? old.hash) !== (field.candidateSeed ?? field.hash) ||
-      changed(old.samples, field.samples, field.resolution) ||
-      changed(old.heightRangeMetres?.samples, field.heightRangeMetres?.samples, field.resolution, 2)
+      changed(old.samples, field.samples, field.resolution)
     )
       return true;
+    const oldH = old.heightRangeMetres;
+    const nextH = field.heightRangeMetres;
+    if (oldH !== nextH) {
+      if (!oldH || !nextH) return true;
+      const oldCompact = oldH.samples instanceof Uint16Array;
+      const nextCompact = nextH.samples instanceof Uint16Array;
+      if (
+        oldCompact !== nextCompact ||
+        oldH.encodeScale !== nextH.encodeScale ||
+        oldH.lowerMultiplier !== nextH.lowerMultiplier ||
+        changed(oldH.samples, nextH.samples, field.resolution, nextCompact ? 1 : 2)
+      )
+        return true;
+    }
   }
   return false;
 }

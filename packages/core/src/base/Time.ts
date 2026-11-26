@@ -20,7 +20,7 @@ export class Time {
   private _deltaTimeValue: Vector4 = new Vector4();
 
   /** Maximum delta time allowed per frame in seconds. */
-  maximumDeltaTime: number = 0.333333;
+  maximumDeltaTime: number = 0.05;
 
   /** The scale of time. */
   timeScale: number = 1.0;

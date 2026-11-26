@@ -1,5 +1,6 @@
 import type { Engine } from "@galacean/engine";
 import { simplifySpirvNoise } from "./SimplifySpirvNoise";
+import { flattenShaderSource, optimizeStorageReads } from "./OptimizeStorageReads";
 
 /** Adapt the recovered ES shader's read-only std140 blocks to engine-managed
  * integer textures. All field offsets follow std140; unsupported declarations
@@ -22,6 +23,7 @@ interface Layout {
 }
 export function engineShaderSource(source: string, backend: Engine["graphicsBackend"] = "webgl2") {
   source = simplifySpirvNoise(source);
+  source = optimizeStorageReads(source);
   // EngineResidentScene publishes the ordinary column-vector camera transform
   // (encoded as std140 row-major bytes). Storage order does not change the
   // multiplication convention: the recovered shaders use row-vector eye reads,
@@ -158,7 +160,7 @@ export function engineShaderSource(source: string, backend: Engine["graphicsBack
   source = source.slice(0, start) + readers.join("\n") + "\n" + source.slice(start);
   source = source.replace("void main(){", `void main(){${initializers.join("")}`);
   if (backend === "webgpu") source = normalizeRecoveredAggregates(source);
-  return { source: dormerUniform + source.replace(/^#version 300 es\s*/, ""), blocks };
+  return { source: flattenShaderSource(dormerUniform + source.replace(/^#version 300 es\s*/, "")), blocks };
 }
 
 /** Preserve SPIRV-Cross' packed building data when translating recovered GLSL to WGSL. */

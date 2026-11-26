@@ -14,14 +14,16 @@ import type { GLBuffer } from "./GLBuffer";
  * Maintains two VAOs (one per read direction), rebuilding when the program or input bindings change.
  */
 export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackPrimitive {
+  private readonly _rhi: WebGLGraphicDevice;
   private readonly _gl: WebGL2RenderingContext;
   private _vaoA: WebGLVertexArrayObject | null;
   private _vaoB: WebGLVertexArrayObject | null;
   private _lastProgramId = -1;
   private readonly _lastInputBindings: VertexBufferBinding[] = [];
 
-  constructor(private readonly _rhi: WebGLGraphicDevice) {
-    this._gl = _rhi.gl;
+  constructor(rhi: WebGLGraphicDevice) {
+    this._rhi = rhi;
+    this._gl = rhi.gl as WebGL2RenderingContext;
   }
 
   bind(
@@ -52,24 +54,31 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
 
       const attribs = program.attributeLocation;
       this._vaoA = this._createVAO(attribs, bindingA, feedbackElements, inputBindings, inputElements);
-      this._vaoB = this._createVAO(attribs, bindingB, feedbackElements, inputBindings, inputElements);
+      if (bindingB !== bindingA) {
+        this._vaoB = this._createVAO(attribs, bindingB, feedbackElements, inputBindings, inputElements);
+      }
       this._lastProgramId = program.id;
       lastInputBindings.length = inputBindings.length;
       for (let i = 0, n = inputBindings.length; i < n; i++) {
         lastInputBindings[i] = inputBindings[i];
       }
 
-      this._gl.bindVertexArray(null);
+      this._rhi._bindVertexArray(null);
     }
-    this._gl.bindVertexArray(readIsA ? this._vaoA : this._vaoB);
+    this._rhi._bindVertexArray(readIsA ? this._vaoA : this._vaoB);
+    // Reading or uploading a vertex buffer can leave it bound to ARRAY_BUFFER.
+    // WebGL forbids that binding while the same buffer is the feedback destination.
+    if (bindingA === bindingB) this._gl.bindBuffer(this._gl.ARRAY_BUFFER, null);
   }
 
   unbind(): void {
-    this._gl.bindVertexArray(null);
+    this._rhi._bindVertexArray(null);
   }
 
-  draw(mode: MeshTopology, first: number, count: number): void {
-    this._gl.drawArrays(this._rhi._primitiveFormats.topology[mode], first, count);
+  draw(mode: MeshTopology, first: number, count: number, instanceCount = 1): void {
+    const glMode = this._rhi._primitiveFormats.topology[mode];
+    if (instanceCount === 1) this._gl.drawArrays(glMode, first, count);
+    else this._gl.drawArraysInstanced(glMode, first, count, instanceCount);
   }
 
   invalidate(): void {
@@ -83,10 +92,12 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
   private _deleteVAOs(): void {
     const gl = this._gl;
     if (this._vaoA) {
+      if (this._rhi._currentBindVAO === this._vaoA) this._rhi._bindVertexArray(null);
       gl.deleteVertexArray(this._vaoA);
       this._vaoA = null;
     }
     if (this._vaoB) {
+      if (this._rhi._currentBindVAO === this._vaoB) this._rhi._bindVertexArray(null);
       gl.deleteVertexArray(this._vaoB);
       this._vaoB = null;
     }
@@ -103,7 +114,7 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
   ): WebGLVertexArrayObject | null {
     const gl = this._gl;
     const vao = gl.createVertexArray();
-    gl.bindVertexArray(vao);
+    this._rhi._bindVertexArray(vao);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, (<GLBuffer>feedbackBinding.buffer._platformBuffer)._glBuffer);
     for (let i = 0, n = feedbackElements.length; i < n; i++) {
@@ -131,14 +142,10 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
     if (loc !== undefined && loc !== -1) {
       const info = element._formatMetaInfo;
       gl.enableVertexAttribArray(loc);
-      gl.vertexAttribPointer(
-        loc,
-        info.size,
-        this._rhi._primitiveFormats.vertexType[info.type],
-        info.normalized,
-        stride,
-        element.offset
-      );
+      const type = this._rhi._primitiveFormats.vertexType[info.type];
+      if (info.integer) gl.vertexAttribIPointer(loc, info.size, type, stride, element.offset);
+      else gl.vertexAttribPointer(loc, info.size, type, info.normalized, stride, element.offset);
+      gl.vertexAttribDivisor(loc, element.instanceStepRate);
     }
   }
 }

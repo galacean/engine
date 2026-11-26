@@ -197,8 +197,7 @@
     "zod": "4.4.3",
     "@galacean/engine-project": "workspace:*",
     "@galacean/engine-terrain": "workspace:*",
-    "@galacean/engine-ai-chat": "workspace:*",
-    "@galacean/engine-modify": "workspace:*"
+    "@galacean/engine-ai-chat": "workspace:*"
   },
   "devDependencies": {
     "prettier": "^3.0.0"

@@ -15,6 +15,8 @@ function harness() {
   const service: SeedWorldAnimalService = {
     catalog: vi.fn(() => ({ summary: {scope:"all-matches" as const,unit:"model-type" as const,total:0,speciesCount:0,appearanceCount:0,returned:0,hasMore:false}, entries: [], matchedCount: 0, offset: 0 })),
     spawn: vi.fn((input) => ({ requestId: input.requestId, status: "rejected" as const, reason: "disabled" })),
+    deleteAnimal: vi.fn((input) => ({ id: input.id, requestId: input.requestId, status: "rejected" as const, reason: "disabled" })),
+    updateAnimal: vi.fn((input) => ({ id: input.id, requestId: input.requestId, status: "rejected" as const, reason: "disabled" })),
     query: vi.fn(() => ({ enabled: false, animals: [], matchedCount: 0, offset: 0 })),
     describe: vi.fn(({ id }) => ({ id, available: false, reason: "disabled", skills: [], targets: [] })),
     command: vi.fn((input) => ({ ...input, status: "rejected", reason: "disabled" })),
@@ -107,9 +109,23 @@ describe("Seed World animal Agent boundary", () => {
 
   it("uses the independent command channel and bounded generic command identity", () => {
     const { tools, tool } = harness();
-    expect(tools.map((item) => item.effect)).toEqual(["read", "read", "command", "read", "read", "command"]);
+    expect(tools.map((item) => item.effect)).toEqual([
+      "read",
+      "read",
+      "command",
+      "read",
+      "read",
+      "command",
+      "command",
+      "command"
+    ]);
     const identity = tool("command").describeCommand!(request)!;
     expect(identity).toEqual({ scopeId: id, commandId: request.requestId });
+    expect(tool("delete").describeCommand!({ id, requestId: "delete-1" })).toEqual({ scopeId: id, commandId: "delete-1" });
+    expect(tool("update").describeCommand!({ id, requestId: "update-1", scale: 1.5 })).toEqual({
+      scopeId: id,
+      commandId: "update-1"
+    });
     expect(new AgentCommandLedger().start("animals.command", identity)).toMatchObject(identity);
   });
 
@@ -123,7 +139,9 @@ describe("Seed World animal Agent boundary", () => {
       request,
       { id, requestId: request.requestId },
       {},
-      { requestId: "spawn-1", typeId: "dog-01" }
+      { requestId: "spawn-1", typeId: "dog-01" },
+      { id, requestId: "delete-1" },
+      { id, requestId: "update-1", scale: 1.5 }
     ];
     for (const [index, tool] of tools.entries())
       await expect(tool.execute(tool.parseInput(inputs[index]), { signal: abort.signal })).rejects.toThrow();
@@ -162,6 +180,36 @@ describe("animal content discovery and summon contract", () => {
     expect(() =>
       tool("spawn").parseInput({ typeId: "dog-01", requestId: "request", position: { x: Infinity, z: 0 } })
     ).toThrow();
+  });
+
+  it("validates animals.delete and animals.update contracts strictly on the command channel", async () => {
+    const { service, call, tool } = harness();
+    expect(await call("delete", { id, requestId: "del-1" })).toEqual({
+      id,
+      requestId: "del-1",
+      status: "rejected",
+      reason: "disabled"
+    });
+    expect(service.deleteAnimal).toHaveBeenCalledExactlyOnceWith({ id, requestId: "del-1" });
+    expect(() => tool("delete").parseInput({ id, requestId: "del-1", extra: true })).toThrow();
+
+    expect(await call("update", { id, requestId: "upd-1", scale: 1.5, appearanceId: "brown" })).toEqual({
+      id,
+      requestId: "upd-1",
+      status: "rejected",
+      reason: "disabled"
+    });
+    expect(service.updateAnimal).toHaveBeenCalledExactlyOnceWith({
+      id,
+      requestId: "upd-1",
+      scale: 1.5,
+      appearanceId: "brown"
+    });
+    // Must supply at least one property to update and reject out-of-range/unknown fields.
+    expect(() => tool("update").parseInput({ id, requestId: "upd-empty" })).toThrow();
+    expect(() => tool("update").parseInput({ id, requestId: "upd-neg", scale: 0 })).toThrow();
+    expect(() => tool("update").parseInput({ id, requestId: "upd-huge", scale: 25 })).toThrow();
+    expect(() => tool("update").parseInput({ id, requestId: "upd-url", url: "https://example.test/a.glb" })).toThrow();
   });
 });
 

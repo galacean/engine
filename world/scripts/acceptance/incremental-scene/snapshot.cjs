@@ -19,7 +19,7 @@ const files = execFileSync(
   }
 )
   .split("\0")
-  .filter((file) => /\.(ts|js|mjs|cjs|glsl|shaderc)$/.test(file) || file === "packages/modify/native-overrides.json");
+  .filter((file) => /\.(ts|js|mjs|cjs|glsl|shaderc)$/.test(file));
 const bytes = working
   ? undefined
   : execFileSync("git", ["cat-file", "--batch"], {
@@ -43,7 +43,11 @@ for (const file of files) {
   offset += size + 1;
 }
 if (working)
-  for (const file of ["packages/modify/.cache/shaders.ts", "packages/modify/.cache/sources.ts"]) {
+  for (const file of [
+    "packages/shader/compiledShaders/index.ts",
+    "packages/shader/compiledWebGPUShaders/index.ts",
+    "packages/shader/src/ShaderLibrary/index.ts"
+  ]) {
     if (fs.existsSync(path.join(root, file))) source[file] = fs.readFileSync(path.join(root, file), "utf8");
   }
 fs.mkdirSync(out, { recursive: true });

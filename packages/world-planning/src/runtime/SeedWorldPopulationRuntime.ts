@@ -30,7 +30,7 @@ import {
 import {
   SeedWorldArrayPickBatch,
   type SeedWorldPickVisitor
-} from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+} from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 import {
   grassDensityLodFraction,
   createGrassDensityShuffle,
@@ -902,6 +902,7 @@ export class SeedWorldPopulationRuntime {
     distanceMode: "edge"
   };
   private _forwardGrass?: SeedWorldForwardGrass;
+  private _forwardGrassMaterial?: Material;
   private _forwardGrassParams?: {
     -readonly [K in Exclude<keyof ForwardGrassUpdateParams, "samplerContext">]: ForwardGrassUpdateParams[K];
   } & {
@@ -1409,6 +1410,7 @@ export class SeedWorldPopulationRuntime {
     this._grassLodDebugConfig = { ...this._grassLodDebugConfig, ...patch };
     const maxDist = Math.max(5, this._grassLodDebugConfig.maximumDistanceMetres);
     this._grassLodDebugConfig.maximumDistanceMetres = maxDist;
+    this._forwardGrassMaterial?.shaderData.setFloat(DETAIL_FADE_DISTANCE, maxDist);
     for (const material of this._detailMaterials.values()) {
       material.shaderData.setFloat(DETAIL_FADE_DISTANCE, maxDist);
     }
@@ -1998,6 +2000,7 @@ export class SeedWorldPopulationRuntime {
   /** Apply a committed rock appearance to resident roots and future streamed batches. */
   setRockGrassGround(settings: RockFormationSettings): void {
     this._rockGroundSettings = settings;
+    if (this._forwardGrassMaterial) bindRockGrassGroundMaterial(this._forwardGrassMaterial, settings);
     for (const material of this._detailMaterials.values()) bindRockGrassGroundMaterial(material, settings);
   }
 
@@ -2704,8 +2707,9 @@ export class SeedWorldPopulationRuntime {
       this._sparseRenderDirty = true;
     } catch (error) {
       this._forwardGrass?.destroy();
-      this._forwardGrass?.destroy();
       this._forwardGrass = undefined;
+      this._forwardGrassMaterial?.destroy();
+      this._forwardGrassMaterial = undefined;
       this._detailCells.destroy();
       this._sparseCells.destroy();
       this._shrubRenderer.destroy();
@@ -2724,18 +2728,29 @@ export class SeedWorldPopulationRuntime {
     if (!grassField) return undefined;
     const source = detailSourceForPrototype(this._detailFamily("grass"), grassField.assetProfileKey);
     const binding = source.lods[0].renderer;
-    const material = this._detailMaterial(binding.material);
-    return new SeedWorldForwardGrass(this._engine, this.details, binding.mesh, material, (renderer) => {
-      renderer.castShadows = SEED_WORLD_POPULATION_RUNTIME_PROFILE.shadows.castShadows;
-      renderer.receiveShadows = SEED_WORLD_POPULATION_RUNTIME_PROFILE.shadows.receiveShadows;
-      renderer.enableVertexColor = binding.enableVertexColor;
-      renderer.shaderData.enableMacro(SEED_WORLD_DETAIL_COMPACT_MACRO);
-      renderer.shaderData.setMatrix(DETAIL_LOCAL_MATRIX, binding.localMatrix);
-      renderer.shaderData.setMatrix(DETAIL_LOCAL_NORMAL_MATRIX, binding.localNormalMatrix);
-      if (this._grassColorField) bindGrassColorField(renderer, this._grassColorField);
-      if (this._grassRoadColor) bindGrassRoadColor(renderer, this._grassRoadColor);
-      if (this._grassTerrainMaterial) bindSeedWorldGrassTerrainSurface(renderer, this._grassTerrainMaterial);
-    });
+    const material = this._detailMaterial(binding.material).clone();
+    try {
+      const grass = new SeedWorldForwardGrass(this._engine, this.details, binding.mesh, material, (renderer) => {
+        renderer.castShadows = SEED_WORLD_POPULATION_RUNTIME_PROFILE.shadows.castShadows;
+        renderer.receiveShadows = SEED_WORLD_POPULATION_RUNTIME_PROFILE.shadows.receiveShadows;
+        renderer.enableVertexColor = binding.enableVertexColor;
+        renderer.shaderData.enableMacro(SEED_WORLD_DETAIL_COMPACT_MACRO);
+        renderer.shaderData.setMatrix(DETAIL_LOCAL_MATRIX, binding.localMatrix);
+        renderer.shaderData.setMatrix(DETAIL_LOCAL_NORMAL_MATRIX, binding.localNormalMatrix);
+        if (this._grassColorField) bindGrassColorField(renderer, this._grassColorField);
+        if (this._grassRoadColor) bindGrassRoadColor(renderer, this._grassRoadColor);
+        if (this._grassTerrainMaterial) bindSeedWorldGrassTerrainSurface(renderer, this._grassTerrainMaterial);
+      });
+      this._forwardGrassMaterial = material;
+      return grass;
+    } catch (error) {
+      material.destroy();
+      throw error;
+    }
+  }
+
+  visitForwardGrassRenderers(visitor: (renderer: MeshRenderer) => void): void {
+    this._forwardGrass?.visitRenderers(visitor);
   }
 
   private _updateForwardGrass(active: boolean): void {
@@ -3217,6 +3232,8 @@ export class SeedWorldPopulationRuntime {
     }
     this._forwardGrass?.destroy();
     this._forwardGrass = undefined;
+    this._forwardGrassMaterial?.destroy();
+    this._forwardGrassMaterial = undefined;
     this._detailCells.destroy();
     this._sparseCells.destroy();
     this._shrubRenderer.destroy();
@@ -6927,13 +6944,21 @@ function validateDetailCompactionInputs(
     prototypeFamilies.add(field.prototypeFamily);
     const heights = field.heightRangeMetres;
     if (heights) {
+      const compact = heights.samples instanceof Uint16Array;
       if (
         field.category !== "grass" ||
-        heights.samples.length !== field.resolution ** 2 * 2 ||
+        heights.samples.length !== field.resolution ** 2 * (compact ? 1 : 2) ||
         !Number.isFinite(heights.minimum) ||
         !Number.isFinite(heights.maximum) ||
         heights.minimum <= 0 ||
-        heights.maximum < heights.minimum
+        heights.maximum < heights.minimum ||
+        (compact &&
+          (!Number.isFinite(heights.encodeScale) ||
+            heights.encodeScale! <= 0 ||
+            heights.lowerMultiplier === undefined ||
+            !Number.isFinite(heights.lowerMultiplier) ||
+            heights.lowerMultiplier <= 0 ||
+            heights.lowerMultiplier > 1))
       )
         throw new RangeError("Invalid grass ecology height field");
       // Occupancy derives only density from an accepted immutable source. Authoring and water inputs
@@ -6941,21 +6966,41 @@ function validateDetailCompactionInputs(
       const validated = validatedGroundCoverSource?.detailDensityFields.find(
         (source) => source.prototypeFamily === field.prototypeFamily
       );
-      if (validated?.heightRangeMetres !== heights)
-        for (let i = 0; i < heights.samples.length; i += 2) {
-          const low = heights.samples[i],
-            high = heights.samples[i + 1];
-          if (
-            !Number.isFinite(low) ||
-            !Number.isFinite(high) ||
-            low < heights.minimum ||
-            high < low ||
-            high > heights.maximum
-          )
-            throw new RangeError(
-              "Grass ecology height samples must be positive, ordered and inside the declared bounds"
-            );
+      if (validated?.heightRangeMetres !== heights) {
+        if (heights.samples instanceof Uint16Array) {
+          const encodeScale = heights.encodeScale!;
+          const lowerMult = heights.lowerMultiplier!;
+          for (let i = 0; i < heights.samples.length; i++) {
+            const high = (heights.samples[i]! / 65535) * encodeScale;
+            const low = high * lowerMult;
+            if (
+              !Number.isFinite(low) ||
+              !Number.isFinite(high) ||
+              low < heights.minimum ||
+              high < low ||
+              high > heights.maximum
+            )
+              throw new RangeError(
+                "Grass ecology height samples must be positive, ordered and inside the declared bounds"
+              );
+          }
+        } else {
+          for (let i = 0; i < heights.samples.length; i += 2) {
+            const low = heights.samples[i],
+              high = heights.samples[i + 1];
+            if (
+              !Number.isFinite(low) ||
+              !Number.isFinite(high) ||
+              low < heights.minimum ||
+              high < low ||
+              high > heights.maximum
+            )
+              throw new RangeError(
+                "Grass ecology height samples must be positive, ordered and inside the declared bounds"
+              );
+          }
         }
+      }
     }
     const profile = populationLayout.detailSpeciesProfiles.find((candidate) => candidate.key === field.prototypeFamily);
     if (!profile) throw new RangeError(`Seed World Detail profile '${field.prototypeFamily}' is unavailable`);

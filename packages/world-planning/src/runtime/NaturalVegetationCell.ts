@@ -202,7 +202,13 @@ export function* compileNaturalVegetationCellSteps(
     const maximumEdgeBoost = Math.max(1, ...layerSeams.map((seam) => seam.densityMultiplier));
     // Authored flower polygons already define their patches; do not cluster them a second time.
     const companion = !field && !areas && layer.companionPlanting?.strength ? layer.companionPlanting : undefined;
-    const pockets = companion ? createVegetationCompanionPatches(seed, sampling.anchors, companion.patches) : undefined;
+    const anchorPool =
+      companion &&
+      instances.length > 0 &&
+      companion.patches.anchorLayers.some((layerName) => instances.some((inst) => inst.layerId === layerName))
+        ? [...sampling.anchors, ...instances]
+        : sampling.anchors;
+    const pockets = companion ? createVegetationCompanionPatches(seed, anchorPool, companion.patches) : undefined;
     const localCompanions = companion?.densityPerM2 !== undefined && !areas;
     const envelope = field
       ? 1

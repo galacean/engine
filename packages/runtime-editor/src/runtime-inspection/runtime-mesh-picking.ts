@@ -3,7 +3,7 @@ import type {
   RuntimePickBatch,
   RuntimePickSource,
   RuntimePickVisitor
-} from "@galacean/engine-modify/rendering/runtime-pick-source";
+} from "@galacean/engine-project/rendering/runtime-pick-source";
 import type { RuntimeSceneInspection } from "./runtime-scene-inspection";
 
 export function meshPickShader(original: Shader): Shader {
@@ -124,20 +124,21 @@ export function meshPickShader(original: Shader): Shader {
   );
 }
 
-/** Materials belong to the renderer; borrow them only inside the synchronous pick's try/finally. */
-class MeshPickBatch implements RuntimePickBatch {
+/** Borrow rigid mesh materials during the synchronous pick. Slots with a native pick path keep their deformation and cutout. */
+export class MeshPickBatch implements RuntimePickBatch {
   readonly count = 1;
   private saved: { material: Material; shader: Shader }[] = [];
   constructor(
     readonly renderer: MeshRenderer,
-    private readonly id: string
+    private readonly id: string,
+    private readonly hasNativePick?: (material: Material) => boolean
   ) {}
   resolve(): string {
     return this.id;
   }
   prepare(): void {
     for (const material of this.renderer.getMaterials()) {
-      if (!material) continue;
+      if (!material || this.hasNativePick?.(material)) continue;
       this.saved.push({ material, shader: material.shader });
       material.shader = meshPickShader(material.shader);
     }

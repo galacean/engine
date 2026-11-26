@@ -57,6 +57,7 @@ import {
 import { defaultPoiLayout } from "@galacean/engine-world-planning/semantic-study/PoiDistribution";
 import { worldTemplateEcology } from "@galacean/engine-world-planning/spatial/WorldTemplateEcology";
 import { WORLD_TEMPLATE_ART } from "@galacean/engine-world-planning/spatial/WorldTemplateArtDirection";
+import { planningPickAssets } from "@galacean/engine-world-planning/spatial/runtime/PlanningWorldPicking";
 import {
   resolveWorldTemplateScene,
   resolveWorldTemplateView
@@ -261,6 +262,13 @@ describe("authored world templates", () => {
       expect(result.plan.spawn).toEqual(config.spawn!.position);
       expect(result.plan.worldTemplateSite?.spawnPoiId).toBe(TEMPLATE_SPAWN_POI_ID);
       expect(result.plan.worldTemplateSite?.footprints[0].obb.size).toEqual(config.spawn!.subject!.size);
+      const cherry = planningPickAssets(result.plan).find((asset) => asset.ref.id === config.spawn!.subject!.id);
+      expect(cherry).toMatchObject({
+        ref: { kind: "tree", source: "natural" },
+        properties: { species: config.spawn!.subject!.asset }
+      });
+      expect(cherry!.position![0]).toBe(config.spawn!.subject!.position.x);
+      expect(cherry!.position![2]).toBe(config.spawn!.subject!.position.z);
       const poi = result.plan.poiDistribution!.sites.find((site) => site.id === TEMPLATE_SPAWN_POI_ID)!;
       expect(poi.active).toBe(true);
       expect(poi.sizeWeight).toBeGreaterThanOrEqual(config.spawnPoi!.sizeWeight![0]);

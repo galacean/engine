@@ -5,6 +5,7 @@ import { EShaderStage } from "@galacean/engine-shader-parser/internal";
 import { Keyword } from "@galacean/engine-shader-parser/internal";
 import { ASTNode, TreeNode } from "@galacean/engine-shader-parser/internal";
 import { NodeChild } from "@galacean/engine-shader-parser/internal";
+import { ParserUtils } from "@galacean/engine-shader-parser/internal";
 import { ShaderData } from "@galacean/engine-shader-parser/internal";
 import { ESymbolType } from "@galacean/engine-shader-parser/internal";
 import {
@@ -59,6 +60,14 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
   private _currentDeclaration?: TreeNode;
   private _sourceIR?: ShaderClueIR;
   private _outerMacroDeclarations: readonly ASTNode.GlobalDeclaration[] = [];
+  /** Active direct-MRT lowering state for the fragment entry point (avoids Adreno MRT struct register corruption). */
+  private _directMrtOutput?: {
+    fn: ASTNode.FunctionDefinition;
+    declaration: ASTNode.Declaration;
+    symbol: VarSymbol;
+    name: string;
+    memberOutputs: Map<string, string>;
+  };
 
   /**
    * Clears pass-local output retained by the pooled visitor.
@@ -77,6 +86,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     this._inputHelperBodies.clear();
     this._inputHelperGroups.clear();
     this._currentDeclaration = undefined;
+    this._directMrtOutput = undefined;
   }
 
   /**
@@ -629,8 +639,13 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
   }
 
   override visitFunctionHeader(node: ASTNode.FunctionHeader): string {
+    const isDirectMrt = !!this._directMrtOutput && node.ident === this._directMrtOutput.fn.protoType.ident;
+    const returnType = isDirectMrt ? "void" : node.returnType.codeGen(this);
     if (node.ident.lexeme === "main" && this.context.stageEntry === "main") {
-      return `${node.returnType.codeGen(this)} ${this.context.names.allocate("entry-main", "entry_main")}(`;
+      return `${returnType} ${this.context.names.allocate("entry-main", "entry_main")}(`;
+    }
+    if (isDirectMrt) {
+      return `${returnType} ${node.ident.lexeme}(`;
     }
     return super.visitFunctionHeader(node);
   }
@@ -644,6 +659,181 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
       struct: names.allocate("instance:struct", "gs_Instance"),
       instance: names.allocate("instance:object", "gs_instanceBuffer")
     };
+  }
+
+  override visitDeclaration(node: ASTNode.Declaration): string {
+    if (this._directMrtOutput && node === this._directMrtOutput.declaration) {
+      return "";
+    }
+    return super.visitDeclaration(node);
+  }
+
+  override visitJumpStatement(node: ASTNode.JumpStatement): string {
+    if (this._directMrtOutput && node.children[0] instanceof BaseToken && node.children[0].type === Keyword.RETURN) {
+      return "return;";
+    }
+    return super.visitJumpStatement(node);
+  }
+
+  override visitPostfixExpression(node: ASTNode.PostfixExpression): string {
+    const direct = this._directMrtOutput;
+    if (direct && node.children.length === 3 && node.children[2] instanceof BaseToken) {
+      const root = ParserUtils.unwrapBareIdentifier(node.children[0] as ASTNode.PostfixExpression, {
+        allowParens: true
+      });
+      if (root && this._isDirectMrtVarRef(root, direct)) {
+        const prop = node.children[2];
+        const output = direct.memberOutputs.get(prop.lexeme);
+        if (output !== undefined) {
+          this.context.referenceMRTProp(prop);
+          return output;
+        }
+      }
+    }
+    return super.visitPostfixExpression(node);
+  }
+
+  private _isDirectMrtVarRef(node: ASTNode.VariableIdentifier, direct: { symbol: VarSymbol; name: string }): boolean {
+    const symbols = node.resolvedValueSymbols();
+    if (symbols.length) {
+      return symbols.length === 1 && symbols[0] === direct.symbol;
+    }
+    const token = node.children[0];
+    return token instanceof BaseToken && token.lexeme === direct.name;
+  }
+
+  private _analyzeDirectMrtOutput(
+    fnNode: ASTNode.FunctionDefinition,
+    mrtStruct: ASTNode.StructSpecifier
+  ): GLESVisitor["_directMrtOutput"] {
+    // Skip if another function calls the fragment entry directly.
+    if (this._sourceIR) {
+      let calledExternally = false;
+      const checkCalls = (n: TreeNode) => {
+        if (calledExternally) return;
+        if (n instanceof ASTNode.FunctionCallGeneric && n.fnSymbol?.astNode === fnNode) {
+          calledExternally = true;
+          return;
+        }
+        for (const c of n.children) if (c instanceof TreeNode) checkCalls(c);
+      };
+      checkCalls(this._sourceIR.program);
+      if (calledExternally) return undefined;
+    }
+
+    // Build member -> output variable mapping; require consistent mrtIndex per member name.
+    const memberIndices = new Map<string, number>();
+    const memberOutputs = new Map<string, string>();
+    for (const prop of mrtStruct.propList) {
+      if (prop.mrtIndex === undefined) return undefined;
+      const name = prop.ident.lexeme;
+      const prev = memberIndices.get(name);
+      if (prev !== undefined && prev !== prop.mrtIndex) return undefined;
+      memberIndices.set(name, prop.mrtIndex);
+      memberOutputs.set(name, this.mrtOutput(prop));
+    }
+    if (!memberOutputs.size) return undefined;
+
+    // Locate the unique uninitialized local declaration of the MRT output struct.
+    const body = fnNode.children[1];
+    if (!(body instanceof TreeNode)) return undefined;
+    let decl: ASTNode.Declaration | undefined;
+    let symbol: VarSymbol | undefined;
+    let name: string | undefined;
+    let invalid = false;
+
+    const findDecls = (n: TreeNode) => {
+      if (invalid) return;
+      if (n instanceof ASTNode.SingleDeclaration) {
+        const structs = n.typeSpecifier?.structDeclarations;
+        if (structs?.includes(mrtStruct)) {
+          const parentList = n.parent;
+          const parentDecl = parentList?.parent;
+          if (
+            decl ||
+            n.declarator?.initializer ||
+            n.arraySpecifier ||
+            !(parentList instanceof ASTNode.InitDeclaratorList) ||
+            parentList.children.length !== 1 ||
+            !(parentDecl instanceof ASTNode.Declaration)
+          ) {
+            invalid = true;
+            return;
+          }
+          decl = parentDecl;
+          symbol = n.declarator.symbol;
+          name = n.declarator.identifier.lexeme;
+        }
+      }
+      for (const c of n.children) if (c instanceof TreeNode) findDecls(c);
+    };
+    findDecls(body);
+    if (invalid || !decl || !symbol || !name) return undefined;
+
+    // Validate that every reference to the local MRT variable is either `outVar.<member>` or `return outVar;`,
+    // and every `return` statement in the entry returns `outVar`.
+    const candidate = { symbol, name };
+    const allowedReturnRoots = new Set<ASTNode.VariableIdentifier>();
+    const validate = (n: TreeNode) => {
+      if (invalid) return;
+      if (
+        n instanceof ASTNode.JumpStatement &&
+        n.children[0] instanceof BaseToken &&
+        n.children[0].type === Keyword.RETURN
+      ) {
+        if (n.children.length !== 3 || !(n.children[1] instanceof TreeNode)) {
+          invalid = true;
+          return;
+        }
+        const root = ParserUtils.unwrapBareIdentifier(n.children[1], { allowParens: true });
+        if (!root || !this._isDirectMrtVarRef(root, candidate)) {
+          invalid = true;
+          return;
+        }
+        allowedReturnRoots.add(root);
+      }
+      for (const c of n.children) if (c instanceof TreeNode) validate(c);
+    };
+    validate(body);
+    if (invalid || !allowedReturnRoots.size) return undefined;
+
+    const checkRefs = (n: TreeNode) => {
+      if (invalid) return;
+      if (n instanceof ASTNode.VariableIdentifier && this._isDirectMrtVarRef(n, candidate)) {
+        if (!allowedReturnRoots.has(n)) {
+          // Must be the base of a PostfixExpression `outVar.<knownMember>`.
+          let cur: TreeNode | undefined = n;
+          while (
+            cur?.parent &&
+            !(cur.parent instanceof ASTNode.PostfixExpression && cur.parent.children.length === 3)
+          ) {
+            if (cur.parent instanceof ASTNode.PostfixExpression && cur.parent.children.length === 1) {
+              cur = cur.parent;
+            } else if (cur.parent.children.length === 1) {
+              cur = cur.parent;
+            } else {
+              break;
+            }
+          }
+          const post = cur?.parent;
+          if (
+            !(post instanceof ASTNode.PostfixExpression) ||
+            post.children.length !== 3 ||
+            post.children[0] !== cur ||
+            !(post.children[2] instanceof BaseToken) ||
+            !memberOutputs.has(post.children[2].lexeme)
+          ) {
+            invalid = true;
+            return;
+          }
+        }
+      }
+      for (const c of n.children) if (c instanceof TreeNode) checkRefs(c);
+    };
+    checkRefs(body);
+    if (invalid) return undefined;
+
+    return { fn: fnNode, declaration: decl, symbol, name, memberOutputs };
   }
 
   override visitFunctionIdentifier(node: ASTNode.FunctionIdentifier): string {
@@ -660,26 +850,51 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
   }
 
   override visitFunctionDefinition(fnNode: ASTNode.FunctionDefinition): string {
-    const definition = super.visitFunctionDefinition(fnNode);
-    if (fnNode.protoType.ident.lexeme !== this.context.stageEntry) return definition;
+    const isEntry = fnNode.protoType.ident.lexeme === this.context.stageEntry;
+    const type = fnNode.protoType.returnType;
+    const struct = type.typeSpecifier.structDeclarations[0];
+    let directMrt: GLESVisitor["_directMrtOutput"];
+    if (
+      isEntry &&
+      this.context.stage === EShaderStage.FRAGMENT &&
+      struct &&
+      this.context.getStructRole([struct]) === ShaderStructRole.Mrt
+    ) {
+      directMrt = this._analyzeDirectMrtOutput(fnNode, struct);
+    }
+
+    let definition: string;
+    if (directMrt) {
+      this._directMrtOutput = directMrt;
+      try {
+        definition = super.visitFunctionDefinition(fnNode);
+      } finally {
+        this._directMrtOutput = undefined;
+      }
+    } else {
+      definition = super.visitFunctionDefinition(fnNode);
+    }
+    if (!isEntry) return definition;
     const args: string[] = [];
     const parameters: string[] = [];
     for (const parameter of fnNode.protoType.parameterList ?? []) {
       if (!parameter.ident || !parameter.typeInfo) continue;
-      const struct = parameter.typeInfo.structDeclarations[0];
-      if (struct) {
+      const paramStruct = parameter.typeInfo.structDeclarations[0];
+      if (paramStruct) {
         const name = this.context.names.allocate(parameter, `input_${parameter.ident.lexeme}`);
-        parameters.push(`${this._interfaceTypeName(struct)} ${name} = ${this._transferName(struct, true)}();`);
+        parameters.push(
+          `${this._interfaceTypeName(paramStruct)} ${name} = ${this._transferName(paramStruct, true)}();`
+        );
         args.push(name);
       }
     }
     const name = fnNode.protoType.ident.lexeme;
     const entryName = name === "main" ? this.context.names.allocate("entry-main", "entry_main") : name;
     const call = `${entryName}(${args.join(", ")})`;
-    const type = fnNode.protoType.returnType;
-    const struct = type.typeSpecifier.structDeclarations[0];
     let statement: string;
-    if (struct) {
+    if (directMrt) {
+      statement = `${call};`;
+    } else if (struct) {
       statement = `${this._transferName(struct, false)}(${call});`;
     } else if (this.context.stage === EShaderStage.FRAGMENT && type.type === Keyword.VEC4) {
       statement = `${this.fragmentColorOutput()} = ${call};`;

@@ -406,6 +406,7 @@ export const authoredVegetationRefSchema = z
   .describe("vegetation.create 返回的玩家可编辑植被稳定引用");
 export const updatableVegetationRefSchema = z
   .union([
+    z.intersection(worldRefSchema, z.object({ domain: z.literal("vegetation"), kind: z.enum(["shrub", "forest", "shrubland", "flower-field"]), source: z.literal("natural") })),
     z.intersection(worldRefSchema, z.object({ domain: z.literal("vegetation"), kind: z.literal("tree"), source: z.literal("authored") })),
     z.intersection(worldRefSchema, z.object({ domain: z.literal("vegetation"), kind: z.literal("tree"), source: z.literal("natural") })),
     z.intersection(worldRefSchema, z.object({ domain: z.literal("vegetation"), kind: z.literal("shrub"), source: z.literal("authored") })),

@@ -1,14 +1,20 @@
 import { boxGroundBottom } from "./VolumeTerrain";
 import type { IslandPlan, PlanPoint } from "../../semantic-study/IslandPlanModel";
 import { envelope } from "../../semantic-study/IslandPlanAtoms";
+import {
+  DEFAULT_ROCK_COLLISION_POLICY,
+  resolvePlanRockCollision,
+  type RockCollisionPolicy
+} from "../RockCollisionPolicy";
 import type { VolumeEdit } from "./LayoutKernel";
 import type { LandscapeCandidate } from "../../semantic-study/ContextLandscape";
 
 /** Apply explicit instance dimensions after population sampling. The candidate ID remains stable. */
 export function applyLandscapeEdits(
-  plan: { landscapes?: LandscapeCandidate[] },
+  plan: { parameters?: IslandPlan["parameters"]; landscapes?: LandscapeCandidate[] },
   edits: Record<string, VolumeEdit>,
-  ground: (p: PlanPoint) => number
+  ground: (p: PlanPoint) => number,
+  rockCollisionPolicy: RockCollisionPolicy = DEFAULT_ROCK_COLLISION_POLICY
 ): void {
   for (let i = 0; i < (plan.landscapes?.length ?? 0); i++) {
     const prior = plan.landscapes![i];
@@ -29,6 +35,24 @@ export function applyLandscapeEdits(
     const scale = Math.max(element.width / priorWidth, element.depth / priorDepth);
     element.collisionRadius *= scale;
     if (element.canopyRadius !== undefined) element.canopyRadius *= scale;
+    if (
+      element.kind === "rock" &&
+      (edit.width !== undefined || edit.depth !== undefined || edit.height !== undefined)
+    ) {
+      element.collision = resolvePlanRockCollision(
+        plan.parameters ? { parameters: plan.parameters } : undefined,
+        {
+          id: element.id,
+          width: element.width,
+          depth: element.depth,
+          height: element.height,
+          assetId: element.assetId,
+          surfaceGrass: false
+        },
+        rockCollisionPolicy,
+        element.collisionOverride
+      );
+    }
     element.baseHeight = boxGroundBottom(
       element.kind === "tree"
         ? { ...element, width: element.collisionRadius * 2, depth: element.collisionRadius * 2 }

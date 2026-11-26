@@ -15,7 +15,11 @@ import type { FarmingGroundProvider } from "@galacean/engine-farming/farming/dom
 import { Camera, MeshRenderer } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { HeadlessEngine } from "../../../packages/rhi-null/src/HeadlessEngine";
-import { PlanningFarmClock } from "../../demos/seed-world/src/planning/spatial/farming/PlanningFarmClock";
+import {
+  PLANNING_FARM_OFFLINE_MAX_CATCH_UP_MS,
+  PlanningFarmClock,
+  resolvePlanningOfflineElapsedMs
+} from "../../demos/seed-world/src/planning/spatial/farming/PlanningFarmClock";
 import {
   PlanningFarmWaterSupply,
   subscribePlanningFarmWaterLayout
@@ -28,6 +32,7 @@ import {
   PLANNING_FARMING_PROJECT_PATH as path,
   PLANNING_FARMING_PROJECT_TYPE
 } from "../../demos/seed-world/src/planning/spatial/farming/PlanningFarmRepository";
+import { planningFarmingAssetFormats } from "../../demos/seed-world/src/planning/spatial/farming/PlanningFarmingAssets";
 
 async function fixture(pageClock = false, groundProvider = TEST_GROUND_PROVIDER, directRepository = false) {
   const file = { virtualPath: path, path, type: PLANNING_FARMING_PROJECT_TYPE, dependencies: [] };
@@ -1078,6 +1083,281 @@ it("keeps elapsed page time on a same-origin replacement and releases a rejected
     await vi.advanceTimersByTimeAsync(3000);
     await f.service.whenIdle();
     expect(f.service.getSnapshot().simulation).toMatchObject({ lastSystemTimeMs: 6000, simulatedTimeMs: 6000 });
+  } finally {
+    f.dispose();
+  }
+});
+
+it("advances crop growth across close/reopen using local wall-clock anchors while skipping idle writes and imported rebases", async () => {
+  const file = { virtualPath: path, path, type: PLANNING_FARMING_PROJECT_TYPE, dependencies: [] };
+  const scene = "World/Main.scene";
+  let saved: RuntimeProjectPackage = {
+    version: RUNTIME_PROJECT_SAVE_VERSION,
+    project: { scene, files: [{ virtualPath: scene, path: scene, type: "Scene", dependencies: [] }, file] },
+    contents: { [scene]: "{}", [path]: '{"version":1,"farms":{}}' }
+  };
+  const storage = {
+    load: async () => structuredClone(saved),
+    save: vi.fn(async (_id: string, pack: RuntimeProjectPackage) => {
+      saved = structuredClone(pack);
+    }),
+    close() {}
+  };
+  vi.spyOn(RuntimeProjectStorage, "open").mockResolvedValue(storage as unknown as RuntimeProjectStorage);
+  vi.useFakeTimers({ toFake: ["clearInterval", "setInterval"] });
+  vi.stubGlobal("window", { setInterval, clearInterval });
+  vi.stubGlobal("document", Object.assign(new EventTarget(), { visibilityState: "visible" }));
+
+  let wallMs = 1_750_000_000_000;
+  let runtimeMs = 0;
+
+  const openSession = async () => {
+    const project = await RuntimeProjectSession.open("farming-offline", saved.project, "https://example.com");
+    project.registerAssetFormats(new Map([[file.type, { validate() {}, referenceTypes: [], references: () => [] }]]));
+    const repository = new PlanningFarmRepository(project, undefined, path, undefined, undefined, () => wallMs);
+    const existing = await repository.read("farm");
+    const anchor = await repository.readWallClockAnchor("farm");
+    const offlineElapsedMs = resolvePlanningOfflineElapsedMs(existing, anchor, wallMs, 3_000);
+    const clock = new PlanningFarmClock(
+      existing ? existing.simulation.lastSystemTimeMs + offlineElapsedMs : wallMs,
+      () => runtimeMs
+    );
+    const service = new FarmingService({
+      repository: repository.forInitialization(),
+      definitions: TEST_FARMING_DEFINITIONS,
+      groundProvider: TEST_GROUND_PROVIDER,
+      clock,
+      farmId: "farm",
+      layoutId: "farm",
+      layoutVersion: 1,
+      plots: [{ id: "plot", label: "Test plot", target: { groundId: "soil", cellX: 0, cellZ: 0 } }],
+      autoAdvance: true,
+      createCropInstanceId: () => "crop",
+      offlineCatchUp: {
+        mode: "approximate",
+        maximumCatchUpMs: PLANNING_FARM_OFFLINE_MAX_CATCH_UP_MS,
+        preserveSavedEnvironment: true,
+        backgroundApproximateThresholdMs: 120_000
+      }
+    });
+    const snapshot = await service.initialize();
+    return {
+      project,
+      repository,
+      service,
+      snapshot,
+      async close() {
+        await service.checkpoint();
+        service.dispose();
+        await service.whenIdle();
+        await project.flush();
+        repository.dispose();
+        project.dispose();
+      }
+    };
+  };
+
+  try {
+    // 1. First visit: plant a crop and close the page.
+    const session1 = await openSession();
+    const planted = await session1.service.execute({
+      type: "plant",
+      farmId: "farm",
+      plotId: "plot",
+      seedId: "berry-seed",
+      commandId: "plant-offline-1",
+      expectedRevision: session1.service.getSnapshot().revision
+    });
+    expect(planted.ok).toBe(true);
+    expect(session1.service.getSnapshot().crops.crop.growthUnits).toBe(0);
+    await session1.close();
+
+    // 2. Close for 30s and reopen -> partial growth progresses automatically.
+    wallMs += 30_000;
+    const session2 = await openSession();
+    const after30s = session2.snapshot.crops.crop.growthUnits;
+    expect(after30s).toBeGreaterThan(0);
+    expect(after30s).toBeLessThan(TEST_FARMING_DEFINITIONS.catalog.getCrop("berry").cycle.growthTarget);
+    expect(session2.service.getLastCatchUpSummary()).toMatchObject({
+      elapsedSystemTimeMs: 30_000,
+      simulatedElapsedMs: 30_000,
+      capped: false
+    });
+    await session2.close();
+
+    // 3. Reopen immediately with backwards wall clock -> zero catch-up, no regression.
+    wallMs -= 60_000;
+    const session3 = await openSession();
+    expect(session3.snapshot.crops.crop.growthUnits).toBe(after30s);
+    expect(session3.service.getLastCatchUpSummary().simulatedElapsedMs).toBe(0);
+    await session3.close();
+
+    // 4. Close for 2 hours and reopen -> crop reaches full maturity and soil dries to minimum.
+    wallMs += 2 * 60 * 60_000;
+    const session4 = await openSession();
+    const target = TEST_FARMING_DEFINITIONS.catalog.getCrop("berry").cycle.growthTarget;
+    expect(session4.snapshot.crops.crop.growthUnits).toBe(target);
+    expect(session4.snapshot.plots[0].soil.moistureUnits).toBeCloseTo(
+      TEST_FARMING_DEFINITIONS.soilProfile.minimumMoistureUnits,
+      3
+    );
+    await session4.close();
+
+    // 5. Idle farm (mature crop + dry soil) reopened 5 hours later -> zero unnecessary DB writes.
+    const savesBeforeIdleReopen = storage.save.mock.calls.length;
+    wallMs += 5 * 60 * 60_000;
+    const session5 = await openSession();
+    await session5.project.flush();
+    expect(storage.save.mock.calls.length).toBe(savesBeforeIdleReopen);
+    expect(session5.snapshot.crops.crop.growthUnits).toBe(target);
+
+    // 6. External replacement / import strips wallClockAnchors so imported save does not falsely fast-forward.
+    const imported = JSON.parse(session5.project.projectPackage.contents[path] as string);
+    imported.farms.farm.crops.crop.growthUnits = 0;
+    imported.farms.farm.plots[0].soil.moistureUnits = 30;
+    imported.wallClockAnchors = {
+      farm: {
+        savedAtWallMs: wallMs - 3_600_000,
+        snapshotTimeMs: imported.farms.farm.simulation.lastSystemTimeMs,
+        revision: imported.farms.farm.revision
+      }
+    };
+    await session5.project.publishAsset(file, JSON.stringify(imported));
+    await session5.service.whenIdle();
+    await session5.project.flush();
+    expect(await session5.repository.readWallClockAnchor("farm")).toBeUndefined();
+    session5.service.dispose();
+    await session5.service.whenIdle();
+    session5.repository.dispose();
+    session5.project.dispose();
+
+    // Reopening right after import (without any new local checkpoint) must not credit stale offline growth.
+    wallMs += 10 * 60_000;
+    const session6 = await openSession();
+    expect(session6.snapshot.crops.crop.growthUnits).toBe(0);
+    // Once a local session advances and persists a checkpoint, wallClockAnchor is written and subsequent close/reopen works.
+    runtimeMs += 3_000;
+    wallMs += 3_000;
+    await session6.close();
+
+    wallMs += 30_000;
+    const session7 = await openSession();
+    expect(session7.snapshot.crops.crop.growthUnits).toBeGreaterThan(0);
+    expect(session7.service.getLastCatchUpSummary().simulatedElapsedMs).toBe(30_000);
+    await session7.close();
+  } finally {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  }
+});
+
+it("sanitizes corrupted wallClockAnchors during transact and rejects non-empty anchors on blank asset create", async () => {
+  const format = planningFarmingAssetFormats.get(PLANNING_FARMING_PROJECT_TYPE)!;
+  expect(() =>
+    format.validateCreate?.(
+      JSON.stringify({
+        version: 1,
+        farms: {},
+        wallClockAnchors: { farm: { savedAtWallMs: 1, snapshotTimeMs: 1, revision: 0 } }
+      })
+    )
+  ).toThrow();
+  expect(() => format.validateCreate?.(JSON.stringify({ version: 1, farms: {}, wallClockAnchors: "bad" }))).toThrow();
+  expect(() => format.validateCreate?.(JSON.stringify({ version: 1, farms: {}, wallClockAnchors: {} }))).not.toThrow();
+
+  const file = { virtualPath: path, path, type: PLANNING_FARMING_PROJECT_TYPE, dependencies: [] };
+  const scene = "World/Main.scene";
+  let saved: RuntimeProjectPackage = {
+    version: RUNTIME_PROJECT_SAVE_VERSION,
+    project: { scene, files: [{ virtualPath: scene, path: scene, type: "Scene", dependencies: [] }, file] },
+    contents: { [scene]: "{}", [path]: JSON.stringify({ version: 1, farms: {}, wallClockAnchors: "corrupt" }) }
+  };
+  const storage = {
+    load: async () => structuredClone(saved),
+    save: vi.fn(async (_id: string, pack: RuntimeProjectPackage) => {
+      saved = structuredClone(pack);
+    }),
+    close() {}
+  };
+  vi.spyOn(RuntimeProjectStorage, "open").mockResolvedValue(storage as unknown as RuntimeProjectStorage);
+  const project = await RuntimeProjectSession.open("corrupt-anchor-test", saved.project, "https://example.com");
+  project.registerAssetFormats(new Map([[file.type, { validate() {}, referenceTypes: [], references: () => [] }]]));
+  const repository = new PlanningFarmRepository(
+    project,
+    undefined,
+    path,
+    undefined,
+    undefined,
+    () => 1_700_000_000_000
+  );
+  try {
+    expect(await repository.readWallClockAnchor("farm")).toBeUndefined();
+    const service = new FarmingService({
+      repository,
+      groundProvider: TEST_GROUND_PROVIDER,
+      definitions: TEST_FARMING_DEFINITIONS,
+      farmId: "farm",
+      layoutId: "seed-world-starter-v1",
+      layoutVersion: 1,
+      plots: [{ id: "plot", label: "Plot", target: { groundId: "soil", cellX: 0, cellZ: 0 } }],
+      clock: new ManualFarmClock(1_700_000_000_000)
+    });
+    await service.initialize();
+    service.dispose();
+    await service.whenIdle();
+    await project.flush();
+
+    const persisted = JSON.parse(project.projectPackage.contents[path] as string);
+    expect(Object.keys(persisted.wallClockAnchors)).toEqual(["farm"]);
+    expect(persisted.wallClockAnchors.farm).toEqual({
+      savedAtWallMs: 1_700_000_000_000,
+      snapshotTimeMs: 1_700_000_000_000,
+      revision: 0
+    });
+  } finally {
+    repository.dispose();
+    project.dispose();
+    vi.restoreAllMocks();
+  }
+});
+
+it("keeps project.userEditSeq at 0 across farm initialization, hidden-tab checkpoints, and rain ticks, and increments on user commands", async () => {
+  const f = await fixture();
+  try {
+    await f.service.initialize();
+    expect(f.project.persistenceStatus.commitSeq).toBeGreaterThan(0);
+    expect(f.project.userEditSeq).toBe(0);
+
+    // Tab-hide clock checkpoint persists to project storage without marking a user edit.
+    const commitAfterInit = f.project.persistenceStatus.commitSeq;
+    f.time.advanceBy(3000);
+    f.document.visibilityState = "hidden";
+    f.document.dispatchEvent(new Event("visibilitychange"));
+    await f.service.whenIdle();
+    expect(f.project.persistenceStatus.commitSeq).toBeGreaterThan(commitAfterInit);
+    expect(f.project.userEditSeq).toBe(0);
+
+    // Autonomous rain settlement modifies moisture in storage without marking a user edit.
+    const commitAfterHidden = f.project.persistenceStatus.commitSeq;
+    f.setRain(60);
+    f.time.advanceBy(3000);
+    const wet = await f.service.checkpoint();
+    expect(wet.plots[0].soil.moistureUnits).toBeGreaterThan(0);
+    expect(f.project.persistenceStatus.commitSeq).toBeGreaterThan(commitAfterHidden);
+    expect(f.project.userEditSeq).toBe(0);
+
+    // Real user gameplay command marks the session as having user edits.
+    const planted = await f.service.execute({
+      type: "plant",
+      farmId: "farm",
+      plotId: "plot",
+      seedId: "berry-seed",
+      commandId: "plant-user-edit",
+      expectedRevision: f.service.getSnapshot().revision
+    });
+    expect(planted.ok).toBe(true);
+    expect(f.project.userEditSeq).toBe(1);
   } finally {
     f.dispose();
   }

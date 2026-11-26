@@ -414,6 +414,31 @@ vec3 terrainProjectAssetAssemblyColor(Attributes attributes) {
   #endif
 }
 
+// See encodePlantPigment. Ordinary fades occupy [-1,1]; a full-coverage native plant can
+// carry sRGB888 and its feather coverage in the same float without another attribute or sampler.
+vec4 terrainProjectPlantPigment(Attributes attributes) {
+  #if defined(RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG) || defined(RENDERER_ASSET_ASSEMBLY_COMPACT_INSTANCE)
+    return vec4(0.0);
+  #else
+    #ifdef RENDERER_ASSET_ASSEMBLY_RENDERER_INSTANCE
+      #if defined(RENDERER_PROCEDURAL_TREE_GPU_VARIATION) && !defined(RENDERER_PROCEDURAL_TREE_GPU_BRANCH_VARIATION)
+        float code = renderer_ProceduralTreeLeafColor.w;
+      #else
+        float code = renderer_AssetAssemblyColor.w;
+      #endif
+    #elif defined(RENDERER_PROCEDURAL_TREE_GPU_VARIATION) && !defined(RENDERER_PROCEDURAL_TREE_GPU_BRANCH_VARIATION)
+      float code = attributes.ASSEMBLY_TREE_LEAF_COLOR.w;
+    #else
+      float code = attributes.ASSEMBLY_COLOR.w;
+    #endif
+    if (abs(code) <= 1.0) return vec4(0.0);
+    uint bits = floatBitsToUint(abs(code));
+    vec3 rgb = vec3(float((bits >> 16u) & 255u), float((bits >> 8u) & 255u), float(bits & 255u));
+    float coverage = float((bits >> 24u) & 63u) + (code < 0.0 ? 64.0 : 1.0);
+    return sRGBToLinear(vec4(rgb / 255.0, coverage / 126.0));
+  #endif
+}
+
 float terrainProjectAssetAssemblyLodFade(Attributes attributes) {
   #ifdef RENDERER_PROCEDURAL_TREE_VARIATION_CATALOG
     return clamp(attributes.ASSEMBLY_POSITION.w, -1.0, 1.0);
@@ -423,9 +448,11 @@ float terrainProjectAssetAssemblyLodFade(Attributes attributes) {
     #if defined(RENDERER_ASSET_ASSEMBLY_COMPACT_INSTANCE)
       return clamp(attributes.ASSEMBLY_POSITION.w, -1.0, 1.0);
     #elif defined(RENDERER_PROCEDURAL_TREE_GPU_VARIATION) && !defined(RENDERER_PROCEDURAL_TREE_GPU_BRANCH_VARIATION)
-      return clamp(attributes.ASSEMBLY_TREE_LEAF_COLOR.w, -1.0, 1.0);
+      float fade = attributes.ASSEMBLY_TREE_LEAF_COLOR.w;
+      return abs(fade) > 1.0 ? 1.0 : fade;
     #else
-      return clamp(attributes.ASSEMBLY_COLOR.w, -1.0, 1.0);
+      float fade = attributes.ASSEMBLY_COLOR.w;
+      return abs(fade) > 1.0 ? 1.0 : fade;
     #endif
   #endif
 }

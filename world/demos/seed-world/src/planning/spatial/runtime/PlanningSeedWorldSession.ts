@@ -48,6 +48,7 @@ declare global {
 /** Real published scene input. A pending planner draft must never be returned here. */
 export interface PlanningSeedWorldPublished {
   readonly vegetation?: PlanningNaturalVegetationRuntime;
+  readonly templateVegetation?: ReturnType<typeof planningPickAssets>;
   readonly plan: SeedWorldRuntimePlan;
   readonly fields: SeedWorldFields;
   readonly world: SeedWorldTerrainRuntime;
@@ -192,11 +193,13 @@ export class PlanningSeedWorldSession {
       this.port,
       this.planningService,
       () => {
-        const plan = options.readPublished()?.sourcePlan;
-        return plan ? planningPickAssets(plan) : [];
+        const published = options.readPublished();
+        return published?.sourcePlan ? planningPickAssets(published.sourcePlan, published.templateVegetation) : [];
       },
       this.parameterAuthoring(options.planning),
       {
+        templateCatalog: (plan) =>
+          plan === options.planning.result?.plan ? options.readPublished()?.templateVegetation : undefined,
         nativeCatalog: (plan, revision, population) => {
           const runtime = options.readPublished()?.vegetation;
           if (!runtime) return undefined;
@@ -206,7 +209,7 @@ export class PlanningSeedWorldSession {
               .filter(
                 (resource) =>
                   resource.resourceType === "vegetation-brush" &&
-                  ["tree", "shrub"].includes(resource.properties.category)
+                  ["tree", "shrub", "flower"].includes(resource.properties.category)
               )
               .map((resource) => resource.resourceId),
             flowers: plan.flowerRegions ?? [],

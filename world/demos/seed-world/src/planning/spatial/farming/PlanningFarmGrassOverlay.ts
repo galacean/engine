@@ -1,5 +1,5 @@
 import { Scene, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode, Vector4 } from "@galacean/engine";
-import { restoreResource } from "@galacean/engine-modify/rendering/RestorableResources";
+import { restoreResource } from "@galacean/engine-project/rendering/RestorableResources";
 
 import { SEED_WORLD_GRASS_COVERAGE_RANGE } from "@galacean/engine-world-planning/runtime/SeedWorldGrassAppearance";
 

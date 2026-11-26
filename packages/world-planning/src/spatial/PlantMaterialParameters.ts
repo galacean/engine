@@ -18,7 +18,7 @@ const materialPartNames: Readonly<Record<string, string>> = {
   flower: "petals",
   mushroom: "cap"
 };
-function nativeMaterialPart(binding: { role: string; component?: string }): string {
+export function nativeMaterialPart(binding: { role: string; component?: string }): string {
   const part = binding.component
     ? binding.component === "leaf"
       ? "leaves"
@@ -60,7 +60,7 @@ export const PLANT_MATERIAL_DECLARATION: PlanningSystemDeclaration = {
       domain: "vegetation",
       facts: [{ path: "plant-materials.md", content: PLANT_MATERIALS_FACT }],
       knowledge: [
-        "plantMaterial 直接编辑现有程序化素材的物种、变体、材质槽的线性 RGB baseColor。世界作用范围可以修改乔木、灌木、草本和花瓣的颜色，同一物种的所有实例和 LOD 共用该槽的覆盖。它已支持树木和灌木配色，不需要单株编辑能力。只有用户要求只改某一株或局部花区时，全局物种覆盖才不能满足这个更窄的范围。reset 清除覆盖并恢复默认来源，明确的 0 会保留。",
+        "plantMaterial 编辑物种、变体或材质槽的共享线性 RGB baseColor，同一物种的实例和 LOD 共用设置。给原生单株、主景樱花或已有花地改色用 vegetation.update 的 colorOverride。按位置给一小片花、树或灌木改色用 vegetation.recolorArea。这两个局部接口接收 sRGB 整数 0–255。共享材质的 reset 恢复默认来源，明确的 0 会保留。",
         "字段单位是线性 RGB，有限非负值，大于 1 保留 HDR 强度。可用的资产、部位和字段路径见[植被材质目录](declare/editor/world/facts/plant-materials.md)。用 vegetation.config.get 的 component='plantMaterial' 与 fields 读取相关槽的当前值和来源，或按 tags 筛选真实部位；整套部位/生态层批量调色优先使用 vegetation.materials.inspect / vegetation.materials.apply。本组件是世界级的，不需要枚举每个 POI。",
         "同类素材可以在一个脚本内批量读取，并按材质槽把三个通道整理成 RGB 返回给模型，保留真实的资产、槽和部位身份。按实际结果预算分页，不返回重复的完整字段说明或不相关的区域。首个分页不是整个目录。",
         "花瓣、茎叶、树叶和树干是不同的材质槽，槽标签来自真实素材。明确指定部位时，只修改该部位。题材或情绪创作可以根据整体配色选择相关槽，不必等用户逐个点名。多色需要不同的真实花变体或材质槽，增加密度或场景饱和度不会产生新的花色。低草铺底由 grassAppearance 对接 Terrain/Grass 的共享色场，不在这个组件内。",

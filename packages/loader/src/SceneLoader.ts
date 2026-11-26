@@ -10,7 +10,8 @@ import {
   Mesh,
   resourceLoader,
   ResourceManager,
-  Scene
+  Scene,
+  ScreenSpaceReflectionSettings
 } from "@galacean/engine-core";
 import { resolveRefItem } from "./schema/refs";
 import type { RefItem } from "./schema/CommonSchema";
@@ -27,6 +28,15 @@ function loadRef<T extends EngineObject>(
   return resourceManager.getResourceByRef<T>(ref);
 }
 
+function applySceneScreenSpaceReflection(scene: Scene, sceneData: SceneFile["scene"]): void {
+  // Missing SSR restores the same defaults as a runtime-created Scene.
+  if (sceneData.screenSpaceReflection) {
+    scene.screenSpaceReflection.apply(sceneData.screenSpaceReflection);
+  } else {
+    new ScreenSpaceReflectionSettings().cloneTo(scene.screenSpaceReflection);
+  }
+}
+
 /**
  * Apply scene-level data (ambient, background, shadow, fog, AO) to a Scene.
  * @internal
@@ -40,6 +50,7 @@ export function applySceneData(
   const promises: Promise<unknown>[] = [];
 
   try {
+    applySceneScreenSpaceReflection(scene, sceneData);
     // parse ambient light
     const ambient = sceneData.ambient;
     if (ambient) {
@@ -167,6 +178,7 @@ class SceneLoader extends Loader<Scene> {
         ._request<SceneFile>(item.url!, { ...item, type: "json" })
         .then((data: SceneFile) => {
           const scene = new Scene(engine, data.scene.name ?? "");
+          applySceneScreenSpaceReflection(scene, data.scene);
           const context = new ParserContext(engine, ParserType.Scene, scene);
           const parser = new SceneParser(data, context, scene);
           parser._collectDependentAssets(data);

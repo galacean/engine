@@ -37,6 +37,10 @@ export interface FarmingAreaDependencies {
   readonly getViewerPosition?: () => Vector3 | undefined;
   /** Headless native hosts can explicitly omit rendering; the domain service remains engine-free. */
   readonly storagePresentation?: boolean;
+  /** Defer loading storage container GLBs/textures until a container is visible or within draw range. */
+  readonly deferOffscreenStorageLoad?: boolean;
+  /** Optional frustum predicate used when `deferOffscreenStorageLoad` is enabled during initial startup. */
+  readonly isStoragePositionVisible?: (position: Vector3) => boolean;
   /** Sowing defaults to the same headless choice as storage; hosts can override it independently. */
   readonly sowingPresentation?: boolean;
   readonly groundProvider: FarmingGroundProvider;
@@ -45,6 +49,7 @@ export interface FarmingAreaDependencies {
   readonly sampleEnvironment?: FarmingServiceOptions["sampleEnvironment"];
   readonly captureWaterSupply?: FarmingServiceOptions["captureWaterSupply"];
   readonly autoAdvance?: boolean;
+  readonly offlineCatchUp?: FarmingServiceOptions["offlineCatchUp"];
   readonly presentation?: FarmingPresentationPort;
   readonly createCropInstanceId?: FarmingServiceOptions["createCropInstanceId"];
 }
@@ -284,7 +289,9 @@ export class FarmingAreaComponent extends Script {
                 this.entity,
                 service,
                 definitions,
-                deps.getViewerPosition
+                deps.getViewerPosition,
+                deps.deferOffscreenStorageLoad,
+                deps.isStoragePositionVisible
               );
               this._storagePresenter.setActive(
                 this.enabled && this.entity.isActiveInHierarchy && owner.presentationActive

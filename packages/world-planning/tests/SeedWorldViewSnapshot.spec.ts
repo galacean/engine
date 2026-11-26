@@ -538,3 +538,47 @@ it("reclaims only the least recently used unpinned frame and retries after defer
   expect(views.budget.stats.peak).toBeLessThanOrEqual(140);
   views.dispose(); await Promise.resolve(); expect(views.budget.stats.total).toBe(0);
 });
+
+it("quantizes floating-point annotation coordinates cleanly so multi-circle freehand marks stay well below the 64 KiB cap", async () => {
+  const hdFixture = () => {
+    const base = fixture();
+    return { ...base, image: { ...base.image, width: 768, height: 480 } };
+  };
+  const views = new SeedWorldViewSnapshots(hdFixture, () => "a");
+  const { snapshotId } = await views.capture();
+  // Verify 0.1px quantization preserves integer boundaries (never rounds past [0, width]) and avoids -0.
+  const edgeMark = createViewAnnotation(
+    [
+      { x: -0.0, y: 0.049 },
+      { x: 767.96, y: 479.94 }
+    ],
+    1.3333333333333333,
+    "#ff453a"
+  );
+  expect(Object.is(edgeMark.points[0]!.x, -0)).toBe(false);
+  expect(edgeMark.points).toEqual([
+    { x: 0, y: 0 },
+    { x: 768, y: 479.9 }
+  ]);
+  expect(edgeMark.width).toBe(4);
+  expect(() => views.setAttachment(snapshotId, [edgeMark])).not.toThrow();
+
+  // Simulate 6 full circles drawn with realistic unrounded IEEE-754 pointer coordinates at scale * 2 spacing (~380 pts/circle).
+  const fullCircleMarks: ViewAnnotation[] = Array.from({ length: 6 }, (_, strokeIdx) => {
+    const cx = 180 + (strokeIdx % 3) * 195.371293;
+    const cy = 150 + Math.floor(strokeIdx / 3) * 180.618472;
+    const pts = Array.from({ length: 380 }, (_, i) => {
+      const a = (i / 380) * Math.PI * 2;
+      return {
+        x: cx + Math.cos(a) * 112.8371928371,
+        y: cy + Math.sin(a) * 112.8371928371
+      };
+    });
+    return createViewAnnotation(pts, 0.837219, "#ff453a");
+  });
+  const saved = views.setAttachment(snapshotId, fullCircleMarks);
+  const serializedBytes = new TextEncoder().encode(JSON.stringify(saved)).byteLength;
+  expect(saved.annotations).toHaveLength(6);
+  expect(serializedBytes).toBeLessThan(65536);
+  views.dispose();
+});

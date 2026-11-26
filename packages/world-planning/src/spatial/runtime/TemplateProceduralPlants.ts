@@ -55,6 +55,8 @@ import {
 import {
   createTreeAssemblyInstanceStorage,
   createTreeAssemblyInstancedMesh,
+  TREE_ASSEMBLY_LOD_FADE_FLOAT_OFFSET,
+  uploadTreeAssemblyInstanceRange,
   uploadTreeAssemblyInstances,
   type TreeAssemblyInstancedMesh
 } from "@galacean/engine-vegetation/asset-assembly/TreeAssemblyInstancedMesh";
@@ -66,28 +68,10 @@ import { TREE_STRUCTURE as DEAD_TREE_STRUCTURE } from "@galacean/engine-vegetati
 import { settlementRandom } from "../../semantic-study/SettlementGeometry";
 import { templateLinearColor } from "../WorldTemplateCatalog";
 
-export type TemplateProceduralPlantKind =
-  | "dead-wood"
-  | "dry-grass"
-  | "plume-grass"
-  | "desert-shrub"
-  | "pastel-flower"
-  | "meadow-flower";
-
-export interface TemplateProceduralPlantInstance {
-  readonly id: string;
-  readonly kind: TemplateProceduralPlantKind;
-  readonly x: number;
-  readonly z: number;
-  readonly heightM: number;
-  readonly yawDegrees?: number;
-  readonly variant?: number;
-  /** Snap onto 3D sandstone rock ledge triangles when available instead of terrain floor. */
-  readonly onRock?: boolean;
-  readonly tiltXDegrees?: number;
-  readonly tiltZDegrees?: number;
-  readonly spreadScale?: number;
-}
+import type { TemplatePlantPlacement, TemplateProceduralPlantKind } from "../WorldTemplateVegetation";
+export type { TemplateProceduralPlantInstance, TemplateProceduralPlantKind } from "../WorldTemplateVegetation";
+import type { VegetationColors } from "../VegetationColors";
+import type { SeedWorldPickBatch, SeedWorldPickVisitor } from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 
 export interface TemplateProceduralPlantResources {
   readonly bushAsset?: ProceduralPlantAsset;
@@ -783,7 +767,56 @@ function distancePointToBoxSq(px: number, py: number, pz: number, box: BoundingB
   return dx * dx + dy * dy + dz * dz;
 }
 
+type PaintedPlacement = TemplatePlantPlacement & { foliagePigment: number; barkPigment: number };
+
+/** The packed slot owns both its picking ID and its pigment. LOD compaction moves them together. */
+class TemplatePlantDraw implements SeedWorldPickBatch {
+  readonly instanced = true;
+  readonly placements: PaintedPlacement[] = [];
+  readonly interactionOccluder: boolean;
+  private readonly part?: "foliagePigment" | "barkPigment";
+
+  constructor(
+    readonly renderer: MeshRenderer,
+    private readonly view: TreeAssemblyInstancedMesh,
+    kind: TemplateProceduralPlantKind,
+    slot: string
+  ) {
+    this.interactionOccluder = kind === "dead-wood" || kind === "desert-shrub";
+    if (slot === "bark") this.part = "barkPigment";
+    else if ((kind === "desert-shrub" && slot === "foliage") || slot === "petals" || slot === "petalsAlt")
+      this.part = "foliagePigment";
+  }
+  get count(): number {
+    return this.view.mesh.instanceCount;
+  }
+  resolve(index: number): string | undefined {
+    return this.placements[index]?.sample?.id;
+  }
+  pack(index: number, placement: PaintedPlacement): void {
+    this.placements[index] = placement;
+    this.view.staging[index * this.view.recordFloats + TREE_ASSEMBLY_LOD_FADE_FLOAT_OFFSET] = this.part
+      ? placement[this.part]
+      : 1;
+  }
+  updateColors(): void {
+    if (!this.part) return;
+    let first = this.count,
+      last = -1;
+    for (let i = 0; i < this.count; i++) {
+      const offset = i * this.view.recordFloats + TREE_ASSEMBLY_LOD_FADE_FLOAT_OFFSET;
+      const color = this.placements[i][this.part];
+      if (this.view.staging[offset] === color) continue;
+      this.view.staging[offset] = color;
+      first = Math.min(first, i);
+      last = i;
+    }
+    if (last >= first) uploadTreeAssemblyInstanceRange(this.view, first, last - first + 1);
+  }
+}
+
 interface PlantLodInstanceRecord {
+  readonly placement: PaintedPlacement;
   readonly worldX: number;
   readonly centerY: number;
   readonly worldZ: number;
@@ -801,6 +834,7 @@ interface PlantSpatialCell {
 interface PlantLodTierPart {
   readonly entity: Entity;
   readonly view: TreeAssemblyInstancedMesh;
+  readonly draw: TemplatePlantDraw;
   readonly colors: PlantColorways;
 }
 
@@ -975,7 +1009,7 @@ class TemplatePlantCellLodController extends Script {
         staging[offset + 12] = color[0];
         staging[offset + 13] = color[1];
         staging[offset + 14] = color[2];
-        staging[offset + 15] = 1;
+        part.draw.pack(slotIndex, inst.placement);
       }
     }
 
@@ -1229,37 +1263,27 @@ function createProceduralWindMaterial(
 export function mountTemplateProceduralPlants(
   root: Entity,
   anchor: { x: number; y: number; z: number },
-  ground: (x: number, z: number) => number | undefined,
-  plants: readonly TemplateProceduralPlantInstance[],
+  plants: readonly TemplatePlantPlacement[],
   seed: number,
   vegetationTemplate?: Material,
-  rockGround?: (x: number, z: number) => number | undefined,
   plantResources?: TemplateProceduralPlantResources,
   camera?: Camera
-): () => void {
+) {
   let disposed = false;
   const disposals: Array<() => void> = [];
-  const grouped = new Map<TemplateProceduralPlantKind, TemplateProceduralPlantInstance[]>();
-  for (const item of plants) {
-    const list = grouped.get(item.kind) ?? [];
-    list.push(item);
-    grouped.set(item.kind, list);
+  const grouped = new Map<TemplateProceduralPlantKind, PaintedPlacement[]>();
+  const draws: TemplatePlantDraw[] = [];
+  const placements = plants.map((plant) => ({ ...plant, foliagePigment: 1, barkPigment: 1 }));
+  for (const placement of placements) {
+    const kind = placement.entry.kind;
+    let list = grouped.get(kind);
+    if (!list) grouped.set(kind, (list = []));
+    list.push(placement);
   }
   const owner = root.createChild("Template procedural plants");
   const rotQuat = new Quaternion();
 
-  for (const [kind, entries] of grouped) {
-    const positioned = entries
-      .map((entry) => {
-        const wx = anchor.x - entry.x;
-        const wz = anchor.z + entry.z;
-        const worldY = entry.onRock && rockGround ? rockGround(wx, wz) : ground(wx, wz);
-        if (worldY === undefined || !Number.isFinite(worldY)) return undefined;
-        return { entry, localX: -entry.x, localY: worldY - anchor.y, localZ: entry.z };
-      })
-      .filter((item): item is NonNullable<typeof item> => Boolean(item));
-    if (!positioned.length) continue;
-
+  for (const [kind, positioned] of grouped) {
     if (kind === "dead-wood") {
       const material = createSurfaceMaterial(root.engine, { baseColor: new Color(1, 1, 1, 1), normalStrength: 0.75 });
       material.renderFace = RenderFace.Double;
@@ -1281,14 +1305,13 @@ export function mountTemplateProceduralPlants(
         const storage = createTreeAssemblyInstanceStorage(root.engine, subset.length);
         disposals.push(() => storage.instanceBuffer.destroy(true));
 
-        subset.forEach(({ entry, localX, localY, localZ }, idx) => {
+        subset.forEach(({ entry, localX, localY, localZ, reach }, idx) => {
           const scale = entry.heightM / sourceHeight;
           const base = localY - floor * scale - 0.14;
           const yaw = ((entry.yawDegrees ?? 0) * Math.PI) / 180;
           const pitch = ((entry.tiltXDegrees ?? 0) * Math.PI) / 180;
           const roll = ((entry.tiltZDegrees ?? 0) * Math.PI) / 180;
           Quaternion.rotationYawPitchRoll(yaw, pitch, roll, rotQuat);
-          const reach = entry.heightM * 0.9;
           bounds.min.set(
             Math.min(bounds.min.x, localX - reach),
             Math.min(bounds.min.y, base - 0.5),
@@ -1332,6 +1355,9 @@ export function mountTemplateProceduralPlants(
         renderer.setMaterial(material);
         renderer.castShadows = renderer.receiveShadows = true;
         renderer.shaderData.enableMacro("RENDERER_ASSET_ASSEMBLY_INSTANCE");
+        const draw = new TemplatePlantDraw(renderer, view, kind, "bark");
+        subset.forEach((plant, i) => draw.pack(i, plant));
+        draws.push(draw);
       });
       continue;
     }
@@ -1393,16 +1419,12 @@ export function mountTemplateProceduralPlants(
       new Vector3(Infinity, Infinity, Infinity),
       new Vector3(-Infinity, -Infinity, -Infinity)
     );
-    const placements = positioned.map(({ entry, localX, localY, localZ }) => {
-      const isFlowerCushion = kind === "pastel-flower" || kind === "meadow-flower";
-      const effectiveHeight = isFlowerCushion ? entry.heightM * 0.78 : entry.heightM;
+    const transforms = positioned.map(({ entry, localX, localY, localZ, height: effectiveHeight, spread, reach }) => {
       const scaleY = effectiveHeight / sourceHeight;
-      const spread = isFlowerCushion ? 1 + ((entry.spreadScale ?? 1) - 1) * 0.55 : (entry.spreadScale ?? 1);
       const scaleXZ = scaleY * spread;
       const sink = entry.onRock ? Math.min(0.08, effectiveHeight * 0.08) : Math.min(0.035, effectiveHeight * 0.06);
       const base = localY - floor * scaleY - sink;
       const yaw = ((entry.yawDegrees ?? 0) * Math.PI) / 180;
-      const reach = effectiveHeight * 2.4 * spread;
       bounds.min.set(
         Math.min(bounds.min.x, localX - reach),
         Math.min(bounds.min.y, base - effectiveHeight),
@@ -1459,8 +1481,9 @@ export function mountTemplateProceduralPlants(
       const originY = Number.isFinite(ownerWorldPos.y) ? ownerWorldPos.y : anchor.y;
       const originZ = Number.isFinite(ownerWorldPos.z) ? ownerWorldPos.z : anchor.z;
       const records: PlantLodInstanceRecord[] = positioned.map(({ entry }, index) => {
-        const placement = placements[index];
+        const placement = transforms[index];
         return {
+          placement: positioned[index],
           worldX: originX + placement.localX,
           centerY: originY + placement.base + placement.effectiveHeight * 0.55,
           worldZ: originZ + placement.localZ,
@@ -1503,7 +1526,9 @@ export function mountTemplateProceduralPlants(
             renderer.shaderData.enableMacro("RENDERER_PROCEDURAL_PLANT_CANOPY_OCCLUSION");
           }
           partEntity.isActive = false;
-          tierParts.push({ entity: partEntity, view, colors });
+          const draw = new TemplatePlantDraw(renderer, view, kind, part.materialId);
+          draws.push(draw);
+          tierParts.push({ entity: partEntity, view, colors, draw });
         }
         tiers.push(tierParts);
       }
@@ -1519,7 +1544,7 @@ export function mountTemplateProceduralPlants(
       if (!colors) continue;
       const storage = createTreeAssemblyInstanceStorage(root.engine, positioned.length);
       disposals.push(() => storage.instanceBuffer.destroy(true));
-      placements.forEach(({ transform }, index) => {
+      transforms.forEach(({ transform }, index) => {
         const offset = index * storage.recordFloats;
         const rawVariant =
           positioned[index].entry.variant ??
@@ -1543,6 +1568,9 @@ export function mountTemplateProceduralPlants(
       renderer.castShadows = false;
       renderer.receiveShadows = true;
       renderer.shaderData.enableMacro("RENDERER_ASSET_ASSEMBLY_INSTANCE");
+      const draw = new TemplatePlantDraw(renderer, view, kind, part.materialId);
+      positioned.forEach((plant, i) => draw.pack(i, plant));
+      draws.push(draw);
       if (canopyOcclusionSlots?.has(part.materialId)) {
         renderer.shaderData.enableMacro("RENDERER_PROCEDURAL_PLANT_CANOPY_OCCLUSION");
       }
@@ -1551,8 +1579,38 @@ export function mountTemplateProceduralPlants(
   disposals.push(() => {
     if (!owner.destroyed) owner.destroy();
   });
-  return () => {
-    disposed = true;
-    for (const destroy of disposals.reverse()) destroy();
+  let previous: VegetationColors | undefined;
+  return {
+    setLocalColors(colors: VegetationColors) {
+      const changed = colors.changedSamples(previous);
+      previous = colors;
+      let dirty = false;
+      for (const plant of placements) {
+        if (!plant.sample || !changed(plant.sample)) continue;
+        const foliage = colors.shaderCode(plant.sample, "foliageColorRgb") ?? 1;
+        const bark = colors.shaderCode(plant.sample, "barkColorRgb") ?? 1;
+        if (plant.foliagePigment !== foliage || plant.barkPigment !== bark) {
+          plant.foliagePigment = foliage;
+          plant.barkPigment = bark;
+          dirty = true;
+        }
+      }
+      if (dirty) for (const draw of draws) draw.updateColors();
+    },
+    visitPickBatches(visitor: SeedWorldPickVisitor) {
+      for (const draw of draws) {
+        if (
+          draw.count &&
+          draw.placements[0].sample &&
+          draw.renderer.enabled &&
+          draw.renderer.entity.isActiveInHierarchy
+        )
+          visitor(draw);
+      }
+    },
+    dispose() {
+      disposed = true;
+      for (const destroy of disposals.reverse()) destroy();
+    }
   };
 }

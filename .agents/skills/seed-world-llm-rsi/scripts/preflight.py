@@ -70,7 +70,8 @@ def main() -> int:
 
     checks = [
         ("node_modules", (wt / "node_modules").exists()),
-        ("packages/modify/.cache/shaders.ts", (wt / "packages/modify/.cache/shaders.ts").exists()),
+        ("packages/shader/compiledShaders/index.ts", (wt / "packages/shader/compiledShaders/index.ts").exists()),
+        ("packages/shader/compiledWebGPUShaders/index.ts", (wt / "packages/shader/compiledWebGPUShaders/index.ts").exists()),
         ("world/tests/seed-world/vitest.config.mjs", (wt / "world/tests/seed-world/vitest.config.mjs").exists()),
     ]
     for label, present in checks:

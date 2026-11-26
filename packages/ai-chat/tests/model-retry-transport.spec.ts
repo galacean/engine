@@ -176,3 +176,40 @@ it.each([false, true])("does not reconstruct recovery from terminal metadata (er
   expect(result).not.toHaveProperty("recovery");
   expect(onRecovery).not.toHaveBeenCalled();
 });
+
+it("uses an independent random queryId shared between local streamChat and stopChat", async () => {
+  const calls: Array<{ method: string; action: string; payload: any }> = [];
+  vi.stubGlobal("window", {
+    location: { hostname: "localhost" },
+    document: new EventTarget(),
+    CandyJar: {
+      call: (method: string, action: string, payload: any) => {
+        calls.push({ method, action, payload });
+      },
+    },
+  });
+
+  const controller = new AbortController();
+  const pending = requestAsapChat({
+    messages: [],
+    tools: [],
+    debugMode: false,
+    signal: controller.signal,
+  });
+  await Promise.resolve();
+  expect(calls).toHaveLength(1);
+  expect(calls[0]).toMatchObject({ method: "FlashApp", action: "remoteStreamSkill" });
+  const streamParams = JSON.parse(calls[0].payload.extInfo.payload).params;
+  expect(streamParams.queryId).toMatch(/^[a-f0-9]{32}$/);
+  expect(streamParams.queryId).not.toBe(streamParams.responseFormat.params.streamResponseNonce);
+
+  controller.abort();
+  await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+  expect(calls).toHaveLength(2);
+  expect(calls[1]).toMatchObject({ method: "FlashApp", action: "remoteSkill" });
+  expect(calls[1].payload.action).toBe("lingguang.ai.stopChat");
+  expect(JSON.parse(calls[1].payload.payload).params).toEqual({
+    sessionId: streamParams.sessionId,
+    queryId: streamParams.queryId,
+  });
+});

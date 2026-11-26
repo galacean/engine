@@ -35,7 +35,13 @@ export type {
 } from "./FarmDefinitions";
 export { getActionAvailability, getCropStatus, getFarmStatus, getPlotStatus } from "./FarmQueries";
 export type { ActionAvailability, CropStatusView, PlotStatusView, SoilMoistureLabel } from "./FarmQueries";
-export { FARM_MAX_CATCH_UP_MS, FARM_SIMULATION_STEP_MS, settleFarmTime } from "./FarmSimulation";
+export {
+  FARM_APPROXIMATE_OFFLINE_MAX_CATCH_UP_MS,
+  FARM_MAX_CATCH_UP_MS,
+  FARM_SIMULATION_STEP_MS,
+  settleFarmTime,
+  settleFarmTimeApproximate
+} from "./FarmSimulation";
 export type { FarmTimeAdvanceSummary, SettleFarmTimeResult } from "./FarmSimulation";
 export { FARM_SNAPSHOT_SCHEMA_VERSION, freezeSnapshot } from "./FarmState";
 export { createInitialFarmSnapshot } from "./createInitialFarmSnapshot";
@@ -48,8 +54,8 @@ export * from "./FarmingDiagnostics";
 export type { FarmEnvironmentInput, FarmEnvironmentView } from "./FarmEnvironment";
 export { cropHealthStatus } from "./FarmQueries";
 export type { CropHealthStatus } from "./FarmQueries";
-export type { SoilWaterRates } from "./SoilMoisture";
-export { soilWaterRates, settleSoilMoisture } from "./SoilMoisture";
+export type { SoilEvaporationIntegral, SoilWaterRates } from "./SoilMoisture";
+export { integrateSoilEvaporation, soilWaterRates, settleSoilMoisture } from "./SoilMoisture";
 export { normalizeSoilMoisture } from "./SoilMoisture";
 export type { PlotView, PlotQuery } from "./PlotQueries";
 export type {

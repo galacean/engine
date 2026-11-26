@@ -14,8 +14,10 @@ import {
   writeFileSync
 } from "node:fs";
 import { dirname, relative, resolve, sep } from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
+const vitePackagePath = createRequire(import.meta.url).resolve("vite/package.json");
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const worldDirectory = resolve(scriptDirectory, "..");
 const repoRoot = resolve(worldDirectory, "..");
@@ -26,14 +28,7 @@ const referenceVerificationOutput = resolve(worldDirectory, "dist/seed-world-fla
 const runtimeBuildDirectory = resolve(worldDirectory, "dist/seed-world-flash-app");
 const maximumArchiveBytes = 100 * 1024 * 1024;
 
-const rootWorkspaceFiles = [
-  ".npmrc",
-  "package.json",
-  "pnpm-workspace.yaml",
-  "pnpm-lock.yaml",
-  "tsconfig.base.json",
-  "tsconfig.json"
-];
+const rootWorkspaceFiles = [".npmrc", "package.json", "package-lock.json", "tsconfig.base.json", "tsconfig.json"];
 
 const worldWorkspacePackages = [
   "ai-chat",
@@ -41,7 +36,6 @@ const worldWorkspacePackages = [
   "building",
   "environment",
   "farming",
-  "modify",
   "project",
   "retrieval",
   "runtime-editor",
@@ -236,12 +230,8 @@ function verifySnapshotWaterResources() {
 }
 
 function verifySnapshotBuild() {
-  const viteBin = resolve(worldDirectory, "node_modules/vite/bin/vite.js");
-  if (!existsSync(viteBin)) {
-    throw new Error("Seed World source verification requires installed dependencies (`pnpm install`)");
-  }
-  const shaderCache = resolve(repoRoot, "packages/modify/.cache");
-  if (!existsSync(resolve(shaderCache, "shaders.ts"))) {
+  const viteBin = resolve(dirname(vitePackagePath), "bin/vite.js");
+  if (!existsSync(resolve(repoRoot, "packages/shader/compiledShaders/index.ts"))) {
     throw new Error("Seed World source verification requires `pnpm --dir world prepare:engine`");
   }
 
@@ -286,11 +276,6 @@ function verifySnapshotBuild() {
   };
 
   try {
-    // Copy `.cache` and native packages instead of symlinking so relative imports like
-    // `../../shader/src/ShaderLibrary` and `engineModify` realpath checks stay inside the snapshot.
-    const snapshotShaderCache = resolve(outputDirectory, "packages/modify/.cache");
-    cpSync(shaderCache, snapshotShaderCache, { recursive: true, verbatimSymlinks: true });
-    temporaryEntries.push(snapshotShaderCache);
     for (const pkg of nativeEnginePackages) {
       copyNativePackage(pkg);
     }
@@ -349,12 +334,15 @@ function indexFilesByRelativePath(root) {
 }
 
 function createArchive() {
-  run("tar", ["-czf", archivePath, "-C", outputDirectory, "."], worldDirectory);
+  run("tar", ["-czf", archivePath, "-C", outputDirectory, "."], worldDirectory, {
+    ...process.env,
+    COPYFILE_DISABLE: "1"
+  });
 }
 
 function requireRuntimeBuild() {
   if (!existsSync(resolve(runtimeBuildDirectory, "index.html"))) {
-    throw new Error("Run `pnpm --dir world build:seed-world-flash-app` before building its source snapshot");
+    throw new Error("Run `npm run build:seed-world-flash-app --workspace world` before building its source snapshot");
   }
 }
 
@@ -421,16 +409,11 @@ function createRebuildGuide(gitMeta) {
 This snapshot contains the World workspace packages and Seed World source/assets needed to rebuild the Flash App.
 It intentionally excludes \`node_modules\`, tests, unrelated demos, Grasslands precomputed data, and authoring-only source artwork whose runtime KTX2 derivatives are already included.
 
-To rebuild, start from a Galacean Engine checkout containing commit \`${gitMeta.headCommit}\` (branch \`${gitMeta.branch}\`) with the unchanged native Engine packages present under \`packages/\`.
-Copy this snapshot's root workspace files, \`packages/\`, and \`world/\` into that checkout, preserving paths.
-Then run the following commands from the repository root with Node.js >= 20.19 and pnpm 9.3.0:
+To rebuild, create a dedicated Git worktree at commit \`${gitMeta.headCommit}\` and copy this snapshot's root workspace files, \`packages/\`, and \`world/\` into it, preserving paths.
+Run the following command from the worktree with Node.js >= 20.19 and npm 10.9.3. It restores the npm workspace manifests and installs from the snapshot's package-lock.json.
 
 \`\`\`bash
-pnpm install --frozen-lockfile
-pnpm b:module
-pnpm --dir world prepare:engine
-pnpm --dir world build:seed-world-flash-app
-pnpm --dir world build:seed-world-flash-source
+node world/scripts/build-seed-world-npm.mjs
 \`\`\`
 
 The runtime build is emitted to \`world/dist/seed-world-flash-app\`.

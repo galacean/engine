@@ -11,7 +11,7 @@ description: 解析相对位置、按地形条件搜索地点、检查落点或�
 
 - 已知世界坐标：在编辑接口的 `target` 中使用 position 锚点和 `at` 关系。
 - 截图中的位置：用 `pick` 指向目标像素，把返回的 `estimatedPosition` 作为拍摄时的表面位置。
-- 相对目标：用 `spatial.resolve` 解析空间关系，直接使用返回的 Target。
+- 相对目标（例如“前方 10 米”“右侧 20 米”）：**必须**用 `tools.spatial.resolve` 解析空间关系，不要根据 `spatial.viewer` 的朝向手工心算坐标，直接使用返回的 Target。
 - 已知坐标的条件检查：用户或编辑契约要求检查地形时，用 `spatial.check`。
 - 按地形条件搜索：用 `spatial.search` 查找满足用户条件的候选。
 

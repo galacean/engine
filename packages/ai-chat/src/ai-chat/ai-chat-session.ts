@@ -20,6 +20,8 @@ export type AIChatSessionOptions = { agent: AgentLoop; history?: ConversationHis
  */
 export type AgentInputPreparation = {
   prepare(signal: AbortSignal): Promise<readonly AgentViewObservation[]>;
+  /** Called after all attachments from this input have been appended to the Agent transcript. */
+  onAttachmentsAccepted?(): void;
   release(): void;
 };
 export type AIChatSubmission = { id: string; completion: Promise<AgentTaskResult> };
@@ -41,7 +43,7 @@ type Machine =
   | { kind: "disposed" };
 type SuspendedTurn = { initial: PendingInput; continuation: AgentContinuation; blocked: boolean };
 
-export const DEFAULT_SESSION_COMPACTION_BUDGET = { triggerTokens: 48_000, targetTokens: 20_000 } as const;
+export const DEFAULT_SESSION_COMPACTION_BUDGET = {} as const;
 
 /** One driver owns the inbox and all turn transitions, including stop/continue. */
 export class AIChatSession {
@@ -361,6 +363,14 @@ export class AIChatSession {
         };
         const result = await this.#agent.run(initial.input.text, runOptions, this.#history.snapshot(), {
           initialInputId: initial.input.id,
+          onAttachmentsAccepted: (inputId) => {
+            const source = active.waiters.find((entry) => entry.input.id === inputId);
+            try {
+              source?.preparation?.onAttachmentsAccepted?.();
+            } catch (error) {
+              console.error("[AIChatSession] attachment observer failed", error);
+            }
+          },
           continuation: resume?.turn.continuation,
           sessionTranscript: this.#transcript,
           previousTurnFallbackMessage: this.#lastSettledFallbackMessage,

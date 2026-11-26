@@ -124,15 +124,59 @@ export class Texture2D extends Texture {
     (this._platformTexture as IPlatformTexture2D).getPixelBuffer(...region);
   }
 
+  /** Read mip zero, optionally cancelling the caller's read while GPU work completes. */
+  getPixelBufferAsync(out: ArrayBufferView, signal?: AbortSignal): Promise<void>;
   /** Read a region after all previously encoded draws and copies are available. */
-  getPixelBufferAsync(...args: TextureReadArguments): Promise<void> {
+  getPixelBufferAsync(...args: TextureReadArguments): Promise<void>;
+  getPixelBufferAsync(...args: TextureReadArguments | [ArrayBufferView, AbortSignal?]): Promise<void> {
     return new Promise<void>((resolve) => {
-      const region = this._readRegion(args);
+      const first = args[0];
+      const wholeImage = ArrayBuffer.isView(first);
+      const signal = wholeImage ? (args[1] as AbortSignal | undefined) : undefined;
+      signal?.throwIfAborted();
       const platform = this._platformTexture as IPlatformTexture2D;
-      resolve(
-        platform.getPixelBufferAsync ? platform.getPixelBufferAsync(...region) : platform.getPixelBuffer(...region)
-      );
+      if (wholeImage && platform.getPixelBufferAsyncRGBA8 && first instanceof Uint8Array) {
+        if (
+          this.destroyed ||
+          this.format !== TextureFormat.R8G8B8A8_UNorm ||
+          first.byteLength < this.width * this.height * 4
+        ) {
+          throw new Error("Async readback requires a live RGBA8 texture and a sufficient Uint8Array");
+        }
+        resolve(platform.getPixelBufferAsyncRGBA8(first, signal));
+        return;
+      }
+      const region = this._readRegion(wholeImage ? [first] : (args as TextureReadArguments));
+      if (platform.getPixelBufferAsync) {
+        resolve(platform.getPixelBufferAsync(...region).then(() => signal?.throwIfAborted()));
+      } else {
+        platform.getPixelBuffer(...region);
+        signal?.throwIfAborted();
+        resolve();
+      }
     });
+  }
+
+  /**
+   * Whether the active graphics backend supports restricting mipmap sampling range.
+   * @internal
+   */
+  _supportsMipLevelRange(): boolean {
+    return typeof (this._platformTexture as IPlatformTexture2D)?.setMipLevelRange === "function";
+  }
+
+  /**
+   * Restricts the platform texture's mipmap sampling range (`TEXTURE_BASE_LEVEL` / `TEXTURE_MAX_LEVEL`).
+   * Returns `true` when applied by the active graphics backend.
+   * @internal
+   */
+  _setMipLevelRange(baseLevel: number, maxLevel: number): boolean {
+    const platformTexture = this._platformTexture as IPlatformTexture2D;
+    if (typeof platformTexture?.setMipLevelRange === "function") {
+      platformTexture.setMipLevelRange(baseLevel, maxLevel);
+      return true;
+    }
+    return false;
   }
 
   /**

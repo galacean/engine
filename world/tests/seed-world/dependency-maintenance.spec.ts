@@ -4,7 +4,11 @@ import { pathToFileURL } from "node:url";
 import { resolve } from "node:path";
 import catalog from "@galacean/engine-terrain/data/seed-world/project.json";
 import { seedWorldProjectFormats } from "../../demos/seed-world/SeedWorldProjectFormats";
-import { RuntimeDependencyMaintenance, validateProjectDependencies } from "@galacean/engine-project/runtime-editor/project/runtime-project-dependencies.ts";
+import {
+  extractAssetDependencies,
+  RuntimeDependencyMaintenance,
+  validateProjectDependencies
+} from "@galacean/engine-project/runtime-editor/project/runtime-project-dependencies.ts";
 import { RuntimeProjectEdit } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit.ts";
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats.ts";
 import { RUNTIME_PROJECT_SAVE_VERSION, RuntimeProjectStorage, type RuntimeProjectPackage } from "@galacean/engine-project/runtime-editor/project/runtime-project.ts";
@@ -77,13 +81,29 @@ it("ingests the actual Seed World catalog once without downloading binary assets
     validateProjectDependencies(session.projectPackage);
     expect(fetched.length).toBeGreaterThan(0);
     const files = session.projectPackage.project.files;
+    const formats = nativeAssetFormats(() => ({}));
+    for (const file of catalog.files.filter((file) => file.type === "Prefab")) {
+      const dependencies = extractAssetDependencies(
+        file,
+        session.projectPackage.contents[file.virtualPath],
+        formats.get(file.type)
+      );
+      expect(file.dependencies, file.virtualPath).toEqual(dependencies);
+    }
     for (const file of files.filter(file => ["KTX2", "Buffer", "GLTF"].includes(file.type))) {
       expect(session.projectPackage.contents[file.virtualPath]).toBeUndefined();
       expect(file.dependencies).toEqual([]);
     }
     const count = fetched.length;
     await session.initializeDependencies();
-    const draft = new RuntimeProjectEdit(session.projectPackage, seedWorldProjectFormats, session.dependencyMaintenance);
+    const draft = new RuntimeProjectEdit(
+      session.projectPackage,
+      new Map([...formats, ...seedWorldProjectFormats]),
+      session.dependencyMaintenance
+    );
+    expect(() => draft.delete("Models/grass-2-authored.glb")).toThrow(
+      "Asset 'Models/grass-2-authored.glb' is referenced by: Prefab/Detail/detail-00.prefab"
+    );
     draft.references(files.find(file => file.type === "KTX2")!.virtualPath);
     await session.save();
     expect(fetched).toHaveLength(count);
@@ -91,12 +111,19 @@ it("ingests the actual Seed World catalog once without downloading binary assets
   } finally { session.dispose(); }
 });
 
-it("recreates only the old project store on the incompatible IndexedDB upgrade", async () => {
-  let exists = true;
+it("recreates the single-format stores cleanly when upgrading the IndexedDB schema", async () => {
+  const existing = new Set<string>(["projects"]);
+  const revCreateIndex = vi.fn();
   const database = {
-    objectStoreNames: { contains: (name: string) => exists && name === "projects" },
-    deleteObjectStore: vi.fn(() => { exists = false; }),
-    createObjectStore: vi.fn(() => ({createIndex: vi.fn()})), close: vi.fn()
+    objectStoreNames: { contains: (name: string) => existing.has(name) },
+    deleteObjectStore: vi.fn((name: string) => {
+      existing.delete(name);
+    }),
+    createObjectStore: vi.fn((name: string) => {
+      existing.add(name);
+      return { createIndex: name === "projectRevisions" ? revCreateIndex : vi.fn() };
+    }),
+    close: vi.fn()
   };
   const factory = { open: vi.fn(() => {
     const request: any = { result: database };
@@ -104,9 +131,10 @@ it("recreates only the old project store on the incompatible IndexedDB upgrade",
     return request;
   }) };
   const storage = await RuntimeProjectStorage.open(factory as any);
-  expect(factory.open).toHaveBeenCalledWith("galacean-runtime-projects", 4);
+  expect(factory.open).toHaveBeenCalledWith("galacean-runtime-projects", 5);
   expect(database.deleteObjectStore.mock.calls).toEqual([["projects"]]);
-  expect(database.createObjectStore.mock.calls).toEqual([["projects"], ["projectFiles"]]);
+  expect(database.createObjectStore.mock.calls).toEqual([["projects"], ["projectRevisions"], ["projectFiles"]]);
+  expect(revCreateIndex).toHaveBeenCalledWith("storageRevision", "storageRevision", { unique: true });
   storage.close();
 });
 

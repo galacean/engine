@@ -1,6 +1,6 @@
 import { Color, type Engine, Entity, MeshRenderer, type ModelMesh, PBRMaterial } from "@galacean/engine";
-import { createHarvestProduceMesh } from "../harvest/HarvestProduceMesh";
-import { destroyOwnedMeshSet } from "@galacean/engine-modify/geometry/destroyOwnedMesh";
+import { createHarvestProduceMesh, measureHarvestProduceSize } from "../harvest/HarvestProduceMesh";
+import { destroyOwnedMeshSet } from "@galacean/engine-project/geometry/destroyOwnedMesh";
 
 interface ProduceMesh {
   mesh: ModelMesh;
@@ -10,14 +10,21 @@ interface ProduceMesh {
 export class StorageProduceLibrary {
   private readonly material: PBRMaterial;
   private readonly products = new Map<string, ProduceMesh>();
+  private readonly sizes = new Map<string, readonly [number, number, number]>();
   constructor(private readonly engine: Engine) {
     this.material = new PBRMaterial(engine);
     this.material.baseColor = new Color(1, 1, 1, 1);
     this.material.roughness = 0.8;
     this.material.screenSpaceReflectionIntensity = 0;
   }
+  /** Deterministic CPU-only bounding size shared by deferred food queries and materialized slot layout. */
   dimensions(cropId: string): readonly [number, number, number] {
-    return this.product(cropId).size;
+    let size = this.sizes.get(cropId);
+    if (!size) {
+      size = measureHarvestProduceSize(this.engine, cropId, true);
+      this.sizes.set(cropId, size);
+    }
+    return size;
   }
   create(parent: Entity, cropId: string, name: string): Entity {
     const product = this.product(cropId),
@@ -53,5 +60,6 @@ export class StorageProduceLibrary {
     this.material.destroy(true);
     destroyOwnedMeshSet([...this.products.values()].map((p) => p.mesh));
     this.products.clear();
+    this.sizes.clear();
   }
 }

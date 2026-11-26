@@ -1,5 +1,5 @@
-import { destroyOwnedMeshSet } from "@galacean/engine-modify/geometry/destroyOwnedMesh";
-import { restoreBuffer, uploadRestorableModelMesh } from "@galacean/engine-modify/rendering/RestorableResources";
+import { destroyOwnedMeshSet } from "@galacean/engine-project/geometry/destroyOwnedMesh";
+import { restoreBuffer, uploadRestorableModelMesh } from "@galacean/engine-project/rendering/RestorableResources";
 import {
   Buffer,
   BufferBindFlag,

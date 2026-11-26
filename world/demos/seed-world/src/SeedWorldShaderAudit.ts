@@ -121,7 +121,6 @@ function classifyCaller(stack: readonly string[]): string {
     joined.includes("SeedWorldPicker") ||
     joined.includes("SeedWorldPhotoWarmup") ||
     joined.includes("SeedWorldLassoPanel") ||
-    joined.includes("SeedWorldInstantCamera") ||
     joined.includes("compileVariantAsync")
   ) {
     return "pick-photo-bg";

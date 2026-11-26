@@ -195,7 +195,10 @@
       "virtualPath": "Prefab/Detail/detail-00.prefab",
       "path": "public/Prefab/Detail/detail-00.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "Material/Vegetation/grass-2.mat",
+        "Models/grass-2-authored.glb"
+      ]
     },
     {
       "virtualPath": "Shader/Billboard.shaderc",
@@ -719,7 +722,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/bush-large-lod0.prefab",
       "path": "public/prefabs/bush-large-lod0.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Models/atoms/bush-large-lod0.glb",
+        "Material/Vegetation/bush.mat"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/bush-large-lod1.glb",
@@ -734,7 +740,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/bush-large-lod1.prefab",
       "path": "public/prefabs/bush-large-lod1.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Models/atoms/bush-large-lod1.glb",
+        "Material/Vegetation/bush.mat"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/grass.glb",
@@ -749,7 +758,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/grass.prefab",
       "path": "public/prefabs/grass.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Models/atoms/grass.glb",
+        "Material/Vegetation/grass.mat"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/grass-3.glb",
@@ -764,7 +776,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/grass-3.prefab",
       "path": "public/prefabs/grass-3.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Models/atoms/grass-3.glb",
+        "Material/Vegetation/grass-3.mat"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/grass-2.glb",
@@ -779,7 +794,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/grass-2.prefab",
       "path": "public/prefabs/grass-2.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Models/atoms/grass-2.glb",
+        "Material/Vegetation/grass-2.mat"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/grass-2-small.glb",
@@ -794,7 +812,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/grass-2-small.prefab",
       "path": "public/prefabs/grass-2-small.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Models/atoms/grass-2-small.glb",
+        "Material/Vegetation/grass-2.mat"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/flowers-1.glb",
@@ -809,7 +830,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/flowers-1.prefab",
       "path": "public/prefabs/flowers-1.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Models/atoms/flowers-1.glb",
+        "Material/Vegetation/flowers-1.mat"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/flowers-2.glb",
@@ -824,7 +848,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/flowers-2.prefab",
       "path": "public/prefabs/flowers-2.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Models/atoms/flowers-2.glb",
+        "Material/Vegetation/flowers-2.mat"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/small-stone-6-lod0.glb",
@@ -839,7 +866,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/small-stone-6-lod0.prefab",
       "path": "public/prefabs/small-stone-6-lod0.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Models/atoms/small-stone-6-lod0.glb",
+        "Material/Surface/small-stones.mat"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/small-stone-6-lod1.glb",
@@ -854,7 +884,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/small-stone-6-lod1.prefab",
       "path": "public/prefabs/small-stone-6-lod1.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Models/atoms/small-stone-6-lod1.glb",
+        "Material/Surface/small-stones.mat"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/rock-clif-1-lod0.glb",
@@ -869,19 +902,28 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/rock-clif-1-grass-lod0.prefab",
       "path": "public/prefabs/rock-clif-1-grass-lod0.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/clif-1-grass.mat",
+        "AssetAssembly/Cartoon/Models/atoms/rock-clif-1-lod0.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/rock-clif-1-mud-lod0.prefab",
       "path": "public/prefabs/rock-clif-1-mud-lod0.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/clif-1-mud.mat",
+        "AssetAssembly/Cartoon/Models/atoms/rock-clif-1-lod0.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/rock-clif-1-plain-lod0.prefab",
       "path": "public/prefabs/rock-clif-1-plain-lod0.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/clif-1.mat",
+        "AssetAssembly/Cartoon/Models/atoms/rock-clif-1-lod0.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/rock-clif-1-lod1.glb",
@@ -896,19 +938,28 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/rock-clif-1-grass-lod1.prefab",
       "path": "public/prefabs/rock-clif-1-grass-lod1.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/clif-1-grass.mat",
+        "AssetAssembly/Cartoon/Models/atoms/rock-clif-1-lod1.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/rock-clif-1-mud-lod1.prefab",
       "path": "public/prefabs/rock-clif-1-mud-lod1.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/clif-1-mud.mat",
+        "AssetAssembly/Cartoon/Models/atoms/rock-clif-1-lod1.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/rock-clif-1-plain-lod1.prefab",
       "path": "public/prefabs/rock-clif-1-plain-lod1.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/clif-1.mat",
+        "AssetAssembly/Cartoon/Models/atoms/rock-clif-1-lod1.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/rock-clif-1-lod2.glb",
@@ -923,19 +974,28 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/rock-clif-1-grass-lod2.prefab",
       "path": "public/prefabs/rock-clif-1-grass-lod2.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/clif-1-grass.mat",
+        "AssetAssembly/Cartoon/Models/atoms/rock-clif-1-lod2.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/rock-clif-1-mud-lod2.prefab",
       "path": "public/prefabs/rock-clif-1-mud-lod2.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/clif-1-mud.mat",
+        "AssetAssembly/Cartoon/Models/atoms/rock-clif-1-lod2.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/rock-clif-1-plain-lod2.prefab",
       "path": "public/prefabs/rock-clif-1-plain-lod2.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/clif-1.mat",
+        "AssetAssembly/Cartoon/Models/atoms/rock-clif-1-lod2.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/stone-1-lod0.glb",
@@ -950,7 +1010,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/stone-1-lod0.prefab",
       "path": "public/prefabs/stone-1-lod0.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/stylized-stone.mat",
+        "AssetAssembly/Cartoon/Models/atoms/stone-1-lod0.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/stone-1-lod1.glb",
@@ -965,7 +1028,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/stone-1-lod1.prefab",
       "path": "public/prefabs/stone-1-lod1.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/stylized-stone.mat",
+        "AssetAssembly/Cartoon/Models/atoms/stone-1-lod1.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/stone-2-lod0.glb",
@@ -980,7 +1046,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/stone-2-lod0.prefab",
       "path": "public/prefabs/stone-2-lod0.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/stylized-stone.mat",
+        "AssetAssembly/Cartoon/Models/atoms/stone-2-lod0.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/stone-2-lod1.glb",
@@ -995,7 +1064,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/stone-2-lod1.prefab",
       "path": "public/prefabs/stone-2-lod1.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/stylized-stone.mat",
+        "AssetAssembly/Cartoon/Models/atoms/stone-2-lod1.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/stone-3-lod0.glb",
@@ -1010,7 +1082,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/stone-3-lod0.prefab",
       "path": "public/prefabs/stone-3-lod0.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/stylized-stone.mat",
+        "AssetAssembly/Cartoon/Models/atoms/stone-3-lod0.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/stone-3-lod1.glb",
@@ -1025,7 +1100,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/stone-3-lod1.prefab",
       "path": "public/prefabs/stone-3-lod1.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/stylized-stone.mat",
+        "AssetAssembly/Cartoon/Models/atoms/stone-3-lod1.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/stone-4-lod0.glb",
@@ -1040,7 +1118,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/stone-4-lod0.prefab",
       "path": "public/prefabs/stone-4-lod0.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/stylized-stone.mat",
+        "AssetAssembly/Cartoon/Models/atoms/stone-4-lod0.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/stone-4-lod1.glb",
@@ -1055,7 +1136,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/stone-4-lod1.prefab",
       "path": "public/prefabs/stone-4-lod1.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/stylized-stone.mat",
+        "AssetAssembly/Cartoon/Models/atoms/stone-4-lod1.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/stones-lod0.glb",
@@ -1070,7 +1154,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/stones-lod0.prefab",
       "path": "public/prefabs/stones-lod0.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/stylized-stone.mat",
+        "AssetAssembly/Cartoon/Models/atoms/stones-lod0.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/stones-lod1.glb",
@@ -1085,7 +1172,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/stones-lod1.prefab",
       "path": "public/prefabs/stones-lod1.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/stylized-stone.mat",
+        "AssetAssembly/Cartoon/Models/atoms/stones-lod1.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/flower-1-lod1.glb",
@@ -1100,7 +1190,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/flower-1-lod1.prefab",
       "path": "public/prefabs/flower-1-lod1.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/stylized-flower-1.mat",
+        "AssetAssembly/Cartoon/Models/atoms/flower-1-lod1.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/mushroom-1-lod0.glb",
@@ -1115,7 +1208,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/mushroom-1-lod0.prefab",
       "path": "public/prefabs/mushroom-1-lod0.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/stylized-mushroom-1.mat",
+        "AssetAssembly/Cartoon/Models/atoms/mushroom-1-lod0.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/mushroom-1-lod1.glb",
@@ -1130,7 +1226,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/mushroom-1-lod1.prefab",
       "path": "public/prefabs/mushroom-1-lod1.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/stylized-mushroom-1.mat",
+        "AssetAssembly/Cartoon/Models/atoms/mushroom-1-lod1.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/lotus-lod0.glb",
@@ -1145,7 +1244,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/lotus-lod0.prefab",
       "path": "public/prefabs/lotus-lod0.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/lotus-leaf.mat",
+        "AssetAssembly/Cartoon/Models/atoms/lotus-lod0.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/lotus-lod1.glb",
@@ -1160,7 +1262,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/lotus-lod1.prefab",
       "path": "public/prefabs/lotus-lod1.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/lotus-leaf.mat",
+        "AssetAssembly/Cartoon/Models/atoms/lotus-lod1.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/lotus-group-1-lod0.glb",
@@ -1175,7 +1280,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/lotus-group-1-lod0.prefab",
       "path": "public/prefabs/lotus-group-1-lod0.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/lotus-leaf.mat",
+        "AssetAssembly/Cartoon/Models/atoms/lotus-group-1-lod0.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/lotus-group-1-lod1.glb",
@@ -1190,7 +1298,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/lotus-group-1-lod1.prefab",
       "path": "public/prefabs/lotus-group-1-lod1.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/lotus-leaf.mat",
+        "AssetAssembly/Cartoon/Models/atoms/lotus-group-1-lod1.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/lotus-group-2-lod0.glb",
@@ -1205,7 +1316,11 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/lotus-group-2-lod0.prefab",
       "path": "public/prefabs/lotus-group-2-lod0.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/lotus-flower.mat",
+        "AssetAssembly/Cartoon/Materials/lotus-leaf.mat",
+        "AssetAssembly/Cartoon/Models/atoms/lotus-group-2-lod0.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/lotus-group-2-lod1.glb",
@@ -1220,7 +1335,11 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/lotus-group-2-lod1.prefab",
       "path": "public/prefabs/lotus-group-2-lod1.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Materials/lotus-flower.mat",
+        "AssetAssembly/Cartoon/Materials/lotus-leaf.mat",
+        "AssetAssembly/Cartoon/Models/atoms/lotus-group-2-lod1.glb"
+      ]
     },
     {
       "virtualPath": "AssetAssembly/Cartoon/Models/atoms/cartoon-tree-impostor.glb",
@@ -1235,7 +1354,10 @@
       "virtualPath": "AssetAssembly/Cartoon/Prefabs/cartoon-tree-impostor.prefab",
       "path": "public/prefabs/cartoon-tree-impostor.prefab",
       "type": "Prefab",
-      "dependencies": []
+      "dependencies": [
+        "AssetAssembly/Cartoon/Models/atoms/cartoon-tree-impostor.glb",
+        "Material/Billboard/tree.mat"
+      ]
     },
     {
       "virtualPath": "World/Vegetation/dead-tree/dead-tree-bark-albedo.png",

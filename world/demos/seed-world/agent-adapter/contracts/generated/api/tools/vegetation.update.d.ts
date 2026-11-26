@@ -13,11 +13,27 @@ declare global {
     interface VegetationApi {
       /**
        * 调用入口：await tools.vegetation.update(input)
-       * 修改玩家创建的植被位置、范围、株数或种子；仅当 vegetation.inspect 返回了 treeRecipeId 时，才支持修改共享树形效果。
-       * @param input - 引用：复用历史 create/update 的 assetRef 或 vegetation.query 返回的 ref。身份不明确时先用 vegetation.query 查找，需要当前详情时用 vegetation.inspect 读取该引用。按 ref.kind 和 ref.source 检查操作适用性，不用类型断言绕过来源检查。位置或 seed：仅支持 authored 植被，位置修改只提供 patch.target。单体允许重叠，不执行生成约束或自动移开邻居。区域还可修改范围或 seed，树林和灌木丛还可修改精确株数。树形：仅当 vegetation.inspect 返回了 treeRecipeId 时可用；无 treeRecipeId 的原生程序化树不支持 treeShape，改色只能按物种走 vegetation.materials.inspect/apply（不支持单株改色）。有 treeRecipeId 时用 treeShape 与 treeShapeScope: shared-effect 修改同配方同效果的共享参数，不创建单树覆盖，也不与位置或 seed 混用。
+       * 按稳定引用修改原生单株或花地、树林、灌木丛配色，也可编辑玩家创建的植被分布和配方树共享树形。
+       * @param input - 复用已有 assetRef 或 query 返回的 ref。colorOverride 可单独提交，也可与作者植被的位置或分布一起更新。foliageColorRgb 用于树冠、灌木叶或花瓣，barkColorRgb 用于木本树皮。位置和 seed 限 authored，区域可改范围，树林和灌木丛可改精确株数。treeShape 要求存在 treeRecipeId 和 shared-effect，修改同配方同效果的全部树。
        * @returns assetRef 是可复用的稳定引用。共享树形编辑的 updated.realizedPlantCount 为受影响树数，其他植被分布更新时为更新后的实际株数。preview 或没有公共单株数量时为 null。resolvedEffect 提供实际采用的语义参数或效果摘要，没有时为 null。execute 应保留判断任务结果所需的这些字段。结合最终 execute 回执判断是否完成。结果缺少必要证据或出现冲突时，再按 assetRef 查询当前状态。
        */
       update(input: ({
+        ref: (Ref & {
+          domain: "vegetation";
+        }) & ({
+          kind: "tree" | "shrub" | "forest" | "shrubland" | "flower-field";
+        });
+        patch: {
+          /** 按部位设置 sRGB 0–255。单一部位为 null 时清除该部位，整个 colorOverride 为 null 时清除该资产的覆盖。 */
+          colorOverride: ({
+            foliageColorRgb?: [number, number, number] | null;
+            barkColorRgb?: [number, number, number] | null;
+          }) | null;
+        };
+        /** 默认 apply；preview 只返回影响估算。 */
+        executionMode?: "apply" | "preview";
+        impactBudget?: ImpactBudget;
+      }) | ({
         /** vegetation.query 或 create 返回的树引用，用它解析共享配方与效果，支持 natural 和 authored。 */
         ref: (Ref & {
           domain: "vegetation";
@@ -44,6 +60,11 @@ declare global {
         });
         /** 只包含需要修改的单棵树或单株灌木属性；未提供的属性保持不变。 */
         patch: {
+          /** 按部位设置 sRGB 0–255。单一部位为 null 时清除该部位，整个 colorOverride 为 null 时清除该资产的覆盖。 */
+          colorOverride?: ({
+            foliageColorRgb?: [number, number, number] | null;
+            barkColorRgb?: [number, number, number] | null;
+          }) | null;
           /** 单株的新位置；省略时保持原位置。 */
           target?: Target;
           /** 新的无符号 32 位分布随机种子；省略时保持不变。 取值范围：0 到 4294967295。 */
@@ -62,6 +83,11 @@ declare global {
         });
         /** 只包含需要修改的树林或灌木丛属性；count 是新的精确株数。 */
         patch: {
+          /** 按部位设置 sRGB 0–255。单一部位为 null 时清除该部位，整个 colorOverride 为 null 时清除该资产的覆盖。 */
+          colorOverride?: ({
+            foliageColorRgb?: [number, number, number] | null;
+            barkColorRgb?: [number, number, number] | null;
+          }) | null;
           /** 区域的新中心位置；省略时保持原位置。 */
           target?: Target;
           /** 新的区域半径，单位为米；省略时保持不变。 取值范围：0.5 到 500。 */
@@ -70,6 +96,31 @@ declare global {
           count?: number;
           /** 新的无符号 32 位分布随机种子；省略时保持不变。 取值范围：0 到 4294967295。 */
           seed?: number;
+        };
+        /** 默认 apply；preview 只返回影响估算。 */
+        executionMode?: "apply" | "preview";
+        impactBudget?: ImpactBudget;
+      }) | ({
+        ref: ((Ref & {
+          domain: "vegetation";
+        }) & ({
+          kind: "grassland" | "flower-field" | "aquatic-grass-bed";
+          source: "authored";
+        })) & {
+          kind: "flower-field";
+        };
+        patch: {
+          /** 区域的新中心位置；省略时保持原位置。 */
+          target?: Target;
+          /** 新的区域半径，单位为米；省略时保持不变。 取值范围：0.5 到 500。 */
+          radiusMetres?: number;
+          /** 新的无符号 32 位分布随机种子；省略时保持不变。 取值范围：0 到 4294967295。 */
+          seed?: number;
+          /** 按部位设置 sRGB 0–255。单一部位为 null 时清除该部位，整个 colorOverride 为 null 时清除该资产的覆盖。 */
+          colorOverride: ({
+            foliageColorRgb?: [number, number, number] | null;
+            barkColorRgb?: [number, number, number] | null;
+          }) | null;
         };
         /** 默认 apply；preview 只返回影响估算。 */
         executionMode?: "apply" | "preview";
@@ -126,7 +177,11 @@ declare global {
         /** 引擎实际采用的语义参数或效果摘要；没有时为 null。 */
         resolvedEffect: JsonObject | null;
         /** 本次 vegetation.update 返回的稳定引用；可直接复用给 vegetation.inspect、vegetation.update（按 kind/source 收窄后）或 vegetation.delete。 */
-        assetRef: (Ref & {
+        assetRef: (Ref & ({
+          domain: "vegetation";
+          kind: "shrub" | "forest" | "shrubland" | "flower-field";
+          source: "natural";
+        })) | (Ref & {
           domain: "vegetation";
           kind: "tree";
           source: "authored";

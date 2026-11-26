@@ -1,12 +1,12 @@
 import type { IslandPlan } from "../../semantic-study/IslandPlanModel";
-import { rasterizeCoverageRegions } from "./CoverageRaster";
+import { createOwnerSamples, rasterizeCoverageRegions, type SeedWorldOwnerSamples } from "./CoverageRaster";
 /** Independent ecological coverage, not normalized terrain material weights or an instance count. */
 export interface VegetationCoverage {
   resolution: number;
   width: number;
   depth: number;
   flowers: Uint8Array;
-  ownership: { ids: string[]; samples: Uint32Array };
+  ownership: { ids: string[]; samples: SeedWorldOwnerSamples };
 }
 const cache = new Map<string, VegetationCoverage>();
 /** Compile resolved contours to a 0..255 occupancy mask. Visibility only affects this preview layer.
@@ -28,7 +28,10 @@ export function vegetationCoverage(
   const key = JSON.stringify([width, depth, resolution, regions.map((f) => [f.id, f.outlines])]);
   const saved = cache.get(key);
   if (saved) return saved;
-  const ownership = { ids: regions.map((f) => f.id), samples: new Uint32Array(resolution * resolution) };
+  const ownership = {
+    ids: regions.map((f) => f.id),
+    samples: createOwnerSamples(regions.length, resolution * resolution)
+  };
   const result = {
     ownership,
     resolution,

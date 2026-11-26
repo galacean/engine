@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { BoundingBox, Matrix, MeshRenderer, Quaternion, ShaderProperty, Vector3, type Camera, type ModelMesh } from "@galacean/engine";
 import type { RockVariantAsset } from "@galacean/engine-terrain/rock-formation/types";
+import {
+  LOD_SCREEN_HEIGHT_HYSTERESIS_RATIO,
+  TerrainLodGroupRuntime
+} from "@galacean/engine-terrain/terrain/lod/TerrainLodGroupRuntime";
 import type { SeedWorldTerrainOcclusionReadPort } from "@galacean/engine-world-planning/runtime/SeedWorldTerrainOcclusionCuller";
 
 const mockedMeshes = vi.hoisted(() => new WeakMap<RockVariantAsset, readonly [ModelMesh | undefined, ModelMesh | undefined]>());
@@ -10,6 +14,7 @@ vi.mock("@galacean/engine-world-planning/integrations/terrain/rock-formation/Roc
 }));
 
 import {
+  getRockLodCrossFadeEnabled,
   RockLodView,
   setRockLodCrossFadeEnabled
 } from "@galacean/engine-world-planning/integrations/terrain/rock-formation/RockLodView";
@@ -206,6 +211,64 @@ describe("RockLodView Cell-grid LOD scheduling", () => {
   const lod1 = makeMesh("lod1");
   const lod2 = makeMesh("lod2");
   mockedMeshes.set(asset, [lod1, lod2]);
+
+  it.each([false, true])("holds a rock's mesh on both sides of each switch with cross-fade %s", (crossFade) => {
+    const previous = getRockLodCrossFadeEnabled();
+    setRockLodCrossFadeEnabled(crossFade);
+    try {
+      const camera = makeCamera([0, 2, 0], [0, 2, -100]);
+      const { view, step } = createRockLodView(camera);
+      const rock = makeRockRenderer(0, 2, -100);
+      rock.mesh = lod0;
+      view.add(rock as unknown as MeshRenderer, lod0, asset);
+      const projectedSize = 4 / (2 * Math.tan(Math.PI / 6));
+      const samples = [
+        [0.24, lod0],
+        [0.215, lod0],
+        [0.205, lod1],
+        [0.229, lod1],
+        [0.235, lod0],
+        [0.075, lod2],
+        [0.083, lod2],
+        [0.086, lod1],
+        [0.078, lod1]
+      ] as const;
+      for (const [i, [height, expected]] of samples.entries()) {
+        camera.moveTo([0, 2, -100 + projectedSize / height], [0, 2, -100]);
+        step(i);
+        step(i + 0.75);
+        expect(rock.mesh).toBe(expected);
+      }
+    } finally {
+      setRockLodCrossFadeEnabled(previous);
+    }
+  });
+
+  it("retains the active fade destination and uses separate terminal exit and return thresholds", () => {
+    const definition = new TerrainLodGroupRuntime(
+      {
+        localReferencePoint: [0, 0, 0],
+        size: 1,
+        fadeMode: "CrossFade",
+        animateCrossFading: true,
+        lods: [0.22, 0.08, 0.01].map((screenRelativeTransitionHeight) => ({ screenRelativeTransitionHeight }))
+      },
+      0.5,
+      LOD_SCREEN_HEIGHT_HYSTERESIS_RATIO
+    );
+    const lod = definition.createInstance();
+    const observe = (timeSeconds: number, screenRelativeHeight: number) =>
+      ({ visible: true, timeSeconds, screenRelativeHeight }) as const;
+    expect(lod.snap(observe(0, 0.081))[0].lodIndex).toBe(1);
+    lod.update(observe(0.1, 0.074));
+    lod.update(observe(0.2, 0.081));
+    expect(lod.snap(observe(0.3, 0.081))[0].lodIndex).toBe(2);
+    expect(lod.snap(observe(1, 0.0096))[0].lodIndex).toBe(2);
+    expect(lod.snap(observe(2, 0.0093))).toHaveLength(0);
+    expect(lod.snap(observe(3, 0.0104))).toHaveLength(0);
+    expect(lod.snap(observe(4, 0.0107))[0].lodIndex).toBe(2);
+    expect(lod.snap(observe(5, 0))).toHaveLength(0);
+  });
 
   it("partitions rocks into 64m XZ cells and only evaluates frustum-visible cells during camera motion", () => {
     // Camera at origin looking toward -Z

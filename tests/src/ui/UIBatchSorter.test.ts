@@ -177,4 +177,25 @@ describe("UIBatchSorter", () => {
     expect(() => UIBatchSorter.sort(elements, identity)).to.not.throw();
     expect(countBatches(elements)).to.equal(1);
   });
+
+  it("repeated sorts preserve nested icon order and cursor-reset grid integrity", () => {
+    const outer = fakeElement(10, 10, rect(0, 0, 56, 56));
+    const inner = fakeElement(20, 20, rect(16, 12, 40, 36));
+    for (let pass = 0; pass < 5; pass++) {
+      const small = [outer, inner];
+      UIBatchSorter.sort(small, identity);
+      expect(small).to.deep.equal([outer, inner]);
+    }
+
+    for (let pass = 0; pass < 5; pass++) {
+      const gridElements: any[] = [];
+      for (let i = 0; i < 8; i++) {
+        const x = i * 100;
+        gridElements.push(fakeElement(1, 1, rect(x, 0, x + 60, 60)));
+        gridElements.push(fakeElement(2, 2, rect(x + 10, 10, x + 40, 40)));
+      }
+      UIBatchSorter.sort(gridElements, identity);
+      expect(countBatches(gridElements)).to.equal(2);
+    }
+  });
 });

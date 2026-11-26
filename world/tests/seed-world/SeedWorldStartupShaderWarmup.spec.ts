@@ -182,7 +182,8 @@ describe("startup shader publication boundary", () => {
     expect(f.warmupVariants).toHaveBeenCalledOnce();
     expect(f.warmupVariants.mock.calls[0][2]).toMatchObject({
       preserveOrder: true,
-      maximumPendingPrograms: 16
+      maximumPendingPrograms: 28,
+      pollIntervalMilliseconds: 4
     });
     expect(f.warmupVariants.mock.calls[0][2].maxElapsedMilliseconds).toBeUndefined();
     expect(f.collectVariants).toHaveBeenCalledTimes(2);
@@ -190,7 +191,7 @@ describe("startup shader publication boundary", () => {
       onlyEnabledRenderers: true,
       includeGenerationReveal: false,
       includeMasonryDither: false,
-      includeMasonryEntrance: true,
+      includeMasonryEntrance: false,
       includeInstanceEntrance: false,
       includeLodDither: false,
       includeLiquidGlassMask: false,
@@ -243,7 +244,8 @@ describe("startup shader publication boundary", () => {
     expect(f.warmup).toHaveBeenCalledOnce();
     expect(f.warmup.mock.calls[0][4]).toMatchObject({
       signal: f.editorLifetime.signal,
-      maximumPendingPrograms: 16,
+      maximumPendingPrograms: 28,
+      pollIntervalMilliseconds: 4,
       additionalRenderers: [fakeRenderer, { name: "rock-grass-warmup" }],
       additionalInstancedRenderers: [fakeVegRenderer],
       additionalPointLightCounts: [4],
@@ -1216,7 +1218,7 @@ describe("animal presentation preparation", () => {
     expect(warmup).toBeDefined();
   });
 
-  it("includes animal, rock-grass, vegetation, and merged extraMaterials in primary startup when precompileCoreMasonry is enabled", async () => {
+  it("keeps core masonry and rock-grass in primary startup while deferring distant animals, unmaterialized vegetation, and inactive roots when deferSecondaryCollection and precompileCoreMasonry are both enabled", async () => {
     const disposeMasonry = vi.fn();
     const disposeAnimal = vi.fn();
     const disposeVeg = vi.fn();
@@ -1227,7 +1229,26 @@ describe("animal presentation preparation", () => {
     const rockGrassRenderer = { name: "rock-grass" } as any;
     const masonryMat = { name: "masonry-extra" } as any;
     const animalMat = { name: "animal-outlined" } as any;
-    const primaryInactiveRoot = { name: "farming-storage-root" } as any;
+    const deferredInactiveRoot = { name: "all-inactive-root" } as any;
+    const prepareMasonry = vi.fn(async () => ({
+      renderers: [masonryRenderer],
+      extraMaterials: new Map([[masonryRenderer, [masonryMat]]]),
+      decorationPointLightBudget: 4,
+      dispose: disposeMasonry
+    }));
+    const prepareAnimal = vi.fn(async () => ({
+      renderers: [animalRenderer],
+      extraMaterials: new Map([[animalRenderer, [animalMat]]]),
+      dispose: disposeAnimal
+    }));
+    const prepareVegetation = vi.fn(() => ({
+      renderers: [vegRenderer],
+      dispose: disposeVeg
+    }));
+    const prepareRockGrass = vi.fn(() => ({
+      renderers: [rockGrassRenderer],
+      dispose: disposeRockGrass
+    }));
     const collectVariants = vi.fn(() => []);
     const warmupVariants = vi.fn(async () => ({
       requested: 0,
@@ -1238,7 +1259,7 @@ describe("animal presentation preparation", () => {
       longestVariantMilliseconds: 0,
       parallelCompileSupported: false
     }));
-    await runSeedWorldStartupShaderWarmup({
+    const result = await runSeedWorldStartupShaderWarmup({
       precompileShaders: true,
       engine: {} as any,
       scene: { rootEntities: [] } as any,
@@ -1252,26 +1273,12 @@ describe("animal presentation preparation", () => {
       deferSecondaryCollection: true,
       includeMasonryDither: false,
       precompileCoreMasonry: true,
-      prepareMasonryShaderWarmup: async () => ({
-        renderers: [masonryRenderer],
-        extraMaterials: new Map([[masonryRenderer, [masonryMat]]]),
-        dispose: disposeMasonry
-      }),
-      prepareAnimalShaderWarmup: async () => ({
-        renderers: [animalRenderer],
-        extraMaterials: new Map([[animalRenderer, [animalMat]]]),
-        dispose: disposeAnimal
-      }),
-      prepareVegetationShaderWarmup: () => ({
-        renderers: [vegRenderer],
-        dispose: disposeVeg
-      }),
-      prepareRockGrassShaderWarmup: () => ({
-        renderers: [rockGrassRenderer],
-        dispose: disposeRockGrass
-      }),
+      prepareMasonryShaderWarmup: prepareMasonry,
+      prepareAnimalShaderWarmup: prepareAnimal,
+      prepareVegetationShaderWarmup: prepareVegetation,
+      prepareRockGrassShaderWarmup: prepareRockGrass,
       prepareAssistantPresentation: () => undefined,
-      getPrimaryIncludeInactiveRoots: () => [primaryInactiveRoot],
+      getIncludeInactiveRoots: () => [deferredInactiveRoot],
       getPostProcessWarmupState: () => ({ enabled: false }) as any,
       additionalBackgroundMaterials: [],
       warmupOperations: {
@@ -1281,17 +1288,111 @@ describe("animal presentation preparation", () => {
         warmupSeedWorldShaderVariants: warmupVariants as any
       }
     });
+    // Pre-reveal startup only prepares core masonry + zero-network rock grass; distant animals,
+    // unmaterialized vegetation species, and non-spawn inactive roots stay deferred.
+    expect(prepareMasonry).toHaveBeenCalledOnce();
+    expect(prepareRockGrass).toHaveBeenCalledOnce();
+    expect(prepareAnimal).not.toHaveBeenCalled();
+    expect(prepareVegetation).not.toHaveBeenCalled();
     expect(collectVariants).toHaveBeenCalledOnce();
     const opts = collectVariants.mock.calls[0][4] as any;
-    expect(opts.includeInactiveRoots).toEqual([primaryInactiveRoot]);
-    expect(opts.additionalRenderers).toEqual([masonryRenderer, animalRenderer, rockGrassRenderer]);
-    expect(opts.additionalInstancedRenderers).toEqual([vegRenderer]);
+    expect(opts.includeInactiveRoots).toBeUndefined();
+    expect(opts.additionalRenderers).toEqual([masonryRenderer, rockGrassRenderer]);
+    expect(opts.additionalInstancedRenderers).toBeUndefined();
     expect(opts.additionalRendererMaterials.get(masonryRenderer)).toEqual([masonryMat]);
-    expect(opts.additionalRendererMaterials.get(animalRenderer)).toEqual([animalMat]);
+    expect(opts.additionalRendererMaterials.has(animalRenderer)).toBe(false);
     expect(disposeMasonry).toHaveBeenCalledOnce();
+    expect(disposeRockGrass).toHaveBeenCalledOnce();
+    expect(disposeAnimal).not.toHaveBeenCalled();
+    expect(disposeVeg).not.toHaveBeenCalled();
+
+    // Post-reveal deferred collection prepares distant animals & unmaterialized vegetation,
+    // preserves startup masonry decoration point-light budget without re-running masonry prep,
+    // and includes deferred inactive roots.
+    await result.collectDeferredVariants!();
+    expect(prepareMasonry).toHaveBeenCalledOnce();
+    expect(prepareRockGrass).toHaveBeenCalledOnce();
+    expect(prepareAnimal).toHaveBeenCalledOnce();
+    expect(prepareVegetation).toHaveBeenCalledOnce();
+    expect(collectVariants).toHaveBeenCalledTimes(2);
+    const deferredOpts = collectVariants.mock.calls[1][4] as any;
+    expect(deferredOpts.includeInactiveRoots).toEqual([deferredInactiveRoot]);
+    expect(deferredOpts.additionalRenderers).toEqual([animalRenderer]);
+    expect(deferredOpts.additionalInstancedRenderers).toEqual([vegRenderer]);
+    expect(deferredOpts.additionalRendererMaterials.get(animalRenderer)).toEqual([animalMat]);
+    expect(deferredOpts.additionalPointLightCounts).toEqual([4]);
     expect(disposeAnimal).toHaveBeenCalledOnce();
     expect(disposeVeg).toHaveBeenCalledOnce();
-    expect(disposeRockGrass).toHaveBeenCalledOnce();
+  });
+
+  it("throttles engine vSyncCount during active shader warmup and restores it via onWarmupPhaseChange or fallback", async () => {
+    const engine = { vSyncCount: 1 } as any;
+    let seenVSyncDuringWarmup = -1;
+    await runSeedWorldStartupShaderWarmup({
+      precompileShaders: true,
+      engine,
+      scene: { rootEntities: [] } as any,
+      camera: { enabled: true } as any,
+      pageUrl: new URL("http://localhost/?view=3d"),
+      canvas: { dataset: {} } as any,
+      showAssistant: false,
+      isDisposed: () => false,
+      progress: () => {},
+      timed: (_name, work) => work(),
+      prepareAssistantPresentation: () => undefined,
+      getPostProcessWarmupState: () => ({ enabled: false }) as any,
+      additionalBackgroundMaterials: [],
+      warmupOperations: {
+        hasParallelShaderCompile: () => true,
+        collectSeedWorldRendererVariants: () => [],
+        findMissingSeedWorldShaderVariants: () => [],
+        warmupSeedWorldShaderVariants: async () => {
+          seenVSyncDuringWarmup = engine.vSyncCount;
+          return {
+            requested: 0,
+            compiled: 0,
+            skipped: false,
+            issues: [],
+            elapsedMilliseconds: 0,
+            longestVariantMilliseconds: 0,
+            parallelCompileSupported: true
+          };
+        }
+      }
+    });
+    expect(seenVSyncDuringWarmup).toBe(4);
+    expect(engine.vSyncCount).toBe(1);
+
+    const phases: boolean[] = [];
+    await expect(
+      runSeedWorldStartupShaderWarmup({
+        precompileShaders: true,
+        engine,
+        scene: { rootEntities: [] } as any,
+        camera: { enabled: true } as any,
+        pageUrl: new URL("http://localhost/?view=3d"),
+        canvas: { dataset: {} } as any,
+        showAssistant: false,
+        isDisposed: () => false,
+        progress: () => {},
+        timed: (_name, work) => work(),
+        prepareAssistantPresentation: () => undefined,
+        getPostProcessWarmupState: () => ({ enabled: false }) as any,
+        additionalBackgroundMaterials: [],
+        onWarmupPhaseChange: (active) => phases.push(active),
+        warmupOperations: {
+          hasParallelShaderCompile: () => true,
+          collectSeedWorldRendererVariants: () => [],
+          findMissingSeedWorldShaderVariants: () => [],
+          warmupSeedWorldShaderVariants: async () => {
+            expect(engine.vSyncCount).toBe(1);
+            throw new Error("warmup failure");
+          }
+        }
+      })
+    ).rejects.toThrow("warmup failure");
+    expect(phases).toEqual([true, false]);
+    expect(engine.vSyncCount).toBe(1);
   });
 
   it("disposes fulfilled deferred warmup handles when a sibling prepare promise rejects before or after sibling settlement", async () => {
@@ -1349,5 +1450,463 @@ describe("animal presentation preparation", () => {
 
     await runScenario(false);
     await runScenario(true);
+  });
+
+  it("skips distant unloaded animal GLB downloads when PlanningAnimalRuntime.prepareShaderWarmup sets includeUnloadedSpecies=false", async () => {
+    const { PlanningAnimalRuntime } = await import(
+      "../../demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime"
+    );
+    const loadSpy = vi.fn(async () => {
+      throw new Error("should not download distant animal GLB");
+    });
+    const loadedRenderer = { name: "loaded-rabbit" } as any;
+    const altMat = { name: "loaded-rabbit-plain" } as any;
+    const fakeRuntime = {
+      disposed: false,
+      library: { load: loadSpy },
+      population: {
+        actors: [
+          {
+            state: "loaded",
+            supportValid: true,
+            asset: { config: { id: "rabbit" }, reference: { url: "/rabbit.glb" } },
+            animal: {
+              collectShaderWarmupMaterials: (out: Map<unknown, unknown[]>) => {
+                out.set(loadedRenderer, [altMat]);
+              }
+            }
+          },
+          {
+            state: "unloaded",
+            supportValid: true,
+            asset: { config: { id: "distant-deer" }, reference: { url: "/deer.glb" } }
+          }
+        ]
+      }
+    };
+    const handle = await PlanningAnimalRuntime.prototype.prepareShaderWarmup.call(fakeRuntime as any, undefined, {
+      includeUnloadedSpecies: false
+    });
+    expect(loadSpy).not.toHaveBeenCalled();
+    expect(handle?.renderers).toEqual([]);
+    expect(handle?.extraMaterials.get(loadedRenderer)).toEqual([altMat]);
+    handle?.dispose();
+  });
+
+  it("ShaderPass._getShaderProgram honors deferCompletionOverride=true even when feedbackVaryings array is passed", async () => {
+    const { ShaderPass } = await import("@galacean/engine");
+    const ensureReady = vi.fn();
+    const compiledProgram = { _ensureReady: ensureReady };
+    const compileSpy = vi.fn(() => compiledProgram);
+    const fakeMap = {
+      get: () => undefined,
+      cache: vi.fn()
+    };
+    const fakePass = {
+      _shaderPassId: 1,
+      _shaderProgramMaps: [],
+      _feedbackVaryings: undefined,
+      _compileShaderProgram: compileSpy
+    };
+    const fakeEngine = {
+      _getShaderProgramMap: () => fakeMap
+    } as any;
+    const varyings = ["v_FeedbackPosition", "v_FeedbackVelocity"];
+    const result = ShaderPass.prototype._getShaderProgram.call(
+      fakePass as any,
+      fakeEngine,
+      new ShaderMacroCollection(),
+      varyings,
+      false,
+      true
+    );
+    expect(result).toBe(compiledProgram);
+    expect(compileSpy).toHaveBeenCalledWith(fakeEngine, expect.any(ShaderMacroCollection), true, false, varyings);
+    expect(ensureReady).not.toHaveBeenCalled();
+  });
+
+  it("defers offscreen and non-wanted animal GLB loads during startup until setStartupDeferOffscreenCamera(undefined) is called", async () => {
+    const { Matrix, Vector3 } = await import("@galacean/engine");
+    const { PlanningAnimalRuntime } = await import(
+      "../../demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime"
+    );
+    const loadedIds: string[] = [];
+    const proj = new Matrix();
+    Matrix.perspective(Math.PI / 3, 1, 0.1, 200, proj);
+    const view = new Matrix();
+    Matrix.lookAt(new Vector3(0, 2, 0), new Vector3(0, 2, -20), new Vector3(0, 1, 0), view);
+    const camera = { projectionMatrix: proj, viewMatrix: view } as any;
+
+    const visibleActor = {
+      birth: { id: "squirrel-front" },
+      wanted: true,
+      admitted: true,
+      x: 0,
+      z: -20,
+      footprint: { radius: 0.4, height: 0.5, elevation: 0 }
+    };
+    const behindActor = {
+      birth: { id: "gorilla-behind" },
+      wanted: true,
+      admitted: true,
+      x: 0,
+      z: 30,
+      footprint: { radius: 0.8, height: 1.5, elevation: 0 }
+    };
+    const bufferActor = {
+      birth: { id: "swan-buffer" },
+      wanted: false,
+      admitted: true,
+      x: 0,
+      z: -35,
+      footprint: { radius: 0.5, height: 0.8, elevation: 0 }
+    };
+    const queue = new Set<any>([visibleActor, behindActor, bufferActor]);
+    const fakeRuntime = {
+      startupDeferOffscreenCamera: undefined as any,
+      startupFrustumMatrix: new Matrix(),
+      startupFrustum: new (await import("@galacean/engine")).BoundingFrustum(),
+      startupActorBox: new (await import("@galacean/engine")).BoundingBox(),
+      loadActor: (_p: unknown, actor: any) => {
+        loadedIds.push(actor.birth.id);
+        queue.delete(actor);
+      }
+    };
+
+    PlanningAnimalRuntime.prototype.setStartupDeferOffscreenCamera.call(fakeRuntime as any, camera);
+    (PlanningAnimalRuntime.prototype as any).loadQueued.call(fakeRuntime, { queue });
+    expect(loadedIds).toEqual(["squirrel-front"]);
+    expect(queue.has(behindActor)).toBe(true);
+    expect(queue.has(bufferActor)).toBe(true);
+
+    // Clearing the startup deferral camera immediately drains the deferred offscreen/buffer actors.
+    PlanningAnimalRuntime.prototype.setStartupDeferOffscreenCamera.call(fakeRuntime as any, undefined);
+    (PlanningAnimalRuntime.prototype as any).loadQueued.call(fakeRuntime, { queue });
+    expect(loadedIds).toEqual(["squirrel-front", "gorilla-behind", "swan-buffer"]);
+    expect(queue.size).toBe(0);
+  });
+
+  it("defers offscreen StorageContainerPresenter prefab fetches during startup and loads on approach", async () => {
+    const { Vector3 } = await import("@galacean/engine");
+    const { StorageContainerPresenter } = await import(
+      "@galacean/engine-farming/farming/presentation/storage/StorageContainerPresenter"
+    );
+    const { HeadlessEngine } = await import("../../../packages/rhi-null/src/HeadlessEngine");
+    const engine = await HeadlessEngine.create({ glTFLoader: { meshOpt: { workerCount: 0 } } });
+    try {
+      const parent = engine.sceneManager.activeScene!.createRootEntity("StorageParent");
+      const loadSpy = vi.spyOn(engine.resourceManager, "load").mockImplementation(() => new Promise(() => {}) as any);
+      const viewerPos = new Vector3(0, 0, 0);
+      const fakeService = {
+        getSnapshot: () => ({
+          farmId: "farm-1",
+          storage: {
+            containers: [
+              { id: "cart-1", typeId: "cart", position: [120, 0, 0], yaw: 0, cropId: null, contents: [] }
+            ]
+          }
+        }),
+        subscribe: () => () => {}
+      } as any;
+      const fakeDefs = {
+        catalog: { crops: [] },
+        rules: { storage: { containers: [] } }
+      } as any;
+      const presenter = new StorageContainerPresenter(
+        parent,
+        fakeService,
+        fakeDefs,
+        () => viewerPos,
+        true,
+        () => false
+      );
+
+      // Distant offscreen container (> 50m): prepare() resolves immediately with zero prefab loads.
+      await presenter.prepare();
+      expect(loadSpy).not.toHaveBeenCalled();
+
+      // Release startup deferral while still > 50m away: still stays unloaded until player approaches.
+      presenter.setDeferOffscreenLoad(false);
+      presenter.update(0.016);
+      expect(loadSpy).not.toHaveBeenCalled();
+
+      // Player walks within 50m draw distance: update() kicks off prefab loads automatically.
+      viewerPos.set(100, 0, 0);
+      presenter.update(0.016);
+      expect(loadSpy).toHaveBeenCalledTimes(2);
+      presenter.dispose();
+    } finally {
+      engine.destroy();
+    }
+  });
+
+  it("defers offscreen FarmItemPresentation tool prefabs (hoe, watering-can) at startup and loads lazily on approach or pickup", async () => {
+    const { Vector3 } = await import("@galacean/engine");
+    const { FarmItemPresentation } = await import(
+      "@galacean/engine-farming/farming/presentation/FarmItemPresentation"
+    );
+    const { HeadlessEngine } = await import("../../../packages/rhi-null/src/HeadlessEngine");
+    const engine = await HeadlessEngine.create({ glTFLoader: { meshOpt: { workerCount: 0 } } });
+    try {
+      const scene = engine.sceneManager.activeScene!;
+      const root = scene.createRootEntity("FarmRoot");
+      const cameraEntity = scene.createRootEntity("Cam");
+      cameraEntity.transform.setWorldPosition(0, 2, 0);
+      const camera = { entity: cameraEntity, aspectRatio: 1 } as any;
+      let carriedItemId: string | null = null;
+      let listener: (() => void) | undefined;
+      const itemsState = {
+        get carriedItemId() {
+          return carriedItemId;
+        },
+        instances: [
+          { id: "hoe-1", type: "hoe" as const, groundId: "g", position: [140, 0, 0] as const, yaw: 0, contents: [] },
+          {
+            id: "can-1",
+            type: "watering-can" as const,
+            groundId: "g",
+            position: [142, 0, 0] as const,
+            yaw: 0,
+            contents: []
+          }
+        ]
+      };
+      const service = {
+        getSnapshot: () => ({ items: itemsState }),
+        subscribe: (cb: () => void) => {
+          listener = cb;
+          return () => {
+            listener = undefined;
+          };
+        }
+      } as any;
+      const loadSpy = vi.spyOn(engine.resourceManager, "load").mockImplementation(() => new Promise(() => {}) as any);
+      const presentation = new FarmItemPresentation(root, camera, service, {}, async (w) => w(), true);
+
+      // Distant (>50m) tools do not load pre-reveal and whenLoaded() resolves immediately.
+      await presentation.whenLoaded();
+      expect(loadSpy).not.toHaveBeenCalled();
+
+      // Releasing startup deferral while still >50m away keeps distant tools unloaded.
+      presentation.setDeferOffscreenLoads(false);
+      presentation.update(0.016);
+      expect(loadSpy).not.toHaveBeenCalled();
+
+      // Walking within 50m triggers lazy load of both nearby tools.
+      cameraEntity.transform.setWorldPosition(110, 2, 0);
+      presentation.update(0.016);
+      expect(loadSpy).toHaveBeenCalledTimes(2);
+      expect(loadSpy.mock.calls.map(([req]) => (req as { url: string }).url)).toEqual([
+        "Farming/Props/Tilling/hoe.prefab",
+        "Farming/Props/Watering/watering-can.prefab"
+      ]);
+      void listener;
+      presentation.dispose();
+    } finally {
+      engine.destroy();
+    }
+  });
+
+  it("defers CRUD-only deferredBackgroundMaterials out of primary warmup even when parallelCompile is true and retains them in post-ready secondary collection", async () => {
+    const fakeMaterial = (shaderName: string) =>
+      ({
+        destroyed: false,
+        shader: {
+          name: shaderName,
+          destroyed: false,
+          subShaders: [{ passes: [{ getTagValue: () => "Forward" }] }]
+        },
+        shaderData: { _macroCollection: new ShaderMacroCollection() }
+      }) as any;
+    const holoMat = fakeMaterial("SeedWorld/HologramRainbow");
+    const holoAddMat = fakeMaterial("SeedWorld/HologramRainbowAdditive");
+    const engine = {
+      _macroCollection: new ShaderMacroCollection(),
+      _hardwareRenderer: { supportsRendering: true },
+      _basicResources: {}
+    } as any;
+    const scene = {
+      rootEntities: [],
+      background: { mode: 0 },
+      shaderData: { _macroCollection: new ShaderMacroCollection() }
+    } as any;
+    const camera = {
+      enabled: true,
+      enablePostProcess: false,
+      renderTarget: null,
+      shaderData: { _macroCollection: new ShaderMacroCollection() },
+      _updateShaderData: vi.fn(),
+      _isIndependentCanvasEnabled: () => false
+    } as any;
+    let primaryWarmed: readonly { shader: string }[] = [];
+    const result = await runSeedWorldStartupShaderWarmup({
+      precompileShaders: true,
+      engine,
+      scene,
+      camera,
+      pageUrl: new URL("http://localhost/?view=3d"),
+      canvas: { dataset: {} } as any,
+      showAssistant: false,
+      deferSecondaryCollection: true,
+      isDisposed: () => false,
+      progress: () => {},
+      timed: (_name, work) => work(),
+      prepareAssistantPresentation: () => undefined,
+      getPostProcessWarmupState: () => ({ enabled: false }) as any,
+      additionalBackgroundMaterials: [],
+      deferredBackgroundMaterials: [holoMat, holoAddMat],
+      warmupOperations: {
+        hasParallelShaderCompile: () => true,
+        collectSeedWorldRendererVariants,
+        findMissingSeedWorldShaderVariants,
+        warmupSeedWorldShaderVariants: async (_engine, variants) => {
+          primaryWarmed = variants;
+          return {
+            requested: variants.length,
+            compiled: variants.length,
+            parallelCompileSupported: true,
+            deferred: [],
+            issues: [],
+            elapsedMilliseconds: 1,
+            longestVariantMilliseconds: 1
+          };
+        }
+      }
+    });
+    expect(primaryWarmed.some((v) => v.shader.startsWith("SeedWorld/HologramRainbow"))).toBe(false);
+    const secondary = await result.collectDeferredVariants!();
+    expect(secondary.map((v) => v.shader)).toEqual([
+      "SeedWorld/HologramRainbow",
+      "SeedWorld/HologramRainbowAdditive"
+    ]);
+  });
+
+  it("runs a delta catch-up warmup before reveal when getDynamicPresentationRevision advances mid-warmup (Mac #151 revMiss=1 regression)", async () => {
+    let revision = 1;
+    const initialMasonry = {
+      shader: "Masonry/4b8047e4d4624c972736f5d4f6a7813c992d52e6c497d47cb9db2a5323147f2f",
+      si: 0,
+      pi: 0,
+      macros: [{ n: "RENDERER_MASONRY_ENTRANCE" }]
+    };
+    const lateMasonry = {
+      shader: "Masonry/f393f98f4ca60147bc40da9746d99acb906ce913414fdafe28b981467c01c539",
+      si: 0,
+      pi: 0,
+      macros: [{ n: "RENDERER_MASONRY_ENTRANCE" }]
+    };
+    const lateMasonrySteady = {
+      shader: lateMasonry.shader,
+      si: 0,
+      pi: 0,
+      macros: []
+    };
+    const otherSecondary = {
+      shader: "Terrain/Vegetation",
+      si: 0,
+      pi: 0,
+      macros: []
+    };
+    const warmedBatches: Array<readonly { shader: string }[]> = [];
+    const collectVariants = vi.fn((_e, _s, _c, _r, opts: any) => {
+      if (opts?.onlyEnabledRenderers) {
+        return revision === 1 ? [initialMasonry] : [initialMasonry, lateMasonry];
+      }
+      return [initialMasonry, lateMasonry, otherSecondary, lateMasonrySteady];
+    });
+    const result = await runSeedWorldStartupShaderWarmup({
+      precompileShaders: true,
+      engine: {} as any,
+      scene: { rootEntities: [] } as any,
+      camera: { enabled: true } as any,
+      pageUrl: new URL("http://localhost/?view=3d"),
+      canvas: { dataset: {} } as any,
+      showAssistant: false,
+      deferSecondaryCollection: true,
+      isDisposed: () => false,
+      progress: () => {},
+      timed: (_name, work) => work(),
+      prepareAssistantPresentation: () => undefined,
+      getPostProcessWarmupState: () => ({ enabled: false }) as any,
+      additionalBackgroundMaterials: [],
+      getDynamicPresentationRevision: () => revision,
+      warmupOperations: {
+        hasParallelShaderCompile: () => true,
+        collectSeedWorldRendererVariants: collectVariants as any,
+        findMissingSeedWorldShaderVariants,
+        warmupSeedWorldShaderVariants: async (_engine, variants) => {
+          warmedBatches.push(variants);
+          // Simulate BuildingRuntime.pumpDetailQueue committing a new LOD0 building mid-warmup.
+          if (warmedBatches.length === 1) revision = 2;
+          return {
+            requested: variants.length,
+            compiled: variants.length,
+            parallelCompileSupported: true,
+            deferred: [],
+            issues: [],
+            elapsedMilliseconds: 2,
+            longestVariantMilliseconds: 2
+          };
+        }
+      }
+    });
+
+    expect(warmedBatches).toHaveLength(2);
+    expect(warmedBatches[0]!.map((v) => v.shader)).toEqual([initialMasonry.shader]);
+    expect(warmedBatches[1]!.map((v) => v.shader)).toEqual([lateMasonry.shader]);
+    expect(result.report?.requested).toBe(2);
+    expect(result.report?.compiled).toBe(2);
+    // Secondary collection does not duplicate the late-caught entrance variant and promotes its steady-state twin first.
+    const secondary = await result.collectDeferredVariants!();
+    expect(secondary.map((v) => v.shader)).toEqual([lateMasonrySteady.shader, otherSecondary.shader]);
+  });
+
+  it("awaits prepareMasonryPresentation before collecting primary shader variants so spawn-close LOD0 buildings never miss reveal", async () => {
+    const masonryReady = deferred();
+    const order: string[] = [];
+    const collectVariants = vi.fn(() => {
+      order.push("collect");
+      return [];
+    });
+    const task = runSeedWorldStartupShaderWarmup({
+      precompileShaders: true,
+      engine: {} as any,
+      scene: { rootEntities: [] } as any,
+      camera: { enabled: true } as any,
+      pageUrl: new URL("http://localhost/?view=3d"),
+      canvas: { dataset: {} } as any,
+      showAssistant: false,
+      deferSecondaryCollection: true,
+      precompileCoreMasonry: false,
+      isDisposed: () => false,
+      progress: () => {},
+      timed: (_name, work) => work(),
+      prepareMasonryPresentation: async () => {
+        await masonryReady.promise;
+        order.push("masonry-flushed");
+      },
+      prepareAssistantPresentation: () => undefined,
+      getPostProcessWarmupState: () => ({ enabled: false }) as any,
+      additionalBackgroundMaterials: [],
+      warmupOperations: {
+        hasParallelShaderCompile: () => true,
+        collectSeedWorldRendererVariants: collectVariants as any,
+        findMissingSeedWorldShaderVariants,
+        warmupSeedWorldShaderVariants: async () => ({
+          requested: 0,
+          compiled: 0,
+          parallelCompileSupported: true,
+          deferred: [],
+          issues: [],
+          elapsedMilliseconds: 0,
+          longestVariantMilliseconds: 0
+        })
+      }
+    });
+    await Promise.resolve();
+    expect(collectVariants).not.toHaveBeenCalled();
+    masonryReady.resolve();
+    await task;
+    expect(order).toEqual(["masonry-flushed", "collect"]);
   });
 });

@@ -32,6 +32,9 @@ export class GLTFTextureParser extends GLTFParser {
     textureName?: string,
     isSRGBColorSpace?: boolean
   ): AssetPromise<Texture2D> {
+    if (context._aborted) {
+      throw "canceled";
+    }
     const { glTFResource, glTF } = context;
     const { engine, url } = glTFResource;
     const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = glTF.images![imageIndex];
@@ -55,6 +58,7 @@ export class GLTFTextureParser extends GLTFParser {
         })
         .onProgress(undefined, context._onTaskDetail)
         .then<Texture2D>((texture) => {
+          if (context._aborted) throw "canceled";
           texture.name = textureName || imageName || texture.name || `texture_${textureIndex}`;
           samplerInfo && GLTFUtils.parseSampler(texture, samplerInfo);
           return texture;
@@ -67,12 +71,15 @@ export class GLTFTextureParser extends GLTFParser {
         const buffer = buffers![bufferView.buffer];
         const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset ?? 0, bufferView.byteLength);
         return ImageDecoder._decode(imageBuffer, imageName || textureName || url, mimeType).then((image) => {
+          if (context._aborted) throw "canceled";
           const { width, height } = image;
           const format = TextureFormat.R8G8B8A8_UNorm;
           const generateMipmap =
             (samplerInfo?.mipmap ?? true) &&
             engine._hardwareRenderer.supportsGenerateMipmaps(format, isSRGBColorSpace!);
-          const texture = new Texture2D(engine, width, height, format, generateMipmap, isSRGBColorSpace);
+          const texture = context._trackResource(
+            new Texture2D(engine, width, height, format, generateMipmap, isSRGBColorSpace)
+          );
           texture.setImageSource(image);
           texture.generateMipmaps();
 
@@ -112,6 +119,7 @@ export class GLTFTextureParser extends GLTFParser {
     }
 
     return AssetPromise.resolve(texture).then((texture) => {
+      if (context._aborted) throw "canceled";
       GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, texture, textureInfo);
       texture._associationSuperResource(glTFResource);
       return texture;

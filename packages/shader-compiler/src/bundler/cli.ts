@@ -6,7 +6,7 @@ import { precompile } from "./precompile";
  *
  * Usage:
  *   shader-compiler-precompile <input-dir> <output-dir>
- *     [--target gles300|wgsl] [--clean] [--watch] [--only <file>] [--emit-index] [--emit-sources]
+ *     [--target gles300|wgsl] [--clean] [--watch] [--only <file>] [--emit-index] [--emit-sources] [--include-library <dir>]
  */
 function main(): Promise<void> {
   const { positionals, values } = parseArgs({
@@ -17,14 +17,15 @@ function main(): Promise<void> {
       only: { type: "string" },
       "emit-index": { type: "boolean" },
       target: { type: "string" },
-      "emit-sources": { type: "boolean" }
+      "emit-sources": { type: "boolean" },
+      "include-library": { type: "string" }
     }
   });
 
   const [input, output] = positionals;
   if (!input || !output) {
     console.error(
-      "Usage: shader-compiler-precompile <input-dir> <output-dir> [--target gles300|wgsl] [--clean] [--watch] [--only <file>] [--emit-index] [--emit-sources]"
+      "Usage: shader-compiler-precompile <input-dir> <output-dir> [--target gles300|wgsl] [--clean] [--watch] [--only <file>] [--emit-index] [--emit-sources] [--include-library <dir>]"
     );
     process.exit(1);
   }
@@ -39,7 +40,8 @@ function main(): Promise<void> {
     watch: values.watch,
     only: values.only,
     emitIndex: values["emit-index"],
-    emitSources: values["emit-sources"]
+    emitSources: values["emit-sources"],
+    includeLibrary: values["include-library"]
   });
 }
 

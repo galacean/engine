@@ -53,5 +53,11 @@ export function spatialRevealInputSignature(document: PlanningDocument): string 
       return components || entity.parent ? [[id, { components, parent: entity.parent }]] : [];
     })
   );
-  return JSON.stringify(canonical({ ...other, authoredResources: authoredResources ?? [], entities: projected }));
+  return JSON.stringify(
+    canonical({
+      ...other,
+      authoredResources: (authoredResources ?? []).filter((resource) => resource.resourceType !== "vegetation-color"),
+      entities: projected
+    })
+  );
 }

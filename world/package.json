@@ -6,6 +6,8 @@
   "scripts": {
     "terrain:build": "node scripts/build-terrain.js",
     "terrain:watch": "node scripts/build-terrain.js --watch",
+    "water:build": "node scripts/build-water.js",
+    "water:watch": "node scripts/build-water.js --watch",
     "dev": "vite --config vite.config.mjs",
     "build": "vite build --config vite.config.mjs",
     "typecheck": "node scripts/typecheck.mjs",
@@ -13,7 +15,7 @@
     "farming:native-api:generate": "node ../packages/farming/src/farming/scripts/generate-native-api.mjs",
     "farming:native-api:check": "node ../packages/farming/src/farming/scripts/generate-native-api.mjs --check",
     "export:seed-shaders": "node scripts/export-webgpu-shaders.mjs",
-    "prepare:engine": "pnpm --filter @galacean/engine-shader-compiler build && node ../packages/modify/build/prepare.mjs",
+    "prepare:engine": "pnpm --filter @galacean/engine-shader-compiler build && pnpm --filter @galacean/engine-shader precompile",
     "build:all": "WORLD_DEMO=all vite build --config vite.config.mjs",
     "build:seed-world-flash-app": "node scripts/build-seed-world-flash-app.mjs",
     "build:seed-world-flash-source": "node scripts/build-seed-world-flash-source.mjs"
@@ -31,6 +33,7 @@
     "@galacean/engine-toolkit-controls": "latest",
     "@galacean/engine-toolkit-stats": "latest",
     "esbuild-wasm": "0.25.8",
+    "fflate": "0.8.3",
     "zod": "4.4.3",
     "acorn": "8.17.0",
     "re2js": "2.9.0",
@@ -66,7 +69,6 @@
     "@galacean/engine-project": "workspace:*",
     "@galacean/engine-runtime-editor": "workspace:*",
     "@galacean/engine-world-planning": "workspace:*",
-    "@galacean/engine-modify": "workspace:*",
     "@galacean/engine-retrieval": "workspace:*"
   },
   "devDependencies": {

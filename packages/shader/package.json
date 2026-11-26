@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-shader",
-  "version": "2.0.0-alpha.64",
+  "version": "2.0.0-alpha.66",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -33,7 +33,7 @@
     }
   },
   "scripts": {
-    "precompile": "node ../shader-compiler/bundler/cli.js src/Shaders compiledShaders --clean --emit-index --emit-sources && node ../shader-compiler/bundler/cli.js src/Shaders compiledWebGPUShaders --clean --emit-index --target wgsl",
+    "precompile": "node ../shader-compiler/bundler/cli.js src/Shaders compiledShaders --clean --emit-index --emit-sources --include-library src/ShaderLibrary && node ../shader-compiler/bundler/cli.js src/Shaders compiledWebGPUShaders --clean --emit-index --target wgsl --include-library src/ShaderLibrary",
     "b:types": "tsc"
   },
   "umd": {

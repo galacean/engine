@@ -47,6 +47,7 @@ export class GLTFMeshParser extends GLTFParser {
     for (const attribute in attributes) {
       const accessor = accessors![attributes[attribute]];
       const promise = GLTFUtils.getAccessorBuffer(context, gltf.bufferViews, accessor).then((accessorBuffer) => {
+        if (context._aborted) throw "canceled";
         const dataElementSize = GLTFUtils.getAccessorTypeSize(accessor.type);
         const accessorCount = accessor.count;
         const vertices = accessorBuffer.data;
@@ -70,12 +71,8 @@ export class GLTFMeshParser extends GLTFParser {
 
             let vertexBuffer = accessorBuffer.vertexBuffer;
             if (!vertexBuffer) {
-              vertexBuffer = new Buffer(
-                engine,
-                BufferBindFlag.VertexBuffer,
-                vertices,
-                BufferUsage.Static,
-                keepMeshData
+              vertexBuffer = context._trackResource(
+                new Buffer(engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static, keepMeshData)
               );
               accessorBuffer.vertexBuffer = vertexBuffer;
               meshRestoreInfo.vertexBuffers.push(new BufferRestoreInfo(vertexBuffer, accessorBuffer.restoreInfo));
@@ -91,7 +88,9 @@ export class GLTFMeshParser extends GLTFParser {
 
           let vertexBuffer = accessorBuffer.vertexBuffer;
           if (!vertexBuffer) {
-            vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static, keepMeshData);
+            vertexBuffer = context._trackResource(
+              new Buffer(engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static, keepMeshData)
+            );
             meshRestoreInfo.vertexBuffers.push(new BufferRestoreInfo(vertexBuffer, accessorBuffer.restoreInfo));
           }
           mesh.setVertexBufferBinding(vertexBuffer, accessorBuffer.stride, bufferBindIndex);
@@ -134,6 +133,7 @@ export class GLTFMeshParser extends GLTFParser {
     }
 
     return AssetPromise.all(promises).then(() => {
+      if (context._aborted) throw "canceled";
       mesh.setVertexElements(vertexElements);
 
       // Indices
@@ -157,6 +157,7 @@ export class GLTFMeshParser extends GLTFParser {
       }
 
       return Promise.all(promises).then(() => {
+        if (context._aborted) throw "canceled";
         mesh.uploadData(!keepMeshData);
         return mesh;
       });
@@ -271,13 +272,13 @@ export class GLTFMeshParser extends GLTFParser {
             resolve(mesh);
           } else {
             mesh.then((mesh) => {
+              if (context._aborted) return;
               mesh._associationSuperResource(glTFResource);
               resolve(mesh);
-            });
+            }, reject);
           }
         } else {
-          const mesh = new ModelMesh(engine, meshInfo.name || i + "");
-          mesh._associationSuperResource(glTFResource);
+          const mesh = context._trackResource(new ModelMesh(engine, meshInfo.name || i + ""));
 
           const meshRestoreInfo = new ModelMeshRestoreInfo();
           meshRestoreInfo.mesh = mesh;

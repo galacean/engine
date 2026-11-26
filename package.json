@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-root",
-  "version": "2.0.0-alpha.64",
+  "version": "2.0.0-alpha.66",
   "packageManager": "pnpm@9.3.0",
   "private": true,
   "engines": {
@@ -8,7 +8,7 @@
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "pretest": "vitest --version && playwright install --with-deps chromium && (node -e \"process.exit(require('fs').existsSync('packages/modify/.cache/sources.ts') ? 0 : 1)\" || pnpm --dir world prepare:engine)",
+    "pretest": "vitest --version && playwright install --with-deps chromium && (node -e \"process.exit(require('fs').existsSync('packages/shader/compiledShaders/index.ts') && require('fs').existsSync('packages/shader/compiledWebGPUShaders/index.ts') ? 0 : 1)\" || pnpm --dir world prepare:engine)",
     "test": "vitest",
     "test:package-consumer": "vitest --config tests/vitest.package-consumer.config.ts --run",
     "coverage": "cross-env HEADLESS=true vitest --coverage",

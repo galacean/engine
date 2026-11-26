@@ -34,7 +34,7 @@ export class SeedWorldPhotoInput {
     this.canvas = this.root.addComponent(UICanvas);
     this.canvas.renderMode = CanvasRenderMode.ScreenSpaceOverlay;
     this.canvas.resolutionAdaptationMode = ResolutionAdaptationMode.BothAdaptation;
-    this.canvas.sortOrder = 32_000;
+    this.canvas.sortOrder = 32_500;
     this.modal = this.surface("Photo modal input");
     this.modal.isActive = false;
   }
@@ -67,7 +67,8 @@ export class SeedWorldPhotoInput {
     // During editing/animation the whole canvas owns input, including margins and toolbar.
     entity.isActive = visible && !this.modal.isActive;
     const transform = entity.transform as UITransform;
-    transform.size.set(pose.width, pose.height);
+    // Slight invisible touch slop makes tapping and grabbing the compact mini card effortless on mobile.
+    transform.size.set(pose.width + 20, pose.height + 20);
     transform.setPosition(pose.x - this.width / 2, this.height / 2 - pose.y, 0);
     transform.setRotation(0, 0, -pose.angle);
   }

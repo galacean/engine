@@ -49,12 +49,13 @@ it.each([-1, 1])("keeps recovery travel forward throughout a turn in direction %
   for (let frame = 0; frame < 120; frame++) {
     expect(recovery.advance(motion, proposed, 1, 1, 0.1, () => true)).toBe(true);
     if (!recovery.recovering) break;
-    const dx = proposed.x - motion.x, dz = proposed.z - motion.z;
+    const dx = proposed.x - motion.x,
+      dz = proposed.z - motion.z;
     expect(dx * Math.sin(motion.heading) + dz * Math.cos(motion.heading)).toBeGreaterThan(0);
     Object.assign(motion, proposed);
   }
   expect(recovery.recovering).toBe(false);
-  expect(motion.heading - initialHeading).toBeCloseTo(direction * Math.PI / 2);
+  expect(motion.heading - initialHeading).toBeCloseTo((direction * Math.PI) / 2);
 });
 
 describe("animal route preview support reuse", () => {
@@ -147,8 +148,12 @@ describe("animal route preview support reuse", () => {
     const { animal, ground } = fixture();
     Object.assign(ground, { flightBounds: { x: 0, z: 0, radius: 32 } });
     Object.assign(animal, {
-      movementMedium: "air", velocity: 6, destination: [0, 31], nextFlightProbe: 2,
-      route: { cursor: 0, points: [[0, 31]] }, updateCrowdIntent: vi.fn()
+      movementMedium: "air",
+      velocity: 6,
+      destination: [0, 31],
+      nextFlightProbe: 2,
+      route: { cursor: 0, points: [[0, 31]] },
+      updateCrowdIntent: vi.fn()
     });
     animal.motion.z = 29;
     animal.continueFlight();
@@ -185,5 +190,110 @@ describe("animal route preview support reuse", () => {
     canTraverse.mockReturnValue(false);
     expect(prepare()).toBe(false);
     expect(animal.preparedRoute).toBeUndefined();
+  });
+
+  it("rotates blocked airborne continuationTarget away from interior obstacles instead of freezing", () => {
+    const { animal, ground } = fixture();
+    // Block the front (+Z) and right (+X, +90° turn) half-space; only left (-X) and rear (-Z) are open.
+    ground.canTraverse = vi.fn(() => true);
+    ground.canTraverseAir = vi.fn((_from, to) => to.x < -0.1 || to.z < -0.1);
+    Object.assign(animal, {
+      movementMedium: "air",
+      velocity: 6,
+      destination: [0, 30],
+      surfaceBlocked: true,
+      nextFlightProbe: 2,
+      updateCrowdIntent: vi.fn()
+    });
+    animal.motion.heading = 0; // facing +Z into the obstacle
+    animal.continueFlight();
+    // Must pick an actually clear escape heading (left/-X) rather than blindly turning +90° into the wall.
+    expect(animal.continuationTarget[0]).toBeLessThan(0);
+
+    // Even if a pre-existing continuationTarget becomes blocked while the bird is aligned with it,
+    // continueFlight must re-pick a clear escape direction instead of staying locked forever.
+    animal.continuationTarget = [25, 0];
+    animal.motion.heading = Math.PI / 2; // aligned with blocked +X target
+    animal.continueFlight();
+    expect(animal.continuationTarget[0] < -0.1 || animal.continuationTarget[1] < -0.1).toBe(true);
+  });
+
+  it("revalidates cleared flight routes on clip handoff instead of clearing continuationTarget into blind flight", () => {
+    const { animal } = fixture();
+    const planMovement = vi.fn();
+    Object.assign(animal, {
+      movementMedium: "air",
+      velocity: 6,
+      destination: [0, 30],
+      arrivalMedium: "ground",
+      route: undefined,
+      continuationTarget: [20, 0],
+      flightNeedsReplan: true,
+      movementIntent: {
+        target: [0, 30],
+        speed: 6,
+        medium: "air",
+        arrivalMedium: "ground",
+        finish: vi.fn(),
+        started: true
+      },
+      planMovement,
+      updateCrowdIntent: vi.fn()
+    });
+    animal.moveTo([0, 30], 6, vi.fn(), "ground");
+    expect(planMovement).toHaveBeenCalledWith(animal.movementIntent, true);
+    expect(animal.continuationTarget).toEqual([20, 0]);
+    expect(animal.flightNeedsReplan).toBe(true);
+  });
+
+  it("admits a validated vertical landing below a stalled bird even when inflated staticRouteQuery rejects the current cell", () => {
+    const { animal, ground, canTraverse } = fixture();
+    // Inflated staticRouteQuery(radius + 0.05) rejects the current (0, 0) cell,
+    // while actual footprint (radius) and vertical air sweep canLandBelow succeed.
+    canTraverse.mockReturnValue(false);
+    ground.canTraverse = vi.fn(() => true);
+    ground.canTraverseAir = vi.fn(() => true);
+    Object.assign(animal, {
+      movementMedium: "air",
+      flightNeedsReplan: true,
+      velocity: 6
+    });
+    Object.assign(animal.root.transform.position, { x: 0, y: 4, z: 0 });
+    expect(animal.prepareRoute([0, 0], 6, "air", "ground")).toBe(true);
+    expect(animal.preparedRoute?.points).toEqual([[0, 0]]);
+  });
+
+  it("falls back to true body radius when inflated staticRouteQuery rejects an edge start cell", () => {
+    const { animal, ground } = fixture();
+    const queriedRadii: number[] = [];
+    ground.staticRouteQuery = vi.fn((radius: number) => {
+      queriedRadii.push(radius);
+      return {
+        // Reject the +0.05m inflated query at the start cell (0, 0), accept true body radius.
+        canTraverse: (from: readonly [number, number], to: readonly [number, number]) =>
+          radius <= 0.51 || from[0] !== 0 || from[1] !== 0 || to[0] !== 0 || to[1] !== 0,
+        obstruction: () => undefined
+      };
+    });
+    expect(animal.prepareRoute([0, 3], 2, "ground")).toBe(true);
+    expect(queriedRadii).toEqual([0.55, 0.5]);
+    expect(animal.preparedRoute?.points).toEqual([[0, 3]]);
+  });
+
+  it("does not treat a fresh takeoff near ground elevation as a stalled airborne vertical landing", () => {
+    const { animal, ground } = fixture();
+    ground.canTraverse = vi.fn(() => true);
+    ground.canTraverseAir = vi.fn(() => true);
+    Object.assign(animal, {
+      movementMedium: "air",
+      flightNeedsReplan: true,
+      velocity: 6
+    });
+    // Only 11cm above ground (surface = 0): freshly taking off, not stalled at altitude.
+    Object.assign(animal.root.transform.position, { x: 0, y: 0.11, z: 0 });
+    expect(animal.canLandBelow("ground")).toBe(false);
+    // Once clearly airborne above surface, vertical landing recovery is allowed.
+    Object.assign(animal.root.transform.position, { x: 0, y: 4, z: 0 });
+    expect(animal.canLandBelow("ground")).toBe(true);
   });
 });

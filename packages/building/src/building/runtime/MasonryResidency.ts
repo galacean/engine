@@ -3,6 +3,7 @@ import type { EngineResidentScene } from "./EngineResidentScene";
 import {
   getMasonryResidencyBudget,
   getMasonryLodTuning,
+  resolveMasonryLodPixelHeight,
   subscribeMasonryLodTuning,
   type MasonryLodProbe,
   type MasonryLod,
@@ -148,7 +149,11 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
       }
     }
     const position = c.entity.transform.worldPosition;
-    changed |= capture(snapshot, 32, this.engine.canvas.height * c.viewport.w, 4);
+    const lodPixelHeight = resolveMasonryLodPixelHeight(
+      this.engine.canvas as { height: number; _webCanvas?: { clientHeight?: number } },
+      c.viewport.w
+    );
+    changed |= capture(snapshot, 32, lodPixelHeight, 4);
     changed |= capture(snapshot, 33, Number(c.isOrthographic), 4);
     changed |= capture(snapshot, 34, c.nearClipPlane, 4);
     changed |= capture(snapshot, 35, c.farClipPlane, 4);
@@ -165,7 +170,10 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
     view.view = camera.viewMatrix.elements;
     view.projection = camera.projectionMatrix.elements;
     view.orthographic = camera.isOrthographic;
-    view.pixelHeight = this.engine.canvas.height * camera.viewport.w;
+    view.pixelHeight = resolveMasonryLodPixelHeight(
+      this.engine.canvas as { height: number; _webCanvas?: { clientHeight?: number } },
+      camera.viewport.w
+    );
     view.near = camera.nearClipPlane;
     view.far = camera.farClipPlane;
     let demandChanged = this.selectionDirty;
@@ -403,8 +411,9 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
     }
     for (const e of this.entries) {
       if (e.fine && !e.visible) {
-        // Residency prepares resources, not a full-quality display allocation.
-        e.budgetLod = this.desired.has(e) ? 1 : 2;
+        // Keep nearby fine residents warm at LOD 1 while temporarily offscreen (e.g. turning 360° in a village);
+        // `runtime.root.isActive` is false while `!e.visible`, avoiding redundant `setLodStates` churn on head turns.
+        e.budgetLod = this.desired.has(e) || e.lod < 2 ? 1 : 2;
       }
     }
     this.metrics.transitioning = 0;
@@ -443,7 +452,7 @@ export class MasonryResidency<E extends MasonryResidencyEntry> {
         runtime.root.isActive = fineVisible && e.visible && shown;
         if (getMasonryLodTuning().colorizeLod) runtime.setLodDebugTint(true);
         // Prefetch retains nearby resources in every direction, independent of rendering.
-        const retained = this.desired.has(e) || fineVisible;
+        const retained = this.desired.has(e) || (fineVisible && e.visible);
         // Start retention on departure, even after hours with a stationary camera.
         if (retained || e.retained) e.lastUsed = now;
         e.retained = retained;

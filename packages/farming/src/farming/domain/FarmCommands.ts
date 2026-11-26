@@ -242,6 +242,11 @@ export interface ApplyFarmCommandContext {
   readonly targetSystemTimeMs?: number;
   readonly simulationStepMs?: number;
   readonly maximumCatchUpMs?: number;
+  /** Optional settlement override used by hosts that switch long gaps to O(1) approximate catch-up. */
+  readonly settleTime?: (
+    snapshot: FarmSnapshot,
+    targetSystemTimeMs: number
+  ) => import("./FarmSimulation").SettleFarmTimeResult;
 }
 
 export interface ApplyFarmCommandResult {

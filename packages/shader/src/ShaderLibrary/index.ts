@@ -9,10 +9,16 @@ import Common_Camera from "./Common/Camera.glsl";
 import Common_Common from "./Common/Common.glsl";
 import Common_Fog from "./Common/Fog.glsl";
 import Common_Normal from "./Common/Normal.glsl";
+import Common_OilPaintBrush from "./Common/OilPaintBrush.glsl";
 import Common_Transform from "./Common/Transform.glsl";
 import Lighting_AmbientOcclusion_BilateralBlur from "./Lighting/AmbientOcclusion/BilateralBlur.glsl";
 import Lighting_AmbientOcclusion_ScalableAmbientOcclusion from "./Lighting/AmbientOcclusion/ScalableAmbientOcclusion.glsl";
 import Lighting_Light from "./Lighting/Light.glsl";
+import Lighting_RealtimeSphericalHarmonics from "./Lighting/RealtimeSphericalHarmonics.glsl";
+import Lighting_ScreenSpaceReflection_ScreenSpaceReflectionCommon from "./Lighting/ScreenSpaceReflection/ScreenSpaceReflectionCommon.glsl";
+import Lighting_ScreenSpaceReflection_ScreenSpaceReflectionSample from "./Lighting/ScreenSpaceReflection/ScreenSpaceReflectionSample.glsl";
+import Lighting_VolumetricCloudComposition from "./Lighting/VolumetricCloudComposition.glsl";
+import Lighting_VolumetricCloudShadow from "./Lighting/VolumetricCloudShadow.glsl";
 import Noise_NoiseCommon from "./Noise/NoiseCommon.glsl";
 import Noise_NoiseSimplexGrad from "./Noise/NoiseSimplexGrad.glsl";
 import PBR_BSDF from "./PBR/BSDF.glsl";
@@ -38,9 +44,11 @@ import Particle_Module_RotationOverLifetime from "./Particle/Module/RotationOver
 import Particle_Module_SizeOverLifetime from "./Particle/Module/SizeOverLifetime.glsl";
 import Particle_Module_TextureSheetAnimation from "./Particle/Module/TextureSheetAnimation.glsl";
 import Particle_Module_VelocityOverLifetime from "./Particle/Module/VelocityOverLifetime.glsl";
+import Particle_Module_WindOverLifetime from "./Particle/Module/WindOverLifetime.glsl";
 import Particle_ParticleCommon from "./Particle/ParticleCommon.glsl";
 import Particle_ParticleMesh from "./Particle/ParticleMesh.glsl";
 import Particle_ParticleVert from "./Particle/ParticleVert.glsl";
+import Pipeline_DepthOnlyPass from "./Pipeline/DepthOnlyPass.glsl";
 import PostProcess_Bloom_BloomDownsample from "./PostProcess/Bloom/BloomDownsample.glsl";
 import PostProcess_Bloom_BloomPrefilter from "./PostProcess/Bloom/BloomPrefilter.glsl";
 import PostProcess_Bloom_BloomUpsample from "./PostProcess/Bloom/BloomUpsample.glsl";
@@ -49,6 +57,7 @@ import PostProcess_Filtering from "./PostProcess/Filtering.glsl";
 import PostProcess_FinalAntiAliasing from "./PostProcess/FinalAntiAliasing.glsl";
 import PostProcess_FinalSRGB from "./PostProcess/FinalSRGB.glsl";
 import PostProcess_PostCommon from "./PostProcess/PostCommon.glsl";
+import PostProcess_SunLensFlare from "./PostProcess/SunLensFlare.glsl";
 import PostProcess_Tonemapping_ACES_ColorTransform from "./PostProcess/Tonemapping/ACES/ColorTransform.glsl";
 import PostProcess_Tonemapping_ACES_ODT from "./PostProcess/Tonemapping/ACES/ODT.glsl";
 import PostProcess_Tonemapping_ACES_RRT from "./PostProcess/Tonemapping/ACES/RRT.glsl";
@@ -56,6 +65,7 @@ import PostProcess_Tonemapping_ACES_Tonescale from "./PostProcess/Tonemapping/AC
 import PostProcess_Tonemapping_ACESTonemapping from "./PostProcess/Tonemapping/ACESTonemapping.glsl";
 import PostProcess_Tonemapping_NeutralTonemapping from "./PostProcess/Tonemapping/NeutralTonemapping.glsl";
 import PostProcess_UberPost from "./PostProcess/UberPost.glsl";
+import PostProcess_VolumetricLight from "./PostProcess/VolumetricLight.glsl";
 import Shadow_Shadow from "./Shadow/Shadow.glsl";
 import Shadow_ShadowSampleTent from "./Shadow/ShadowSampleTent.glsl";
 import Skin_BlendShape from "./Skin/BlendShape.glsl";
@@ -71,10 +81,16 @@ export const shaderLibrary: IShaderSource[] = [
   { source: Common_Common, path: "ShaderLibrary/Common/Common.glsl" },
   { source: Common_Fog, path: "ShaderLibrary/Common/Fog.glsl" },
   { source: Common_Normal, path: "ShaderLibrary/Common/Normal.glsl" },
+  { source: Common_OilPaintBrush, path: "ShaderLibrary/Common/OilPaintBrush.glsl" },
   { source: Common_Transform, path: "ShaderLibrary/Common/Transform.glsl" },
   { source: Lighting_AmbientOcclusion_BilateralBlur, path: "ShaderLibrary/Lighting/AmbientOcclusion/BilateralBlur.glsl" },
   { source: Lighting_AmbientOcclusion_ScalableAmbientOcclusion, path: "ShaderLibrary/Lighting/AmbientOcclusion/ScalableAmbientOcclusion.glsl" },
   { source: Lighting_Light, path: "ShaderLibrary/Lighting/Light.glsl" },
+  { source: Lighting_RealtimeSphericalHarmonics, path: "ShaderLibrary/Lighting/RealtimeSphericalHarmonics.glsl" },
+  { source: Lighting_ScreenSpaceReflection_ScreenSpaceReflectionCommon, path: "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionCommon.glsl" },
+  { source: Lighting_ScreenSpaceReflection_ScreenSpaceReflectionSample, path: "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionSample.glsl" },
+  { source: Lighting_VolumetricCloudComposition, path: "ShaderLibrary/Lighting/VolumetricCloudComposition.glsl" },
+  { source: Lighting_VolumetricCloudShadow, path: "ShaderLibrary/Lighting/VolumetricCloudShadow.glsl" },
   { source: Noise_NoiseCommon, path: "ShaderLibrary/Noise/NoiseCommon.glsl" },
   { source: Noise_NoiseSimplexGrad, path: "ShaderLibrary/Noise/NoiseSimplexGrad.glsl" },
   { source: PBR_BSDF, path: "ShaderLibrary/PBR/BSDF.glsl" },
@@ -100,9 +116,11 @@ export const shaderLibrary: IShaderSource[] = [
   { source: Particle_Module_SizeOverLifetime, path: "ShaderLibrary/Particle/Module/SizeOverLifetime.glsl" },
   { source: Particle_Module_TextureSheetAnimation, path: "ShaderLibrary/Particle/Module/TextureSheetAnimation.glsl" },
   { source: Particle_Module_VelocityOverLifetime, path: "ShaderLibrary/Particle/Module/VelocityOverLifetime.glsl" },
+  { source: Particle_Module_WindOverLifetime, path: "ShaderLibrary/Particle/Module/WindOverLifetime.glsl" },
   { source: Particle_ParticleCommon, path: "ShaderLibrary/Particle/ParticleCommon.glsl" },
   { source: Particle_ParticleMesh, path: "ShaderLibrary/Particle/ParticleMesh.glsl" },
   { source: Particle_ParticleVert, path: "ShaderLibrary/Particle/ParticleVert.glsl" },
+  { source: Pipeline_DepthOnlyPass, path: "ShaderLibrary/Pipeline/DepthOnlyPass.glsl" },
   { source: PostProcess_Bloom_BloomDownsample, path: "ShaderLibrary/PostProcess/Bloom/BloomDownsample.glsl" },
   { source: PostProcess_Bloom_BloomPrefilter, path: "ShaderLibrary/PostProcess/Bloom/BloomPrefilter.glsl" },
   { source: PostProcess_Bloom_BloomUpsample, path: "ShaderLibrary/PostProcess/Bloom/BloomUpsample.glsl" },
@@ -111,6 +129,7 @@ export const shaderLibrary: IShaderSource[] = [
   { source: PostProcess_FinalAntiAliasing, path: "ShaderLibrary/PostProcess/FinalAntiAliasing.glsl" },
   { source: PostProcess_FinalSRGB, path: "ShaderLibrary/PostProcess/FinalSRGB.glsl" },
   { source: PostProcess_PostCommon, path: "ShaderLibrary/PostProcess/PostCommon.glsl" },
+  { source: PostProcess_SunLensFlare, path: "ShaderLibrary/PostProcess/SunLensFlare.glsl" },
   { source: PostProcess_Tonemapping_ACES_ColorTransform, path: "ShaderLibrary/PostProcess/Tonemapping/ACES/ColorTransform.glsl" },
   { source: PostProcess_Tonemapping_ACES_ODT, path: "ShaderLibrary/PostProcess/Tonemapping/ACES/ODT.glsl" },
   { source: PostProcess_Tonemapping_ACES_RRT, path: "ShaderLibrary/PostProcess/Tonemapping/ACES/RRT.glsl" },
@@ -118,6 +137,7 @@ export const shaderLibrary: IShaderSource[] = [
   { source: PostProcess_Tonemapping_ACESTonemapping, path: "ShaderLibrary/PostProcess/Tonemapping/ACESTonemapping.glsl" },
   { source: PostProcess_Tonemapping_NeutralTonemapping, path: "ShaderLibrary/PostProcess/Tonemapping/NeutralTonemapping.glsl" },
   { source: PostProcess_UberPost, path: "ShaderLibrary/PostProcess/UberPost.glsl" },
+  { source: PostProcess_VolumetricLight, path: "ShaderLibrary/PostProcess/VolumetricLight.glsl" },
   { source: Shadow_Shadow, path: "ShaderLibrary/Shadow/Shadow.glsl" },
   { source: Shadow_ShadowSampleTent, path: "ShaderLibrary/Shadow/ShadowSampleTent.glsl" },
   { source: Skin_BlendShape, path: "ShaderLibrary/Skin/BlendShape.glsl" },

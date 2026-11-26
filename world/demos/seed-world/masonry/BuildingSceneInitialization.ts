@@ -220,7 +220,7 @@ export async function initializeBuildingScene(project: RuntimeProjectSession, ed
   plan: IslandPlan, terrain: ConstructionTerrainSource, signal: AbortSignal, compiler?: BuildingCpuClient): Promise<string | undefined> {
   const fastCheck = inspectEmptyStartupBuildingScene(project, plan);
   if (fastCheck.skip) return fastCheck.emptyGeneratorId;
-  const edit = editor.beginEdit(crypto.randomUUID(), signal);
+  const edit = editor.beginEdit(crypto.randomUUID(), signal, undefined, { userEdit: false });
   try {
     await seedWorldBootTrace.span("building.preparation", () =>
       buildingScenePreparation(

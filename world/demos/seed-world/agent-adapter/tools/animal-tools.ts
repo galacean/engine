@@ -54,6 +54,8 @@ export const SEED_WORLD_ANIMAL_CONTRACTS = [
           id: identity,
           typeId: identity,
           speciesId: identity.describe("物种身份；多个模型 typeId 可以属于同一物种"),
+          appearanceId: identity.optional().describe("当前使用的外观/配色 ID，可与 animals.catalog 对照后通过 animals.update 切换"),
+          scale: z.number().positive().optional().describe("当前实例缩放倍数，可通过 animals.update 调整"),
           label: text,
           loaded: z.boolean().describe("模型资源是否已加载；false 不代表没有移动或逻辑活动"),
           visible: z.boolean().describe("模型当前是否显示；隐藏动物仍可参与粗粒度模拟"),
@@ -191,13 +193,70 @@ export const SEED_WORLD_ANIMAL_CONTRACTS = [
       appearanceId: identity.optional(),
       reason: text.optional()
     })
+  }),
+  defineSeedWorldApiContract({
+    name: "animals.delete",
+    domain: "animals",
+    effect: "command",
+    description:
+      "持久删除当前世界中的单只动物（同时支持程序化生成的动物与 animals.spawn 新增的动物），不重建其他动物，也不修改初始化数量配置。先用 animals.query 取得真实 id。相同 requestId 和 id 幂等重试；换 id 须用新 requestId。删除记录保存到项目 DB，刷新和种群重建后不会复活；不随 editor.history.undo 撤销。系统关闭、未就绪或目标不存在时返回 rejected。",
+    inputDescription: "来自 animals.query 的真实动物 id 与稳定 requestId。",
+    outputDescription: "accepted 表示该动物已从场景移除并持久保存；rejected 以 reason（如 not_found、disabled、request_id_conflict、persistence_failed）为准。",
+    input: z.strictObject({
+      id: identity,
+      requestId: identity
+    }),
+    output: z.object({
+      id: identity,
+      requestId: identity,
+      status: z.enum(["accepted", "rejected"]),
+      reason: text.optional()
+    })
+  }),
+  defineSeedWorldApiContract({
+    name: "animals.update",
+    domain: "animals",
+    effect: "command",
+    description:
+      "持久修改当前世界中单只动物的属性（外观/配色 appearanceId、体型缩放 scale、米制水平位置 position 或朝向 heading 弧度），同时支持程序化生成的动物与 animals.spawn 新增的动物，不重建其他动物。至少提供一个待修改字段；修改 appearanceId 前先用 animals.catalog 确认该 typeId 注册的外观 ID。位置必须位于地图内且避开障碍与其他动物，放大后不得与附近动物重叠。相同 requestId 和参数幂等重试；换参数须用新 requestId。修改结果保存到项目 DB，刷新和重建后保留；不随 editor.history.undo 撤销。",
+    inputDescription:
+      "来自 animals.query 的真实动物 id、稳定 requestId，以及至少一个待更新字段：appearanceId、scale（正数，最大 20）、position（米制水平 {x,z}）或 heading（弧度）。不得传 URL 或动画片段。",
+    outputDescription:
+      "accepted 表示修改已应用并持久保存，返回更新后的 typeId、appearanceId、scale 与 position；切换外观时模型会按激活距离重新异步加载。rejected 以 reason 为准。",
+    input: z
+      .strictObject({
+        id: identity,
+        requestId: identity,
+        appearanceId: identity.optional(),
+        scale: z.number().finite().positive().max(20).optional(),
+        position: z.strictObject({ x: z.number().finite(), z: z.number().finite() }).optional(),
+        heading: z.number().finite().optional()
+      })
+      .refine(
+        (value) =>
+          value.appearanceId !== undefined ||
+          value.scale !== undefined ||
+          value.position !== undefined ||
+          value.heading !== undefined,
+        "至少提供 appearanceId、scale、position 或 heading 之一"
+      ),
+    output: z.object({
+      id: identity,
+      requestId: identity,
+      status: z.enum(["accepted", "rejected"]),
+      typeId: identity.optional(),
+      appearanceId: identity.optional(),
+      scale: z.number().optional(),
+      position: z.tuple([z.number(), z.number(), z.number()]).optional(),
+      reason: text.optional()
+    })
   })
 ] as const;
 
 /** Bind the host's live service without importing its simulation or asset registration. */
 export function createSeedWorldAnimalTools(service?: SeedWorldAnimalService, relate?: (position: readonly number[]) => ViewerRelation): readonly AgentTool[] {
   if (!service) return [];
-  const [query, describe, command, readReceipt, catalog, spawn] = SEED_WORLD_ANIMAL_CONTRACTS;
+  const [query, describe, command, readReceipt, catalog, spawn, remove, update] = SEED_WORLD_ANIMAL_CONTRACTS;
   return [
     defineSeedWorldTool(query, {
       execute: async (input, { signal }) => {
@@ -256,6 +315,30 @@ export function createSeedWorldAnimalTools(service?: SeedWorldAnimalService, rel
       describeCommand: (input) => {
         const request = spawn.input.parse(input);
         return { scopeId: "animal-population", commandId: request.requestId };
+      }
+    },
+    {
+      ...defineSeedWorldTool(remove, {
+        execute: (input, { signal }) => {
+          signal.throwIfAborted();
+          return service.deleteAnimal(input);
+        }
+      }),
+      describeCommand: (input) => {
+        const request = remove.input.parse(input);
+        return { scopeId: request.id, commandId: request.requestId };
+      }
+    },
+    {
+      ...defineSeedWorldTool(update, {
+        execute: (input, { signal }) => {
+          signal.throwIfAborted();
+          return service.updateAnimal(input);
+        }
+      }),
+      describeCommand: (input) => {
+        const request = update.input.parse(input);
+        return { scopeId: request.id, commandId: request.requestId };
       }
     }
   ];

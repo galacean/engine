@@ -1,7 +1,7 @@
 import { createServer } from "vite";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { engineModify } from "../../../../../packages/modify/build/vite.mjs";
+import { workspaceEngine } from "../../../../../packages/project/build/vite.mjs";
 
 // Contract inputs share the Gallery's ESM modules, including import.meta asset URLs.
 // Use Vite's existing loader rather than interpreting those modules as CommonJS.
@@ -11,8 +11,7 @@ process.env.WORLD_GALLERY_SOURCE_ROOT ??= root;
 const server = await createServer({ root, cacheDir: path.join(root, "node_modules/.vite-agent-contracts"), configFile: false, logLevel: "error",
   plugins: [{ name: "contract-source-paths", enforce: "pre", resolveId(source) {
     if (source.startsWith("/packages/")) return path.join(root, source);
-  } }, engineModify()],
-  // The generator loads one SSR entry. Watching a materialized Engine recursively visits its workspace links.
+  } }, workspaceEngine()],
   optimizeDeps: { disabled: true },
   server: { middlewareMode: true, hmr: false, watch: { ignored: () => true } },
   appType: "custom" });

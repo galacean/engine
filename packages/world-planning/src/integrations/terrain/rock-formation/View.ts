@@ -11,7 +11,7 @@ import { acquireRockVariantMesh } from "./Variants";
 import {
   SeedWorldArrayPickBatch,
   type SeedWorldPickVisitor
-} from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+} from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 import { templateLinearColor, worldTemplate } from "../../../spatial/WorldTemplateCatalog";
 import { WORLD_TEMPLATE_ART } from "../../../spatial/WorldTemplateArtDirection";
 import type { IslandPlan } from "../../../semantic-study/IslandPlanModel.ts";
@@ -28,6 +28,42 @@ import {
   playAssetUpdateEffect
 } from "@galacean/engine-vegetation/asset-assembly/AssetEntranceEffect";
 import type { SeedWorldTerrainOcclusionReadPort } from "../../../runtime/SeedWorldTerrainOcclusionCuller.ts";
+
+const formationUniqueOwners = new WeakMap<RockFormationMesh, readonly string[]>();
+
+function uniqueFormationOwners(formation: RockFormationMesh): readonly string[] {
+  let unique = formationUniqueOwners.get(formation);
+  if (unique) return unique;
+  const owners = formation.owners;
+  if (!owners.length) {
+    unique = [];
+  } else if (formation.variant) {
+    unique = [owners[0]];
+  } else {
+    const first = owners[0];
+    let single = true;
+    for (let i = 1; i < owners.length; i++) {
+      if (owners[i] !== first) {
+        single = false;
+        break;
+      }
+    }
+    unique = single ? [first] : [...new Set(owners)].sort();
+  }
+  formationUniqueOwners.set(formation, unique);
+  return unique;
+}
+
+function formationCollisionKey(formation: RockFormationMesh, disabled: ReadonlySet<string>): string {
+  const unique = uniqueFormationOwners(formation);
+  if (unique.length === 0) return "";
+  if (unique.length === 1) return disabled.has(unique[0]) ? "0" : "1";
+  let key = "";
+  for (let i = 0; i < unique.length; i++) {
+    if (disabled.has(unique[i])) key += key ? `\0${unique[i]}` : unique[i];
+  }
+  return key;
+}
 
 interface RockViewEntry {
   formation: RockFormationMesh;
@@ -54,6 +90,7 @@ export class RockFormationView {
   private readonly grassTop: boolean;
   private readonly shoreStoneColor?: readonly [number, number, number];
   private readonly cliffBaseColor?: readonly [number, number, number];
+  private readonly stoneBoost: number;
   private readonly lod?: RockLodView;
   private readonly fadingPickBatches = new WeakMap<MeshRenderer, SeedWorldArrayPickBatch>();
 
@@ -72,6 +109,7 @@ export class RockFormationView {
     this.grassTop = (template?.rockTopCover ?? (template?.vegetation ? "ground" : "grass")) === "grass";
     this.shoreStoneColor = art?.shoreStone ? templateLinearColor(art.shoreStone) : undefined;
     this.cliffBaseColor = art?.stone ? templateLinearColor(art.stone) : undefined;
+    this.stoneBoost = art?.stoneBoost ?? 1;
     this.root = parent.createChild("Rock formations");
     if (camera) {
       this.lod = this.root.addComponent(RockLodView);
@@ -101,8 +139,16 @@ export class RockFormationView {
   }
 
   private effectiveColorBlend(grass: boolean, settings: RockColorBlend): RockColorBlend {
+    const applyStoneBoost = (blend: RockColorBlend): RockColorBlend =>
+      this.stoneBoost === 1
+        ? blend
+        : {
+            color: blend.color.map((channel) =>
+              Math.max(0, Math.min(5.2, channel * this.stoneBoost))
+            ) as RockColorBlend["color"]
+          };
     if (grass) {
-      if (this.grassTop || !this.cliffBaseColor) return settings;
+      if (this.stoneBoost !== 1 || this.grassTop || !this.cliffBaseColor) return applyStoneBoost(settings);
       // Sandstone cliff formations on ground-covered templates brighten the dark shared rock albedo into sunlit terracotta.
       const cliffBoost = 3.65;
       return {
@@ -111,7 +157,7 @@ export class RockFormationView {
         ) as RockColorBlend["color"]
       };
     }
-    if (!this.shoreStoneColor) return settings;
+    if (!this.shoreStoneColor) return applyStoneBoost(settings);
     const base = this.cliffBaseColor;
     // Scale pale travertine/limestone shore boulders evenly by user brightness ratio without cliff red-orange channel bias.
     const luma = (rgb: readonly [number, number, number]) => 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
@@ -185,7 +231,7 @@ export class RockFormationView {
     try {
       for (const formation of formations) {
         const current = base.get(formation.id);
-        const collisionKey = JSON.stringify([...new Set(formation.owners.filter((id) => disabled.has(id)))].sort());
+        const collisionKey = formationCollisionKey(formation, disabled);
         if (current?.formation === formation && current.collisionKey === collisionKey) next.set(formation.id, current);
         else {
           const entry = this.upload(formation, disabled, collisionKey);

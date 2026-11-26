@@ -8,6 +8,14 @@ import {
 import type { LandscapePlantInstance } from "@galacean/engine-vegetation/world/VegetationLandscapePlan";
 import type { PlanningNaturalVegetationRuntime as VegetationRuntime } from "@galacean/engine-world-planning/spatial/runtime/PlanningNaturalVegetationRuntime";
 import { PlanningTreePanel } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningTreePanel";
+import { PLANT_MATERIAL_SLOTS } from "@galacean/engine-world-planning/spatial/PlantMaterialParameters";
+import { planningVegetationCatalog } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningVegetationCatalog";
+import {
+  encodePlantPigment,
+  patchVegetationColor,
+  VegetationColors,
+  type VegetationColorTarget
+} from "@galacean/engine-world-planning/spatial/VegetationColors";
 
 vi.hoisted(() => {
   Object.defineProperty(globalThis, "window", { value: {}, configurable: true });
@@ -16,6 +24,145 @@ const shaderData = (group: ShaderDataGroup) =>
   new (ShaderData as unknown as { new (group: ShaderDataGroup): ShaderData })(group);
 
 describe("immediate tree appearance", () => {
+  it("paints the oasis flower brush and the template cushions occupying the same ground", async () => {
+    const { createTemplatePlanningDocument } = await import(
+      "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring"
+    );
+    const { generatePlanningDocument } = await import("@galacean/engine-world-planning/spatial/PlanningRuntime");
+    const { planningHeightmap } = await import("@galacean/engine-world-planning/semantic-study/PlanningHeightmap");
+    const { planningSpatialSnapshotReader } = await import(
+      "../../demos/seed-world/src/planning/spatial/runtime/PlanningSpatialQueries"
+    );
+    const { planningPickAssets } = await import("@galacean/engine-world-planning/spatial/runtime/PlanningWorldPicking");
+    const { PlanningNaturalVegetation } = await import(
+      "@galacean/engine-world-planning/spatial/runtime/PlanningNaturalVegetation"
+    );
+    const { PlanningNaturalVegetationRuntime } = await import(
+      "@galacean/engine-world-planning/spatial/runtime/PlanningNaturalVegetationRuntime"
+    );
+    const { PLANT_SPECIES_CATALOG } = await import("@galacean/engine-vegetation/asset-assembly/PlantSpeciesCatalog");
+    const { SEED_WORLD_POPULATION_CELL_METRES: cell } = await import(
+      "@galacean/engine-world-planning/runtime/SeedWorldPopulationPlan"
+    );
+    const document = createTemplatePlanningDocument(42, "titan-wasteland");
+    const result = generatePlanningDocument(document);
+    const { plan } = result;
+    const brush = document.authoredResources!.find((r) => r.resourceId.endsWith(":island-purple-flowers"));
+    if (brush?.resourceType !== "vegetation-brush") throw new Error("Missing oasis flower planting");
+    const { x, z, radiusMetres } = brush.properties;
+    const region = plan.flowerRegions!.find((r) => r.ownerId === brush.resourceId)!;
+    const colors = new VegetationColors([
+      patchVegetationColor(
+        undefined,
+        {
+          kind: "area",
+          id: "oasis-blue",
+          targetKinds: ["flower"],
+          shape: { kind: "circle", center: { x, z }, radiusMetres },
+          featherMetres: 0
+        },
+        { foliageColorRgb: [0, 0, 255] }
+      )!
+    ]);
+    const native = Object.assign(Object.create(PlanningNaturalVegetationRuntime.prototype), {
+      plan,
+      localColors: colors,
+      metadataSources: new Map()
+    });
+    native.populateMetadataFromCatalog(PLANT_SPECIES_CATALOG);
+    const { fields, population } = planningSpatialSnapshotReader({ result })();
+    const planner = new PlanningNaturalVegetation(
+      plan,
+      planningHeightmap(plan),
+      fields,
+      population,
+      native.buildPlantAssetsFromMetadata()
+    );
+    const inside = (position: readonly number[]) => Math.hypot(position[0] - x, position[2] - z) < radiusMetres;
+    const blue = encodePlantPigment([0, 0, 255], 1);
+    let nativeFlowers = 0;
+    for (let cz = Math.floor((z - radiusMetres) / cell); cz <= Math.floor((z + radiusMetres) / cell); cz++) {
+      for (let cx = Math.floor((x - radiusMetres) / cell); cx <= Math.floor((x + radiusMetres) / cell); cx++) {
+        for (const plant of planner.compileCell(cx, cz).instances) {
+          if (plant.scopeId !== region.id || plant.layerId !== "零星野花" || !inside(plant.position)) continue;
+          const petals = PLANT_MATERIAL_SLOTS.find((slot) => slot.assetId === plant.assetId && slot.part === "petals")!;
+          expect(native.pigmentCode(plant, petals.materialId)).toBe(blue);
+          nativeFlowers++;
+        }
+      }
+    }
+    expect(nativeFlowers).toBeGreaterThan(0);
+    const cushions = planningPickAssets(plan).filter(
+      (a) => a.properties.species === "pastel-flower" && inside(a.position!)
+    );
+    expect(cushions.length).toBeGreaterThan(0);
+    for (const { ref, position } of cushions) {
+      expect(colors.shaderCode({ id: ref.id, kind: "flower", position }, "foliageColorRgb")).toBe(blue);
+    }
+  }, 60_000);
+  it("composites feathered flower polygons over an existing field by root position and species", () => {
+    const owner: VegetationColorTarget = { kind: "asset", assetKind: "flower-field", id: "bed" };
+    const bank: VegetationColorTarget = {
+      kind: "area",
+      id: "bank",
+      targetKinds: ["flower"],
+      assetIds: ["poppy"],
+      featherMetres: 2,
+      shape: {
+        kind: "polygon",
+        points: [
+          { x: 0, z: 0 },
+          { x: 8, z: 0 },
+          { x: 8, z: 8 },
+          { x: 0, z: 8 }
+        ]
+      }
+    };
+    const colors = new VegetationColors([
+      patchVegetationColor(undefined, owner, { foliageColorRgb: [255, 0, 0] })!,
+      patchVegetationColor(undefined, bank, { foliageColorRgb: [0, 0, 255] })!
+    ]);
+    const flower = { id: "A", kind: "flower" as const, assetId: "poppy", regionId: "flowers:bed", ownerId: "bed" };
+    const at = (x: number, assetId = "poppy") =>
+      colors.resolve({ ...flower, assetId, position: [x, 0, 4] }, "foliageColorRgb");
+    expect(at(4)).toMatchObject({ colorRgb: [0, 0, 255], sourceId: "bank", weight: 1 });
+    expect(at(1)).toMatchObject({ colorRgb: [188, 0, 188], weight: 1 });
+    expect(at(0)).toMatchObject({ colorRgb: [255, 0, 0], sourceId: "bed" });
+    expect(at(9)).toMatchObject({ colorRgb: [255, 0, 0], sourceId: "bed" });
+    expect(at(4, "daisy")).toMatchObject({ colorRgb: [255, 0, 0], sourceId: "bed" });
+    expect(colors.resolve(flower, "barkColorRgb").source).toBe("species-default");
+  });
+  it("uses the flowering plant's authored owner for its petals while retaining the original stem", async () => {
+    const { PlanningNaturalVegetationRuntime } = await import(
+      "@galacean/engine-world-planning/spatial/runtime/PlanningNaturalVegetationRuntime"
+    );
+    const region = { id: "generated-bed", ownerId: "painted-bed", areaM2: 10 };
+    const owner = { kind: "asset", assetKind: "flower-field", id: region.ownerId } as const;
+    const localColors = new VegetationColors([
+      patchVegetationColor(undefined, owner, { foliageColorRgb: [0, 0, 255] })!
+    ]);
+    const runtime = Object.assign(Object.create(PlanningNaturalVegetationRuntime.prototype), {
+      plan: { flowerRegions: [region] },
+      localColors,
+      previewColors: new Map(),
+      materialParameters: {}
+    });
+    const slotColors = new Map<string, number>();
+    const assetId = "SM_Flower_08_01";
+    const instance = { id: "flower", assetId, scopeId: region.id, position: [1, 0, 2], layerId: "零星野花" };
+    const data = shaderData(ShaderDataGroup.Renderer);
+    data.setVector4("renderer_AssetAssemblyColor", new Vector4(1, 1, 1, 1));
+    for (const { part, materialId } of PLANT_MATERIAL_SLOTS.filter((slot) => slot.assetId === assetId)) {
+      slotColors.set(part, runtime.plantColor(instance, { materialId, renderer: { shaderData: data } }).w);
+    }
+    expect(slotColors.get("stem")).toBe(1);
+    expect(Math.abs(slotColors.get("petals")!)).toBeGreaterThan(1);
+    const snapshot = { flowers: [region], seed: 1, authoredPlantIds: [owner.id], trees: [] };
+    const [asset] = planningVegetationCatalog({
+      getAuthoringSnapshot: () => snapshot as ReturnType<VegetationRuntime["getAuthoringSnapshot"]>
+    });
+    expect(asset!.relations?.parent).toMatchObject({ kind: "flower-field", source: "authored", id: owner.id });
+  });
   it("ignores a removed controller's late blur after a part, species or publication switch", () => {
     const previewAppearance = vi.fn(),
       snapshot = { assetId: "subject" } as PlanningTreeSnapshot;

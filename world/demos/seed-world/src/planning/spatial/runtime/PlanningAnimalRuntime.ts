@@ -3,16 +3,24 @@ import {
   type AnimalWorldBounds,
   type PlanningAnimalWorldChange
 } from "@galacean/engine-world-planning/spatial/runtime/PlanningAnimalWorldChange";
-import type { PlanningAnimalAuthoring, PlanningAnimalAddition } from "./PlanningAnimalAuthoring.ts";
+import type {
+  PlanningAnimalAuthoring,
+  PlanningAnimalAddition,
+  PlanningAnimalOverride
+} from "./PlanningAnimalAuthoring.ts";
 import { FireflyPopulation } from "@galacean/engine-animals/gameplay/animal/FireflyPopulation";
 import { FireflyPresenter } from "@galacean/engine-animals/gameplay/animal/FireflyPresenter";
 import type { Camera } from "@galacean/engine";
 import { querySeedAnimalCatalog, seedAnimalSpeciesId } from "./PlanningAnimalCatalog.ts";
 import { templateAnimalPopulation } from "@galacean/engine-world-planning/spatial/AnimalPopulationComponent";
+import { WORLD_TEMPLATE_ART } from "@galacean/engine-world-planning/spatial/WorldTemplateArtDirection";
 import { PlanningAnimalSurfaceKind, type PlanningAnimalSurfaceData } from "./PlanningAnimalSurface.ts";
 import type { AnimalInstanceDocument } from "@galacean/engine-animals/gameplay/animal/AnimalInstanceDocument";
 import {
   BaseMaterial,
+  BoundingBox,
+  BoundingFrustum,
+  Matrix,
   MeshRenderer,
   PBRMaterial,
   RenderFace,
@@ -49,6 +57,10 @@ import {
 import type {
   SeedWorldAnimalSpawn,
   SeedWorldAnimalSpawnReceipt,
+  SeedWorldAnimalDelete,
+  SeedWorldAnimalDeleteReceipt,
+  SeedWorldAnimalUpdate,
+  SeedWorldAnimalUpdateReceipt,
   SeedWorldAnimalService,
   SeedWorldAnimalQuery,
   SeedWorldAnimalCommand,
@@ -65,6 +77,7 @@ import {
   type AnimalHome,
   chooseAnimalBirthHabitat,
   sampleAnimalSpawnDisk,
+  type PlanningAnimalDynamicObstacle,
   type PlanningAnimalNavigation,
   type PlanningAnimalMedium,
   type PlanningAnimalOccupant
@@ -134,10 +147,13 @@ interface Population {
   queue: Set<Actor>;
   plan: IslandPlan;
   config: AnimalPopulationConfig;
+  outlineEnabled: boolean;
   observerX: number;
   observerZ: number;
   abort: AbortController;
   spawns: Map<string, { key: string; receipt: SeedWorldAnimalSpawnReceipt }>;
+  deletes?: Map<string, { id: string; receipt: SeedWorldAnimalDeleteReceipt }>;
+  updates?: Map<string, { key: string; receipt: SeedWorldAnimalUpdateReceipt }>;
 }
 
 /** Demand-loaded Seed population. Geometry owns placement; this adapter owns admission and streaming. */
@@ -184,6 +200,26 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
   private interaction = animalInteractionConfig();
   private previousPlayer?: { x: number; z: number };
   private simulationAccumulator = 0;
+  private readonly dynamicObstacles = new Map<string, readonly PlanningAnimalDynamicObstacle[]>();
+
+  /** Updates or removes one dynamic obstacle group (e.g. a streamed companion-stone cell) on the live habitat. */
+  setDynamicObstacles(groupKey: string, obstacles?: readonly PlanningAnimalDynamicObstacle[]): void {
+    if (obstacles?.length) this.dynamicObstacles.set(groupKey, obstacles);
+    else this.dynamicObstacles.delete(groupKey);
+    this.population?.habitat.setDynamicSolids(groupKey, obstacles);
+  }
+
+  /** Clears all dynamic obstacle groups (called before switching to a new world vegetation runtime). */
+  clearDynamicObstacles(): void {
+    this.dynamicObstacles.clear();
+    this.population?.habitat.clearDynamicSolids();
+  }
+
+  private applyDynamicObstacles(habitat: PlanningAnimalHabitat): void {
+    for (const [groupKey, obstacles] of this.dynamicObstacles) {
+      habitat.setDynamicSolids(groupKey, obstacles);
+    }
+  }
 
   /** Construct only after the host explicitly enables animals; model requests start on visible demand. */
   constructor(
@@ -220,9 +256,13 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
       this.errors = [];
       return;
     }
+    const templateHomeRadius = templateAnimalPopulation(plan.parameters.worldTemplate?.id)?.homeRadius;
     config = this.library.resolvePopulationConfig({
       ...config,
-      homeRadius: config.homeRadius ?? templateAnimalPopulation(plan.parameters.worldTemplate?.id)?.homeRadius,
+      homeRadius:
+        config.homeRadius !== undefined && templateHomeRadius !== undefined
+          ? Math.min(config.homeRadius, templateHomeRadius)
+          : (config.homeRadius ?? templateHomeRadius),
       ...(config.distribution
         ? {
             distribution: {
@@ -269,6 +309,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
           : undefined;
         if (!regions || regions.length) {
           current.habitat = new PlanningAnimalHabitat(plan, navigation, config, options.surface);
+          this.applyDynamicObstacles(current.habitat);
           this.revalidateSupport(
             current,
             change ? [...change.terrain, ...change.water, ...change.obstacles] : undefined
@@ -300,6 +341,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
     try {
       const placementStart = performance.now();
       const habitat = new PlanningAnimalHabitat(plan, navigation, config, options.surface);
+      this.applyDynamicObstacles(habitat);
       this.habitatBuildMilliseconds = performance.now() - placementStart;
       this.placementAttempts = 0;
       const spawnPoints = new Map(config.types.map((type) => [type.typeId, type.spawnPoint]));
@@ -372,7 +414,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
       });
       this.placementMilliseconds = performance.now() - placementStart;
       const root = this.parent.createChild("Seed animals");
-      const system = new AnimalSystem(),
+      const system = new AnimalSystem(12, 0.8, 192),
         crowd = new GroundAnimalCrowd();
       system.addMotionStep((dt) => crowd.advance(dt));
       candidate = {
@@ -388,12 +430,29 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
         queue: new Set(),
         plan,
         config: structuredClone(config),
+        outlineEnabled: WORLD_TEMPLATE_ART[plan.parameters.worldTemplate?.id ?? ""]?.animalOutline ?? true,
         observerX: NaN,
         observerZ: NaN,
         abort: new AbortController(),
-        spawns: new Map()
+        spawns: new Map(),
+        deletes: new Map(),
+        updates: new Map()
       };
-      for (const birth of layout.animals) this.addActor(candidate, birth);
+      const seed = plan.parameters.seed;
+      const removals = this.interactions.authoring?.readRemovals?.(seed) ?? [];
+      const removedIds = new Set(removals.map((entry) => entry.id));
+      for (const entry of removals) {
+        candidate.deletes!.set(entry.requestId, {
+          id: entry.id,
+          receipt: { requestId: entry.requestId, id: entry.id, status: "accepted" }
+        });
+      }
+      const overrides = this.interactions.authoring?.readOverrides?.(seed);
+      for (const birth of layout.animals) {
+        if (removedIds.has(birth.id)) continue;
+        const applied = this.applyOverrideToBirth(birth, overrides?.get(birth.id));
+        this.addActor(candidate, applied.birth, applied.scale);
+      }
       this.restoreAdditions(candidate);
       this.synchronizeFireflies(candidate);
       this.population = candidate;
@@ -587,29 +646,239 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
     return { ...receipt };
   }
 
+  /** Remove one existing animal (generated or spawned) persistently without rebuilding other actors. */
+  deleteAnimal(input: SeedWorldAnimalDelete): Promise<SeedWorldAnimalDeleteReceipt> {
+    const request = structuredClone(input), seed = this.population?.plan.parameters.seed;
+    const task = this.spawnTail.then(() => this.deleteAndSave(request, seed));
+    this.spawnTail = task.catch(() => undefined);
+    return task;
+  }
+
+  /** Update scale, appearance, position or heading on one existing animal persistently without rebuilding others. */
+  updateAnimal(input: SeedWorldAnimalUpdate): Promise<SeedWorldAnimalUpdateReceipt> {
+    const request = structuredClone(input), seed = this.population?.plan.parameters.seed;
+    const task = this.spawnTail.then(() => this.updateAndSave(request, seed));
+    this.spawnTail = task.catch(() => undefined);
+    return task;
+  }
+
+  private guardAnimalMutation(p: Population | undefined, requestedSeed: number | undefined, id: string, requestId: string): string | undefined {
+    if (!p || this.disposed) return this.enabled && !this.disposed ? "not_ready" : "disabled";
+    if (requestedSeed === undefined) return "not_ready";
+    if (p.plan.parameters.seed !== requestedSeed) return "world_changed";
+    if (!validAuthoringIdentity(id) || !validAuthoringIdentity(requestId)) return "invalid_request";
+    return undefined;
+  }
+
+  private async deleteAndSave(input: SeedWorldAnimalDelete, requestedSeed: number | undefined): Promise<SeedWorldAnimalDeleteReceipt> {
+    const p = this.population;
+    const reject = (reason: string): SeedWorldAnimalDeleteReceipt => ({ id: input.id, requestId: input.requestId, status: "rejected", reason });
+    const denied = this.guardAnimalMutation(p, requestedSeed, input.id, input.requestId);
+    if (denied) return reject(denied);
+    if (!this.interactions.authoring?.remove) return reject("persistence_unavailable");
+    const deletes = (p!.deletes ??= new Map());
+    const saved = this.interactions.authoring.readRemovals?.(requestedSeed!).find((e) => e.requestId === input.requestId);
+    if (saved && !deletes.has(input.requestId))
+      deletes.set(input.requestId, { id: saved.id, receipt: { id: saved.id, requestId: saved.requestId, status: "accepted" } });
+    const previous = deletes.get(input.requestId);
+    if (previous) return previous.id === input.id ? { ...previous.receipt } : reject("request_id_conflict");
+    if (!p!.actors.some((a) => a.birth.id === input.id)) return reject("not_found");
+    try {
+      await this.interactions.authoring.remove(requestedSeed!, input.id, input.requestId);
+    } catch {
+      return reject("persistence_failed");
+    }
+    const receipt: SeedWorldAnimalDeleteReceipt = { id: input.id, requestId: input.requestId, status: "accepted" };
+    const live = this.population;
+    const target = live && live.plan.parameters.seed === requestedSeed && !this.disposed ? live : p!;
+    (target.deletes ??= new Map()).set(input.requestId, { id: input.id, receipt });
+    if (target === live) this.removeActor(target, input.id);
+    return { ...receipt };
+  }
+
+  private async updateAndSave(input: SeedWorldAnimalUpdate, requestedSeed: number | undefined): Promise<SeedWorldAnimalUpdateReceipt> {
+    const p = this.population;
+    const reject = (reason: string): SeedWorldAnimalUpdateReceipt => ({ id: input.id, requestId: input.requestId, status: "rejected", reason });
+    const denied = this.guardAnimalMutation(p, requestedSeed, input.id, input.requestId);
+    if (denied) return reject(denied);
+    if (!this.interactions.authoring?.update) return reject("persistence_unavailable");
+    if (
+      (input.appearanceId !== undefined && !validAuthoringIdentity(input.appearanceId)) ||
+      (input.scale !== undefined && (!Number.isFinite(input.scale) || input.scale <= 0 || input.scale > 20)) ||
+      (input.heading !== undefined && !Number.isFinite(input.heading)) ||
+      (input.position !== undefined && ![input.position.x, input.position.z].every(Number.isFinite)) ||
+      (input.appearanceId === undefined && input.scale === undefined && input.position === undefined && input.heading === undefined)
+    )
+      return reject("invalid_request");
+    const key = JSON.stringify([input.id, input.appearanceId ?? null, input.scale ?? null, input.position?.x ?? null, input.position?.z ?? null, input.heading ?? null]);
+    const updates = (p!.updates ??= new Map());
+    const previous = updates.get(input.requestId);
+    if (previous) return previous.key === key ? { ...previous.receipt } : reject("request_id_conflict");
+    const actor = p!.actors.find((a) => a.birth.id === input.id);
+    if (!actor) return reject("not_found");
+    const targetAppearanceId = input.appearanceId ?? actor.asset.reference.appearanceId;
+    let resolvedAsset: ResolvedAnimalAsset;
+    try {
+      resolvedAsset = this.library.resolve({ typeId: actor.birth.typeId, appearanceId: targetAppearanceId });
+    } catch {
+      return reject("unknown_appearance");
+    }
+    const targetScale = input.scale ?? actor.animal?.scale ?? actor.asset.config.scale;
+    const nextRadius = animalCollisionRadius({ ...resolvedAsset.config, scale: targetScale });
+    const nextHeight = (resolvedAsset.config.bounds.max[1] - resolvedAsset.config.bounds.min[1]) * targetScale;
+    const curPos = actor.animal?.position ?? actor.birth.position;
+    const targetHeading = input.heading ?? actor.animal?.direction ?? actor.birth.heading;
+    let targetX = curPos.x, targetY = curPos.y, targetZ = curPos.z;
+    let targetMedium = actor.animal?.medium ?? actor.birth.medium ?? resolvedAsset.profile.preferredMedium ?? "ground";
+    if (input.position) {
+      const width = p!.plan.parameters.width ?? Infinity, depth = p!.plan.parameters.depth ?? Infinity;
+      if (input.position.x < 0 || input.position.x > width || input.position.z < 0 || input.position.z > depth) return reject("invalid_position");
+      const sampleHeight = p!.navigation?.sampleHeightInterpolated;
+      const groundY = typeof sampleHeight === "function" ? sampleHeight.call(p!.navigation, input.position.x, input.position.z) : undefined;
+      if ((groundY !== undefined && !Number.isFinite(groundY)) || (typeof sampleHeight === "function" && groundY === undefined)) return reject("invalid_position");
+      const waterY = p!.navigation?.sampleWaterHeight?.(input.position.x, input.position.z);
+      const inWater = groundY !== undefined && waterY !== undefined && Number.isFinite(waterY) && waterY > groundY + 0.05;
+      const preferred = resolvedAsset.profile.preferredMedium ?? "ground";
+      targetMedium = inWater && preferred === "water" ? "water" : "ground";
+      targetX = input.position.x; targetZ = input.position.z;
+      targetY = groundY !== undefined ? (inWater && targetMedium === "water" ? waterY! : groundY) : curPos.y;
+      const canTraverse = p!.habitat?.canTraverse;
+      if (typeof canTraverse === "function" && !canTraverse.call(p!.habitat, { x: targetX, z: targetZ }, { x: targetX, z: targetZ }, nextRadius, nextHeight, targetMedium))
+        return reject("position_blocked");
+    }
+    for (const other of p!.actors) {
+      if (other === actor) continue;
+      if ((other.animal?.medium ?? other.birth.medium ?? other.asset.profile.preferredMedium ?? "ground") !== targetMedium) continue;
+      const ox = other.animal?.position.x ?? other.x, oz = other.animal?.position.z ?? other.z;
+      if (Math.hypot(ox - targetX, oz - targetZ) < nextRadius + other.footprint.radius + 0.001)
+        return reject(input.position ? "position_blocked" : "scale_blocked");
+    }
+    const override: PlanningAnimalOverride = {
+      requestId: input.requestId,
+      requestKey: key,
+      ...(input.appearanceId !== undefined ? { appearanceId: targetAppearanceId } : {}),
+      ...(input.scale !== undefined ? { scale: targetScale } : {}),
+      ...(input.position !== undefined ? { position: [targetX, targetY, targetZ], medium: targetMedium } : {}),
+      ...(input.heading !== undefined ? { heading: targetHeading } : {})
+    };
+    try {
+      await this.interactions.authoring.update(requestedSeed!, input.id, override);
+    } catch {
+      return reject("persistence_failed");
+    }
+    let finalPosition: readonly [number, number, number] = [targetX, targetY, targetZ];
+    const live = this.population;
+    const target = live && live.plan.parameters.seed === requestedSeed && !this.disposed ? live : p!;
+    if (target === live) {
+      const liveActor = target.actors.find((a) => a.birth.id === input.id);
+      if (liveActor) {
+        this.applyLiveUpdate(target, liveActor, override);
+        finalPosition = this.coordinates(liveActor);
+      }
+    }
+    const receipt: SeedWorldAnimalUpdateReceipt = {
+      id: input.id, requestId: input.requestId, status: "accepted",
+      typeId: actor.birth.typeId, appearanceId: targetAppearanceId, scale: targetScale, position: finalPosition
+    };
+    (target.updates ??= new Map()).set(input.requestId, { key, receipt });
+    return { ...receipt };
+  }
+
+  private removeActor(p: Population, id: string): void {
+    const index = p.actors.findIndex((actor) => actor.birth.id === id);
+    if (index < 0) return;
+    const [actor] = p.actors.splice(index, 1);
+    p.active?.delete(actor);
+    p.coarse?.delete(actor);
+    p.queue?.delete(actor);
+    if (actor.animal) { actor.animal.dispose(); actor.animal = undefined; }
+    else p.crowd?.remove(actor.footprint);
+    const i = p.layout?.animals?.findIndex((b) => b.id === id) ?? -1;
+    if (i >= 0) p.layout.animals.splice(i, 1);
+  }
+
+  private applyOverrideToBirth(birth: AnimalPopulationInstance, override?: PlanningAnimalOverride, baseScale?: number) {
+    if (!override) return { birth, scale: baseScale };
+    return {
+      birth: {
+        ...birth,
+        ...(override.appearanceId ? { appearanceId: override.appearanceId } : {}),
+        ...(override.position ? { position: { x: override.position[0], y: override.position[1], z: override.position[2] } } : {}),
+        ...(override.heading !== undefined ? { heading: override.heading } : {}),
+        ...(override.medium ? { medium: override.medium } : {})
+      },
+      scale: override.scale ?? baseScale
+    };
+  }
+
+  private applyLiveUpdate(p: Population, actor: Actor, override: PlanningAnimalOverride): void {
+    const curPos = actor.animal?.position ?? actor.birth.position;
+    const tx = override.position ? override.position[0] : curPos.x;
+    const ty = override.position ? override.position[1] : curPos.y;
+    const tz = override.position ? override.position[2] : curPos.z;
+    const targetHeading = override.heading ?? actor.animal?.direction ?? actor.birth.heading;
+    const targetScale = override.scale ?? actor.animal?.scale ?? actor.asset.config.scale;
+    const targetAppearanceId = override.appearanceId ?? actor.asset.reference.appearanceId;
+    const targetMedium = override.medium ?? actor.animal?.medium ?? actor.birth.medium;
+    const appearanceChanged = targetAppearanceId !== actor.asset.reference.appearanceId;
+
+    actor.birth = { ...actor.birth, appearanceId: targetAppearanceId, position: { x: tx, y: ty, z: tz }, heading: targetHeading, ...(targetMedium ? { medium: targetMedium } : {}) };
+    actor.x = tx; actor.z = tz;
+    if (override.position && actor.home) actor.home = { ...actor.home, x: tx, z: tz };
+    const resolved = this.library.resolve({ typeId: actor.birth.typeId, appearanceId: targetAppearanceId });
+    actor.asset = { ...resolved, config: { ...resolved.config, scale: targetScale } };
+    actor.footprint.radius = animalCollisionRadius(actor.asset.config);
+    actor.footprint.height = (actor.asset.config.bounds.max[1] - actor.asset.config.bounds.min[1]) * targetScale;
+    actor.footprint.bodyLength = (actor.asset.config.bounds.max[2] - actor.asset.config.bounds.min[2]) * targetScale;
+    actor.footprint.elevation = ty;
+    if (actor.footprint.motion) Object.assign(actor.footprint.motion, { x: tx, z: tz, heading: targetHeading });
+    if (targetMedium) actor.footprint.layer = targetMedium;
+    actor.wakeDistance = animalWakeDistance(p.config.activationDistance, actor.asset);
+    actor.wakeTravel = animalWakeDistance(0, actor.asset);
+
+    if (appearanceChanged) {
+      p.active?.delete(actor); p.coarse?.delete(actor); p.queue?.delete(actor);
+      if (actor.animal) { actor.animal.dispose(); actor.animal = undefined; } else p.crowd?.remove(actor.footprint);
+      actor.state = "unloaded";
+      if (p.root && p.crowd) { p.crowd.add(actor.footprint); this.createAnimal(p, actor); }
+    } else if (actor.animal) {
+      const shrinking = override.scale !== undefined && targetScale < actor.animal.scale;
+      if (shrinking) actor.animal.setScale(targetScale);
+      if ((override.position || override.heading !== undefined) && actor.animal.relocate([tx, tz], targetHeading))
+        actor.animal.resumeBehavior();
+      if (override.scale !== undefined && !shrinking) {
+        try { actor.animal.setScale(targetScale); }
+        catch { if (actor.animal.relocate([tx, tz], targetHeading)) { actor.animal.setScale(targetScale); actor.animal.resumeBehavior(); } }
+      }
+    } else if (override.position || override.heading !== undefined) {
+      p.crowd?.relocate(actor.footprint, tx, tz, targetHeading);
+    }
+    const layoutEntry = p.layout?.animals?.find((entry) => entry.id === actor.birth.id);
+    if (layoutEntry) Object.assign(layoutEntry, actor.birth);
+    this.admit(p, actor);
+    if (appearanceChanged && p.queue?.has(actor)) this.loadQueued(p);
+  }
+
   private restoreAdditions(p: Population): void {
-    for (const addition of this.interactions.authoring?.read(p.plan.parameters.seed) ?? []) {
+    const seed = p.plan.parameters.seed;
+    const removedIds = new Set((this.interactions.authoring?.readRemovals?.(seed) ?? []).map((e) => e.id));
+    const overrides = this.interactions.authoring?.readOverrides?.(seed);
+    for (const addition of this.interactions.authoring?.read(seed) ?? []) {
       const instance = addition.instance;
-      const receipt: SeedWorldAnimalSpawnReceipt = {
-        requestId: addition.requestId,
-        status: "accepted",
-        id: instance.id,
-        typeId: instance.typeId,
-        appearanceId: instance.appearanceId
-      };
-      p.spawns.set(addition.requestId, { key: addition.requestKey, receipt });
+      if (removedIds.has(instance.id)) continue;
+      p.spawns.set(addition.requestId, {
+        key: addition.requestKey,
+        receipt: { requestId: addition.requestId, status: "accepted", id: instance.id, typeId: instance.typeId, appearanceId: instance.appearanceId }
+      });
       if (p.actors.some((actor) => actor.birth.id === instance.id)) continue;
-      const birth: AnimalPopulationInstance = {
-        id: instance.id,
-        typeId: instance.typeId,
-        appearanceId: instance.appearanceId,
+      const baseBirth: AnimalPopulationInstance = {
+        id: instance.id, typeId: instance.typeId, appearanceId: instance.appearanceId,
         position: { x: instance.position[0], y: instance.position[1], z: instance.position[2] },
-        heading: instance.heading,
-        seed: addition.behaviorSeed,
-        ...(addition.medium ? { medium: addition.medium } : {})
+        heading: instance.heading, seed: addition.behaviorSeed, ...(addition.medium ? { medium: addition.medium } : {})
       };
-      const actor = this.addActor(p, birth, instance.scale);
-      p.layout.animals.push(birth);
+      const applied = this.applyOverrideToBirth(baseBirth, overrides?.get(instance.id), instance.scale);
+      const actor = this.addActor(p, applied.birth, applied.scale);
+      p.layout.animals.push(applied.birth);
       p.layout.requestedCount++;
       this.admit(p, actor);
     }
@@ -654,6 +923,20 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
     return actor;
   }
 
+  /**
+   * When set during startup (before first-screen reveal), `loadQueued` only dispatches GLB
+   * downloads for actors that are actually visible (`wanted`) within the spawn camera frustum,
+   * leaving behind-camera and hidden wake-buffer animals queued until post-reveal.
+   */
+  private startupDeferOffscreenCamera?: Camera;
+  private readonly startupFrustumMatrix = new Matrix();
+  private readonly startupFrustum = new BoundingFrustum();
+  private readonly startupActorBox = new BoundingBox();
+
+  setStartupDeferOffscreenCamera(camera: Camera | undefined): void {
+    this.startupDeferOffscreenCamera = camera;
+  }
+
   /** Prepare only actors already admitted at the current observer position, without advancing simulation. */
   async preparePresentation(): Promise<void> {
     const population = this.population;
@@ -663,12 +946,15 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
   }
 
   /**
-   * Prepare shader warmup renderers and alternate (outlined / plain) toon materials for every
-   * distinct animal species present in the current population, including distant species not yet
-   * within spawn admission range. Temporary warmup clones live under an inactive entity and never
-   * affect live simulation or streaming state.
+   * Prepare shader warmup renderers and alternate (outlined / plain) toon materials for animal
+   * species in the current population. When `includeUnloadedSpecies` is false, only already-loaded
+   * spawn animals' alternate materials are collected (zero distant GLB downloads or instantiations);
+   * otherwise distant unloaded species are also instantiated under an inactive temporary root.
    */
-  async prepareShaderWarmup(signal?: AbortSignal): Promise<
+  async prepareShaderWarmup(
+    signal?: AbortSignal,
+    options?: { readonly includeUnloadedSpecies?: boolean }
+  ): Promise<
     | {
         readonly renderers: readonly Renderer[];
         readonly extraMaterials: ReadonlyMap<Renderer, readonly Material[]>;
@@ -678,6 +964,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
   > {
     const population = this.population;
     if (!population || this.disposed || signal?.aborted) return undefined;
+    const includeUnloadedSpecies = options?.includeUnloadedSpecies !== false;
     const extraMaterials = new Map<Renderer, Material[]>();
     const coveredTypeIds = new Set<string>();
     const unloadedByTypeId = new Map<string, Actor>();
@@ -685,13 +972,15 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
       if (actor.state === "loaded" && actor.animal) {
         coveredTypeIds.add(actor.asset.config.id);
         actor.animal.collectShaderWarmupMaterials(extraMaterials as Map<MeshRenderer, Material[]>);
-      } else if (actor.supportValid && !unloadedByTypeId.has(actor.asset.config.id)) {
+      } else if (includeUnloadedSpecies && actor.supportValid && !unloadedByTypeId.has(actor.asset.config.id)) {
         unloadedByTypeId.set(actor.asset.config.id, actor);
       }
     }
     const toLoad: Actor[] = [];
-    for (const [typeId, actor] of unloadedByTypeId) {
-      if (!coveredTypeIds.has(typeId)) toLoad.push(actor);
+    if (includeUnloadedSpecies) {
+      for (const [typeId, actor] of unloadedByTypeId) {
+        if (!coveredTypeIds.has(typeId)) toLoad.push(actor);
+      }
     }
     const renderers: Renderer[] = [];
     const ownedMaterials: Material[] = [];
@@ -724,7 +1013,9 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
             renderer.getMaterials().forEach((sourceMaterial, index) => {
               if (!sourceMaterial) return;
               const correction = config.materials?.find((entry) => entry.name === sourceMaterial.name);
-              let outlined = this.resolveMaterial(sourceMaterial);
+              let outlined = population.outlineEnabled
+                ? this.resolveMaterial(sourceMaterial)
+                : this.resolvePlainMaterial(sourceMaterial);
               let plain = this.resolvePlainMaterial(sourceMaterial);
               if (correction) {
                 const applyCorrection = (base: Material): Material => {
@@ -787,10 +1078,15 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
     const deltaTime = Math.min(Math.max(seconds, 0), 0.1);
     p.fireflies?.population.prepare(deltaTime, this.observer(), this.interactions.fireflies?.activity() ?? 0);
     if (p.active.size || p.coarse.size || (p.fireflies?.population.visibility ?? 0) > 0) {
-      this.simulationAccumulator = Math.min(this.simulationAccumulator + deltaTime, 0.1);
-      const stepCount = Math.floor((this.simulationAccumulator + 1e-6) / ANIMAL_FIXED_STEP_SECONDS);
-      if (stepCount > 0) {
-        const stepSeconds = stepCount * ANIMAL_FIXED_STEP_SECONDS;
+      // Bound animal simulation to at most one fixed 30Hz step per rendered frame so a slow frame
+      // never cascades 2-3x crowd/motion substeps into a 12ms CPU spiral, while retaining up to
+      // one sub-step of remainder so 31-59 FPS devices still average a true 30Hz simulation rate.
+      this.simulationAccumulator = Math.min(
+        this.simulationAccumulator + deltaTime,
+        ANIMAL_FIXED_STEP_SECONDS * 2 - 1e-5
+      );
+      if (this.simulationAccumulator + 1e-6 >= ANIMAL_FIXED_STEP_SECONDS) {
+        const stepSeconds = ANIMAL_FIXED_STEP_SECONDS;
         this.simulationAccumulator = Math.max(0, this.simulationAccumulator - stepSeconds);
         p.navigation.beginAnimalUpdate?.();
         try {
@@ -814,7 +1110,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
           }
         }
       }
-      if (OUTLINE_ZERO_DISTANCE > 0 && p.active.size) {
+      if (p.outlineEnabled && OUTLINE_ZERO_DISTANCE > 0 && p.active.size) {
         const observer = this.observer();
         for (const actor of p.active) this.updateActorOutline(actor, observer.x, observer.y, observer.z);
       }
@@ -919,7 +1215,11 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
 
   private refreshObserver(p: Population, force = false): void {
     const observer = this.observer();
-    if (!force && observer.x === p.observerX && observer.z === p.observerZ) return;
+    if (!force) {
+      const dx = observer.x - p.observerX;
+      const dz = observer.z - p.observerZ;
+      if (dx * dx + dz * dz < 0.25) return;
+    }
     p.observerX = observer.x;
     p.observerZ = observer.z;
     for (const actor of p.actors) {
@@ -1023,8 +1323,30 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
 
   private loadQueued(p: Population): void {
     if (!p.queue.size) return;
+    const deferCam = this.startupDeferOffscreenCamera as
+      | (Camera & { projectionMatrix?: Matrix; viewMatrix?: Matrix })
+      | undefined;
+    let frustum: BoundingFrustum | undefined;
+    if (deferCam?.projectionMatrix && deferCam.viewMatrix) {
+      Matrix.multiply(deferCam.projectionMatrix, deferCam.viewMatrix, this.startupFrustumMatrix);
+      this.startupFrustum.calculateFromMatrix(this.startupFrustumMatrix);
+      frustum = this.startupFrustum;
+    }
     // Dispatch every admitted animal independently; completion or failure never gates another request.
-    for (const actor of p.queue) this.loadActor(p, actor);
+    for (const actor of p.queue) {
+      if (deferCam) {
+        if (!actor.wanted) continue;
+        if (frustum) {
+          const height = actor.footprint.height ?? 1;
+          const margin = Math.max(6, actor.footprint.radius + height * 2);
+          const y = actor.footprint.elevation ?? actor.birth.position.y;
+          this.startupActorBox.min.set(actor.x - margin, y - 2, actor.z - margin);
+          this.startupActorBox.max.set(actor.x + margin, y + height + 2, actor.z + margin);
+          if (!frustum.intersectsBox(this.startupActorBox)) continue;
+        }
+      }
+      this.loadActor(p, actor);
+    }
   }
 
   private loadActor(p: Population, actor: Actor): void {
@@ -1034,13 +1356,13 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
     const task = this.library
       .load(actor.asset.reference, p.abort.signal)
       .then((asset) => {
-        if (this.population !== p || this.disposed) return;
+        if (this.population !== p || this.disposed || !p.actors.includes(actor) || !actor.animal) return;
         if (!actor.admitted) {
           actor.state = "unloaded";
           this.admit(p, actor);
           return;
         }
-        if (OUTLINE_ZERO_DISTANCE > 0) {
+        if (p.outlineEnabled && OUTLINE_ZERO_DISTANCE > 0) {
           const observer = this.observer();
           this.updateActorOutline(actor, observer.x, observer.y, observer.z);
         }
@@ -1081,7 +1403,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
         {
           random: randomStream(actor.birth.seed),
           tightTurns: !!actor.home,
-          resolveMaterial: this.resolveMaterial,
+          resolveMaterial: p.outlineEnabled ? this.resolveMaterial : this.resolvePlainMaterial,
           resolvePlainMaterial: this.resolvePlainMaterial,
           distantUpdateSeconds: DISTANT_ANIMAL_UPDATE_SECONDS,
           interactionArrivalRadius: () =>
@@ -1222,13 +1544,20 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
       // Bounded landing proposals, not a full-map/path scan. ConfiguredAnimal validates
       // the executable departure arc and keeps probing ahead while the flight advances.
       const source = query.query === AnimalQuery.Flee ? event?.source : undefined;
+      const minDistance = Math.max(
+        2,
+        Math.min(home ? home.radius * 0.75 : Infinity, query.query === AnimalQuery.Flee ? 12 : 4)
+      );
+      const minDistanceSq = minDistance * minDistance;
       for (let attempt = 0; attempt < 32; attempt++) {
         const candidate = home
           ? sampleAnimalSpawnDisk(home, home.radius, random)
           : habitat.flightCandidate(arrivalMedium, random);
         if (!candidate || !canArrive(candidate.x, candidate.z)) continue;
-        if (source && (candidate.x - from.x) * (from.x - source[0]) + (candidate.z - from.z) * (from.z - source[1]) < 0)
-          continue;
+        const dx = candidate.x - from.x,
+          dz = candidate.z - from.z;
+        if (dx * dx + dz * dz < minDistanceSq) continue;
+        if (source && dx * (from.x - source[0]) + dz * (from.z - source[1]) < 0) continue;
         return [candidate.x, candidate.z];
       }
       return null;
@@ -1430,6 +1759,8 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
         id: a.birth.id,
         typeId: a.birth.typeId,
         speciesId: seedAnimalSpeciesId(a.birth.typeId),
+        appearanceId: a.asset.reference.appearanceId,
+        scale: a.animal?.scale ?? a.asset.config.scale,
         label: a.asset.config.name,
         loaded: a.state === "loaded",
         visible: !!a.animal?.visible,
@@ -1758,6 +2089,14 @@ function destroyPopulation(p: Population): void {
 }
 function populationKey(config: AnimalPopulationConfig): string {
   return JSON.stringify({ ...config, activationDistance: 0, interaction: undefined, fireflies: undefined });
+}
+function validAuthoringIdentity(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    !!value.trim() &&
+    new TextEncoder().encode(value).length <= 128 &&
+    !/[\u0000-\u001f]/.test(value)
+  );
 }
 function randomStream(seed: number): () => number {
   let value = seed >>> 0;

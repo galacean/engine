@@ -12,6 +12,8 @@ export interface ShaderPrecompileOptions {
   emitIndex?: boolean;
   /** Emit raw-source indexes (`.shader` + `.glsl`) into the input tree. */
   emitSources?: boolean;
+  /** Directory containing GLSL library sources for this build. */
+  includeLibrary?: string;
   /** Shader platform target. Defaults to GLSL ES 3.00. */
   platformTarget?: number;
 }

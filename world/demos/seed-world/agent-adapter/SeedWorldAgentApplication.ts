@@ -5,6 +5,18 @@ import type { RuntimeProjectSession } from "@galacean/engine-runtime-editor/proj
 import type { RuntimeSceneInspection } from "@galacean/engine-runtime-editor/runtime-inspection/runtime-scene-inspection";
 import { resolveSeedWorldTerrainTransitionDurationSeconds } from "@galacean/engine-terrain/world/SeedWorldTerrainTransition";
 import { treeVariationKey } from "@galacean/engine-vegetation/world/SeedWorldTreeShapeControls";
+import {
+  colorableAssetKinds,
+  VegetationColors,
+  vegetationAreaWeight,
+  vegetationColorKey,
+  vegetationColorPatchSchema,
+  vegetationColorTargetSchema,
+  type VegetationColorPatch,
+  type VegetationColorSample,
+  type VegetationColorTarget
+} from "@galacean/engine-world-planning/spatial/VegetationColors";
+import { ringArea } from "@galacean/engine-world-planning/semantic-study/WorldPlanningGeometry";
 import type {
   SeedWorldAssetDomain,
   SeedWorldAssetMutationResult,
@@ -460,7 +472,10 @@ export class SeedWorldAgentApplication {
       resourcePort,
       planningEdit?.service,
       planningEdit
-        ? () => (planningEdit.session.result ? planningPickAssets(planningEdit.session.result.plan) : [])
+        ? () => {
+            const plan = planningEdit.session.result?.plan;
+            return plan ? planningPickAssets(plan, this.planningResources?.templateCatalog?.(plan)) : [];
+          }
         : this._additionalAssets,
       planningEdit ? this.parameterAuthoring?.forSession?.(planningEdit.session) : undefined,
       this.planningResources,
@@ -911,6 +926,28 @@ export class SeedWorldAgentApplication {
   }
 
   private _withRuntimeProperties(item: Readonly<SeedWorldSelectionItem>): Readonly<SeedWorldSelectionItem> {
+    const kind = item.ref.kind;
+    if (
+      item.ref.domain === "vegetation" &&
+      (colorableAssetKinds as readonly string[]).includes(kind) &&
+      !item.properties.treeRecipeId
+    ) {
+      const records = this._engine.readAuthoringSnapshot().vegetationColors;
+      if (records) {
+        const colors = new VegetationColors(records);
+        const sample = vegetationColorSample(item);
+        return freezeClone({
+          ...item,
+          properties: {
+            ...item.properties,
+            colorOverride: {
+              foliage: colors.resolve(sample, "foliageColorRgb"),
+              bark: colors.resolve(sample, "barkColorRgb")
+            }
+          }
+        });
+      }
+    }
     const colorRgb = item.ref.domain === "water" ? this._engine.readWaterColor?.(item.ref) : undefined;
     return freezeClone(colorRgb ? { ...item, properties: { ...item.properties, colorRgb } } : item);
   }
@@ -1534,12 +1571,105 @@ export class SeedWorldAgentApplication {
     });
   }
 
+  async recolorVegetationArea(
+    areaId: string,
+    area: Omit<Extract<VegetationColorTarget, { kind: "area" }>, "kind" | "id"> | undefined,
+    patch: VegetationColorPatch,
+    control: SeedWorldMutationControl,
+    signal: AbortSignal
+  ): Promise<SeedWorldAuthoringResult> {
+    const records = this._engine.readAuthoringSnapshot().vegetationColors;
+    if (!records) throw new Error("Local plant colors require a planning world");
+    const previous = records
+      .map((record) => record.properties.target)
+      .find((target) => target.kind === "area" && target.id === areaId);
+    const color = vegetationColorPatchSchema.parse(patch);
+    if (!previous && (!color || Object.values(color).every((channel) => channel === null))) {
+      signal.throwIfAborted();
+      this._validateMutationControl(control, boundsEffect(undefined, 0));
+      return unchangedAuthoringResult(this._currentRevision(), "Color area already clear");
+    }
+    if (!area && !previous) throw new Error("A new color area requires a shape and targetKinds");
+    const target = vegetationColorTargetSchema.parse({ ...(area ?? previous), kind: "area", id: areaId });
+    if (target.kind !== "area") throw new Error("Expected a color area");
+    if (color?.barkColorRgb && !target.targetKinds.some(kind => kind === "tree" || kind === "shrub"))
+      throw new Error("A bark color requires trees or shrubs");
+    const areas = previous?.kind === "area" ? [previous, target] : [target];
+    const effect = vegetationAreaEffect(target.shape);
+    let affected = effect;
+    if (control.impactBudget?.maxObjectCount !== undefined) {
+      const assets = this._assets.list({ domains: ["vegetation"], kinds: ["tree", "shrub", "flower-field"] });
+      const hits = assets.filter((item) => {
+        const sample = vegetationColorSample(item);
+        return sample.id && !item.properties.treeRecipeId && areas.some((a) => vegetationAreaWeight(a, sample) > 0);
+      });
+      affected = { ...effect, objectCount: Math.max(1, hits.length) };
+    }
+    if (previous?.kind === "area" && JSON.stringify(previous.shape) !== JSON.stringify(target.shape)) {
+      const old = vegetationAreaEffect(previous.shape);
+      const envelope = boundsEffect(unionBounds(old.bounds, effect.bounds), affected.objectCount);
+      affected = {
+        ...envelope,
+        areaSquareMetres: Math.min(envelope.areaSquareMetres, old.areaSquareMetres + effect.areaSquareMetres)
+      };
+    }
+    return this._executeMutations(
+      [{ action: "update", resourceType: "vegetation-color", target, patch: color }],
+      control,
+      affected,
+      signal,
+      { areaId, area: target, colorOverride: color }
+    );
+  }
+
   async updateVegetation(
     ref: Readonly<SeedWorldRef>,
     patch: SeedWorldVegetationFeaturePatch,
     control: SeedWorldMutationControl,
     signal: AbortSignal
   ): Promise<SeedWorldVegetationUpdateResult> {
+    let colorMutation: Extract<SeedWorldResourceMutation, { resourceType: "vegetation-color" }> | undefined;
+    if (patch.colorOverride !== undefined) {
+      if (ref.domain !== "vegetation") throw new Error("A plant color requires a vegetation reference");
+      const asset = this._assets.get(ref);
+      if (!asset) throw new Error(`WorldRef '${ref.id}' no longer exists`);
+      if (asset.properties.treeRecipeId || !this._engine.readAuthoringSnapshot().vegetationColors)
+        throw new Error("NOT_SUPPORTED: This population renderer has no local color authoring");
+      const target = vegetationColorTargetSchema.parse({ kind: "asset", id: ref.id, assetKind: ref.kind });
+      if (target.kind !== "asset") throw new Error("Expected a vegetation asset");
+      const color = vegetationColorPatchSchema.parse(patch.colorOverride);
+      const kind = target.assetKind;
+      const plant =
+        kind === "forest" ? "tree" : kind === "shrubland" ? "shrub" : kind === "flower-field" ? "flower" : kind;
+      if (plant === "flower" && color?.barkColorRgb) throw new Error("Flowers have no bark color");
+      colorMutation = { action: "update", resourceType: "vegetation-color", target, patch: color };
+      if (Object.keys(patch).length === 1) {
+        const count =
+          plant === "flower"
+            ? null
+            : kind === "forest" || kind === "shrubland"
+              ? typeof asset.properties.memberCount === "number"
+                ? asset.properties.memberCount
+                : this._assets
+                    .list({ domains: ["vegetation"], kinds: [plant] })
+                    .filter((item) => item.relations?.parent?.id === ref.id).length
+              : 1;
+        const result = singleAssetMutationResult(
+          await this._executeMutations(
+            [{ ...colorMutation, ref }],
+            control,
+            boundsEffect(asset.bounds, count ?? 1),
+            signal,
+            { scope: "asset", colorOverride: color }
+          ),
+          "update"
+        );
+        return {
+          ...result,
+          updated: { plant, assetKind: kind, realizedPlantCount: result.status === "preview" ? null : count }
+        };
+      }
+    }
     if (patch.treeShape !== undefined) {
       if (
         ref.domain !== "vegetation" ||
@@ -1560,7 +1690,7 @@ export class SeedWorldAgentApplication {
             ? ` (proceduralAssetId=${asset.properties.proceduralAssetId})`
             : "";
         throw new Error(
-          `NOT_SUPPORTED: This native procedural tree${assetIdHint} has no treeRecipeId and does not support vegetation.update treeShape; native trees have no per-instance color override and share species materials via vegetation.materials.inspect/apply`
+          `NOT_SUPPORTED: This native procedural tree${assetIdHint} has no treeRecipeId. Use vegetation.update colorOverride for this tree or vegetation.materials.inspect/apply for shared species materials`
         );
       }
       const effectIndex = patch.treeEffectIndex ?? asset.properties.treeEffectIndex;
@@ -1662,12 +1792,13 @@ export class SeedWorldAgentApplication {
           resourceId: resource.resourceId,
           expectedContentHash: resource.contentHash,
           patch: resourcePatch
-        }
+        },
+        ...(colorMutation ? [colorMutation] : [])
       ],
       control,
       mutationEffect(properties.x, properties.z, properties.radiusMetres, 0),
       signal,
-      resourcePatch
+      colorMutation ? { ...resourcePatch, colorOverride: colorMutation.patch } : resourcePatch
     );
     const result = singleAssetMutationResult(mutationResult, "update");
     const plant = resource.properties.plantKind;
@@ -2092,6 +2223,8 @@ export class SeedWorldAgentApplication {
   ): Promise<SeedWorldAuthoringResult> {
     this._requireState();
     this._validateMutationControl(control, effect);
+    // A pigment accompanying an authored placement is part of the same public asset edit.
+    const matchedCount = mutations.filter(m => m.resourceType !== "vegetation-color" || m.target.kind === "area" || m.ref).length;
     if (control.executionMode === "preview") {
       if (control.edit) await this._engine.validateWorldResources?.(mutations, signal, control.edit);
       else await this._engine.validateWorldResources?.(mutations, signal);
@@ -2099,7 +2232,7 @@ export class SeedWorldAgentApplication {
         status: "preview" as const,
         transactionId: null,
         worldRevision: this._currentRevision(),
-        matchedCount: mutations.length,
+        matchedCount,
         createdCount: 0,
         updatedCount: 0,
         deletedCount: 0,
@@ -2122,7 +2255,7 @@ export class SeedWorldAgentApplication {
         ? this._engine.mutateWorldResources(mutations, signal, control.edit)
         : this._engine.mutateWorldResources(mutations, signal))) as MutationReceipt;
     const result = this._authoringResultFromReceipt(raw, mutations, {
-      matchedCount: mutations.length,
+      matchedCount,
       affectedBounds: effect.bounds,
       resolvedEffect,
       logicalDeletedRefs: refOverrides?.logicalDeletedRefs
@@ -2158,6 +2291,14 @@ export class SeedWorldAgentApplication {
           ]
         : []);
     const publicEntries = entries.flatMap((entry) => {
+      if (entry.resourceType === "vegetation-color") {
+        const mutation = mutations.find(
+          (m) => m.resourceType === "vegetation-color" && vegetationColorKey(m.target) === entry.resourceId
+        );
+        return mutation?.resourceType === "vegetation-color" && mutation.ref
+          ? [{ entry, ref: Object.freeze({ ...mutation.ref, revision }) }]
+          : [];
+      }
       if (entry.resourceType === "tree-variation") {
         const objects = this._engine.queryWorldObjects({ kinds: ["tree"], orderBy: [], limit: 1_000_000 }).objects;
         const resources = this._engine.readAuthoringSnapshot().resources;
@@ -2227,7 +2368,8 @@ export class SeedWorldAgentApplication {
     const refsTruncated = [allCreatedRefs, allUpdatedRefs, allDeletedRefs].some(
       (items) => items.length > MAX_AUTHORING_RESULT_REFS
     );
-    const realizedPlantCount = entries.length === 1 ? entries[0]?.realizedPlantCount : undefined;
+    const resourceEntries = entries.filter(entry => entry.resourceType !== "vegetation-color");
+    const realizedPlantCount = resourceEntries.length === 1 ? resourceEntries[0]?.realizedPlantCount : undefined;
     const resolvedEffect =
       extra.resolvedEffect || realizedPlantCount !== undefined
         ? freezeJsonObject({
@@ -2241,7 +2383,18 @@ export class SeedWorldAgentApplication {
       worldRevision: revision,
       matchedCount: extra.matchedCount ?? mutations.length,
       createdCount: allCreatedRefs.length,
-      updatedCount: allUpdatedRefs.length,
+      updatedCount:
+        allUpdatedRefs.length +
+        entries.filter(
+          (entry) =>
+            entry.resourceType === "vegetation-color" &&
+            mutations.some(
+              (m) =>
+                m.resourceType === "vegetation-color" &&
+                m.target.kind === "area" &&
+                vegetationColorKey(m.target) === entry.resourceId
+            )
+        ).length,
       deletedCount: allDeletedRefs.length,
       skippedCount: 0,
       createdRefs: Object.freeze(allCreatedRefs.slice(0, MAX_AUTHORING_RESULT_REFS)),
@@ -2379,6 +2532,38 @@ function readRealizedPlantCount(result: SeedWorldAuthoringResult): number {
     throw new Error("Vegetation transaction completed without a realizedPlantCount");
   }
   return realizedPlantCount;
+}
+
+function vegetationColorSample(item: SeedWorldAssetCandidate): VegetationColorSample {
+  const { kind, id } = item.ref;
+  const single =
+    kind === "tree" || kind === "shrub" || (kind === "flower-field" && item.properties.distribution === "clump");
+  return {
+    id: single ? id : "",
+    kind: kind === "tree" || kind === "forest" ? "tree" : kind === "flower-field" ? "flower" : "shrub",
+    ownerId: item.relations?.parent?.id,
+    regionId: single ? undefined : id,
+    assetId:
+      typeof item.properties.proceduralAssetId === "string"
+        ? item.properties.proceduralAssetId
+        : typeof item.properties.species === "string"
+          ? item.properties.species
+          : undefined,
+    position: single ? item.position : undefined
+  };
+}
+
+function vegetationAreaEffect(shape: Extract<VegetationColorTarget, { kind: "area" }>["shape"]): MutationEffect {
+  if (shape.kind === "circle") return mutationEffect(shape.center.x, shape.center.z, shape.radiusMetres, 0);
+  const bounds = shape.points.reduce<SeedWorldBounds | undefined>(
+    (box, p) =>
+      unionBounds(box, {
+        minimum: [p.x, 0, p.z],
+        maximum: [p.x, 0, p.z]
+      }),
+    undefined
+  );
+  return { bounds, areaSquareMetres: ringArea(shape.points), objectCount: 1, terrainDeltaMetres: 0 };
 }
 
 function boundsEffect(bounds: SeedWorldBounds | undefined, objectCount: number): MutationEffect {

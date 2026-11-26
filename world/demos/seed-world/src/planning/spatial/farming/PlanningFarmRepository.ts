@@ -15,14 +15,55 @@ import {
 import { FarmingInitializationError } from "@galacean/engine-farming/farming/application/FarmingInitializationError";
 import { stableRequest } from "@galacean/engine-farming/farming/application/FarmingCommandBinding";
 import type { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
+import type { FarmWallClockAnchor } from "./PlanningFarmClock.ts";
 import { validatePlanningFarmSave } from "./PlanningFarmSave.ts";
 
 export { PLANNING_FARMING_PROJECT_PATH } from "@galacean/engine-world-planning/spatial/farming/PlanningFarmInitialization";
 export const PLANNING_FARMING_PROJECT_TYPE = "SeedWorldFarming";
+export type { FarmWallClockAnchor } from "./PlanningFarmClock.ts";
 interface FarmingProjectData {
   version: 1;
   farms: Record<string, FarmSnapshot>;
   initializations?: Record<string, PlanningFarmInitialization>;
+  wallClockAnchors?: Record<string, FarmWallClockAnchor>;
+}
+
+function validWallClockAnchor(value: unknown): FarmWallClockAnchor | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const candidate = value as Record<string, unknown>;
+  const { savedAtWallMs, snapshotTimeMs, revision } = candidate;
+  if (
+    typeof savedAtWallMs !== "number" ||
+    !Number.isSafeInteger(savedAtWallMs) ||
+    savedAtWallMs < 0 ||
+    typeof snapshotTimeMs !== "number" ||
+    !Number.isSafeInteger(snapshotTimeMs) ||
+    snapshotTimeMs < 0 ||
+    typeof revision !== "number" ||
+    !Number.isSafeInteger(revision) ||
+    revision < 0
+  ) {
+    return undefined;
+  }
+  return { savedAtWallMs, snapshotTimeMs, revision };
+}
+function sanitizeWallClockAnchors(value: unknown): Record<string, FarmWallClockAnchor> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const clean: Record<string, FarmWallClockAnchor> = {};
+  let count = 0;
+  for (const [id, entry] of Object.entries(value as Record<string, unknown>)) {
+    const anchor = validWallClockAnchor(entry);
+    if (anchor) {
+      clean[id] = anchor;
+      count++;
+    }
+  }
+  return count > 0 ? clean : undefined;
+}
+function readValidWallClockAnchor(anchors: unknown, farmId: string): FarmWallClockAnchor | undefined {
+  if (!anchors || typeof anchors !== "object" || Array.isArray(anchors) || !Object.hasOwn(anchors, farmId))
+    return undefined;
+  return validWallClockAnchor((anchors as Record<string, unknown>)[farmId]);
 }
 interface FarmSubscriber {
   readonly origin?: symbol;
@@ -122,7 +163,8 @@ export class PlanningFarmRepository implements FarmRepository {
     private readonly ErrorType: typeof FarmingInitializationError = FarmingInitializationError,
     readonly path = PLANNING_FARMING_PROJECT_PATH,
     private readonly readResource?: () => JSONAsset | null | undefined,
-    private readonly validateSave: (snapshot: FarmSnapshot, farmId: string) => void = validatePlanningFarmSave
+    private readonly validateSave: (snapshot: FarmSnapshot, farmId: string) => void = validatePlanningFarmSave,
+    private readonly wallNowMs: () => number = () => Date.now()
   ) {
     this.owner = project.ownRuntimeAsset(
       {
@@ -217,6 +259,15 @@ export class PlanningFarmRepository implements FarmRepository {
         rebaseTime: snapshot.simulation.lastSystemTimeMs !== settled?.simulation.lastSystemTimeMs
       });
     }
+    // External edits/imports rebase rather than crediting offline wall time from another save.
+    const preservedAnchors: Record<string, FarmWallClockAnchor> = {};
+    for (const id of Object.keys(data.farms)) {
+      if (changed.has(id)) continue;
+      const anchor = readValidWallClockAnchor(previous.wallClockAnchors, id);
+      if (anchor) preservedAnchors[id] = anchor;
+    }
+    if (Object.keys(preservedAnchors).length > 0) data.wallClockAnchors = preservedAnchors;
+    else delete data.wallClockAnchors;
     let serialized = JSON.stringify(data);
     this.replacing = changed.size > 0;
     return {
@@ -285,6 +336,11 @@ export class PlanningFarmRepository implements FarmRepository {
       throw new this.ErrorType("INVALID_SNAPSHOT", "Farm identity mismatch");
     return this.clocks.get(farmId) ?? (saved && this.freeze(saved));
   }
+  async readWallClockAnchor(farmId: string): Promise<FarmWallClockAnchor | undefined> {
+    await this.queue;
+    const data = this.parse(this.content());
+    return readValidWallClockAnchor(data.wallClockAnchors, farmId);
+  }
   private freeze(snapshot: FarmSnapshot): FarmSnapshot {
     try {
       const existing = this.frozen.get(snapshot);
@@ -344,7 +400,9 @@ export class PlanningFarmRepository implements FarmRepository {
         } catch (error) {
           if (!initialization || !(initialization.requestId || initialization.recover) || !(error instanceof this.ErrorType)) throw error;
           // Preserve sibling records whenever the envelope can still be decoded.
-          let farms = {}, initializations: FarmingProjectData["initializations"];
+          let farms = {},
+            initializations: FarmingProjectData["initializations"],
+            wallClockAnchors: FarmingProjectData["wallClockAnchors"];
           try {
             const decoded = JSON.parse(
               typeof currentContent === "string"
@@ -354,8 +412,14 @@ export class PlanningFarmRepository implements FarmRepository {
             initializations = decoded?.initializations;
             if (decoded?.farms && typeof decoded.farms === "object" && !Array.isArray(decoded.farms))
               farms = decoded.farms;
+            wallClockAnchors = sanitizeWallClockAnchors(decoded?.wallClockAnchors);
           } catch {}
-          data = { version: 1, farms, ...(initializations === undefined ? {} : { initializations }) };
+          data = {
+            version: 1,
+            farms,
+            ...(initializations === undefined ? {} : { initializations }),
+            ...(wallClockAnchors === undefined ? {} : { wallClockAnchors })
+          };
         }
         const policy = planningFarmInitialization(data, farmId, initialization?.requestId);
         if (initialization?.recover && policy.resume) throw Error("Refusing to reset initialized farm progress");
@@ -374,14 +438,32 @@ export class PlanningFarmRepository implements FarmRepository {
           if (result.snapshot === baseline) return { value: result.value };
         }
         changed = replace || !before || (!result.clockOnly && result.snapshot !== current);
-        const next: FarmingProjectData = { ...data, farms: { ...data.farms, [farmId]: result.snapshot } };
+        const rawWallMs = Math.floor(this.wallNowMs());
+        const savedAtWallMs = Number.isSafeInteger(rawWallMs) && rawWallMs >= 0 ? rawWallMs : 0;
+        const wallClockAnchors: Record<string, FarmWallClockAnchor> = {
+          ...(sanitizeWallClockAnchors(data.wallClockAnchors) ?? {}),
+          [farmId]: {
+            savedAtWallMs,
+            snapshotTimeMs: result.snapshot.simulation.lastSystemTimeMs,
+            revision: result.snapshot.revision
+          }
+        };
+        const next: FarmingProjectData = {
+          ...data,
+          farms: { ...data.farms, [farmId]: result.snapshot },
+          wallClockAnchors
+        };
         if (initialization) {
           const requests = new Set(policy.record?.requests);
           if (initialization.requestId) requests.add(initialization.requestId);
           next.initializations = { ...data.initializations, [farmId]: { initialized: true, requests: [...requests] } };
         }
         written = { content: JSON.stringify(next), data: next };
-        return { content: written.content, value: result.value };
+        return {
+          content: written.content,
+          value: result.value,
+          userEdit: !initialization && !result.clockOnly && result.userEdit !== false
+        };
       });
       if (written && this.project.projectPackage.contents[this.path] === written.content) {
         this.cached = written;

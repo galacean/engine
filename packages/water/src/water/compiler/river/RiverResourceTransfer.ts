@@ -47,16 +47,37 @@ export function assertRiverResourceTransferVersion(resource: RiverResourceTransf
 /** Borrow compiler-owned arrays; the Worker relinquishes them in postMessage. */
 export function createRiverCompiledTransfer(data: RiverCompiledData): TransferValue {
   const visit = (value: unknown): TransferValue => {
+    if (value === null || typeof value !== "object") {
+      return value as undefined | null | boolean | number | string;
+    }
     if (value instanceof WaterReadonlyUint8Buffer) return { __riverBuffer: "u8", values: value.borrowTypedArray() };
     if (value instanceof WaterReadonlyUint32Buffer) return { __riverBuffer: "u32", values: value.borrowTypedArray() };
     if (value instanceof WaterReadonlyInt32Buffer) return { __riverBuffer: "i32", values: value.borrowTypedArray() };
     if (value instanceof WaterReadonlyFloat32Buffer) return { __riverBuffer: "f32", values: value.borrowTypedArray() };
     if (ArrayBuffer.isView(value)) return value as NumericArray;
-    if (Array.isArray(value)) return value.map(visit);
-    if (value !== null && typeof value === "object") {
-      return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, visit(entry)]));
+    if (Array.isArray(value)) {
+      const len = value.length;
+      let hasObject = false;
+      for (let i = 0; i < len; i++) {
+        const el = value[i];
+        if (el !== null && typeof el === "object") {
+          hasObject = true;
+          break;
+        }
+      }
+      if (!hasObject) return value as readonly TransferValue[];
+      const out = new Array<TransferValue>(len);
+      for (let i = 0; i < len; i++) out[i] = visit(value[i]);
+      return out;
     }
-    return value as undefined | null | boolean | number | string;
+    const record = value as Record<string, unknown>;
+    const out: Record<string, TransferValue> = {};
+    for (const key in record) {
+      if (Object.prototype.hasOwnProperty.call(record, key)) {
+        out[key] = visit(record[key]);
+      }
+    }
+    return out;
   };
   return visit(data);
 }
@@ -64,8 +85,25 @@ export function createRiverCompiledTransfer(data: RiverCompiledData): TransferVa
 export function collectRiverTransferables(data: TransferValue): ArrayBuffer[] {
   const buffers = new Set<ArrayBuffer>();
   const visit = (value: TransferValue): void => {
-    if (ArrayBuffer.isView(value)) buffers.add(value.buffer as ArrayBuffer);
-    else if (value !== null && typeof value === "object") for (const entry of Object.values(value)) visit(entry);
+    if (value === null || typeof value !== "object") return;
+    if (ArrayBuffer.isView(value)) {
+      buffers.add(value.buffer as ArrayBuffer);
+      return;
+    }
+    if (Array.isArray(value)) {
+      const len = value.length;
+      for (let i = 0; i < len; i++) {
+        const el = value[i];
+        if (el !== null && typeof el === "object") visit(el);
+      }
+      return;
+    }
+    const record = value as { readonly [key: string]: TransferValue };
+    for (const key in record) {
+      if (!Object.prototype.hasOwnProperty.call(record, key)) continue;
+      const entry = record[key];
+      if (entry !== null && typeof entry === "object") visit(entry);
+    }
   };
   visit(data);
   return [...buffers];
@@ -75,7 +113,21 @@ export function collectRiverTransferables(data: TransferValue): ArrayBuffer[] {
 export function restoreRiverCompiledTransfer(data: TransferValue): RiverCompiledData {
   const visit = (value: TransferValue): unknown => {
     if (value === null || typeof value !== "object" || ArrayBuffer.isView(value)) return value;
-    if (Array.isArray(value)) return Object.freeze(value.map(visit));
+    if (Array.isArray(value)) {
+      const len = value.length;
+      let hasObject = false;
+      for (let i = 0; i < len; i++) {
+        const el = value[i];
+        if (el !== null && typeof el === "object") {
+          hasObject = true;
+          break;
+        }
+      }
+      if (!hasObject) return Object.freeze(value);
+      const out = new Array<unknown>(len);
+      for (let i = 0; i < len; i++) out[i] = visit(value[i]);
+      return Object.freeze(out);
+    }
     const record = value as { readonly [key: string]: TransferValue };
     const values = record.values;
     if (record.__riverBuffer === "u8" && values instanceof Uint8Array)
@@ -86,7 +138,13 @@ export function restoreRiverCompiledTransfer(data: TransferValue): RiverCompiled
       return new WaterReadonlyInt32Buffer(values, WaterBufferOwnership.Transfer);
     if (record.__riverBuffer === "f32" && values instanceof Float32Array)
       return new WaterReadonlyFloat32Buffer(values, WaterBufferOwnership.Transfer);
-    return Object.freeze(Object.fromEntries(Object.entries(record).map(([key, entry]) => [key, visit(entry)])));
+    const out: Record<string, unknown> = {};
+    for (const key in record) {
+      if (Object.prototype.hasOwnProperty.call(record, key)) {
+        out[key] = visit(record[key]);
+      }
+    }
+    return Object.freeze(out);
   };
   return visit(data) as RiverCompiledData;
 }

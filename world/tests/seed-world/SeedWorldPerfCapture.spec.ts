@@ -14,6 +14,7 @@ import {
   type PerfCumulativeCounters,
   type PerfFrameObserver
 } from "../../demos/seed-world/src/MobileFrameCapture.ts";
+import { parseAutoBenchSeconds, startSeedWorldAutoBench } from "../../demos/seed-world/src/SeedWorldAutoBench.ts";
 import {
   SeedWorldPerfPanel,
   bufferSourceByteLength,
@@ -753,5 +754,368 @@ describe("Seed World perf capture accuracy & first-principles invariants", () =>
 
     const dv = new DataView(bytes.buffer, 4, 8);
     expect(hex(sha256Portable(dv))).toBe(ref(new Uint8Array(bytes.buffer, 4, 8)));
+  });
+
+  it("supports multi-second manualDurationMs capture with cameraMotion and top spikeFrames without bloating payload", () => {
+    vi.useFakeTimers();
+    cleanups.push(installMinimalDom());
+    let clock = 5000;
+    vi.spyOn(performance, "now").mockImplementation(() => clock);
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true, file: "tmp/seed-world-perf-diag.jsonl", count: 1 })
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const canvasEl = {
+      width: 822,
+      height: 1602,
+      clientWidth: 411,
+      clientHeight: 801,
+      getBoundingClientRect: () => ({ left: 0, top: 0, width: 411, height: 801 })
+    };
+    const camPos = { x: 0, y: 2, z: 0 };
+    const camFwd = { x: 0, y: 0, z: 1 };
+    const cameraMock = {
+      entity: { transform: { worldPosition: camPos, worldForward: camFwd } },
+      _renderPipeline: {
+        render: () => {
+          clock += 2;
+        },
+        _cascadedShadowCasterPass: { onRender: () => {} },
+        _prepareRender: () => {},
+        _prepareCameraRenderViewCulling: () => {},
+        _renderRegisteredPasses: () => {},
+        _depthOnlyPass: { onRender: () => {}, onResolveForwardDepth: () => {} },
+        _saoPass: { onRender: () => {} },
+        _drawRenderPass: () => {},
+        _opaqueTexturePass: { onRender: () => {} },
+        _finalPass: { onRender: () => {} },
+        _cullingResults: {
+          sortBatch: () => {},
+          opaqueQueue: { elements: [], batchedElements: [], render: () => {} },
+          alphaTestQueue: { elements: [], batchedElements: [], render: () => {} },
+          transparentQueue: { elements: [], batchedElements: [], render: () => {} }
+        }
+      }
+    } as any;
+    const engineMock = { _render: () => cameraMock._renderPipeline.render(), _batcherManager: { uploadBuffer: () => {} } } as any;
+    const sceneMock = { _componentsManager: {}, physics: { _update: () => {} }, _updateRendering: () => {} } as any;
+
+    const cumulative = {
+      frames: 0,
+      cpuMs: 0,
+      dc: 0,
+      tris: 0,
+      fbo: 0,
+      fboAll: 0,
+      bufUploads: 0,
+      bufUploadBytes: 0,
+      bufOrphans: 0,
+      bufOrphanBytes: 0
+    };
+    let observer: { onFrameBegin(startMs: number): void; onFrameEnd(cpuMs: number, endMs: number): void } | null = null;
+    const controller = attachMobileFrameCapture({
+      engine: engineMock,
+      scene: sceneMock,
+      camera: cameraMock,
+      canvas: canvasEl as any,
+      readLiveState: () => ({}),
+      readCumulativeCounters: (out) => Object.assign(out, cumulative),
+      setFrameObserver: (next) => {
+        observer = next;
+      },
+      manualDurationMs: 6000,
+      autoBootDelayMs: null
+    });
+    cleanups.push(() => controller.dispose());
+    expect(controller.button.textContent).toBe("抓帧上报 (6s)");
+
+    // Simulate clicking the manual 6s capture button and running 180 frames at ~30fps with a 45ms spike at frame 90.
+    controller.button.onclick?.({} as MouseEvent);
+    for (let f = 0; f < 190; f++) {
+      const start = 5000 + f * 33.33;
+      clock = start;
+      observer?.onFrameBegin(start);
+      // Walk forward + turn yaw each frame
+      camPos.z = f * 0.1;
+      const yawRad = (f * 2 * Math.PI) / 180;
+      camFwd.x = Math.sin(yawRad);
+      camFwd.z = Math.cos(yawRad);
+      engineMock._render();
+      if (f === 90) {
+        clock += 45;
+        cumulative.bufOrphans += 12;
+        cumulative.bufOrphanBytes += 256 * 1024;
+      }
+      cumulative.frames += 1;
+      cumulative.dc += f === 90 ? 180 : 60;
+      cumulative.tris += 50000;
+      observer?.onFrameEnd(clock - start, clock);
+    }
+
+    const host = globalThis as unknown as MobileSeedTickHost;
+    expect(host.__seedWorldPerfCaptures).toHaveLength(1);
+    const rec = host.__seedWorldPerfCaptures![0]!;
+    expect(rec.targetDurationMs).toBe(6000);
+    expect(rec.windowMs).toBeGreaterThanOrEqual(6000);
+    expect(rec.capturedFrames).toBeGreaterThanOrEqual(180);
+    expect(rec.cameraMotion).not.toBeNull();
+    expect(rec.cameraMotion!.totalDistanceM).toBeGreaterThan(15);
+    expect(rec.cameraMotion!.totalYawDeg).toBeGreaterThan(300);
+    expect(rec.spikeFrames && rec.spikeFrames.length).toBeGreaterThan(0);
+    expect(rec.spikeFrames![0]!.frameIndex).toBe(90);
+    expect(rec.spikeFrames![0]!.dc).toBe(180);
+    expect(rec.spikeFrames![0]!.bufOrphans).toBe(12);
+    // Ensure a 6-second capture stays tiny (< 20KB)
+    expect(JSON.stringify(rec).length).toBeLessThan(20_000);
+  });
+
+  it("records per-phase benchPhases summary and invokes onComplete for timed auto-bench runs", async () => {
+    expect(parseAutoBenchSeconds(new URLSearchParams(""))).toBeNull();
+    expect(parseAutoBenchSeconds(new URLSearchParams("autoBench=0"))).toBeNull();
+    expect(parseAutoBenchSeconds(new URLSearchParams("autoBench=1"))).toBe(20);
+    expect(parseAutoBenchSeconds(new URLSearchParams("autoBench=12"))).toBe(12);
+    expect(parseAutoBenchSeconds(new URLSearchParams("autoBench=999"))).toBe(60);
+
+    const restoreDom = installMinimalDom();
+    cleanups.push(restoreDom);
+
+    let clock = 10_000;
+    const nowSpy = vi.spyOn(performance, "now").mockImplementation(() => clock);
+    cleanups.push(() => nowSpy.mockRestore());
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true, file: "tmp/seed-world-perf-diag.jsonl", count: 1 })
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const canvasEl = {
+      width: 820,
+      height: 1598,
+      clientWidth: 410,
+      clientHeight: 799,
+      getBoundingClientRect: () => ({ left: 0, top: 0, width: 410, height: 799 })
+    };
+    const camPos = { x: 0, y: 2, z: 0 };
+    const camFwd = { x: 0, y: 0, z: 1 };
+    const cameraMock = {
+      entity: { transform: { worldPosition: camPos, worldForward: camFwd } },
+      _renderPipeline: {
+        render: () => {
+          clock += 2;
+        },
+        _cascadedShadowCasterPass: { onRender: () => {} },
+        _prepareRender: () => {},
+        _prepareCameraRenderViewCulling: () => {},
+        _renderRegisteredPasses: () => {},
+        _depthOnlyPass: { onRender: () => {}, onResolveForwardDepth: () => {} },
+        _saoPass: { onRender: () => {} },
+        _drawRenderPass: () => {},
+        _opaqueTexturePass: { onRender: () => {} },
+        _finalPass: { onRender: () => {} },
+        _cullingResults: {
+          sortBatch: () => {},
+          opaqueQueue: { elements: [], batchedElements: [], render: () => {} },
+          alphaTestQueue: { elements: [], batchedElements: [], render: () => {} },
+          transparentQueue: { elements: [], batchedElements: [], render: () => {} }
+        }
+      }
+    } as any;
+    const engineMock = { _render: () => cameraMock._renderPipeline.render(), _batcherManager: { uploadBuffer: () => {} } } as any;
+    const sceneMock = { _componentsManager: {}, physics: { _update: () => {} }, _updateRendering: () => {} } as any;
+    const cumulative = {
+      frames: 0,
+      cpuMs: 0,
+      dc: 0,
+      tris: 0,
+      fbo: 0,
+      fboAll: 0,
+      bufUploads: 0,
+      bufUploadBytes: 0,
+      bufOrphans: 0,
+      bufOrphanBytes: 0
+    };
+    let observer: PerfFrameObserver | null = null;
+    const controller = attachMobileFrameCapture({
+      engine: engineMock,
+      scene: sceneMock,
+      camera: cameraMock,
+      canvas: canvasEl as any,
+      readLiveState: () => ({}),
+      readCumulativeCounters: (out) => Object.assign(out, cumulative),
+      setFrameObserver: (next) => {
+        observer = next;
+      },
+      autoBootDelayMs: null
+    });
+    cleanups.push(() => controller.dispose());
+
+    let completedRecord: MobileFrameCaptureRecord | null = null;
+    let completedUploaded = false;
+    const done = new Promise<void>((resolve) => {
+      controller.captureNow("auto_bench_4s", 4000, {
+        onFrame: (elapsedMs) => (elapsedMs < 2000 ? "p1_look" : "p2_walk"),
+        onComplete: (rec, uploaded) => {
+          completedRecord = rec;
+          completedUploaded = uploaded;
+          resolve();
+        }
+      });
+    });
+
+    for (let f = 0; f < 130; f++) {
+      const start = 10_000 + f * 33.33;
+      clock = start;
+      observer?.onFrameBegin(start);
+      engineMock._render();
+      cumulative.frames += 1;
+      cumulative.dc += f < 60 ? 80 : 120;
+      cumulative.tris += f < 60 ? 300_000 : 500_000;
+      observer?.onFrameEnd(clock - start, clock);
+    }
+
+    await done;
+    expect(completedUploaded).toBe(true);
+    expect(completedRecord).not.toBeNull();
+    expect(completedRecord!.benchPhases?.p1_look?.frames).toBeGreaterThan(50);
+    expect(completedRecord!.benchPhases?.p2_walk?.frames).toBeGreaterThan(50);
+    expect(completedRecord!.benchPhases?.p2_walk?.dc).toBeGreaterThan(completedRecord!.benchPhases!.p1_look!.dc);
+  });
+
+  it("aborts runAblationSequence during settleMs without pushing distorted steps, POSTing /__mobile-diag, or overwriting a removed banner", async () => {
+    cleanups.push(installMinimalDom());
+    const origRaf = globalThis.requestAnimationFrame;
+    const origCancelRaf = globalThis.cancelAnimationFrame;
+    const origLocation = globalThis.location;
+    const origNavigator = globalThis.navigator;
+
+    const rafQueue = new Map<number, FrameRequestCallback>();
+    let nextRafId = 1;
+    globalThis.requestAnimationFrame = ((cb: FrameRequestCallback) => {
+      const id = nextRafId++;
+      rafQueue.set(id, cb);
+      return id;
+    }) as typeof requestAnimationFrame;
+    globalThis.cancelAnimationFrame = ((id: number) => {
+      rafQueue.delete(id);
+    }) as typeof cancelAnimationFrame;
+    Object.defineProperty(globalThis, "location", {
+      value: { href: "http://localhost:4194/world/demos/seed-world/index.html?ablate=1" },
+      configurable: true,
+      writable: true
+    });
+    Object.defineProperty(globalThis, "navigator", {
+      value: { userAgent: "vitest-ablation" },
+      configurable: true,
+      writable: true
+    });
+    (globalThis.window as any).setInterval = setInterval;
+    (globalThis.window as any).clearInterval = clearInterval;
+    cleanups.push(() => {
+      globalThis.requestAnimationFrame = origRaf;
+      globalThis.cancelAnimationFrame = origCancelRaf;
+      Object.defineProperty(globalThis, "location", { value: origLocation, configurable: true, writable: true });
+      Object.defineProperty(globalThis, "navigator", { value: origNavigator, configurable: true, writable: true });
+    });
+
+    const fetchSpy = vi.fn().mockResolvedValue({ ok: true });
+    globalThis.fetch = fetchSpy as unknown as typeof fetch;
+
+    let clock = 1000;
+    vi.spyOn(performance, "now").mockImplementation(() => clock);
+
+    const flushRaf = (dtMs: number) => {
+      clock += dtMs;
+      const entries = [...rafQueue.entries()];
+      rafQueue.clear();
+      for (const [, cb] of entries) cb(clock);
+    };
+    const flushMicrotasks = async () => {
+      for (let i = 0; i < 6; i++) await Promise.resolve();
+    };
+
+    const setModuleCalls: Array<[string, boolean]> = [];
+    const setInputCalls: boolean[] = [];
+    const ac = new AbortController();
+
+    const handle = startSeedWorldAutoBench({
+      durationSec: 4,
+      camera: {
+        entity: {
+          transform: {
+            worldPosition: { x: 0, y: 1.7, z: 0 },
+            setWorldPosition: vi.fn(),
+            lookAt: vi.fn()
+          }
+        }
+      } as any,
+      navigation: {
+        eyeHeight: 1.7,
+        setInputEnabled: (on: boolean) => setInputCalls.push(on),
+        synchronizeView: vi.fn()
+      } as any,
+      bgWarmupDone: Promise.resolve(),
+      readPlan: () => undefined,
+      sampleHeight: () => 0,
+      isWater: () => false,
+      runCapture: vi.fn(),
+      ablate: {
+        autoStart: true,
+        canvas: { width: 822, height: 1602, clientWidth: 411, clientHeight: 801 } as HTMLCanvasElement,
+        setModule: (key, on) => setModuleCalls.push([key, on]),
+        setSubGroup: vi.fn(),
+        setDpr: vi.fn(),
+        readCounters: (out) => {
+          out.frames += 1;
+          out.cpuMs += 4;
+          out.dc += 50;
+          out.tris += 100_000;
+          return out;
+        }
+      },
+      signal: ac.signal
+    });
+    cleanups.push(() => handle.dispose());
+
+    const banner = (document.body as unknown as FakeElement).children[0]!;
+    const removeSpy = vi.spyOn(banner, "remove");
+    const label = banner.children[0]!;
+
+    // 1. Let bgWarmupDone resolve and advance waitForFpsStable (>= 1500ms, >= 25 frames at 16.6ms)
+    await flushMicrotasks();
+    for (let i = 0; i < 100; i++) {
+      flushRaf(16.67);
+    }
+    await flushMicrotasks();
+
+    // 2. Complete case 0 (baseline_start: 600ms settle + 1800ms sample)
+    for (let i = 0; i < 160; i++) {
+      flushRaf(16.67);
+    }
+    await flushMicrotasks();
+
+    // 3. Verify we entered case 1 (`off:building`) and are inside its 600ms settleMs window
+    expect(setModuleCalls).toContainEqual(["building", false]);
+    expect(label.textContent).toContain("关 原生建筑");
+    flushRaf(100); // 100ms < 600ms settleMs
+
+    const bannerTextAtAbort = label.textContent;
+    ac.abort();
+    await flushMicrotasks();
+    flushRaf(16.67);
+    await flushMicrotasks();
+
+    // Banner was removed on abort and never overwritten with a completion/upload status
+    expect(removeSpy).toHaveBeenCalledTimes(1);
+    expect(label.textContent).toBe(bannerTextAtAbort);
+    // Aborted ablation must NOT POST /__mobile-diag
+    expect(fetchSpy).not.toHaveBeenCalled();
+    // Module turned off by case 1 was cleanly restored on abort
+    expect(setModuleCalls).toContainEqual(["building", true]);
+    // Input must not be re-enabled after abort
+    expect(setInputCalls).toEqual([false]);
   });
 });

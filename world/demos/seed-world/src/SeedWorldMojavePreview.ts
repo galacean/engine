@@ -1,5 +1,6 @@
 import { TREE_ASSEMBLY_LOD_CROSS_FADE_SECONDS } from "@galacean/engine-vegetation/asset-assembly/TreeAssemblyPlan";
 import { rockLodScreenHeights } from "@galacean/engine-terrain/rock-formation/RockLodPolicy";
+import { LOD_SCREEN_HEIGHT_HYSTERESIS_RATIO } from "@galacean/engine-terrain/terrain/lod/TerrainLodGroupRuntime";
 import {
   AssetType,
   Camera,
@@ -86,7 +87,8 @@ export class MojaveRockLodRuntime extends Script {
         item.entity,
         this.camera,
         definition,
-        item.family === "plants" ? mojaveLodTuning.fadeSeconds : TREE_ASSEMBLY_LOD_CROSS_FADE_SECONDS
+        item.family === "plants" ? mojaveLodTuning.fadeSeconds : TREE_ASSEMBLY_LOD_CROSS_FADE_SECONDS,
+        item.family === "groups" ? LOD_SCREEN_HEIGHT_HYSTERESIS_RATIO : 0
       );
       // Start outside the terminal threshold, then use the canonical terminal-to-visible transition.
       item.runtime.updateRenderersWithScreenRelativeHeight(this.elapsed, 0);

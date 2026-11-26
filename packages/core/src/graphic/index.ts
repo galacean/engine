@@ -13,3 +13,6 @@ export { VertexBufferBinding } from "./VertexBufferBinding";
 export { VertexElement } from "./VertexElement";
 export { Primitive } from "./Primitive";
 export { SubPrimitive } from "./SubPrimitive";
+
+export { TransformFeedbackSimulator } from "./TransformFeedbackSimulator";
+export type { ElementRangeMapping } from "./ElementRangeMapping";

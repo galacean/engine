@@ -16,17 +16,13 @@ function collect(directory, prefix = "") {
   }
 }
 collect(path.join(root, "packages/shader/src/ShaderLibrary"), "ShaderLibrary/");
-for (const { original, replacement } of JSON.parse(
-  fs.readFileSync(path.join(root, "packages/modify/native-overrides.json"), "utf8")
-)) {
-  if (original.startsWith("packages/shader/src/ShaderLibrary/") && original.endsWith(".glsl"))
-    includeMap[original.slice("packages/shader/src/".length)] = fs.readFileSync(path.join(root, replacement), "utf8");
-}
 const source = path.join(root, "packages/terrain/src/shaders");
 collect(source);
 const compiler = new ShaderPrecompiler();
 compiler.setIncludeMap(includeMap);
-for (const name of process.argv.slice(2).length ? process.argv.slice(2) : ["Terrain"]) {
+const names = process.argv.slice(2);
+const shipped = ["Billboard", "Grass", "Surface", "Terrain", "Vegetation"];
+for (const name of names.length ? names : shipped) {
   const result = compiler.precompile(fs.readFileSync(path.join(source, name + ".shader"), "utf8"), 0);
   fs.writeFileSync(
     path.join(root, "packages/terrain/src/data/seed-world/public/Shader", name + ".shaderc"),

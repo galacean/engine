@@ -7,6 +7,7 @@ import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPass } from "./ShaderPass";
 import { ShaderProperty } from "./ShaderProperty";
 import { SubShader } from "./SubShader";
+import { productFragmentInstructions } from "./WorldShaderInstructions";
 import { BlendFactor } from "./enums/BlendFactor";
 import { BlendOperation } from "./enums/BlendOperation";
 import { ColorWriteMask } from "./enums/ColorWriteMask";
@@ -210,7 +211,8 @@ export class Shader implements IReferable {
           passData.vertexOutputNames,
           passData.uniformBlocks,
           passData.uniformPlan,
-          passData.wgsl
+          passData.wgsl,
+          productFragmentInstructions(data.name, passData.fragmentShaderInstructions!)
         );
 
         Shader._applyRenderStates(

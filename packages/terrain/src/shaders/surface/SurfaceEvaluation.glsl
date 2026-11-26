@@ -153,12 +153,14 @@ SurfaceData evaluateSurfaceMaterial(Varyings varyings, bool isFrontFacing) {
     shadingNormal = normalize(mix(geometryNormal, shadingNormal,
       mix(1.0, terrainCoverage, material_NormalTerrainRegionOnly) *
       mix(1.0, 1.0 - terrainCoverage, material_NormalBaseRegionOnly)));
+    vec2 terrainGroundPosDx = dFdx(varyings.positionWS.xz);
+    vec2 terrainGroundPosDy = dFdy(varyings.positionWS.xz);
     if (terrainCoverage > 0.001) {
       #ifdef MATERIAL_ROCK_TOP_GRASS
         albedoColor = mix(albedoColor, evaluateGrassBaseColor(varyings.positionWS.xz), terrainCoverage);
       #else
         TerrainProjectLayerBlend ground = terrainProjectGroundSurface(varyings.positionWS);
-        albedoColor = mix(albedoColor, terrainProjectGroundColor(ground, varyings.positionWS),
+        albedoColor = mix(albedoColor, terrainProjectGroundColorGrad(ground, varyings.positionWS, terrainGroundPosDx, terrainGroundPosDy),
           terrainCoverage * clamp(ground.weight, 0.0, 1.0));
       #endif
     }
@@ -192,6 +194,10 @@ SurfaceData evaluateSurfaceMaterial(Varyings varyings, bool isFrontFacing) {
     albedoColor = terrainProjectApplySeasonColor(albedoColor, MATERIAL_SEASON_SPECIES);
   #endif
 
+  #ifdef RENDERER_ASSET_ASSEMBLY_INSTANCE
+    albedoColor = mix(albedoColor,
+      varyings.plantPigment.rgb * dot(baseTexture.rgb, vec3(0.2126, 0.7152, 0.0722)), varyings.plantPigment.a);
+  #endif
   surfaceData.albedoColor = albedoColor;
   surfaceData.emissiveColor = vec3(0.0);
   surfaceData.metallic = clamp(metallic, 0.0, 1.0);

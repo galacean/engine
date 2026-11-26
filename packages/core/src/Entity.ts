@@ -481,9 +481,15 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
-  _markAsTemplate(templateResource: ReferResource): void {
+  _markAsTemplate(templateResource: ReferResource): ReferResource {
+    const previousResource = this._templateResource;
+    // A cloned entity owns a reference to its source template. Template entities do not.
+    if (previousResource && !this._isTemplate) {
+      previousResource._addReferCount(-1);
+    }
     this._isTemplate = true;
     this._templateResource = templateResource;
+    return previousResource;
   }
 
   private _createCloneEntity(cloneMap: Map<object, object>): Entity {
@@ -528,14 +534,8 @@ export class Entity extends EngineObject {
     }
   }
 
-  /**
-   * Destroy self.
-   */
-  override destroy(): void {
-    super.destroy();
-    if (!this._destroyed) {
-      return;
-    }
+  protected override _onDestroy(): void {
+    super._onDestroy();
 
     if (this._templateResource) {
       this._isTemplate || this._templateResource._addReferCount(-1);

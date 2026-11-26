@@ -42,7 +42,7 @@ export interface OceanWaterBackendRuntimeContext {
   readonly engine: Engine;
   readonly surfaceShader?: import("@galacean/engine-core").Shader;
   readonly root: Entity;
-  readonly textures: Readonly<OceanTextures>;
+  readonly textures: Readonly<OceanTextures> | Promise<Readonly<OceanTextures>>;
   readonly cameraPositionProvider: OceanCameraPositionProvider;
   readonly sceneFogEnabled: boolean;
   readonly surfaceTimeOverride?: number;
@@ -70,24 +70,69 @@ function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function isOceanTextures(value: unknown): value is Readonly<OceanTextures> {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.textureCount === "number" &&
+    Number.isInteger(value.textureCount) &&
+    value.textureCount >= 0 &&
+    value.textureCount <= 5 &&
+    value.containerFormat === "native" &&
+    typeof value.compressedTextureCount === "number" &&
+    Number.isInteger(value.compressedTextureCount) &&
+    typeof value.uncompressedFallbackTextureCount === "number" &&
+    Number.isInteger(value.uncompressedFallbackTextureCount) &&
+    value.compressedTextureCount + value.uncompressedFallbackTextureCount === value.textureCount &&
+    Number.isFinite(value.resourceBytes)
+  );
+}
+
+function isPromiseLike<T>(value: unknown): value is PromiseLike<T> {
+  return (
+    (typeof value === "object" || typeof value === "function") &&
+    value !== null &&
+    typeof (value as PromiseLike<T>).then === "function"
+  );
+}
+
+function awaitWithAbort<T>(promise: PromiseLike<T>, signal?: AbortSignal): Promise<T> {
+  const settled = Promise.resolve(promise);
+  if (!signal) return settled;
+  if (signal.aborted) {
+    void settled.catch(() => {});
+    return Promise.reject(new DOMException("Ocean runtime activation was aborted.", "AbortError"));
+  }
+  return new Promise<T>((resolve, reject) => {
+    const cleanup = () => {
+      signal.removeEventListener("abort", onAbort);
+    };
+    const onAbort = () => {
+      cleanup();
+      void settled.catch(() => {});
+      reject(new DOMException("Ocean runtime activation was aborted.", "AbortError"));
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+    settled.then(
+      (value) => {
+        cleanup();
+        resolve(value);
+      },
+      (error) => {
+        cleanup();
+        reject(error);
+      }
+    );
+  });
+}
+
 function isRuntimeContext(value: unknown): value is OceanWaterBackendRuntimeContext {
-  if (!isRecord(value) || !isRecord(value.root) || !isRecord(value.textures)) return false;
+  if (!isRecord(value) || !isRecord(value.root)) return false;
+  const texturesValid = isOceanTextures(value.textures) || isPromiseLike(value.textures);
+  if (!texturesValid) return false;
   return (
     typeof value.engine === "object" &&
     value.engine !== null &&
     typeof value.root.createChild === "function" &&
-    typeof value.textures.textureCount === "number" &&
-    Number.isInteger(value.textures.textureCount) &&
-    value.textures.textureCount >= 0 &&
-    value.textures.textureCount <= 5 &&
-    value.textures.containerFormat === "native" &&
-    typeof value.textures.compressedTextureCount === "number" &&
-    Number.isInteger(value.textures.compressedTextureCount) &&
-    typeof value.textures.uncompressedFallbackTextureCount === "number" &&
-    Number.isInteger(value.textures.uncompressedFallbackTextureCount) &&
-    value.textures.compressedTextureCount + value.textures.uncompressedFallbackTextureCount ===
-      value.textures.textureCount &&
-    Number.isFinite(value.textures.resourceBytes) &&
     typeof value.cameraPositionProvider === "function" &&
     typeof value.sceneFogEnabled === "boolean" &&
     (value.surfaceLevelOffsetMetres === undefined ||
@@ -157,7 +202,8 @@ function readPreparedOceanCompilation(
 function createRuntimeConfig(
   resource: OceanWaterCompiledResource,
   effective: WaterBackendRuntimeContext["effectiveSnapshot"],
-  runtime: OceanWaterBackendRuntimeContext
+  runtime: OceanWaterBackendRuntimeContext,
+  textures: Readonly<OceanTextures>
 ): OceanWaterRuntimeConfig {
   const representation = effective.instance.representationState!;
   return Object.freeze({
@@ -172,7 +218,7 @@ function createRuntimeConfig(
     size: representation.size,
     surfaceTopology: "finite",
     capabilityMode: "render-and-query",
-    textures: runtime.textures,
+    textures,
     sceneFogEnabled: runtime.sceneFogEnabled,
     surfaceTimeOverride: runtime.surfaceTimeOverride
   });
@@ -297,7 +343,10 @@ export class OceanWaterBackend implements WaterBodyBackend {
     return resource;
   }
 
-  createRuntime(resource: WaterCompiledResource, context: WaterBackendRuntimeContext): WaterBackendRuntime {
+  createRuntime(
+    resource: WaterCompiledResource,
+    context: WaterBackendRuntimeContext
+  ): WaterBackendRuntime | Promise<WaterBackendRuntime> {
     if (!(resource instanceof OceanWaterCompiledResource)) {
       throw new Error("OceanWaterBackend received a non-Ocean compiled resource.");
     }
@@ -306,6 +355,28 @@ export class OceanWaterBackend implements WaterBodyBackend {
         "OceanWaterBackend runtimeContext requires Engine, root, camera position provider, and the five Ocean textures."
       );
     }
+    if (context.signal?.aborted) throw new DOMException("Ocean runtime activation was aborted.", "AbortError");
+    const runtimeContext = context.runtimeContext;
+    if (isPromiseLike<Readonly<OceanTextures>>(runtimeContext.textures)) {
+      return awaitWithAbort(runtimeContext.textures, context.signal).then((resolvedTextures) => {
+        if (context.signal?.aborted) throw new DOMException("Ocean runtime activation was aborted.", "AbortError");
+        if (!isOceanTextures(resolvedTextures)) {
+          throw new Error(
+            "OceanWaterBackend runtimeContext requires Engine, root, camera position provider, and the five Ocean textures."
+          );
+        }
+        return this._createRuntimeWithTextures(resource, context, runtimeContext, resolvedTextures);
+      });
+    }
+    return this._createRuntimeWithTextures(resource, context, runtimeContext, runtimeContext.textures);
+  }
+
+  private _createRuntimeWithTextures(
+    resource: OceanWaterCompiledResource,
+    context: WaterBackendRuntimeContext,
+    runtimeContext: OceanWaterBackendRuntimeContext,
+    textures: Readonly<OceanTextures>
+  ): WaterBackendRuntime {
     if (context.signal?.aborted) throw new DOMException("Ocean runtime activation was aborted.", "AbortError");
     const effective = context.effectiveSnapshot;
     assertIdentityTransform(effective);
@@ -319,12 +390,11 @@ export class OceanWaterBackend implements WaterBodyBackend {
     if (differentOcean) throw new Error(`Ocean '${differentOcean}' is already active.`);
     if (!staged && this._runtimes.has(instanceId)) throw new Error(`Ocean runtime '${instanceId}' is already active.`);
 
-    const runtimeContext = context.runtimeContext;
     const parentRoot = runtimeContext.root.createChild(`water-body-${instanceId}`);
     let controller: OceanWaterRuntimeController | undefined;
     let reflection: WaterReflectionBindingLifecycle | undefined;
     try {
-      const config = createRuntimeConfig(resource, effective, runtimeContext);
+      const config = createRuntimeConfig(resource, effective, runtimeContext, textures);
       controller = this._createController(
         runtimeContext.engine,
         parentRoot,

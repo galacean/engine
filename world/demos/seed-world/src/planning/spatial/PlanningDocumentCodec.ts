@@ -2,6 +2,7 @@ import { planningRegistry } from "@galacean/engine-world-planning/spatial/Planni
 import { upgradePlanningDocument, type PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
 import { planningSeed, switchPlanningLayoutScope } from "@galacean/engine-world-planning/spatial/PlanningLayoutScope";
 import { applySpatialCommands } from "@galacean/engine-world-planning/spatial/SpatialDocument";
+import { appendPreservedDiagParams, capturePreservedDiagParams } from "./PlanningPageUrl.ts";
 
 /** Parse project authoring data without reading or writing browser storage. */
 export function parsePlanningDocument(raw: string, seed: number): PlanningDocument {
@@ -27,6 +28,7 @@ export function planningSeedURL(href: string, seed: number): string {
   const panel = url.searchParams.get("panel") === "1";
   const template = url.searchParams.get("template");
   const rhi = url.searchParams.get("rhi");
+  const preserved = capturePreservedDiagParams(url.searchParams);
   url.search = "";
   url.hash = "";
   url.searchParams.set("seed", String(seed));
@@ -34,5 +36,6 @@ export function planningSeedURL(href: string, seed: number): string {
   if (debug && panel) url.searchParams.set("panel", "1");
   if (template !== null) url.searchParams.set("template", template);
   if (rhi !== null) url.searchParams.set("rhi", rhi);
+  appendPreservedDiagParams(url.searchParams, preserved);
   return url.href;
 }

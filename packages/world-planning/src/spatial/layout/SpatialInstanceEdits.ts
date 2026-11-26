@@ -12,6 +12,9 @@ import { boxOutline, type Volume } from "./Volumes";
 import { spatialRevealInputSignature } from "./SpatialEditInputs";
 import { updateSpatialInstanceConnections } from "./SpatialInstanceConnections";
 import { guidanceRockBox } from "../guidance/GuidanceRock";
+import { resolvePlanRockCollision } from "../RockCollisionPolicy";
+import { rockObbId } from "../RockVariantFit";
+import { templateRockCollisionPolicy } from "../WorldTemplateArtDirection";
 import { applyRockObbSizes } from "../../integrations/terrain/rock-formation/Authoring.ts";
 
 function canonical(value: unknown): unknown {
@@ -30,7 +33,9 @@ function instanceInputs(document: PlanningDocument): string {
   return JSON.stringify(
     canonical({
       ...other,
-      authoredResources: (authoredResources ?? []).filter((resource) => !isInstanceResource(resource)),
+      authoredResources: (authoredResources ?? []).filter(
+        (resource) => !isInstanceResource(resource) && resource.resourceType !== "vegetation-color"
+      ),
       entities: Object.fromEntries(
         Object.entries(entities).flatMap(([id, entity]) => {
           const components = canonical(
@@ -214,7 +219,37 @@ function projectInstances(
         }
         const outline = envelope(shape.center, shape.width, shape.depth, 0);
         const { rockObbSource, ...rock } = plan.rocks[rockAt];
-        plan.rocks[rockAt] = { ...rock, ...shape, yaw: primary.yaw, baseHeight, outline, obb: outline, boxes };
+        const priorBoxes = rockObbSource?.boxes ?? rock.boxes;
+        const collisionPolicy = templateRockCollisionPolicy(plan.parameters?.worldTemplate?.id);
+        const rockBoxes = boxes.map((box, part) => {
+          const override = priorBoxes?.[part]?.collisionOverride;
+          return {
+            ...box,
+            ...(override !== undefined ? { collisionOverride: override } : {}),
+            collision: resolvePlanRockCollision(
+              plan,
+              {
+                id: rockObbId(rock.id, box.id),
+                sizeX: box.sizeX,
+                sizeY: box.sizeY,
+                sizeZ: box.sizeZ,
+                assetId: rock.assetId,
+                surfaceGrass: true
+              },
+              collisionPolicy,
+              override
+            )
+          };
+        });
+        plan.rocks[rockAt] = {
+          ...rock,
+          ...shape,
+          yaw: primary.yaw,
+          baseHeight,
+          outline,
+          obb: outline,
+          boxes: rockBoxes
+        };
         editedRocks.add(rockAt);
       }
       if (regionAt !== undefined) {
@@ -234,7 +269,13 @@ function projectInstances(
         landscapesCopied = true;
       }
       const one = { ...plan, landscapes: [landscapeBase[landscapeAt]] };
-      if (Object.keys(edit).length) applyLandscapeEdits(one, { [id]: edit }, ground);
+      if (Object.keys(edit).length)
+        applyLandscapeEdits(
+          one,
+          { [id]: edit },
+          ground,
+          templateRockCollisionPolicy(plan.parameters?.worldTemplate?.id)
+        );
       plan.landscapes![landscapeAt] = one.landscapes[0];
     }
     const guidanceBase = guidance.get(id),
@@ -264,7 +305,9 @@ function projectInstances(
         yaw: edit.yawDegrees === undefined ? guidanceBase.yaw : (edit.yawDegrees * Math.PI) / 180
       };
       rock.outline = rock.obb = envelope(rock.center, rock.width, rock.depth, rock.yaw);
-      rock.boxes = [guidanceRockBox(rock, ground)];
+      rock.boxes = [
+        guidanceRockBox(rock, ground, templateRockCollisionPolicy(plan.parameters?.worldTemplate?.id), plan)
+      ];
       rock.baseHeight = rock.boxes[0].elevation;
       plan.rocks[rockAt] = rock;
     }
@@ -290,7 +333,12 @@ export function applyLandscapeInstanceEdits(
   ground: (p: PlanPoint) => number
 ): void {
   if (plan.spatialLayout) plan.spatialLayout = { ...plan.spatialLayout, baselineLandscapes: plan.landscapes ?? [] };
-  applyLandscapeEdits(plan, instanceEdits(document), ground);
+  applyLandscapeEdits(
+    plan,
+    instanceEdits(document),
+    ground,
+    templateRockCollisionPolicy(plan.parameters?.worldTemplate?.id)
+  );
 }
 
 /** Apply authored POI solids and roads before their dependent environment is generated.
@@ -399,9 +447,15 @@ export function tryEditSpatialInstances(
     (id) => JSON.stringify(canonical(before[id])) !== JSON.stringify(canonical(edits[id]))
   );
   const oldResources = new Map(
-    (previous.plan.authoredResources ?? []).map((resource) => [resource.resourceId, resource])
+    (previous.plan.authoredResources ?? [])
+      .filter((resource) => resource.resourceType !== "vegetation-color")
+      .map((resource) => [resource.resourceId, resource])
   );
-  const newResources = new Map((document.authoredResources ?? []).map((resource) => [resource.resourceId, resource]));
+  const newResources = new Map(
+    (document.authoredResources ?? [])
+      .filter((resource) => resource.resourceType !== "vegetation-color")
+      .map((resource) => [resource.resourceId, resource])
+  );
   const resourceChanges = [...new Set([...oldResources.keys(), ...newResources.keys()])].filter(
     (id) => JSON.stringify(canonical(oldResources.get(id))) !== JSON.stringify(canonical(newResources.get(id)))
   );

@@ -38,6 +38,18 @@ export class ShaderProgram {
   /** @internal */
   _instanceLayout: InstanceBufferLayout | null = null;
 
+  _errorLog: string | null = null;
+  _ssrFallbackMaxUnits = -1;
+  _ssrFallbackNoVerify: ShaderProgram | null = null;
+  _ssrFallbackVerify: ShaderProgram | null = null;
+  private _released = false;
+  activeTextureCount = 0;
+  _pollReady(): boolean {
+    return true;
+  }
+  _ensureReady(): void {
+    /* The candidate platform has already created its native modules. */
+  }
   readonly _platformProgram: IPlatformShaderProgram;
   get id(): number {
     return this._platformProgram.id;
@@ -51,6 +63,8 @@ export class ShaderProgram {
   get isValid(): boolean {
     return this._platformProgram.isValid;
   }
+  /** @internal Transform feedback layout configured for this program's output buffer. */
+  _feedbackVaryings?: readonly string[];
   private _groupConflictVersion = 0;
   private _uniformBlocks?: GlobalUniformBlock[];
   /** @internal Floating-point sampler inputs that can also read unfilterable resources. */
@@ -71,6 +85,10 @@ export class ShaderProgram {
     ) {
       this._textureLayout = new ShaderTextureLayout(_engine._hardwareRenderer, source.reflection, platform);
     }
+    this.activeTextureCount = source.reflection
+      ? new Set(source.reflection.textures.filter((t) => t.visibility & 2).map((t) => t.group + ":" + t.textureBinding))
+          .size
+      : platform.uniforms.filter((u) => u.isTexture).length;
     if (!platform.isValid) return;
     let initialized = false;
     try {
@@ -299,6 +317,8 @@ export class ShaderProgram {
   }
 
   destroy(): void {
+    if (this._released) return;
+    this._released = true;
     if (this._uniformBlocks) {
       for (const block of this._uniformBlocks) block.release();
       this._uniformBlocks = undefined;
@@ -367,6 +387,13 @@ export class ShaderProgram {
     const used = new Set<number>();
     for (const layout of layouts) {
       const binding = layout.name === "Auto" ? nextAutoBinding++ : ConstantBufferBindingPoint[layout.name];
+      if (layout.bindingName === "RealtimeIBLSphericalHarmonics") {
+        this._platformProgram.bindUniformBlock(
+          layout.bindingName,
+          ConstantBufferBindingPoint.RealtimeIBLSphericalHarmonics
+        );
+        continue;
+      }
       if (!this._platformProgram.bindUniformBlock(layout.bindingName ?? layout.name, binding)) continue;
       if (used.has(binding)) {
         throw new Error(`Duplicate global uniform block '${layout.name}'.`);

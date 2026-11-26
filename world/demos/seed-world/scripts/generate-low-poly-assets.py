@@ -13,13 +13,14 @@ from pathlib import Path
 class Model:
     def __init__(self):
         self.parts = {}
+        self.plant_part = None
 
     def face(self, color, vertices):
         a, b, c = vertices[:3]
         u, v = ([p[i] - a[i] for i in range(3)] for p in (b, c))
         normal = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]]
         length = math.hypot(*normal)
-        positions, normals = self.parts.setdefault(color, ([], []))
+        positions, normals = self.parts.setdefault((self.plant_part, color), ([], []))
         for i in range(1, len(vertices) - 1):
             positions.extend((a, vertices[i], vertices[i + 1]))
             normals.extend([tuple(n / length for n in normal)] * 3)
@@ -97,10 +98,11 @@ class Model:
 
         def accessor(values, bounds=False):
             view = len(document["bufferViews"])
-            data = struct.pack(f"<{len(values) * 3}f", *(x for vertex in values for x in vertex))
+            components = len(values[0])
+            data = struct.pack(f"<{len(values) * components}f", *(x for vertex in values for x in vertex))
             document["bufferViews"].append(dict(buffer=0, byteOffset=len(binary), byteLength=len(data), target=34962))
             binary.extend(data)
-            result = dict(bufferView=view, componentType=5126, count=len(values), type="VEC3")
+            result = dict(bufferView=view, componentType=5126, count=len(values), type=f"VEC{components}")
             if bounds:
                 result.update(min=list(map(min, zip(*values))), max=list(map(max, zip(*values))))
             document["accessors"].append(result)
@@ -118,12 +120,16 @@ class Model:
             return len(document["accessors"]) - 1
 
         positions, normals, colors, indices = [], [], [], []
+        plant_vertices, peak_luminance = [], {}
         vertex_lookup = {}
-        for color, (part_positions, part_normals) in self.parts.items():
+        for (part, color), (part_positions, part_normals) in self.parts.items():
             rgb = [int(color[i:i + 2], 16) / 255 for i in (0, 2, 4)]
             linear = tuple(c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in rgb)
+            if part is not None:
+                luminance = sum(c * w for c, w in zip(linear, (0.2126, 0.7152, 0.0722)))
+                peak_luminance[part] = max(peak_luminance.get(part, 0), luminance)
             for pos, nrm in zip(part_positions, part_normals):
-                key = struct.pack("<9f", *pos, *nrm, *linear)
+                key = (part, struct.pack("<9f", *pos, *nrm, *linear))
                 idx = vertex_lookup.get(key)
                 if idx is None:
                     idx = len(positions)
@@ -131,6 +137,8 @@ class Model:
                     positions.append(pos)
                     normals.append(nrm)
                     colors.append(linear)
+                    if part is not None:
+                        plant_vertices.append((part, luminance))
                 indices.append(idx)
         document["materials"].append(dict(name="Low Poly vertex colors", pbrMetallicRoughness=dict(
             metallicFactor=0, roughnessFactor=0.82)))
@@ -138,6 +146,13 @@ class Model:
             attributes=dict(POSITION=accessor(positions, True), NORMAL=accessor(normals), COLOR_0=accessor(colors)),
             indices=index_accessor(indices),
             material=0))
+        if plant_vertices:
+            # The untextured tree uses UV0 for organ identity and relative facet brightness.
+            # COLOR_0 remains the original linear RGB for the unpainted surface.
+            assert len(plant_vertices) == len(positions)
+            mask = [(float(part == "foliage"), lum / peak_luminance[part] if peak_luminance[part] else 1)
+                    for part, lum in plant_vertices]
+            document["meshes"][0]["primitives"][0]["attributes"]["TEXCOORD_0"] = accessor(mask)
         document["buffers"] = [{"byteLength": len(binary)}]
         metadata = json.dumps(document, separators=(",", ":")).encode()
         metadata += b" " * (-len(metadata) % 4)
@@ -245,6 +260,7 @@ def arch(side):
 
 def trees():
     mesh = Model()
+    mesh.plant_part = "bark"
     mesh.frustum("593a1f", (0, 0, 0), (0.25, 7.4, 0), 1.15, 0.4, 7)
     rng = random.Random(211)
     for x, y, z, radius, color in (
@@ -254,12 +270,16 @@ def trees():
         (0.35, 9.1, 2.35, 3.85, "6ab223"),
         (0.0, 10.9, 0.25, 3.45, "86c92e"),
     ):
+        mesh.plant_part = "bark"
         mesh.frustum("54361c", (0, 3.7, 0), (x, y, z), 0.54, 0.15, 6)
+        mesh.plant_part = "foliage"
         mesh.crown(color, (x, y, z), (radius, radius * 0.85, radius), rng)
     mesh.write("oak")
 
     mesh = Model()
+    mesh.plant_part = "bark"
     mesh.frustum("593a20", (0, 0, 0), (0, 8.1, 0), 0.42, 0.1, 6)
+    mesh.plant_part = "foliage"
     for i, color in enumerate(("2c6e32", "3a8237", "4b983d", "5eae45")):
         mesh.frustum(color, (0, 1.45 + i * 1.62, 0), (0, 5.95 + i * 1.35, 0), 2.82 - i * 0.56, 0.03, 8)
     mesh.write("pine")

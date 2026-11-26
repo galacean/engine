@@ -6,6 +6,28 @@ import type { Asset } from "../common/Asset";
 export type ShrubAsset = Asset<"shrub"> & {
   /** 仅对应系统 inspect 返回的类型专属属性。 */
   properties: {
+    colorOverride?: {
+      foliage: {
+        source: "instance" | "area" | "species-default";
+        /** 单株或最上层生效区域的稳定标识。 */
+        sourceId?: string;
+        /** 生效覆盖的合成色，使用 sRGB 整数 0–255。继承物种默认色时为 null。 */
+        colorRgb: [number, number, number] | null;
+        /** 合成色对基础反照率的覆盖权重，包含边缘羽化。 */
+        weight: number;
+      };
+      bark: {
+        source: "instance" | "area" | "species-default";
+        /** 单株或最上层生效区域的稳定标识。 */
+        sourceId?: string;
+        /** 生效覆盖的合成色，使用 sRGB 整数 0–255。继承物种默认色时为 null。 */
+        colorRgb: [number, number, number] | null;
+        /** 合成色对基础反照率的覆盖权重，包含边缘羽化。 */
+        weight: number;
+      };
+    };
+    /** 灌木物种标识，可用于局部改色的 assetIds。 */
+    species?: string;
     /** 实际渲染的程序化资源标识；材质槽按此物种发现。 */
     proceduralAssetId?: string;
     /** 规划组件目标；通过 vegetation.config.get/update 修改。 */

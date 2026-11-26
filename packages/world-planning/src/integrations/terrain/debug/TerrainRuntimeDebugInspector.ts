@@ -1,5 +1,5 @@
 import * as dat from "dat.gui";
-import { FogMode, TonemappingMode, WeatherPresets } from "@galacean/engine";
+import { FogMode, TonemappingMode, VolumetricLightQuality, WeatherPresets } from "@galacean/engine";
 import { DebugInspector, type DebugInspectorPanelHost } from "@galacean/engine-terrain/terrain/debug/DebugInspector";
 import {
   TerrainRuntimeDebug,
@@ -8,6 +8,11 @@ import {
   type TerrainVegetationDebugView
 } from "@galacean/engine-terrain/terrain/debug/TerrainRuntimeDebug";
 import { TerrainDemoControls, type TerrainDemoCameraPose } from "./TerrainDemoControls.ts";
+import {
+  OIL_PAINT_COLOR_SCHEMES,
+  OIL_PAINT_SEASON_PALETTES,
+  type OilPaintColorSchemeId
+} from "../../../spatial/oil-paint/OilPaintSeasonPalette";
 import type { TerrainWaterReflectionMode } from "../project/TerrainWaterRuntime.ts";
 import { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain/project/TerrainPostProcessRuntime";
 import {
@@ -230,6 +235,25 @@ export interface TerrainRuntimeDebugInspectorOptions {
   readonly exactInstanceSpatial?: TerrainExactInstanceSpatialDebugControl;
   /** Optional page-owned vista presentation controls. */
   readonly vista?: TerrainVistaDebugControl;
+  /** Optional page-owned oil-paint stylization pass & shader controls. */
+  readonly oilPaint?: TerrainOilPaintDebugControl;
+}
+
+export interface TerrainOilPaintDebugSnapshot {
+  readonly passActive: boolean;
+  readonly shaderMacro: boolean;
+  readonly painterlyStrength: number;
+  readonly brushRadius: number;
+  readonly impasto: number;
+  readonly brushScale: number;
+}
+
+export interface TerrainOilPaintDebugControl {
+  getSnapshot(): TerrainOilPaintDebugSnapshot;
+  setPassActive(active: boolean): void | Promise<void>;
+  setShaderMacro(enabled: boolean): void | Promise<void>;
+  setParam(key: "painterlyStrength" | "brushRadius" | "impasto" | "brushScale", value: number): void;
+  reset(): void | Promise<void>;
 }
 
 export interface TerrainVistaDebugControl {
@@ -350,6 +374,8 @@ export class TerrainRuntimeDebugInspector {
   readonly treeFolderHost: DebugInspectorPanelHost;
   /** Scoped host for page-owned rock and scene-prop authoring. */
   readonly rockFolderHost: DebugInspectorPanelHost;
+  /** Scoped host for page-owned building LOD, appearance, and component authoring. */
+  readonly buildingFolderHost: DebugInspectorPanelHost;
   /** Scoped host for Water-owned controls. */
   readonly waterFolderHost: DebugInspectorPanelHost;
   /** Scoped host for the dedicated screen-space-reflection authoring category. */
@@ -463,6 +489,7 @@ export class TerrainRuntimeDebugInspector {
     const vegetation = category("Grass & Vegetation / 草地与植被", false);
     const proceduralTrees = category("Procedural Trees / 程序化树", false);
     const rocks = category("Rocks / 岩石", false);
+    const buildings = category("Buildings / 建筑", false);
     const water = category("Water / 水", false);
     const ssr = category("Screen-space Reflection / 屏幕空间反射", false);
     const season = category("Season / 季节", false);
@@ -494,6 +521,7 @@ export class TerrainRuntimeDebugInspector {
     this.grassFolderHost = createPanelHost(inspector, vegetation);
     this.treeFolderHost = createPanelHost(inspector, proceduralTrees);
     this.rockFolderHost = createPanelHost(inspector, rocks);
+    this.buildingFolderHost = createPanelHost(inspector, buildings);
     this.waterFolderHost = createPanelHost(inspector, water);
     this.ssrFolderHost = createPanelHost(inspector, ssr);
     this.climateFolderHost = createPanelHost(inspector, climate);
@@ -738,6 +766,225 @@ export class TerrainRuntimeDebugInspector {
       .onChange(
         editPostProcess((chromaticity: number) => options.postProcess.setSunLensFlareGhostChromaticity(chromaticity))
       );
+    const volumetricLight = inspector.subfolder(postProcess, "Volumetric Light / 体积光", true);
+    volumetricLight
+      .add(postProcessState.volumetricLight, "enabled")
+      .name("Enabled / 启用")
+      .onChange(editPostProcess((enabled: boolean) => options.postProcess.setVolumetricLightEnabled(enabled)));
+    volumetricLight
+      .add(postProcessState.volumetricLight, "quality", {
+        "Low / 低 (2D 屏幕空间)": VolumetricLightQuality.Low,
+        "Medium / 中 (3D 阴影体 360p)": VolumetricLightQuality.Medium,
+        "High / 高 (3D 阴影体 720p)": VolumetricLightQuality.High
+      })
+      .name("Quality / 质量")
+      .onChange(
+        editPostProcess((quality: number) =>
+          options.postProcess.setVolumetricLightQuality(Number(quality) as VolumetricLightQuality)
+        )
+      );
+    bindNumericInput(
+      volumetricLight
+        .add(postProcessState.volumetricLight, "intensity", 0, 2.5, 0.02)
+        .name("Intensity / 光束强度")
+        .onChange(editPostProcess((intensity: number) => options.postProcess.setVolumetricLightIntensity(intensity)))
+    );
+    volumetricLight
+      .add(postProcessState.volumetricLight, "threshold", 0, 2, 0.01)
+      .name("Threshold / 亮度阈值 (Low)")
+      .onChange(editPostProcess((threshold: number) => options.postProcess.setVolumetricLightThreshold(threshold)));
+    volumetricLight
+      .add(postProcessState.volumetricLight, "density", 0.2, 1.5, 0.02)
+      .name("Density / 延伸密度 (Low)")
+      .onChange(editPostProcess((density: number) => options.postProcess.setVolumetricLightDensity(density)));
+    volumetricLight
+      .add(postProcessState.volumetricLight, "decay", 0.75, 0.99, 0.005)
+      .name("Decay / 衰减系数 (Low)")
+      .onChange(editPostProcess((decay: number) => options.postProcess.setVolumetricLightDecay(decay)));
+    volumetricLight
+      .add(postProcessState.volumetricLight, "softKnee", 0, 1, 0.02)
+      .name("Soft knee / 高光柔化")
+      .onChange(editPostProcess((softKnee: number) => options.postProcess.setVolumetricLightSoftKnee(softKnee)));
+    volumetricLight
+      .add(postProcessState.volumetricLight, "skyDepthThreshold", 0.9, 0.99998, 0.0001)
+      .name("Sky depth / 天空深度阈值 (Low)")
+      .onChange(
+        editPostProcess((threshold: number) => options.postProcess.setVolumetricLightSkyDepthThreshold(threshold))
+      );
+    volumetricLight
+      .add(postProcessState.volumetricLight, "anisotropy", -0.9, 0.95, 0.01)
+      .name("Anisotropy / 前向各向异性 (3D)")
+      .onChange(editPostProcess((anisotropy: number) => options.postProcess.setVolumetricLightAnisotropy(anisotropy)));
+    volumetricLight
+      .add(postProcessState.volumetricLight, "extinction", 0.001, 0.1, 0.001)
+      .name("Extinction / 散射密度 (3D)")
+      .onChange(editPostProcess((extinction: number) => options.postProcess.setVolumetricLightExtinction(extinction)));
+    volumetricLight
+      .add(postProcessState.volumetricLight, "maxDistance", 5, 500, 1)
+      .name("Max distance / 有效距离 (3D)")
+      .onChange(editPostProcess((distance: number) => options.postProcess.setVolumetricLightMaxDistance(distance)));
+    volumetricLight
+      .add(postProcessState.volumetricLight, "heightFalloff", 0, 0.3, 0.005)
+      .name("Height falloff / 高度衰减 (3D)")
+      .onChange(editPostProcess((falloff: number) => options.postProcess.setVolumetricLightHeightFalloff(falloff)));
+    volumetricLight
+      .add(postProcessState.volumetricLight, "baseHeight", -50, 100, 1)
+      .name("Base height / 衰减基准高度 (3D)")
+      .onChange(editPostProcess((height: number) => options.postProcess.setVolumetricLightBaseHeight(height)));
+    volumetricLight
+      .add(postProcessState.volumetricLight, "bilateralSharpness", 0.5, 64, 0.5)
+      .name("Bilateral / 保边锐度 (3D)")
+      .onChange(
+        editPostProcess((sharpness: number) => options.postProcess.setVolumetricLightBilateralSharpness(sharpness))
+      );
+
+    let oilPaintFolder: dat.GUI | undefined;
+    let oilPaintState: Record<string, boolean | number | string> | undefined;
+    let synchronizeOilPaintPalette: (() => void) | undefined;
+    let resetOilPaintPaletteScheme: (() => void) | undefined;
+    if (options.oilPaint) {
+      const oilControl = options.oilPaint;
+      const state: Record<string, boolean | number | string> = { ...oilControl.getSnapshot() };
+      oilPaintState = state;
+      oilPaintFolder = inspector.subfolder(postProcess, "Oil Paint / 油画风格", true);
+      oilPaintFolder
+        .add(state, "passActive")
+        .name("OilPaintPass / 油画后处理")
+        .onChange((active: boolean) => {
+          void Promise.resolve(oilControl.setPassActive(active)).then(() => {
+            Object.assign(state, oilControl.getSnapshot());
+            oilPaintFolder?.updateDisplay();
+          });
+        });
+      oilPaintFolder
+        .add(state, "shaderMacro")
+        .name("Shader macro / 场景材质宏")
+        .onChange((enabled: boolean) => {
+          void Promise.resolve(oilControl.setShaderMacro(enabled)).then(() => {
+            Object.assign(state, oilControl.getSnapshot());
+            oilPaintFolder?.updateDisplay();
+          });
+        });
+      oilPaintFolder
+        .add(state, "painterlyStrength", 0, 1, 0.01)
+        .name("Painterly / 笔触油画强度")
+        .onChange((v: number) => oilControl.setParam("painterlyStrength", v));
+      oilPaintFolder
+        .add(state, "brushRadius", 0, 10, 0.25)
+        .name("Brush radius / 笔触半径")
+        .onChange((v: number) => oilControl.setParam("brushRadius", v));
+      oilPaintFolder
+        .add(state, "impasto", 0, 2, 0.05)
+        .name("3D impasto / 3D 厚涂")
+        .onChange((v: number) => oilControl.setParam("impasto", v));
+      oilPaintFolder
+        .add(state, "brushScale", 0.2, 2.5, 0.05)
+        .name("3D brush scale / 3D 笔触密度")
+        .onChange((v: number) => oilControl.setParam("brushScale", v));
+
+      if (options.environment) {
+        const env = options.environment;
+        const readActivePalette = () => env.getOilPaintSeasonPalette(env.season);
+        const paletteState = {
+          scheme: "season" as OilPaintColorSchemeId,
+          paletteBlend: 0.52,
+          dab0: "#ffffff",
+          dab1: "#ffffff",
+          dab2: "#ffffff",
+          dab3: "#ffffff",
+          warmTint: "#ffffff",
+          coolTint: "#ffffff"
+        };
+        const paletteSubfolder = inspector.subfolder(oilPaintFolder, "Brush Palette / 笔刷色系", true);
+        const syncPaletteFields = () => {
+          const src = readActivePalette();
+          paletteState.paletteBlend = src.paletteBlend;
+          paletteState.dab0 = linearRgbToHex(src.dabs[0]);
+          paletteState.dab1 = linearRgbToHex(src.dabs[1]);
+          paletteState.dab2 = linearRgbToHex(src.dabs[2]);
+          paletteState.dab3 = linearRgbToHex(src.dabs[3]);
+          paletteState.warmTint = linearRgbToHex([
+            Math.min(1, src.warmTint[0] / 1.25),
+            Math.min(1, src.warmTint[1] / 1.25),
+            Math.min(1, src.warmTint[2] / 1.25)
+          ]);
+          paletteState.coolTint = linearRgbToHex([
+            Math.min(1, src.coolTint[0] / 1.25),
+            Math.min(1, src.coolTint[1] / 1.25),
+            Math.min(1, src.coolTint[2] / 1.25)
+          ]);
+        };
+        syncPaletteFields();
+
+        const applyCustomPalette = () => {
+          paletteState.scheme = "custom";
+          const warm = hexToLinearRgb(paletteState.warmTint);
+          const cool = hexToLinearRgb(paletteState.coolTint);
+          env.setOilPaintSeasonPalette(env.season, {
+            dabs: [
+              hexToLinearRgb(paletteState.dab0),
+              hexToLinearRgb(paletteState.dab1),
+              hexToLinearRgb(paletteState.dab2),
+              hexToLinearRgb(paletteState.dab3)
+            ],
+            warmTint: [warm[0] * 1.25, warm[1] * 1.25, warm[2] * 1.25],
+            coolTint: [cool[0] * 1.25, cool[1] * 1.25, cool[2] * 1.25],
+            paletteBlend: paletteState.paletteBlend
+          });
+          paletteSubfolder.updateDisplay();
+        };
+
+        const schemeOptions = Object.fromEntries(OIL_PAINT_COLOR_SCHEMES.map((item) => [item.label, item.id]));
+        paletteSubfolder
+          .add(paletteState, "scheme", schemeOptions)
+          .name("Color scheme / 笔刷色系")
+          .onChange((schemeId: OilPaintColorSchemeId) => {
+            if (schemeId === "season") {
+              env.setOilPaintSeasonPalette(env.season, OIL_PAINT_SEASON_PALETTES[env.season]);
+              syncPaletteFields();
+              paletteSubfolder.updateDisplay();
+              return;
+            }
+            const found = OIL_PAINT_COLOR_SCHEMES.find((item) => item.id === schemeId);
+            if (found?.palette) {
+              env.setOilPaintSeasonPalette(env.season, found.palette);
+              syncPaletteFields();
+              paletteSubfolder.updateDisplay();
+            }
+          });
+        paletteSubfolder
+          .add(paletteState, "paletteBlend", 0, 1, 0.01)
+          .name("Color mix / 碎色混合度")
+          .onChange(applyCustomPalette);
+        paletteSubfolder.addColor(paletteState, "dab0").name("Dab 1 / 笔触色 1").onChange(applyCustomPalette);
+        paletteSubfolder.addColor(paletteState, "dab1").name("Dab 2 / 笔触色 2").onChange(applyCustomPalette);
+        paletteSubfolder.addColor(paletteState, "dab2").name("Dab 3 / 笔触色 3").onChange(applyCustomPalette);
+        paletteSubfolder.addColor(paletteState, "dab3").name("Dab 4 / 笔触色 4").onChange(applyCustomPalette);
+        paletteSubfolder.addColor(paletteState, "warmTint").name("Warm tint / 暖笔触").onChange(applyCustomPalette);
+        paletteSubfolder.addColor(paletteState, "coolTint").name("Cool tint / 冷笔触").onChange(applyCustomPalette);
+
+        synchronizeOilPaintPalette = () => {
+          if (paletteSubfolder.domElement.contains(document.activeElement)) return;
+          syncPaletteFields();
+          paletteSubfolder.updateDisplay();
+        };
+        resetOilPaintPaletteScheme = () => {
+          paletteState.scheme = "season";
+          env.setOilPaintSeasonPalette(env.season, OIL_PAINT_SEASON_PALETTES[env.season]);
+          syncPaletteFields();
+          paletteSubfolder.updateDisplay();
+        };
+      }
+
+      inspector.addAction(oilPaintFolder, "重置油画参数", () => {
+        void Promise.resolve(oilControl.reset()).then(() => {
+          resetOilPaintPaletteScheme?.();
+          Object.assign(state, oilControl.getSnapshot());
+          oilPaintFolder?.updateDisplay();
+        });
+      });
+    }
+
     const synchronizePostProcessControls = (): void => {
       const current = options.postProcess.getDebugSnapshot();
       Object.assign(postProcessState, {
@@ -748,10 +995,17 @@ export class TerrainRuntimeDebugInspector {
       Object.assign(postProcessState.colorAdjustments, current.colorAdjustments);
       Object.assign(postProcessState.bloom, current.bloom);
       Object.assign(postProcessState.sunLensFlare, current.sunLensFlare);
+      Object.assign(postProcessState.volumetricLight, current.volumetricLight);
       const activeElement = document.activeElement;
       if (!colorAdjustments.domElement.contains(activeElement)) colorAdjustments.updateDisplay();
       if (!bloom.domElement.contains(activeElement)) bloom.updateDisplay();
       if (!sunLensFlare.domElement.contains(activeElement)) sunLensFlare.updateDisplay();
+      if (!volumetricLight.domElement.contains(activeElement)) volumetricLight.updateDisplay();
+      if (options.oilPaint && oilPaintState && oilPaintFolder && !oilPaintFolder.domElement.contains(activeElement)) {
+        Object.assign(oilPaintState, options.oilPaint.getSnapshot());
+        oilPaintFolder.updateDisplay();
+      }
+      synchronizeOilPaintPalette?.();
     };
     this._lightingAuthoringControls = mountLightingAuthoringControls(
       inspector,
@@ -878,6 +1132,7 @@ function createPanelHost(inspector: DebugInspector, parent: dat.GUI): DebugInspe
     subfolder: (folder, title, open = true) => inspector.subfolder(folder, title, open),
     addReadout: (folder, label, outputId) => inspector.addReadout(folder, label, outputId),
     addAction: (folder, label, onClick) => inspector.addAction(folder, label, onClick),
+    addCustomContainer: (folder) => inspector.addCustomContainer(folder),
     refreshLayout: () => inspector.refreshLayout()
   };
 }
@@ -906,6 +1161,18 @@ function mountSeasonPaletteControls(
     "Contract / 数据约定"
   )("颜色定义全局类别色调；Influence=0 保留原色，1 应用完整色调并保留素材与地块的明暗层次");
   const states = {} as Record<TerrainSeason, Record<TerrainSeasonPaletteCategory, TerrainSeasonPaletteControlState>>;
+  const oilStates = {} as Record<
+    TerrainSeason,
+    {
+      dab0: string;
+      dab1: string;
+      dab2: string;
+      dab3: string;
+      warmTint: string;
+      coolTint: string;
+      paletteBlend: number;
+    }
+  >;
   const seasonLabels: Readonly<Record<TerrainSeason, string>> = {
     spring: "Spring / 春季",
     summer: "Summer / 夏季",
@@ -927,6 +1194,23 @@ function mountSeasonPaletteControls(
       target.color = linearRgbToHex([color.r, color.g, color.b]);
       target.influence = color.influence;
     }
+    const oil = environment.getOilPaintSeasonPalette(season);
+    const oilTarget = oilStates[season];
+    oilTarget.dab0 = linearRgbToHex(oil.dabs[0]);
+    oilTarget.dab1 = linearRgbToHex(oil.dabs[1]);
+    oilTarget.dab2 = linearRgbToHex(oil.dabs[2]);
+    oilTarget.dab3 = linearRgbToHex(oil.dabs[3]);
+    oilTarget.warmTint = linearRgbToHex([
+      Math.min(1, oil.warmTint[0] / 1.25),
+      Math.min(1, oil.warmTint[1] / 1.25),
+      Math.min(1, oil.warmTint[2] / 1.25)
+    ]);
+    oilTarget.coolTint = linearRgbToHex([
+      Math.min(1, oil.coolTint[0] / 1.25),
+      Math.min(1, oil.coolTint[1] / 1.25),
+      Math.min(1, oil.coolTint[2] / 1.25)
+    ]);
+    oilTarget.paletteBlend = oil.paletteBlend;
   };
 
   for (const season of Object.values(SEASON_OPTIONS)) {
@@ -956,6 +1240,48 @@ function mountSeasonPaletteControls(
         .onChange(apply);
       bindNumericInput(influenceController);
     }
+    const oilSource = environment.getOilPaintSeasonPalette(season);
+    const oilState = (oilStates[season] = {
+      dab0: linearRgbToHex(oilSource.dabs[0]),
+      dab1: linearRgbToHex(oilSource.dabs[1]),
+      dab2: linearRgbToHex(oilSource.dabs[2]),
+      dab3: linearRgbToHex(oilSource.dabs[3]),
+      warmTint: linearRgbToHex([
+        Math.min(1, oilSource.warmTint[0] / 1.25),
+        Math.min(1, oilSource.warmTint[1] / 1.25),
+        Math.min(1, oilSource.warmTint[2] / 1.25)
+      ]),
+      coolTint: linearRgbToHex([
+        Math.min(1, oilSource.coolTint[0] / 1.25),
+        Math.min(1, oilSource.coolTint[1] / 1.25),
+        Math.min(1, oilSource.coolTint[2] / 1.25)
+      ]),
+      paletteBlend: oilSource.paletteBlend
+    });
+    const oilFolder = inspector.subfolder(seasonFolder, "Oil Paint / 油画笔触", true);
+    const applyOil = (): void => {
+      const warm = hexToLinearRgb(oilState.warmTint);
+      const cool = hexToLinearRgb(oilState.coolTint);
+      environment.setOilPaintSeasonPalette(season, {
+        dabs: [
+          hexToLinearRgb(oilState.dab0),
+          hexToLinearRgb(oilState.dab1),
+          hexToLinearRgb(oilState.dab2),
+          hexToLinearRgb(oilState.dab3)
+        ],
+        warmTint: [warm[0] * 1.25, warm[1] * 1.25, warm[2] * 1.25],
+        coolTint: [cool[0] * 1.25, cool[1] * 1.25, cool[2] * 1.25],
+        paletteBlend: oilState.paletteBlend
+      });
+    };
+    oilFolder.addColor(oilState, "dab0").name("Dab 1 / 笔触色 1").onChange(applyOil);
+    oilFolder.addColor(oilState, "dab1").name("Dab 2 / 笔触色 2").onChange(applyOil);
+    oilFolder.addColor(oilState, "dab2").name("Dab 3 / 笔触色 3").onChange(applyOil);
+    oilFolder.addColor(oilState, "dab3").name("Dab 4 / 笔触色 4").onChange(applyOil);
+    oilFolder.addColor(oilState, "warmTint").name("Warm tint / 暖笔触").onChange(applyOil);
+    oilFolder.addColor(oilState, "coolTint").name("Cool tint / 冷笔触").onChange(applyOil);
+    const blendCtrl = oilFolder.add(oilState, "paletteBlend", 0, 1, 0.01).name("Blend / 混合强度").onChange(applyOil);
+    bindNumericInput(blendCtrl);
   }
 
   const synchronize = (): void => {

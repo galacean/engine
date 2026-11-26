@@ -54,6 +54,7 @@ const API_NAMES = [
   "vegetation.inspect",
   "vegetation.create",
   "vegetation.update",
+  "vegetation.recolorArea",
   "vegetation.delete",
   "animals.config.get",
   "animals.config.update",
@@ -80,7 +81,9 @@ const API_NAMES = [
   "animals.command",
   "animals.receipt",
   "animals.catalog",
-  "animals.spawn"
+  "animals.spawn",
+  "animals.delete",
+  "animals.update"
 ] as const;
 
 const WATER_QUERY_NAMES = new Set(["water.capabilities", "water.sample", "water.sampleDrops", "water.diagnostics", "water.verify"]);
@@ -610,6 +613,8 @@ describe("Seed World final API contracts", () => {
     const terrainInspectSource = sourceForEntry("terrain.inspect");
     expect(terrainInspectSource).toContain("inspect<T extends TerrainAssetKind & keyof AssetDetailsByType>");
     expect(sourceForEntry("vegetation.update")).not.toContain("densityPerSquareMetre");
+    expect(sourceForEntry("vegetation.update")).toContain("foliageColorRgb");
+    expect(sourceForEntry("vegetation.recolorArea")).toContain('kind: "polygon"');
     expect(sourceForEntry("vegetation.update")).not.toContain("分布密度");
     expect(sourceForEntry("vegetation.create")).toContain(
       "也是对外反馈数量的唯一事实来源"

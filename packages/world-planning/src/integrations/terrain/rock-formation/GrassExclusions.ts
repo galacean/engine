@@ -3,6 +3,7 @@ import { sampleSeedWorldHeight, type SeedWorldFields } from "../../../runtime/Se
 import { createWaterSurfaceSample } from "@galacean/engine-water/water/runtime/index";
 import type { PlanningWaterRuntime } from "../../../spatial/runtime/PlanningWaterRuntime.ts";
 import { naturalVegetationAt } from "../../../planning-data/NaturalVegetationProfile.ts";
+import { worldTemplate } from "../../../spatial/WorldTemplateCatalog.ts";
 
 /** Water's published surface wins only at the root's elevation, including stacked shelves. */
 export function rockGrassWaterTest(water: Pick<PlanningWaterRuntime, "sampleSurface">) {
@@ -17,6 +18,7 @@ export function rockGrassExclusions(
   fields: SeedWorldFields,
   submerged: (x: number, y: number, z: number) => boolean
 ): (x: number, y: number, z: number) => boolean | number {
+  if (worldTemplate(plan.parameters.worldTemplate?.id)?.rockTopGrass === false) return () => false;
   const abundance = plan.naturalVegetation ? naturalVegetationAt(plan) : undefined;
   const buildings = plan.buildings.map((building) => ({
     outline: building.outline,

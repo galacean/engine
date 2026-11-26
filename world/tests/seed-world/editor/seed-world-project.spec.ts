@@ -5,7 +5,8 @@ import { afterEach, expect, it, vi } from "vitest";
 import {
   openSeedWorldProject,
   seedWorldProjectStorageId,
-  SEED_WORLD_BUILDING_SAVE_VERSION
+  SEED_WORLD_BUILDING_SAVE_VERSION,
+  SEED_WORLD_RETIRED_SAVE_CLEANUP_DELAY_MS
 } from "../../../demos/seed-world/SeedWorldProject";
 import { SEED_WORLD_PRODUCTION_ASSET_CATALOG } from "@galacean/engine-vegetation/asset-assembly/SeedWorldProductionAssetCatalog.ts";
 import { createSeedPlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningInitialization.ts";
@@ -109,6 +110,11 @@ it.each(["runtime", "planning"] as const)(
     expect(
       project.projectPackage.project.files.find((file) => file.virtualPath === PLANNING_PROJECT_PATH)?.dependencies
     ).toEqual([]);
+    // A previously saved project can have the original catalog's empty prefab edges.
+    const savedPrefab = f.records.get(project.id)!.project.files.find(
+      (file) => file.virtualPath === "Prefab/Detail/detail-00.prefab"
+    )!;
+    savedPrefab.dependencies = [];
     project.dispose();
     sessions.pop();
 
@@ -116,6 +122,9 @@ it.each(["runtime", "planning"] as const)(
     const restored = await openSeedWorldProject(f.url, initial);
     sessions.push(restored);
     expect(f.fetcher).not.toHaveBeenCalled();
+    expect(
+      restored.projectPackage.project.files.find((file) => file.virtualPath === savedPrefab.virtualPath)?.dependencies
+    ).toEqual(["Material/Vegetation/grass-2.mat", "Models/grass-2-authored.glb"]);
     const restoredStorage = new PlanningProjectStorage(restored);
     const loaded = (await restoredStorage.load(42))!;
     expect(loaded.entities.world.components.world.values.landCoverage).toBe(0.7);
@@ -134,46 +143,76 @@ it("closes the session and leaves storage untouched if catalog preparation fails
   ) as RuntimeProjectManifest;
   f.fetcher.mockResolvedValue(new Response("unavailable", { status: 503 }));
   await expect(openSeedWorldProject(f.url, initial)).rejects.toThrow();
-  // One close releases the retired-save cleanup handle, the other the failed session.
-  expect(f.close).toHaveBeenCalledTimes(2);
+  // Retired-save cleanup is deferred until after startup succeeds, so only the failed session handle closes.
+  expect(f.close).toHaveBeenCalledTimes(1);
   expect(f.save).not.toHaveBeenCalled();
 });
 
-it("deletes saves of other versions before loading contents and restores the current version", async () => {
-  const f = storageFixture();
-  const projectUrl = new URL(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl, f.url).href;
-  const oldId = `seed-world:native-buildings-v7-groups:42:${projectUrl}`;
-  const previousId = `seed-world:native-buildings-v10-groups:42:${projectUrl}`;
-  const preMergeId = `seed-world:native-buildings-v11-groups:42:${projectUrl}`;
-  const otherProjectId = "seed-world:native-buildings-v11-groups:42:https://other.test/project.json";
-  const unrelatedId = "another-project";
-  const legacy = { incompatibleBuildingSave: true } as unknown as RuntimeProjectPackage;
-  for (const id of [oldId, previousId, preMergeId, otherProjectId, unrelatedId]) f.records.set(id, legacy);
-  const initial = JSON.parse(
-    await readCatalogFile(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl)
-  ) as RuntimeProjectManifest;
-  const project = await openSeedWorldProject(f.url, initial);
-  sessions.push(project);
-  expect(SEED_WORLD_BUILDING_SAVE_VERSION).toBe(12);
-  expect(project.id).toBe(seedWorldProjectStorageId(42, projectUrl));
-  expect(f.load.mock.calls).toEqual([[project.id]]);
-  expect(project.id).not.toBe(oldId);
-  expect(f.records.has(oldId)).toBe(false);
-  expect(f.records.has(previousId)).toBe(false);
-  expect(f.records.has(preMergeId)).toBe(false);
-  expect(f.records.get(otherProjectId)).toEqual(legacy);
-  expect(f.records.get(unrelatedId)).toEqual(legacy);
-  await project.update((current) => ({
-    ...current,
-    documents: { ...current.documents, "building-save.txt": "current building version" }
-  }));
-  await project.flush();
-  project.dispose();
-  sessions.pop();
-  const restored = await openSeedWorldProject(f.url, initial);
-  sessions.push(restored);
-  expect(restored.projectPackage.documents?.["building-save.txt"]).toBe("current building version");
-  expect(f.load.mock.calls.every(([id]) => id !== oldId && id !== previousId && id !== preMergeId)).toBe(true);
+it("defers retired-version save cleanup off startup and restores the current version", async () => {
+  vi.useFakeTimers();
+  try {
+    const f = storageFixture();
+    const projectUrl = new URL(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl, f.url).href;
+    const oldId = `seed-world:native-buildings-v7-groups:42:${projectUrl}`;
+    const previousId = `seed-world:native-buildings-v10-groups:42:${projectUrl}`;
+    const preMergeId = `seed-world:native-buildings-v11-groups:42:${projectUrl}`;
+    const otherProjectId = "seed-world:native-buildings-v11-groups:42:https://other.test/project.json";
+    const unrelatedId = "another-project";
+    const legacy = { incompatibleBuildingSave: true } as unknown as RuntimeProjectPackage;
+    for (const id of [oldId, previousId, preMergeId, otherProjectId, unrelatedId]) f.records.set(id, legacy);
+    const initial = JSON.parse(
+      await readCatalogFile(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl)
+    ) as RuntimeProjectManifest;
+    const project = await openSeedWorldProject(f.url, initial);
+    sessions.push(project);
+    expect(SEED_WORLD_BUILDING_SAVE_VERSION).toBe(12);
+    expect(project.id).toBe(seedWorldProjectStorageId(42, projectUrl));
+    expect(f.load.mock.calls).toEqual([[project.id]]);
+    expect(project.id).not.toBe(oldId);
+    // Cleanup must not compete with sessionOpen on startup.
+    expect(f.records.has(oldId)).toBe(true);
+    await vi.advanceTimersByTimeAsync(SEED_WORLD_RETIRED_SAVE_CLEANUP_DELAY_MS);
+    expect(f.records.has(oldId)).toBe(false);
+    expect(f.records.has(previousId)).toBe(false);
+    expect(f.records.has(preMergeId)).toBe(false);
+    expect(f.records.get(otherProjectId)).toEqual(legacy);
+    expect(f.records.get(unrelatedId)).toEqual(legacy);
+    await project.update((current) => ({
+      ...current,
+      documents: { ...current.documents, "building-save.txt": "current building version" }
+    }));
+    await project.flush();
+    project.dispose();
+    sessions.pop();
+    const restored = await openSeedWorldProject(f.url, initial);
+    sessions.push(restored);
+    expect(restored.projectPackage.documents?.["building-save.txt"]).toBe("current building version");
+    expect(f.load.mock.calls.every(([id]) => id !== oldId && id !== previousId && id !== preMergeId)).toBe(true);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+it("cancels deferred retired-save cleanup when the last active session for projectUrl is disposed (P2-4)", async () => {
+  vi.useFakeTimers();
+  try {
+    const f = storageFixture();
+    const projectUrl = new URL(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl, f.url).href;
+    const oldId = `seed-world:native-buildings-v7-groups:42:${projectUrl}`;
+    const legacy = { incompatibleBuildingSave: true } as unknown as RuntimeProjectPackage;
+    f.records.set(oldId, legacy);
+    const initial = JSON.parse(
+      await readCatalogFile(SEED_WORLD_PRODUCTION_ASSET_CATALOG.projectUrl)
+    ) as RuntimeProjectManifest;
+
+    const project = await openSeedWorldProject(f.url, initial);
+    // Disposing the session before the 8s timer fires must cancel the pending cleanup.
+    project.dispose();
+    await vi.advanceTimersByTimeAsync(SEED_WORLD_RETIRED_SAVE_CLEANUP_DELAY_MS + 1000);
+    expect(f.records.has(oldId)).toBe(true);
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 it("restores relocated building assets before hierarchy reads without replacing saved authoring", async () => {

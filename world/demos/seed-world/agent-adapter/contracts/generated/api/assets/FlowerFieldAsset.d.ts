@@ -12,10 +12,32 @@ export type FlowerFieldAsset = Asset<"flower-field"> & {
     radiusMetres?: number;
     /** 树林或灌木丛中实际物化且可独立引用的成员数量；草地、花地和水草区省略。 */
     memberCount?: number;
-    /** 植被在空间中的公共分布方式；内部实例求解方式不会暴露。 */
-    distribution: "area" | "habitat-fill";
+    /** clump 表示可按种植位置单独拾取和改色的一丛模板花。 */
+    distribution: "area" | "habitat-fill" | "clump";
     /** 可复现植被分布的随机种子。 */
     seed?: number;
+    /** 花簇物种标识，可用于局部改色的 assetIds。 */
+    species?: string;
+    colorOverride?: {
+      foliage: {
+        source: "instance" | "area" | "species-default";
+        /** 单株或最上层生效区域的稳定标识。 */
+        sourceId?: string;
+        /** 生效覆盖的合成色，使用 sRGB 整数 0–255。继承物种默认色时为 null。 */
+        colorRgb: [number, number, number] | null;
+        /** 合成色对基础反照率的覆盖权重，包含边缘羽化。 */
+        weight: number;
+      };
+      bark: {
+        source: "instance" | "area" | "species-default";
+        /** 单株或最上层生效区域的稳定标识。 */
+        sourceId?: string;
+        /** 生效覆盖的合成色，使用 sRGB 整数 0–255。继承物种默认色时为 null。 */
+        colorRgb: [number, number, number] | null;
+        /** 合成色对基础反照率的覆盖权重，包含边缘羽化。 */
+        weight: number;
+      };
+    };
   };
 };
 declare global {

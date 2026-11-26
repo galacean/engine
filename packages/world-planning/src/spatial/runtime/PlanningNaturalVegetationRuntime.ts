@@ -1,4 +1,5 @@
 import { rockLodScreenHeights } from "@galacean/engine-terrain/rock-formation/RockLodPolicy";
+import { LOD_SCREEN_HEIGHT_HYSTERESIS_RATIO } from "@galacean/engine-terrain/terrain/lod/TerrainLodGroupRuntime";
 import { prepareRockLodMeshes, rockLodMeshes } from "../../integrations/terrain/rock-formation/RockLodMeshes";
 import type { PreparedTerrainUpdate } from "@galacean/engine-terrain/terrain/clipmap/TerrainPreparedUpdate";
 import type { SeedWorldAuthoringRuntimeBoundsV1 } from "../../world/SeedWorldAuthoringRuntimeDelta";
@@ -9,12 +10,13 @@ import { sampleSeedWorldHeight } from "../../runtime/SeedWorldFields.ts";
 import {
   SeedWorldArrayPickBatch,
   type SeedWorldPickVisitor
-} from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+} from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 import {
   createFarShadowRenderersProxy,
   setFarShadowCascadeProxy
-} from "@galacean/engine-modify/rendering/FarShadowCascadeProxy";
+} from "@galacean/engine-project/rendering/FarShadowCascadeProxy";
 import { resolvePlanningNaturalPlantPick } from "./PlanningWorldPicking";
+import { VegetationColors, type VegetationColorSample } from "../VegetationColors";
 import {
   landscapeGrassPaletteArea,
   LANDSCAPE_GRASS_COVERAGE
@@ -27,9 +29,11 @@ import {
 } from "../../world/SeedWorldAssetPlacementProfile";
 import {
   BoundingBox,
+  BoxColliderShape,
   Color,
   Matrix,
   MeshRenderer,
+  StaticCollider,
   Vector3,
   Vector4,
   type Material,
@@ -57,7 +61,10 @@ import {
   playAssetUpdateEffect
 } from "@galacean/engine-vegetation/asset-assembly/AssetEntranceEffect";
 import { plantSpeciesResourceUrl } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesResources";
-import { ProceduralPlantLibraryRuntime } from "@galacean/engine-vegetation/asset-assembly/ProceduralPlantLibraryRuntime";
+import {
+  createProceduralPlantLoadCache,
+  ProceduralPlantLibraryRuntime
+} from "@galacean/engine-vegetation/asset-assembly/ProceduralPlantLibraryRuntime";
 import { loadPlantJSON } from "@galacean/engine-vegetation/asset-assembly/ProceduralPlantResources";
 import {
   loadProceduralPlantMaterialBindings,
@@ -67,7 +74,10 @@ import type { SeedWorldTerrainRuntime } from "../../runtime/SeedWorldTerrainRunt
 import { TerrainLodGroupRendererRuntime } from "@galacean/engine-terrain/terrain/lod/TerrainLodGroupRendererRuntime";
 import { SEED_WORLD_POPULATION_RUNTIME_PROFILE } from "../../runtime/SeedWorldPopulationRuntimeCell.ts";
 import { resolveSeedWorldTreeTransitionHeights } from "../../world/SeedWorldRuntimeLodProfile";
-import { NATURAL_VEGETATION_COMPANION_PATCHES } from "../../runtime/NaturalVegetationLayers.ts";
+import {
+  NATURAL_VEGETATION_COMPANION_PATCHES,
+  SEED_WORLD_NATURAL_VEGETATION_EXCLUDED_ASSET_IDS
+} from "../../runtime/NaturalVegetationLayers.ts";
 import { companionAnchorReach } from "@galacean/engine-vegetation/world/VegetationCompanionPatches";
 import type {
   LandscapePlantInstance,
@@ -86,6 +96,7 @@ import {
 } from "./PlanningNaturalVegetation";
 import {
   PLANT_MATERIAL_SLOTS,
+  nativeMaterialPart,
   plantMaterialColorOverrideMask,
   plantMaterialField,
   resolvePlantMaterialColor,
@@ -93,6 +104,8 @@ import {
   type PlantMaterialParameters
 } from "../PlantMaterialParameters";
 import { resolveGeneratedFlowerAssetWeights } from "../../planning-data/FlowerAssetWeights";
+import { WORLD_TEMPLATE_ART, templateRockCollisionPolicy } from "../WorldTemplateArtDirection";
+import { resolveRockCollision, type RockCollisionPolicy } from "../RockCollisionPolicy";
 import type { LandscapeView, LandscapeFocus } from "@galacean/engine-vegetation/world/VegetationLandscapePlan";
 import type { RockFormationSettings } from "../../integrations/terrain/rock-formation/Settings";
 import {
@@ -121,6 +134,7 @@ import {
   buildUnderstoryBucketSpec,
   canInstanceUnderstoryLevels,
   NaturalUnderstoryInstancedPool,
+  UNDERSTORY_DISTANCE_HYSTERESIS_METRES,
   type CollapsedUnderstoryLevel,
   type InstancedUnderstoryRecord
 } from "./NaturalUnderstoryInstancedPool";
@@ -137,6 +151,34 @@ type Source = Pick<PlantSource, "bounds" | "rendererBindings"> & {
   kind?: "stone";
   transitionHeights?: readonly number[];
   variantStone?: true;
+  /** Exact uniform-XZ fitted `[width, exposedHeight, depth]` in metres at `instance.scale = 1`. */
+  stoneFittedSize?: readonly [number, number, number];
+};
+/** One colliding tree-root companion stone OBB evaluated by the unified `RockCollisionPolicy`. */
+export interface CompanionStoneObstacle {
+  readonly id: string;
+  readonly x: number;
+  readonly z: number;
+  /** Math-plane yaw in radians matching `PlanningAnimalHabitat` OBB convention (`-entityRotationYRad`). */
+  readonly yaw: number;
+  readonly width: number;
+  readonly depth: number;
+  readonly bottom: number;
+  readonly top: number;
+}
+type CompanionStoneColliderEntry = {
+  record: CellPlantRecord;
+  obstacle: {
+    readonly id: string;
+    readonly x: number;
+    readonly z: number;
+    readonly yaw: number;
+    readonly width: number;
+    readonly depth: number;
+    bottom: number;
+    top: number;
+  };
+  colliderEntity?: Entity;
 };
 type Plant = {
   root: Entity;
@@ -164,6 +206,7 @@ type Cell = {
   plants: Plant[];
   records?: CellPlantRecord[];
   instancedRecords?: InstancedUnderstoryRecord[];
+  stoneColliders?: CompanionStoneColliderEntry[];
   counts: Readonly<Record<string, number>>;
   populations: VegetationLandscapePlan["diagnostics"]["populations"];
   decorations?: VegetationLandscapePlan["diagnostics"]["decorations"];
@@ -218,6 +261,7 @@ export class PlanningNaturalVegetationRuntime {
   private readonly treeRecordPool = new Map<string, InstancedUnderstoryRecord>();
   private readonly stagedTreeRecordHeights = new WeakMap<InstancedUnderstoryRecord, number>();
   private readonly previewColors = new Map<string, readonly [number, number, number]>();
+  private localColors?: VegetationColors;
   private readonly previewSurfaces = new WeakMap<Material, PlanningPlantAppearancePreview>();
   private height!: PlanningHeightmap;
   private readonly cells = new Map<string, Cell>();
@@ -233,8 +277,13 @@ export class PlanningNaturalVegetationRuntime {
   private readonly pendingRemovedLodEntries = new Set<SeedWorldExactInstanceSpatialEntry>();
   private streamX = NaN;
   private streamZ = NaN;
+  private lodEnabled = true;
   private pendingCells: { key: string; x: number; z: number; distance: number }[] = [];
   private readonly groundExclusions = new Map<string, readonly PlanPoint[][]>();
+  private readonly stoneObstacleListeners = new Set<
+    (cellKey: string, obstacles: readonly CompanionStoneObstacle[] | undefined) => void
+  >();
+  private readonly publishedStoneObstacleKeys = new Set<string>();
   private foliageColors?: FoliageColors;
   private barkColors?: FoliageColors;
   private readonly treeRoot: Entity;
@@ -261,6 +310,7 @@ export class PlanningNaturalVegetationRuntime {
   private readonly groundCoverMaterials = new Map<Material, Map<string, Material>>();
   private readonly groundCoverBrightness: Record<string, number> = {};
   private readonly releaseGrassAppearance: Array<() => void> = [];
+  private excludedAssetIds: ReadonlySet<string> = SEED_WORLD_NATURAL_VEGETATION_EXCLUDED_ASSET_IDS;
   private readonly instancedTrees: NaturalUnderstoryInstancedPool;
   private readonly instancedUnderstory: NaturalUnderstoryInstancedPool;
   private constructor(
@@ -663,6 +713,11 @@ export class PlanningNaturalVegetationRuntime {
       ...liveCatalog.treeRecipes,
       ...(liveCatalog.shrubRecipes ?? [])
     ] as unknown as readonly (typeof PLANT_SPECIES)[number][];
+    const templateExcluded = WORLD_TEMPLATE_ART[this.plan.parameters.worldTemplate?.id ?? ""]?.excludedVegetationIds;
+    this.excludedAssetIds = new Set([
+      ...allLiveEntries.filter((entry) => entry.vegetation?.seedWorld === false).map((entry) => entry.id),
+      ...(templateExcluded ?? [])
+    ]);
 
     for (const entry of allLiveEntries) {
       const baseEntry = baseById.get(entry.id);
@@ -694,7 +749,15 @@ export class PlanningNaturalVegetationRuntime {
             ? (baseEntry as { lodCount: number }).lodCount
             : 1;
       const prev = this.metadataSources.get(entry.id);
-      if (!prev || boundsDiffer(prev.bounds, bounds) || prev.lodCount !== lodCount) {
+      const prevEntry = prev?.entry as { geometryLodOffset?: number; geometryLeafRetention?: number } | undefined;
+      const liveEntry = entry as { geometryLodOffset?: number; geometryLeafRetention?: number };
+      const geometryOverrideChanged =
+        (prevEntry?.geometryLodOffset ?? 0) !== (liveEntry.geometryLodOffset ?? 0) ||
+        (prevEntry?.geometryLeafRetention ?? 1) !== (liveEntry.geometryLeafRetention ?? 1);
+      if (geometryOverrideChanged && this.loadedProceduralIds.has(entry.id)) {
+        this.loadedProceduralIds.delete(entry.id);
+      }
+      if (!prev || boundsDiffer(prev.bounds, bounds) || prev.lodCount !== lodCount || geometryOverrideChanged) {
         this.metadataSources.set(entry.id, { entry, bounds, lodCount });
         changed = true;
       }
@@ -733,14 +796,33 @@ export class PlanningNaturalVegetationRuntime {
         await this.materials.ensureAssets(pendingProcedural);
       }
 
+      const templateGeomOverrides = WORLD_TEMPLATE_ART[plan.parameters.worldTemplate?.id ?? ""]?.plantGeometryOverrides;
+      const entryOverrides = new Map<string, { geometryLodOffset?: number; geometryLeafRetention?: number }>();
+      for (const id of pendingProcedural) {
+        const metaEntry = this.metadataSources.get(id)?.entry as
+          | { geometryLodOffset?: number; geometryLeafRetention?: number }
+          | undefined;
+        const tmplOverride = templateGeomOverrides?.[id];
+        const lodOffset = tmplOverride?.geometryLodOffset ?? metaEntry?.geometryLodOffset;
+        const leafRetention = tmplOverride?.geometryLeafRetention ?? metaEntry?.geometryLeafRetention;
+        if (lodOffset || (leafRetention !== undefined && leafRetention < 1)) {
+          entryOverrides.set(id, {
+            ...(lodOffset !== undefined ? { geometryLodOffset: lodOffset } : {}),
+            ...(leafRetention !== undefined ? { geometryLeafRetention: leafRetention } : {})
+          });
+        }
+      }
+
       const sourceLods = [0, 2, 3] as const;
+      const sharedLoadCache = createProceduralPlantLoadCache();
       const levelLoads = await Promise.all(
         sourceLods.map(async (lod, level) => {
           const prevLod = level > 0 ? sourceLods[level - 1] : -1;
           const distinctIds = new Set(
             [...pendingProcedural].filter((id) => {
               const lodCount = this.metadataSources.get(id)?.lodCount ?? 1;
-              return level === 0 || Math.min(lod, lodCount - 1) !== Math.min(prevLod, lodCount - 1);
+              const offset = entryOverrides.get(id)?.geometryLodOffset ?? 0;
+              return level === 0 || Math.min(lod + offset, lodCount - 1) !== Math.min(prevLod + offset, lodCount - 1);
             })
           );
           if (distinctIds.size === 0) return undefined;
@@ -753,7 +835,9 @@ export class PlanningNaturalVegetationRuntime {
             normalMapped: true,
             populationOnly: true,
             assetIds: distinctIds,
-            lod
+            lod,
+            ...(entryOverrides.size > 0 ? { entryOverrides } : {}),
+            sharedCache: sharedLoadCache
           });
           plants.setShadows(SEED_WORLD_POPULATION_RUNTIME_PROFILE.shadows.castShadows);
           return plants;
@@ -895,8 +979,16 @@ export class PlanningNaturalVegetationRuntime {
       runtime.plantAssets = initialAssets;
       runtime.population = population;
       runtime.height = height;
-      runtime.planner = new PlanningNaturalVegetation(plan, height, fields, population, initialAssets, presentation);
-      let editablePlants = planningEditablePlants(plan, height, initialAssets, population);
+      runtime.planner = new PlanningNaturalVegetation(
+        plan,
+        height,
+        fields,
+        population,
+        initialAssets,
+        presentation,
+        runtime.excludedAssetIds
+      );
+      let editablePlants = planningEditablePlants(plan, height, initialAssets, population, runtime.excludedAssetIds);
       await runtime.ensureGpuAssetsForWorld(plan, runtime.planner, editablePlants, rocks.signal);
       if (runtime.plantAssets !== initialAssets) {
         runtime.planner = new PlanningNaturalVegetation(
@@ -905,9 +997,16 @@ export class PlanningNaturalVegetationRuntime {
           fields,
           population,
           runtime.plantAssets,
-          presentation
+          presentation,
+          runtime.excludedAssetIds
         );
-        editablePlants = planningEditablePlants(plan, height, runtime.plantAssets, population);
+        editablePlants = planningEditablePlants(
+          plan,
+          height,
+          runtime.plantAssets,
+          population,
+          runtime.excludedAssetIds
+        );
       }
 
       // Pending placement candidates are not validated trees and need no entities.
@@ -976,27 +1075,29 @@ export class PlanningNaturalVegetationRuntime {
     if (this.populateMetadataFromCatalog(liveCatalog)) {
       this.plantAssets = this.buildPlantAssetsFromMetadata();
     }
-    let instances = planningEditablePlants(plan, this.height, this.plantAssets, this.population);
+    let instances = planningEditablePlants(plan, this.height, this.plantAssets, this.population, this.excludedAssetIds);
     let nextPlanner = new PlanningNaturalVegetation(
       plan,
       this.height,
       this.groundingFields,
       this.population,
       this.plantAssets,
-      this.presentation
+      this.presentation,
+      this.excludedAssetIds
     );
     const prevAssets = this.plantAssets;
     await this.ensureGpuAssetsForWorld(plan, nextPlanner, instances, signal);
     signal?.throwIfAborted();
     if (this.plantAssets !== prevAssets) {
-      instances = planningEditablePlants(plan, this.height, this.plantAssets, this.population);
+      instances = planningEditablePlants(plan, this.height, this.plantAssets, this.population, this.excludedAssetIds);
       nextPlanner = new PlanningNaturalVegetation(
         plan,
         this.height,
         this.groundingFields,
         this.population,
         this.plantAssets,
-        this.presentation
+        this.presentation,
+        this.excludedAssetIds
       );
     }
     let stagedRoot: Entity | undefined;
@@ -1051,7 +1152,9 @@ export class PlanningNaturalVegetationRuntime {
             !before!.position.some((value, index) => value !== instance.position[index]) &&
             JSON.stringify(before!.scaleAxes) === JSON.stringify(instance.scaleAxes);
           const unchangedAppearance =
-            sameIdentity && JSON.stringify(before!.appearance) === JSON.stringify(instance.appearance);
+            sameIdentity &&
+            before!.scopeId === instance.scopeId &&
+            JSON.stringify(before!.appearance) === JSON.stringify(instance.appearance);
           const ground = unchangedTransform
             ? retainedInstanced!.groundHeight
             : this.plantGroundHeight(this.groundingFields, instance, this.sources[0].get(instance.assetId));
@@ -1103,7 +1206,11 @@ export class PlanningNaturalVegetationRuntime {
         // Regional colour follows the edited location through the same native
         // bindings as initial publication. Stage uniforms; retain every renderer.
         const appearance =
-          JSON.stringify(before.appearance) !== JSON.stringify(instance.appearance)
+          JSON.stringify(before.appearance) !== JSON.stringify(instance.appearance) ||
+          (this.localColors?.records.length &&
+            (before.scopeId !== instance.scopeId ||
+              before.position[0] !== instance.position[0] ||
+              before.position[2] !== instance.position[2]))
             ? plant.appearanceBindings.map(({ renderer, source: binding }) => ({
                 renderer,
                 color: this.plantColor(instance, binding),
@@ -1276,6 +1383,7 @@ export class PlanningNaturalVegetationRuntime {
           this.detailRoot.addChild(cell.root);
           this.cells.set(key, cell);
           this.instancedUnderstory?.setCell(key, cell.instancedRecords ?? []);
+          this.notifyStoneObstacles(key, cell);
           if (previous) destroyTree(previous.root);
         }
         this.treeRegions = undefined;
@@ -1292,8 +1400,71 @@ export class PlanningNaturalVegetationRuntime {
       }
     };
   }
+  setLocalColors(colors: VegetationColors): void {
+    if (this.localColors === colors || (!this.localColors?.records.length && !colors.records.length)) return;
+    const changed = colors.changedSamples(this.localColors);
+    const affected = (instance: LandscapePlantInstance) => {
+      const sample = this.colorSample(instance);
+      return !!sample && changed(sample);
+    };
+    this.localColors = colors;
+    const refresh = (plant: Plant) => {
+      if (!affected(plant.instance)) return;
+      for (const { renderer, source } of plant.appearanceBindings) {
+        const color = this.plantColor(plant.instance, source);
+        const old = renderer.shaderData.getVector4("renderer_AssetAssemblyColor");
+        if (old?.w !== color.w)
+          applyPlantRendererColor(
+            renderer,
+            color,
+            !!source.renderer.shaderData.getVector4("renderer_ProceduralTreeLeafColor")
+          );
+      }
+    };
+    for (const plant of this.treePool.values()) refresh(plant);
+    for (const cell of this.cells.values()) for (const plant of cell.plants) refresh(plant);
+    for (const { plant } of this.instancedTreeEffects.values()) refresh(plant);
+    // Retired woody records may be restored by undo after an edit to their pigment.
+    const activeRecords = new Set(this.treeRecords);
+    for (const [id, record] of this.treeRecordPool) {
+      if (!activeRecords.has(record) && affected(record.instance)) this.treeRecordPool.delete(id);
+    }
+    const resolve = (instance: LandscapePlantInstance, materialId: string) => this.pigmentCode(instance, materialId);
+    this.instancedTrees.refreshLocalColors(affected, resolve);
+    this.instancedUnderstory.refreshLocalColors(affected, resolve);
+  }
+
+  private colorSample(instance: LandscapePlantInstance): VegetationColorSample | undefined {
+    const kind =
+      instance.layerId === "乔木"
+        ? "tree"
+        : instance.layerId === "小灌木"
+          ? "shrub"
+          : instance.layerId === "零星野花"
+            ? "flower"
+            : undefined;
+    if (!kind) return;
+    const regionId = instance.scopeId;
+    const ownerId =
+      kind === "flower" ? this.plan.flowerRegions?.find((region) => region.id === regionId)?.ownerId : regionId;
+    return { id: instance.id, assetId: instance.assetId, position: instance.position, kind, regionId, ownerId };
+  }
+
+  private pigmentCode(instance: LandscapePlantInstance, materialId: string): number | undefined {
+    if (!this.localColors?.records.length) return;
+    const sample = this.colorSample(instance);
+    const slot = PLANT_SPECIES_MATERIALS[instance.assetId]?.[materialId];
+    if (!sample || !slot) return;
+    const part = nativeMaterialPart(slot);
+    if (part === "petals" || (sample.kind !== "flower" && (part === "leaves" || part === "foliage"))) {
+      return this.localColors.shaderCode(sample, "foliageColorRgb");
+    }
+    if (part === "bark" && sample.kind !== "flower") return this.localColors.shaderCode(sample, "barkColorRgb");
+  }
+
   private plantColor(instance: LandscapePlantInstance, binding: Source["rendererBindings"][number]): Vector4 {
     const source = binding.renderer.shaderData.getVector4("renderer_AssetAssemblyColor");
+    const code = this.pigmentCode(instance, binding.materialId) ?? source.w;
     const preview = this.previewColors.get(JSON.stringify([instance.assetId, binding.materialId]));
     if (preview)
       return new Vector4(
@@ -1302,8 +1473,29 @@ export class PlanningNaturalVegetationRuntime {
           number,
           number
         ]),
-        source.w
+        code
       );
+    const art = WORLD_TEMPLATE_ART[this.plan.parameters.worldTemplate?.id ?? ""];
+    const isTree = instance.layerId === "乔木";
+    const palette = isTree ? art?.treeColorPalette : art?.understoryColorPalette;
+    const role = PLANT_SPECIES_MATERIALS[instance.assetId]?.[binding.materialId]?.role;
+    if (palette?.length && (role === "leaf" || role === "shrub" || role === "flower")) {
+      let h = 2166136261 ^ (this.plan.parameters.seed | 0);
+      for (let i = 0; i < instance.id.length; i++) {
+        h ^= instance.id.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      const u = h >>> 0;
+      const swatch = palette[u % palette.length]!;
+      const brightness = 0.88 + (((u >>> 8) % 97) / 96) * 0.26;
+      const scale = binding.authoredColorScale;
+      return new Vector4(
+        swatch[0] * brightness * (scale?.[0] ?? 1),
+        swatch[1] * brightness * (scale?.[1] ?? 1),
+        swatch[2] * brightness * (scale?.[2] ?? 1),
+        code
+      );
+    }
     return new Vector4(
       ...resolvePlantMaterialColor(
         this.materialParameters,
@@ -1313,7 +1505,7 @@ export class PlanningNaturalVegetationRuntime {
         instance.appearance,
         binding.authoredColorScale
       ),
-      source.w
+      code
     );
   }
   private sourceForPlant(instance: LandscapePlantInstance, level: number): Source {
@@ -1350,13 +1542,7 @@ export class PlanningNaturalVegetationRuntime {
     const b = source.bounds,
       groundingOffset = planningNaturalPlantGroundingOffset(source, plantingHeights.get(instance.assetId));
     const origin = planningNaturalPlantOrigin(source, groundingOffset);
-    const group = tree ? this.library.treeRecipes[0].lodGroup : this.library.shrub.lodGroup!;
-    const thresholds =
-      source.transitionHeights ??
-      this.catalogSources?.transitionHeights.get(instance.assetId) ??
-      (tree
-        ? resolveSeedWorldTreeTransitionHeights(group.screenRelativeTransitionHeights)
-        : group.screenRelativeTransitionHeights);
+    const thresholds = this.resolvePlantTransitionHeights(instance, source, tree);
     const size = Math.max(...b.max.map((v, axis) => v - b.min[axis]));
     const appliedScale = source.variantStone ? uniformScale : (instance.scaleAxes ?? uniformScale);
     const worldSize = size * Math.max(Math.abs(appliedScale[0]), Math.abs(appliedScale[1]), Math.abs(appliedScale[2]));
@@ -1369,12 +1555,15 @@ export class PlanningNaturalVegetationRuntime {
       const enterDistance = worldSize / Math.max(1e-6, 2 * enterThreshold * tanHalfFov);
       return enterDistance <= shadowMaxDist;
     };
-    const worldHeight = (b.max[1] - b.min[1]) * (instance.scaleAxes?.[1] ?? instance.scale);
+    const worldHeight =
+      source.variantStone && source.stoneFittedSize
+        ? source.stoneFittedSize[1] * Math.abs(instance.scale)
+        : (b.max[1] - b.min[1]) * (instance.scaleAxes?.[1] ?? instance.scale);
     const resolveSpecimenCastShadows = (specimen: Source, level: number) =>
       source.kind === "stone"
         ? specimen.rendererBindings.every((binding) => binding.renderer.castShadows) &&
-          level === 0 &&
-          worldHeight >= 1.5
+          treeLevelWithinShadowDistance(level) &&
+          (worldHeight >= 0.65 || worldSize >= 1.2)
         : tree
           ? shadows.castShadows && treeLevelWithinShadowDistance(level)
           : shadows.castShadows && level === 0;
@@ -1502,7 +1691,8 @@ export class PlanningNaturalVegetationRuntime {
         size,
         lods
       },
-      SEED_WORLD_POPULATION_RUNTIME_PROFILE.tree.crossFadeSeconds
+      SEED_WORLD_POPULATION_RUNTIME_PROFILE.tree.crossFadeSeconds,
+      source.kind === "stone" ? LOD_SCREEN_HEIGHT_HYSTERESIS_RATIO : 0
     );
     lod.setAuthoringVisible(!this.groundExcluded(instance));
     return {
@@ -1516,6 +1706,28 @@ export class PlanningNaturalVegetationRuntime {
       barkRenderers,
       appearanceBindings
     };
+  }
+
+  private resolvePlantTransitionHeights(
+    instance: LandscapePlantInstance,
+    source: Source,
+    tree: boolean
+  ): readonly number[] {
+    const group = tree ? this.library.treeRecipes[0].lodGroup : this.library.shrub.lodGroup!;
+    const base =
+      source.transitionHeights ??
+      this.catalogSources?.transitionHeights.get(instance.assetId) ??
+      (tree
+        ? resolveSeedWorldTreeTransitionHeights(group.screenRelativeTransitionHeights)
+        : group.screenRelativeTransitionHeights);
+    const lodPolicy = WORLD_TEMPLATE_ART[this.plan.parameters.worldTemplate?.id ?? ""]?.vegetationLod;
+    const scale = tree
+      ? lodPolicy?.treeThresholdScale
+      : source.kind === "stone"
+        ? undefined
+        : lodPolicy?.understoryThresholdScale;
+    if (scale === undefined || !Number.isFinite(scale) || scale <= 0 || scale === 1) return base;
+    return base.map((threshold) => (threshold > 0 ? threshold * scale : 0));
   }
 
   private resolvePlantCollapsedLevels(
@@ -1535,13 +1747,7 @@ export class PlanningNaturalVegetationRuntime {
       : source.entry.category === "Trees"
         ? profile.shrub.shadows
         : profile.shadows;
-    const group = tree ? this.library.treeRecipes[0].lodGroup : this.library.shrub.lodGroup!;
-    const thresholds =
-      source.transitionHeights ??
-      this.catalogSources?.transitionHeights.get(instance.assetId) ??
-      (tree
-        ? resolveSeedWorldTreeTransitionHeights(group.screenRelativeTransitionHeights)
-        : group.screenRelativeTransitionHeights);
+    const thresholds = this.resolvePlantTransitionHeights(instance, source, tree);
     const tanHalfFov = Math.tan(((this.camera?.fieldOfView ?? 45) * Math.PI) / 360);
     const shadowMaxDist = (this.owner?.scene?.shadowDistance ?? 150) + 30;
     const treeLevelWithinShadowDistance = (level: number) => {
@@ -1557,8 +1763,8 @@ export class PlanningNaturalVegetationRuntime {
       const castShadows =
         source.kind === "stone"
           ? specimen.rendererBindings.every((binding) => binding.renderer.castShadows) &&
-            level === 0 &&
-            worldHeight >= 1.5
+            treeLevelWithinShadowDistance(level) &&
+            (worldHeight >= 0.65 || worldSize >= 1.2)
           : tree
             ? shadows.castShadows && treeLevelWithinShadowDistance(level)
             : shadows.castShadows && level === 0;
@@ -1600,7 +1806,10 @@ export class PlanningNaturalVegetationRuntime {
     const size = Math.max(b.max[0] - b.min[0], b.max[1] - b.min[1], b.max[2] - b.min[2]);
     const refYOffset = ((b.max[1] - b.min[1]) / 2 + groundingOffset) * scaleAxes[1];
     const worldSize = size * maxScale;
-    const worldHeight = (b.max[1] - b.min[1]) * scaleAxes[1];
+    const worldHeight =
+      source.variantStone && source.stoneFittedSize
+        ? source.stoneFittedSize[1] * Math.abs(instance.scale)
+        : (b.max[1] - b.min[1]) * scaleAxes[1];
     const { collapsedLevels, shadows } = this.resolvePlantCollapsedLevels(
       instance,
       source,
@@ -1649,10 +1858,7 @@ export class PlanningNaturalVegetationRuntime {
     const size = Math.max(b.max[0] - b.min[0], b.max[1] - b.min[1], b.max[2] - b.min[2]);
     const refYOffset = ((b.max[1] - b.min[1]) / 2 + groundingOffset) * scaleAxes[1];
     const worldSize = size * maxScale;
-    const thresholds =
-      source.transitionHeights ??
-      this.catalogSources?.transitionHeights.get(instance.assetId) ??
-      this.library.shrub.lodGroup!.screenRelativeTransitionHeights;
+    const thresholds = this.resolvePlantTransitionHeights(instance, source, false);
     const instanced = this.createInstancedPlantRecord(instance, false, fields, rockSupport, groundHeight);
 
     return {
@@ -1675,6 +1881,7 @@ export class PlanningNaturalVegetationRuntime {
     tanHalfFov: number,
     detailMaxDist: number
   ): boolean {
+    if (!this.lodEnabled) return true;
     const dx = record.instance.position[0] - camX;
     const dz = record.instance.position[2] - camZ;
     const horizDistSq = dx * dx + dz * dz;
@@ -1687,11 +1894,123 @@ export class PlanningNaturalVegetationRuntime {
     return horizDistSq + dy * dy <= maxLodDist * maxLodDist;
   }
 
+  /** Active colliding companion stone OBBs grouped by resident detail cell key. */
+  getCompanionStoneObstacles(): ReadonlyMap<string, readonly CompanionStoneObstacle[]> {
+    const result = new Map<string, readonly CompanionStoneObstacle[]>();
+    for (const [key, cell] of this.cells) {
+      const active = this.activeStoneObstaclesForCell(cell);
+      if (active.length) result.set(key, active);
+    }
+    return result;
+  }
+
+  /** Subscribes to resident companion stone obstacle updates and replays currently loaded cells immediately. */
+  onCompanionStoneObstaclesChange(
+    listener: (cellKey: string, obstacles: readonly CompanionStoneObstacle[] | undefined) => void
+  ): () => void {
+    this.stoneObstacleListeners.add(listener);
+    for (const [key, cell] of this.cells) {
+      const active = this.activeStoneObstaclesForCell(cell);
+      if (active.length) listener(key, active);
+    }
+    return () => {
+      this.stoneObstacleListeners.delete(listener);
+    };
+  }
+
+  private activeStoneObstaclesForCell(cell?: Cell): readonly CompanionStoneObstacle[] {
+    if (!cell?.stoneColliders?.length) return [];
+    const active: CompanionStoneObstacle[] = [];
+    for (const entry of cell.stoneColliders) {
+      if (!this.groundExcluded(entry.record.instance)) active.push(entry.obstacle);
+    }
+    return active;
+  }
+
+  private notifyStoneObstacles(cellKey: string, cell?: Cell): void {
+    const active = this.activeStoneObstaclesForCell(cell);
+    const hasActive = active.length > 0;
+    const hadPublished = this.publishedStoneObstacleKeys.has(cellKey);
+    if (!hasActive && !hadPublished) return;
+    if (hasActive) this.publishedStoneObstacleKeys.add(cellKey);
+    else this.publishedStoneObstacleKeys.delete(cellKey);
+    if (!this.stoneObstacleListeners.size) return;
+    const payload = hasActive ? active : undefined;
+    for (const listener of this.stoneObstacleListeners) listener(cellKey, payload);
+  }
+
+  private attachCompanionStoneColliders(
+    root: Entity,
+    records: readonly CellPlantRecord[],
+    plan: IslandPlan = this.plan
+  ): CompanionStoneColliderEntry[] {
+    const policy: RockCollisionPolicy = templateRockCollisionPolicy(plan.parameters?.worldTemplate?.id);
+    const physicsReady = Boolean(
+      (root.engine as unknown as { _physicsInitialized?: boolean } | undefined)?._physicsInitialized
+    );
+    const entries: CompanionStoneColliderEntry[] = [];
+    for (let i = 0; i < records.length; i++) {
+      const record = records[i]!;
+      const source = this.sourceForPlant(record.instance, 0);
+      if (!source || source.kind !== "stone") continue;
+      let width: number;
+      let height: number;
+      let depth: number;
+      if (source.variantStone && source.stoneFittedSize) {
+        const s = Math.abs(record.instance.scale);
+        width = source.stoneFittedSize[0] * s;
+        height = source.stoneFittedSize[1] * s;
+        depth = source.stoneFittedSize[2] * s;
+      } else {
+        const b = source.bounds;
+        const scaleAxes = record.instance.scaleAxes ?? [
+          record.instance.scale,
+          record.instance.scale,
+          record.instance.scale
+        ];
+        width = (b.max[0] - b.min[0]) * Math.abs(scaleAxes[0]);
+        height = (b.max[1] - b.min[1]) * Math.abs(scaleAxes[1]);
+        depth = (b.max[2] - b.min[2]) * Math.abs(scaleAxes[2]);
+      }
+      if (!(width > 0 && height > 0 && depth > 0)) continue;
+      if (!resolveRockCollision({ width, depth, height }, policy)) continue;
+      const obstacle = {
+        id: record.instance.id,
+        x: record.instance.position[0],
+        z: record.instance.position[2],
+        yaw: -(record.instance.yaw * Math.PI) / 180,
+        width,
+        depth,
+        bottom: record.groundHeight,
+        top: record.groundHeight + height
+      };
+      let colliderEntity: Entity | undefined;
+      if (physicsReady) {
+        colliderEntity = root.createChild(`Companion stone collider · ${record.instance.id}`);
+        colliderEntity.transform.setPosition(obstacle.x, obstacle.bottom, obstacle.z);
+        colliderEntity.transform.setRotation(0, record.instance.yaw, 0);
+        colliderEntity.transform.setScale(1, 1, 1);
+        colliderEntity.isActive = !this.groundExcluded(record.instance);
+        const collider = colliderEntity.addComponent(StaticCollider);
+        const shape = new BoxColliderShape();
+        shape.size.set(width, height, depth);
+        shape.position.set(0, height / 2, 0);
+        const material = shape.getInstanceMaterial();
+        material.staticFriction = 0.15;
+        material.dynamicFriction = 0.05;
+        collider.addShape(shape);
+      }
+      entries.push({ record, obstacle, colliderEntity });
+    }
+    return entries;
+  }
+
   private buildPopulatedCell(
     root: Entity,
     result: VegetationLandscapePlan,
     fields = this.groundingFields,
-    rockSupport = this.preparedRockGround ?? this.rockGround
+    rockSupport = this.preparedRockGround ?? this.rockGround,
+    plan: IslandPlan = this.plan
   ): Cell {
     const records = result.instances.map((instance) => this.createCellRecord(instance, fields, rockSupport));
     const instancedRecords: InstancedUnderstoryRecord[] = [];
@@ -1699,6 +2018,7 @@ export class PlanningNaturalVegetationRuntime {
       const rec = records[i]!;
       if (rec.instanced) instancedRecords.push(rec.instanced);
     }
+    const stoneColliders = this.attachCompanionStoneColliders(root, records, plan);
     const plants: Plant[] = [];
     const camPos = this.camera?.entity?.transform?.worldPosition;
     if (camPos) {
@@ -1708,7 +2028,9 @@ export class PlanningNaturalVegetationRuntime {
       const isOrtho = !!this.camera.isOrthographic;
       const orthoSize = this.camera.orthographicSize ?? 10;
       const tanHalfFov = Math.tan(((this.camera.fieldOfView ?? 45) * Math.PI) / 360);
-      const detailMaxDist = SEED_WORLD_POPULATION_RUNTIME_PROFILE.detail.materialFade.maximumDistanceMetres;
+      const detailMaxDist = this.lodEnabled
+        ? SEED_WORLD_POPULATION_RUNTIME_PROFILE.detail.materialFade.maximumDistanceMetres
+        : Infinity;
       for (const record of records) {
         if (record.instanced) continue;
         if (
@@ -1724,6 +2046,7 @@ export class PlanningNaturalVegetationRuntime {
       plants,
       records,
       instancedRecords,
+      stoneColliders,
       counts: result.diagnostics.layers,
       populations: result.diagnostics.populations,
       decorations: result.diagnostics.decorations,
@@ -1753,7 +2076,9 @@ export class PlanningNaturalVegetationRuntime {
     const isOrtho = !!this.camera.isOrthographic;
     const orthoSize = this.camera.orthographicSize ?? 10;
     const tanHalfFov = Math.tan(((this.camera.fieldOfView ?? 45) * Math.PI) / 360);
-    const detailMaxDist = SEED_WORLD_POPULATION_RUNTIME_PROFILE.detail.materialFade.maximumDistanceMetres;
+    const detailMaxDist = this.lodEnabled
+      ? SEED_WORLD_POPULATION_RUNTIME_PROFILE.detail.materialFade.maximumDistanceMetres
+      : Infinity;
     const deadline = Number.isFinite(budgetMs) ? performance.now() + budgetMs : Infinity;
 
     const dematerializeDistSq = (detailMaxDist + 20) * (detailMaxDist + 20);
@@ -1867,7 +2192,22 @@ export class PlanningNaturalVegetationRuntime {
         plant.lod.setAuthoringVisible(!this.groundExcluded(instance));
     };
     for (const tree of this.trees) refresh(tree);
-    for (const cell of this.cells.values()) for (const plant of cell.plants) refresh(plant);
+    for (const [key, cell] of this.cells) {
+      for (const plant of cell.plants) refresh(plant);
+      if (cell.stoneColliders?.length) {
+        let stoneExclusionChanged = false;
+        for (const entry of cell.stoneColliders) {
+          const nextActive = !this.groundExcluded(entry.record.instance);
+          if (entry.colliderEntity && !entry.colliderEntity.destroyed && entry.colliderEntity.isActive !== nextActive) {
+            entry.colliderEntity.isActive = nextActive;
+            stoneExclusionChanged = true;
+          } else if (!entry.colliderEntity) {
+            stoneExclusionChanged = true;
+          }
+        }
+        if (stoneExclusionChanged) this.notifyStoneObstacles(key, cell);
+      }
+    }
     if (this.instancedTreeEffects?.size) {
       for (const [id, active] of [...this.instancedTreeEffects]) {
         if (active.record && this.groundExcluded(active.record.instance)) {
@@ -2118,9 +2458,11 @@ export class PlanningNaturalVegetationRuntime {
     this.time += dt;
     if (!this.error) {
       this.updateDetailStreaming();
-      this.materializeNearbyCellRecords(this.blockingPresentationDrain ? Infinity : 2.0);
+      this.materializeNearbyCellRecords(this.blockingPresentationDrain || !this.lodEnabled ? Infinity : 2.0);
       this.instancedTrees?.update(Infinity, false, (this.owner?.scene?.shadowDistance ?? 150) + 30);
-      this.instancedUnderstory?.update(SEED_WORLD_POPULATION_RUNTIME_PROFILE.detail.materialFade.maximumDistanceMetres);
+      this.instancedUnderstory?.update(
+        this.lodEnabled ? SEED_WORLD_POPULATION_RUNTIME_PROFILE.detail.materialFade.maximumDistanceMetres : Infinity
+      );
     }
     if (this.lodMembershipDirty) {
       if (
@@ -2164,7 +2506,11 @@ export class PlanningNaturalVegetationRuntime {
               camera: this.camera,
               x: plant.instance.position[0],
               z: plant.instance.position[2],
-              maxDistance: distance
+              maxDistance: distance,
+              hysteresisMetres:
+                this.sources[0].get(plant.instance.assetId)?.kind === "stone"
+                  ? UNDERSTORY_DISTANCE_HYSTERESIS_METRES
+                  : 0
             }
           : undefined
       );
@@ -2178,7 +2524,7 @@ export class PlanningNaturalVegetationRuntime {
     const position = this.initialDrainPosition ?? this.camera.entity.transform.worldPosition;
     const dx = position.x - this.streamX;
     const dz = position.z - this.streamZ;
-    if (Number.isNaN(this.streamX) || dx * dx + dz * dz >= 1.0) {
+    if (Number.isNaN(this.streamX) || (this.lodEnabled && dx * dx + dz * dz >= 1.0)) {
       this.streamX = position.x;
       this.streamZ = position.z;
       this.refreshDetailResidency(position);
@@ -2187,129 +2533,153 @@ export class PlanningNaturalVegetationRuntime {
     let item = this.pendingCells.shift();
     while (item && this.cells.has(item.key)) item = this.pendingCells.shift();
     if (item) {
-      const { key, x, z } = item;
       const streamX = this.streamX,
         streamZ = this.streamZ;
       const planner = this.planner,
         rocks = this.rockSources;
       const isPresentationDrain = !!this.blockingPresentationDrain;
-      const sliceBudgetMs = isPresentationDrain ? 24 : 2;
+      const fastDrain = isPresentationDrain || !this.lodEnabled;
+      const sliceBudgetMs = fastDrain ? 24 : 2;
       const yieldSlice = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
       const load = async () => {
-        let result: VegetationLandscapePlan;
-        if (typeof planner.compileCellSteps === "function") {
-          const steps = planner.compileCellSteps(x, z);
-          let sliceStartedAt = performance.now();
-          for (;;) {
-            const next = steps.next();
-            if (next.done) {
-              result = next.value;
-              break;
-            }
-            if (performance.now() - sliceStartedAt >= sliceBudgetMs) {
-              await yieldSlice();
-              if (this.disposed || this.planner !== planner || this.rockSources !== rocks) return;
-              sliceStartedAt = performance.now();
-            }
-          }
-        } else {
-          result = planner.compileCell(x, z);
-        }
-        const rockPrep = (
-          rocks as { prepareInstances?: (instances: readonly LandscapePlantInstance[]) => Promise<void> } | undefined
-        )?.prepareInstances?.(result.instances);
-        if (rockPrep) {
-          await rockPrep;
-        } else {
-          await yieldSlice();
-        }
-        if (this.disposed || this.planner !== planner || this.rockSources !== rocks) return;
-        const root = this.detailRoot.createChild(`Natural cell ${key}`);
-        try {
-          const records: CellPlantRecord[] = [];
-          const instancedRecords: InstancedUnderstoryRecord[] = [];
-          let sliceStartedAt = performance.now();
-          for (let i = 0; i < result.instances.length; i++) {
-            const record = this.createCellRecord(result.instances[i]!);
-            records.push(record);
-            if (record.instanced) instancedRecords.push(record.instanced);
-            if ((i & 31) === 31 && performance.now() - sliceStartedAt >= sliceBudgetMs) {
-              await yieldSlice();
-              if (this.disposed || this.planner !== planner || this.rockSources !== rocks) {
-                destroyTree(root);
-                return;
+        let sliceStartedAt = performance.now();
+        let current: { key: string; x: number; z: number } | undefined = item;
+        while (current) {
+          const { key, x, z } = current;
+          let result: VegetationLandscapePlan;
+          if (typeof planner.compileCellSteps === "function") {
+            const steps = planner.compileCellSteps(x, z);
+            for (;;) {
+              const next = steps.next();
+              if (next.done) {
+                result = next.value;
+                break;
               }
+              if (performance.now() - sliceStartedAt >= sliceBudgetMs) {
+                await yieldSlice();
+                if (this.disposed || this.planner !== planner || this.rockSources !== rocks) return;
+                sliceStartedAt = performance.now();
+              }
+            }
+          } else {
+            result = planner.compileCell(x, z);
+          }
+          if (result.instances.length > 0) {
+            const rockPrep = (
+              rocks as
+                | { prepareInstances?: (instances: readonly LandscapePlantInstance[]) => Promise<void> }
+                | undefined
+            )?.prepareInstances?.(result.instances);
+            if (rockPrep) {
+              await rockPrep;
+            } else if (!fastDrain || performance.now() - sliceStartedAt >= sliceBudgetMs) {
+              await yieldSlice();
               sliceStartedAt = performance.now();
             }
-          }
-          const plants: Plant[] = [];
-          const camPos = this.camera?.entity?.transform?.worldPosition;
-          if (camPos && records.length > 0) {
-            const camX = camPos.x ?? 0,
-              camY = camPos.y ?? 0,
-              camZ = camPos.z ?? 0;
-            const isOrtho = !!this.camera.isOrthographic;
-            const orthoSize = this.camera.orthographicSize ?? 10;
-            const tanHalfFov = Math.tan(((this.camera.fieldOfView ?? 45) * Math.PI) / 360);
-            const detailMaxDist = SEED_WORLD_POPULATION_RUNTIME_PROFILE.detail.materialFade.maximumDistanceMetres;
+          } else if (!fastDrain) {
+            await yieldSlice();
             sliceStartedAt = performance.now();
-            for (const record of records) {
-              if (record.instanced) continue;
-              if (
-                this.isRecordWithinMaterializeRange(
-                  record,
-                  camX,
-                  camY,
-                  camZ,
-                  isOrtho,
-                  orthoSize,
-                  tanHalfFov,
-                  detailMaxDist
-                )
-              ) {
-                record.plant = this.plant(
-                  root,
-                  record.instance,
-                  false,
-                  this.groundingFields,
-                  this.preparedRockGround ?? this.rockGround,
-                  record.groundHeight
-                );
-                plants.push(record.plant);
-                if (performance.now() - sliceStartedAt >= sliceBudgetMs) {
-                  await yieldSlice();
-                  if (this.disposed || this.planner !== planner || this.rockSources !== rocks) {
-                    destroyTree(root);
-                    return;
+          }
+          if (this.disposed || this.planner !== planner || this.rockSources !== rocks) return;
+          const root = this.detailRoot.createChild(`Natural cell ${key}`);
+          try {
+            const records: CellPlantRecord[] = [];
+            const instancedRecords: InstancedUnderstoryRecord[] = [];
+            for (let i = 0; i < result.instances.length; i++) {
+              const record = this.createCellRecord(result.instances[i]!);
+              records.push(record);
+              if (record.instanced) instancedRecords.push(record.instanced);
+              if ((i & 31) === 31 && performance.now() - sliceStartedAt >= sliceBudgetMs) {
+                await yieldSlice();
+                if (this.disposed || this.planner !== planner || this.rockSources !== rocks) {
+                  destroyTree(root);
+                  return;
+                }
+                sliceStartedAt = performance.now();
+              }
+            }
+            const plants: Plant[] = [];
+            const camPos = this.camera?.entity?.transform?.worldPosition;
+            if (camPos && records.length > 0) {
+              const camX = camPos.x ?? 0,
+                camY = camPos.y ?? 0,
+                camZ = camPos.z ?? 0;
+              const isOrtho = !!this.camera.isOrthographic;
+              const orthoSize = this.camera.orthographicSize ?? 10;
+              const tanHalfFov = Math.tan(((this.camera.fieldOfView ?? 45) * Math.PI) / 360);
+              const detailMaxDist = this.lodEnabled
+                ? SEED_WORLD_POPULATION_RUNTIME_PROFILE.detail.materialFade.maximumDistanceMetres
+                : Infinity;
+              for (const record of records) {
+                if (record.instanced) continue;
+                if (
+                  this.isRecordWithinMaterializeRange(
+                    record,
+                    camX,
+                    camY,
+                    camZ,
+                    isOrtho,
+                    orthoSize,
+                    tanHalfFov,
+                    detailMaxDist
+                  )
+                ) {
+                  record.plant = this.plant(
+                    root,
+                    record.instance,
+                    false,
+                    this.groundingFields,
+                    this.preparedRockGround ?? this.rockGround,
+                    record.groundHeight
+                  );
+                  plants.push(record.plant);
+                  if (performance.now() - sliceStartedAt >= sliceBudgetMs) {
+                    await yieldSlice();
+                    if (this.disposed || this.planner !== planner || this.rockSources !== rocks) {
+                      destroyTree(root);
+                      return;
+                    }
+                    sliceStartedAt = performance.now();
                   }
-                  sliceStartedAt = performance.now();
                 }
               }
             }
-          }
-          this.cells.set(key, {
-            root,
-            plants,
-            records,
-            instancedRecords,
-            counts: result.diagnostics.layers,
-            populations: result.diagnostics.populations,
-            decorations: result.diagnostics.decorations,
-            visibilityRejected: result.diagnostics.rejected.visibility ?? 0
-          });
-          this.instancedUnderstory?.setCell(key, instancedRecords);
-          this.foliageColors = undefined;
-          if (!this.lodMembershipDirty && plants.length > 0) {
-            for (const plant of plants) {
-              const lodEntry = this.plantLodEntry(plant, true);
-              this.pendingRemovedLodEntries.delete(lodEntry);
-              this.pendingAddedLodEntries.add(lodEntry);
+            const stoneColliders = this.attachCompanionStoneColliders(root, records, this.plan);
+            const cell: Cell = {
+              root,
+              plants,
+              records,
+              instancedRecords,
+              stoneColliders,
+              counts: result.diagnostics.layers,
+              populations: result.diagnostics.populations,
+              decorations: result.diagnostics.decorations,
+              visibilityRejected: result.diagnostics.rejected.visibility ?? 0
+            };
+            this.cells.set(key, cell);
+            this.instancedUnderstory?.setCell(key, instancedRecords);
+            this.notifyStoneObstacles(key, cell);
+            this.foliageColors = undefined;
+            if (!this.lodMembershipDirty && plants.length > 0) {
+              for (const plant of plants) {
+                const lodEntry = this.plantLodEntry(plant, true);
+                this.pendingRemovedLodEntries.delete(lodEntry);
+                this.pendingAddedLodEntries.add(lodEntry);
+              }
             }
+            this.materializeCamX = NaN;
+          } catch (error) {
+            destroyTree(root);
+            throw error;
           }
-          this.materializeCamX = NaN;
-        } catch (error) {
-          destroyTree(root);
-          throw error;
+          if (this.lodEnabled) break;
+          if (performance.now() - sliceStartedAt >= sliceBudgetMs) {
+            await yieldSlice();
+            if (this.disposed || this.planner !== planner || this.rockSources !== rocks || this.lodEnabled) return;
+            sliceStartedAt = performance.now();
+          }
+          current = this.pendingCells.shift();
+          while (current && this.cells.has(current.key)) current = this.pendingCells.shift();
         }
       };
       this.detailTask = load()
@@ -2323,8 +2693,7 @@ export class PlanningNaturalVegetationRuntime {
           if (
             this.planner !== planner ||
             this.rockSources !== rocks ||
-            this.streamX !== streamX ||
-            this.streamZ !== streamZ
+            (this.lodEnabled && (this.streamX !== streamX || this.streamZ !== streamZ))
           )
             this.streamX = NaN;
         });
@@ -2334,9 +2703,13 @@ export class PlanningNaturalVegetationRuntime {
   private refreshDetailResidency(position: { readonly x: number; readonly z: number }): void {
     const profile = SEED_WORLD_POPULATION_RUNTIME_PROFILE,
       cellSize = profile.cellMetres;
-    const distance = profile.detail.materialFade.maximumDistanceMetres;
+    const distance = this.lodEnabled
+      ? profile.detail.materialFade.maximumDistanceMetres
+      : Math.hypot(this.plan.parameters.width, this.plan.parameters.depth);
     const distanceSq = distance * distance;
-    const retainSq = profile.detail.prefetchDistanceMetres * profile.detail.prefetchDistanceMetres;
+    const retainSq = this.lodEnabled
+      ? profile.detail.prefetchDistanceMetres * profile.detail.prefetchDistanceMetres
+      : Infinity;
     const px = position.x,
       pz = position.z;
     const minX = Math.max(0, Math.floor((px - distance) / cellSize));
@@ -2379,6 +2752,7 @@ export class PlanningNaturalVegetationRuntime {
         destroyTree(cell.root);
         this.cells.delete(key);
         this.instancedUnderstory?.removeCell(key);
+        this.notifyStoneObstacles(key, undefined);
         this.foliageColors = undefined;
       }
     }
@@ -2424,9 +2798,10 @@ export class PlanningNaturalVegetationRuntime {
       fields,
       population,
       this.plantAssets,
-      this.presentation
+      this.presentation,
+      this.excludedAssetIds
     );
-    let desired = planningEditablePlants(plan, height, this.plantAssets, population);
+    let desired = planningEditablePlants(plan, height, this.plantAssets, population, this.excludedAssetIds);
     const prevAssets = this.plantAssets;
     await this.ensureGpuAssetsForWorld(plan, nextPlanner, desired, signal);
     signal.throwIfAborted();
@@ -2437,9 +2812,10 @@ export class PlanningNaturalVegetationRuntime {
         fields,
         population,
         this.plantAssets,
-        this.presentation
+        this.presentation,
+        this.excludedAssetIds
       );
-      desired = planningEditablePlants(plan, height, this.plantAssets, population);
+      desired = planningEditablePlants(plan, height, this.plantAssets, population, this.excludedAssetIds);
     }
     nextPlanner.setGroundExclusions([...this.groundExclusions.values()].flat());
     const stage = this.owner.createChild("Prepared water vegetation");
@@ -2509,7 +2885,7 @@ export class PlanningNaturalVegetationRuntime {
         signal.throwIfAborted();
         const result = nextPlanner.compileCell(x, z),
           root = stage.createChild(`Natural cell ${key}`);
-        replacements.set(key, this.buildPopulatedCell(root, result, fields, rockSupport));
+        replacements.set(key, this.buildPopulatedCell(root, result, fields, rockSupport, plan));
         await new Promise<void>((resolve) => setTimeout(resolve, 0));
       }
       signal.throwIfAborted();
@@ -2563,9 +2939,11 @@ export class PlanningNaturalVegetationRuntime {
         if (old) {
           this.cells.set(key, old);
           this.instancedUnderstory?.setCell(key, old.instancedRecords ?? []);
+          this.notifyStoneObstacles(key, old);
         } else {
           this.cells.delete(key);
           this.instancedUnderstory?.removeCell(key);
+          this.notifyStoneObstacles(key, undefined);
         }
       }
       this.plan = previous.plan;
@@ -2605,6 +2983,7 @@ export class PlanningNaturalVegetationRuntime {
             cell.root.isActive = true;
             this.cells.set(key, cell);
             this.instancedUnderstory?.setCell(key, cell.instancedRecords ?? []);
+            this.notifyStoneObstacles(key, cell);
           }
           for (const tree of nextTrees) if (!tree.root.isActive) tree.root.isActive = true;
           this.trees.splice(0, this.trees.length, ...nextTrees);
@@ -2893,6 +3272,22 @@ export class PlanningNaturalVegetationRuntime {
             }
           }
           for (const plant of cell.plants) commitPlantGrounding(plant);
+          if (cell.stoneColliders?.length) {
+            let moved = false;
+            for (const entry of cell.stoneColliders) {
+              const nextY = entry.record.groundHeight;
+              if (Math.abs(nextY - entry.obstacle.bottom) > 1e-6) {
+                const height = entry.obstacle.top - entry.obstacle.bottom;
+                entry.obstacle.bottom = nextY;
+                entry.obstacle.top = nextY + height;
+                if (entry.colliderEntity && !entry.colliderEntity.destroyed) {
+                  entry.colliderEntity.transform.setPosition(entry.obstacle.x, nextY, entry.obstacle.z);
+                }
+                moved = true;
+              }
+            }
+            if (moved) this.notifyStoneObstacles(key, cell);
+          }
         }
         targetTrees.length = 0;
         targetTreeRecords.length = 0;
@@ -2919,6 +3314,24 @@ export class PlanningNaturalVegetationRuntime {
         consumed = true;
       }
     };
+  }
+  /** Applies debug Mesh LOD toggle & distance scale to instanced trees and understory shrubs/stones. */
+  setLodTuning(tuning: { readonly enabled: boolean; readonly distanceScale: number }): void {
+    if (this.disposed) return;
+    const enabledChanged = this.lodEnabled !== tuning.enabled;
+    this.lodEnabled = tuning.enabled;
+    this.instancedTrees?.setLodTuning(tuning.enabled, tuning.distanceScale);
+    this.instancedUnderstory?.setLodTuning(tuning.enabled, tuning.distanceScale);
+    for (const tree of this.trees) tree.lod.setTuning(tuning);
+    for (const cell of this.cells.values()) {
+      for (const plant of cell.plants) plant.lod.setTuning(tuning);
+    }
+    if (enabledChanged) {
+      this.streamX = NaN;
+      this.streamZ = NaN;
+      this.materializeCamX = NaN;
+      this.updateDetailStreaming();
+    }
   }
   /** LOD visibility stays renderer-owned; descriptor identities survive every LOD transition. */
   visitPickBatches(visitor: SeedWorldPickVisitor): void {
@@ -2956,7 +3369,8 @@ export class PlanningNaturalVegetationRuntime {
       authoredPlantIds: (this.plan.authoredResources ?? [])
         .filter(
           (resource) =>
-            resource.resourceType === "vegetation-brush" && ["tree", "shrub"].includes(resource.properties.category)
+            resource.resourceType === "vegetation-brush" &&
+            ["tree", "shrub", "flower"].includes(resource.properties.category)
         )
         .map((resource) => resource.resourceId),
       flowers: this.plan.flowerRegions ?? [],
@@ -3314,6 +3728,8 @@ export class PlanningNaturalVegetationRuntime {
     this.instancedUnderstory?.dispose();
     destroyTree(this.treeRoot);
     destroyTree(this.detailRoot);
+    for (const key of [...this.publishedStoneObstacleKeys]) this.notifyStoneObstacles(key, undefined);
+    this.stoneObstacleListeners.clear();
     this.cells.clear();
     this.trees.length = 0;
     this.treePool.clear();
@@ -3477,9 +3893,18 @@ async function createCompanionRockSources(
     for (const material of materials) material.destroy(true);
     for (const release of releases) release();
   };
+  const stoneBoost = WORLD_TEMPLATE_ART[plan.parameters.worldTemplate?.id ?? ""]?.stoneBoost ?? 1;
+  const effectiveRockColor = (value: RockColorBlend): RockColorBlend =>
+    stoneBoost === 1
+      ? value
+      : {
+          color: value.color.map((channel) =>
+            Math.max(0, Math.min(5.2, channel * stoneBoost))
+          ) as RockColorBlend["color"]
+        };
   try {
     const meshes = assets.map((asset) => {
-      materials.push(createRockVariantMaterial(parent.engine, asset, settings.colorBlend));
+      materials.push(createRockVariantMaterial(parent.engine, asset, effectiveRockColor(settings.colorBlend)));
       const lease = acquireRockVariantMesh(parent.engine, asset);
       releases.push(lease.release);
       const [middle, far] = rockLodMeshes(asset) ?? [];
@@ -3519,6 +3944,14 @@ async function createCompanionRockSources(
         id,
         assets.map((asset, index) => {
           const fit = rockVariantFit(job, asset);
+          const fitXScale = Math.hypot(fit[0], fit[2]) || 1;
+          const fitZScale = Math.hypot(fit[8], fit[10]) || 1;
+          const fitYScale = fit[5] || 1;
+          const stoneFittedSize: readonly [number, number, number] = [
+            (asset.bounds[1][0] - asset.bounds[0][0]) * fitXScale,
+            (asset.bounds[1][1] - asset.bounds[0][1]) * fitYScale * (1 - asset.groundInset),
+            (asset.bounds[1][2] - asset.bounds[0][2]) * fitZScale
+          ];
           const matrix = new Matrix();
           matrix.elements.set(fit);
           matrix.elements[12] += job.origin[0];
@@ -3536,6 +3969,7 @@ async function createCompanionRockSources(
             renderer.shaderData.setVector4("renderer_AssetAssemblyColor", new Vector4(1, 1, 1, 1));
             return {
               ...source,
+              stoneFittedSize,
               transitionHeights: thresholds,
               rendererBindings: [{ renderer, materialId: "surface" }]
             };
@@ -3551,7 +3985,8 @@ async function createCompanionRockSources(
         return pickRockVariant(variants.get(instance.assetId) ?? [], hashSeed(seed, instance.id))?.[level];
       },
       setColorBlend(value: RockColorBlend) {
-        for (const material of materials) setRockColorBlend(material, value);
+        const effective = effectiveRockColor(value);
+        for (const material of materials) setRockColorBlend(material, effective);
       },
       dispose
     };

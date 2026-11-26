@@ -72,6 +72,9 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
   /** @internal */
   @ignoreClone
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
+  /** @internal */
+  @ignoreClone
+  _trackBatchSharedFields: boolean = true;
 
   @ignoreClone
   private _batchSharedFields: number[] = [];
@@ -678,6 +681,8 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
     const referCount = target._getReferCount();
     const propertyValueMap = this._propertyValueMap;
     const targetPropertyValueMap = target._propertyValueMap;
+    // cloneTo also supports an already-referenced destination. Release its old
+    // slots before installing the source slots, including properties absent here.
     for (const key in targetPropertyValueMap) {
       if (referCount > 0) this._addTexturesReferCount(targetPropertyValueMap[key], -referCount);
       if (!(key in propertyValueMap)) delete targetPropertyValueMap[key];
@@ -835,6 +840,7 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
     value: ShaderPropertyValueType
   ): void {
     if (
+      !this._trackBatchSharedFields ||
       this._group !== ShaderDataGroup.Renderer ||
       (!property._requiresSharedInstanceValue && (type & ShaderData._batchSharedTypeMask) === 0)
     ) {

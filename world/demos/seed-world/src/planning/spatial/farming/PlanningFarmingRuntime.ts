@@ -13,7 +13,12 @@ import {
   type PlanningFarmWaterGroundView,
   type PlanningFarmWaterScheduler
 } from "./PlanningFarmWaterSupply.ts";
-import { PlanningFarmClock } from "./PlanningFarmClock.ts";
+import {
+  PLANNING_FARM_BACKGROUND_APPROXIMATE_THRESHOLD_MS,
+  PLANNING_FARM_OFFLINE_MAX_CATCH_UP_MS,
+  PlanningFarmClock,
+  resolvePlanningOfflineElapsedMs
+} from "./PlanningFarmClock.ts";
 import { getPlanningFarmSoilShader } from "./PlanningFarmSoilShader.ts";
 import { planningFarmEnvironment, type PlanningFarmEnvironmentSource } from "./PlanningFarmEnvironment.ts";
 import {
@@ -26,7 +31,7 @@ import { acceptedPlanningFarmingGround } from "./PlanningFarmingAcceptedGround.t
 import { FarmingInitializationError } from "@galacean/engine-farming/farming/application/FarmingInitializationError";
 import type { FarmSnapshot, FarmRepository } from "@galacean/engine-farming/farming/api/index";
 import { PLANNING_FARMING_DEFAULTS } from "@galacean/engine-world-planning/spatial/farming/PlanningFarmingComponent";
-import type { Camera, Entity } from "@galacean/engine";
+import { BoundingBox, BoundingFrustum, Matrix, type Camera, type Entity, type Vector3 } from "@galacean/engine";
 import {
   FarmingSystem,
   FarmingAreaComponent,
@@ -135,12 +140,18 @@ export class PlanningFarmingRuntime {
     return !this.stopping && !this.disposed && !this.system.destroyed && !this.system.isDisposed;
   }
   private record?: FarmingFarmDiagnostics;
+  private readonly wallNowMs: () => number;
   private statusElapsed = 0;
+  private deferOffscreenProps: boolean;
+  private readonly frustumMatrix = new Matrix();
+  private readonly visibilityFrustum = new BoundingFrustum();
+  private readonly visibilityBox = new BoundingBox();
   constructor(
     private readonly options: {
       canvas?: HTMLCanvasElement;
       visualQuery?: SeedWorldVisualQuery;
       isInputEnabled?: () => boolean;
+      deferOffscreenProps?: boolean;
       system: FarmingSystem;
       statePath: string;
       camera: Camera;
@@ -150,8 +161,11 @@ export class PlanningFarmingRuntime {
       waterSupplyScheduler?: PlanningFarmWaterScheduler;
       readEnvironment?: () => PlanningFarmEnvironmentSource | undefined;
       readInitializationRequest?: () => string | undefined;
+      wallNowMs?: () => number;
     }
   ) {
+    this.wallNowMs = options.wallNowMs ?? (() => Date.now());
+    this.deferOffscreenProps = Boolean(options.deferOffscreenProps);
     this.system = options.system;
     this.visualOcclusion = options.visualQuery;
     const { catalog, rules, state } = this.system;
@@ -183,7 +197,8 @@ export class PlanningFarmingRuntime {
         this.statePath,
         () => this.stateResource,
         (snapshot, farmId) =>
-          validatePlanningFarmSave(snapshot, farmId, this.definitions, undefined, rules.data.simulationConfig)
+          validatePlanningFarmSave(snapshot, farmId, this.definitions, undefined, rules.data.simulationConfig),
+        this.wallNowMs
       );
       this.root = root = this.system.entity.createChild("Farming Runtime");
       this.releaseDependencies = releaseDependencies = this.system.configureRuntime((area) => {
@@ -191,11 +206,19 @@ export class PlanningFarmingRuntime {
         return {
           groundProvider: this.provider,
           getViewerPosition: () => this.options.camera.entity.transform.worldPosition,
+          deferOffscreenStorageLoad: this.deferOffscreenProps,
+          isStoragePositionVisible: (position) => this.isPositionInCameraFrustum(position, 3),
           repository: this.initializationRepository,
           clock: this.clock,
           captureWaterSupply: () => this.waterSupply.capture(area.farmId),
           sampleEnvironment: () => planningFarmEnvironment(this.options.readEnvironment?.()),
-          autoAdvance: true
+          autoAdvance: true,
+          offlineCatchUp: {
+            mode: "approximate",
+            maximumCatchUpMs: PLANNING_FARM_OFFLINE_MAX_CATCH_UP_MS,
+            preserveSavedEnvironment: true,
+            backgroundApproximateThresholdMs: PLANNING_FARM_BACKGROUND_APPROXIMATE_THRESHOLD_MS
+          }
         };
       });
       this.api = new FarmingAPI(this.system);
@@ -234,6 +257,20 @@ export class PlanningFarmingRuntime {
     return this.task;
   }
 
+  setDeferOffscreenProps(defer: boolean): void {
+    this.deferOffscreenProps = defer;
+    this.presentation?.setDeferOffscreenProps(defer);
+    this.area?.storagePresenter?.setDeferOffscreenLoad(defer);
+  }
+  private isPositionInCameraFrustum(position: Vector3, radius: number): boolean {
+    const cam = this.options.camera as unknown as { projectionMatrix?: Matrix; viewMatrix?: Matrix };
+    if (!cam.projectionMatrix || !cam.viewMatrix) return true;
+    Matrix.multiply(cam.projectionMatrix, cam.viewMatrix, this.frustumMatrix);
+    this.visibilityFrustum.calculateFromMatrix(this.frustumMatrix);
+    this.visibilityBox.min.set(position.x - radius, position.y - radius, position.z - radius);
+    this.visibilityBox.max.set(position.x + radius, position.y + radius, position.z + radius);
+    return this.visibilityFrustum.intersectsBox(this.visibilityBox);
+  }
   async preparePresentation(): Promise<void> {
     await this.task;
     await this.land?.whenReady;
@@ -663,7 +700,19 @@ export class PlanningFarmingRuntime {
     if (this.provider) this.provider.publish(view);
     else this.provider = new PlanningFarmingGroundProvider(view);
     if (!this.area) {
-      this.clock = new PlanningFarmClock(saved?.simulation.lastSystemTimeMs);
+      const anchor =
+        !fresh && !policy.replace && saved ? await this.repository.readWallClockAnchor(farm.farmId) : undefined;
+      guard();
+      const stepMs = resolveSimulationConfig(
+        this.definitions.soilProfile,
+        this.resources.rules.data.simulationConfig
+      ).stepMs;
+      const nowWallMs = this.wallNowMs();
+      const offlineElapsedMs = resolvePlanningOfflineElapsedMs(saved, anchor, nowWallMs, stepMs);
+      const initialTimeMs = saved
+        ? saved.simulation.lastSystemTimeMs + offlineElapsedMs
+        : Math.max(0, Math.floor(nowWallMs));
+      this.clock = new PlanningFarmClock(Number.isSafeInteger(initialTimeMs) ? initialTimeMs : undefined);
       this.saveRequest = requestId;
       this.initializationRepository = this.repository.forInitialization({ requestId, recover });
       const area = this.root.createChild("Farm Starter").addComponent(FarmingAreaComponent);
@@ -726,7 +775,8 @@ export class PlanningFarmingRuntime {
           this.definitions,
           FARM_CROP_SCALES,
           getPlanningFarmSoilShader(),
-          this.land
+          this.land,
+          this.deferOffscreenProps
         );
         this.area.coordinator.presentation = this.presentation.port;
         if (this.area.sowingPresenter)

@@ -2,7 +2,7 @@ import { settlementRandom } from "../../semantic-study/SettlementGeometry";
 import { templateBaseSeed } from "../WorldTemplateCatalog";
 import type { WorldTemplateArtDirection } from "../WorldTemplateArtDirection";
 import type { TemplateNode } from "../WorldTemplateGeometry";
-import type { TemplateProceduralPlantInstance } from "../runtime/TemplateProceduralPlants";
+import type { TemplateProceduralPlantInstance } from "../WorldTemplateVegetation";
 
 const asset = (file: string) => new URL(`../../assets/low-poly/${file}`, import.meta.url).href;
 
@@ -17,6 +17,11 @@ const greens = asset("greens.glb");
 const boulder = asset("boulder.glb");
 const mountain = asset("mountain.glb");
 const mountainBlue = asset("mountain-blue.glb");
+const NON_COLLIDING_ASSETS = new Set([oak, pine, wheat, greens, westArch, eastArch]);
+const treeSpecies = new Map([
+  [oak, "oak"],
+  [pine, "pine"]
+]);
 
 function model(
   id: string,
@@ -26,17 +31,22 @@ function model(
   scale: TemplateNode["scale"],
   yaw = 0,
   footprint?: TemplateNode["footprint"],
-  assetGroundY?: number
+  assetGroundY?: number,
+  collision?: boolean
 ): TemplateNode {
+  const explicitCollision = collision ?? (NON_COLLIDING_ASSETS.has(assetUrl) ? false : undefined);
+  const species = treeSpecies.get(assetUrl);
   return {
     id,
     assetUrl,
+    ...(species && { vegetation: { kind: "tree" as const, assetId: species, vertexColorParts: true } }),
     position: [x, 0, z],
     scale,
     rotation: [0, yaw, 0],
     grounded: true,
     footprint,
     ...(assetGroundY === undefined ? {} : { assetGroundY }),
+    ...(explicitCollision === undefined ? {} : { collision: explicitCollision }),
     ...(assetUrl === mountain || assetUrl === mountainBlue ? { stretchToEnvelope: true } : {})
   };
 }

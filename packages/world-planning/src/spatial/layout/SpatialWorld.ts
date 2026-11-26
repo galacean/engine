@@ -3,7 +3,8 @@ import { applyMojaveDesertAppearance } from "./MojaveDesertLayout";
 import { PLANNING_REFERENCE } from "../../planning-data/PlanningReference";
 import { planWorldTemplateSite, publishTemplateStones, resolveConfiguredTemplateSpawn } from "../WorldTemplatePlanning";
 import { resolveWorldTemplateScene, resolveWorldTemplateView } from "../WorldTemplateView";
-import { WORLD_TEMPLATE_ART } from "../WorldTemplateArtDirection";
+import { templateRockCollisionPolicy, WORLD_TEMPLATE_ART } from "../WorldTemplateArtDirection";
+import { applyRockCollisionPolicyToPlan } from "../RockCollisionPolicy";
 import { PLANNING_RUNTIME_OPTIONS } from "../runtime/RuntimeOptions";
 import { worldTemplateEcology } from "../WorldTemplateEcology";
 import {
@@ -258,6 +259,7 @@ export function tryRevealSpatialWorld(
   // A worker publication may have no main-thread raster. Resolve only requested contact samples.
   const ground = height?.sample ?? ((point: PlanPoint) => planningGroundSurface(plan).sample(point));
   publishTemplateStones(plan, ground);
+  applyRockCollisionPolicyToPlan(plan, templateRockCollisionPolicy(plan.parameters.worldTemplate?.id));
   // Composition trees are generated from their own fixed candidates, outside
   // the natural-landscape basemap. Reveal both populations before instance edits.
   publishCompositionTrees(plan, createPlanningGroundSampler(plan), config.landscape, recipe.edits);
@@ -1227,6 +1229,7 @@ function* spatialWorldStages(
     publishCompositionTrees(plan, ground, config.landscape, recipe.edits);
     applyMojaveDesertAppearance(plan, recipe);
     publishTemplateStones(plan, ground);
+    applyRockCollisionPolicyToPlan(plan, templateRockCollisionPolicy(plan.parameters.worldTemplate?.id));
   }
   // Spawn belongs to a populated village when one exists; layout order also includes rock POIs.
   const first =
@@ -1280,7 +1283,7 @@ function* spatialWorldStages(
     exclusions: relations,
     roads: automaticRoads
   };
-  if (p.farming?.enabled !== false) {
+  if (options.environment !== false && p.farming?.enabled !== false) {
     const farmSearchStarted = performance.now();
     const farmSignature = hashSignatureValue([
       worldSignature,

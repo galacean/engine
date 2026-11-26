@@ -6,7 +6,7 @@ import { Blitter } from "../RenderPipeline/Blitter";
 import { PipelinePass } from "../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../RenderPipeline/RenderContext";
-import { RenderBufferLoadAction } from "../renderingHardwareInterface";
+import { RenderPassLoadAction } from "../renderingHardwareInterface";
 import { Shader } from "../shader";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 
@@ -19,6 +19,7 @@ export class FinalPass extends PipelinePass {
   private _srgbRenderTarget: RenderTarget | null;
   private _antiAliasingMaterial: Material;
   private _sRGBmaterial: Material;
+  private _destroyed = false;
 
   constructor(engine: Engine, sRGBShader: Shader, antiAliasingShader: Shader) {
     super(engine);
@@ -57,49 +58,38 @@ export class FinalPass extends PipelinePass {
   }
 
   override onRender(context: RenderContext): void {
-    const { engine } = this;
+    const { engine, _passDescriptor: passDescriptor } = this;
     const { camera } = context;
     const { viewport, renderTarget } = camera;
     const enableFXAA = camera.antiAliasing === AntiAliasing.FXAA;
+    const isFullViewport = viewport.x === 0 && viewport.y === 0 && viewport.z === 1 && viewport.w === 1;
+    const finalLoadAction =
+      renderTarget && renderTarget.colorTextureCount === 1 && isFullViewport
+        ? RenderPassLoadAction.DontCare
+        : RenderPassLoadAction.Load;
 
     // Should convert to sRGB when FXAA is enabled or camera's render target is not set
     const sourceTexture = <Texture2D>this._inputRenderTarget!.getColorTexture();
     if (enableFXAA) {
-      Blitter._blitTexture(
-        engine,
-        sourceTexture,
-        this._srgbRenderTarget,
-        0,
-        undefined,
-        this._sRGBmaterial,
-        0,
-        undefined,
-        RenderBufferLoadAction.DontCare
-      );
-      const sRGBTexture = <Texture2D>this._srgbRenderTarget!.getColorTexture();
-      Blitter._blitTexture(
-        engine,
-        sRGBTexture,
-        renderTarget,
-        0,
-        viewport,
-        this._antiAliasingMaterial,
-        0,
-        undefined,
-        RenderBufferLoadAction.DontCare
-      );
+      const srgbTarget = this._srgbRenderTarget!;
+      passDescriptor.reset(srgbTarget);
+      passDescriptor.colorLoadAction = RenderPassLoadAction.DontCare;
+      context.beginRenderPass(passDescriptor);
+      Blitter.draw(engine, sourceTexture, 0, this._sRGBmaterial, 0);
+      context.endRenderPass();
+
+      const sRGBTexture = <Texture2D>srgbTarget.getColorTexture();
+      passDescriptor.reset(renderTarget, viewport);
+      passDescriptor.colorLoadAction = finalLoadAction;
+      context.beginRenderPass(passDescriptor);
+      Blitter.draw(engine, sRGBTexture, 0, this._antiAliasingMaterial, 0);
+      context.endRenderPass();
     } else {
-      Blitter._blitTexture(
-        engine,
-        sourceTexture,
-        renderTarget,
-        0,
-        viewport,
-        this._sRGBmaterial,
-        0,
-        undefined,
-        RenderBufferLoadAction.DontCare
-      );
+      passDescriptor.reset(renderTarget, viewport);
+      passDescriptor.colorLoadAction = finalLoadAction;
+      context.beginRenderPass(passDescriptor);
+      Blitter.draw(engine, sourceTexture, 0, this._sRGBmaterial, 0);
+      context.endRenderPass();
     }
   }
 
@@ -110,5 +100,15 @@ export class FinalPass extends PipelinePass {
       this._srgbRenderTarget = null;
     }
     this._inputRenderTarget = null;
+  }
+
+  destroy(): void {
+    if (this._destroyed) return;
+    this._destroyed = true;
+    this.release();
+    this._sRGBmaterial._addReferCount(-1);
+    this._sRGBmaterial.destroy();
+    this._antiAliasingMaterial._addReferCount(-1);
+    this._antiAliasingMaterial.destroy();
   }
 }

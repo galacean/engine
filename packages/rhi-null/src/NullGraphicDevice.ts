@@ -14,7 +14,6 @@ import { NullTexture2D, NullTexture2DArray, NullTextureCube } from "./NullTextur
 export class NullGraphicDevice implements IHardwareRenderer {
   readonly backend = "null";
   beginFrame(): void {}
-  endRenderPass(): void {}
   endFrame(): void {}
   applyRenderState(): void {}
   createPlatformShaderProgram(): never {
@@ -34,7 +33,8 @@ export class NullGraphicDevice implements IHardwareRenderer {
     maxTextureSize: 0,
     maxDrawBuffers: 0,
     maxAntiAliasing: 1,
-    maxVertexUniformVectors: 0
+    maxVertexUniformVectors: 0,
+    maxFragmentTextureUnits: 16
   };
   _currentBindShaderProgram = null;
 
@@ -93,6 +93,8 @@ export class NullGraphicDevice implements IHardwareRenderer {
     throw new Error("Transform feedback requires a graphics device.");
   }
   activeRenderTarget(): void {}
+  beginRenderPass(): void {}
+  endRenderPass(): void {}
   clearRenderTarget(): void {}
   drawPrimitive(): void {}
   blitInternalRTByBlitFrameBuffer(): void {}

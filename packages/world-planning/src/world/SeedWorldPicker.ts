@@ -1,5 +1,6 @@
 import surfacePackSource from "./SnapshotSurfacePack.shader?raw";
 import interactionDepthSource from "./InteractionDepthPack.shader?raw";
+import photoCopySource from "./PhotoCopy.shader?raw";
 import { snapshotIdentityBits, type SnapshotSurfaceProjection } from "./SnapshotSurfaceEncoding";
 import { destroyPhotoResources } from "./SeedWorldPhotoResources";
 import type { GpuPhoto } from "./SeedWorldPhotoImage";
@@ -21,6 +22,7 @@ import {
   Blitter,
   Material,
   Shader,
+  ShaderMacro,
   Script,
   TextureFilterMode,
   TextureWrapMode,
@@ -30,7 +32,7 @@ import {
   type Entity,
   Vector4
 } from "@galacean/engine";
-import type { SeedWorldPickBatch, SeedWorldPickSource } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+import type { SeedWorldPickBatch, SeedWorldPickSource } from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 
 import { FrozenViewIdentityTexture } from "./FrozenViewIdentityTexture";
 import type { ViewFrame, ViewCaptureMetadata } from "./SeedWorldViewSnapshot";
@@ -342,6 +344,36 @@ export class SeedWorldPicker {
     material.shaderData.setFloat("material_WorldPickDepthCompare", CompareFunction.Less);
   }
 
+  /** Lightweight async precompile of blit shaders (`PhotoCopy` + `SnapshotSurfacePack`) without capturing a frame. */
+  async prewarmShaders(signal?: AbortSignal): Promise<void> {
+    signal?.throwIfAborted();
+    const scene = this.camera.scene;
+    const engine = this.camera.engine;
+    if (!scene || !engine) return;
+    const photoCopyShader = Shader.find("SeedWorld/PhotoCopy") ?? Shader.create(photoCopySource);
+    const surfacePackShader = Shader.find("SeedWorld/SnapshotSurfacePack") ?? Shader.create(surfacePackSource);
+    const sceneMacros: ShaderMacro[] = [];
+    const sceneMacroCollection = (scene.shaderData as unknown as { _macroCollection?: unknown })._macroCollection;
+    const getElements = (ShaderMacro as unknown as { _getMacrosElements?: (c: unknown, out: ShaderMacro[]) => void })
+      ._getMacrosElements;
+    if (sceneMacroCollection && getElements) {
+      getElements(sceneMacroCollection, sceneMacros);
+    }
+    // AO setter updates `SCENE_ENABLE_AMBIENT_OCCLUSION` synchronously; `castShadows = false` does
+    // not mutate `SCENE_SHADOW_TYPE` until the next `Scene._updateShaderData()`, so keep it intact.
+    const pickSceneMacros = sceneMacros.filter((m) => m.name !== "SCENE_ENABLE_AMBIENT_OCCLUSION");
+    const tasks: Promise<boolean>[] = [];
+    const photoPass = photoCopyShader?.subShaders[0]?.passes[0];
+    if (photoPass?.compileVariantAsync) {
+      tasks.push(photoPass.compileVariantAsync(engine, sceneMacros, signal));
+    }
+    const packPass = surfacePackShader?.subShaders[0]?.passes[0];
+    if (packPass?.compileVariantAsync) {
+      tasks.push(packPass.compileVariantAsync(engine, pickSceneMacros, signal));
+    }
+    if (tasks.length) await Promise.all(tasks);
+  }
+
   /** Exercise the exact photo/identity paths before the screenshot command is exposed. No retained snapshot or readback. */
   async prepareSnapshot(visit: SeedWorldPickSource, signal?: AbortSignal, budget?: ImageResourceBudget): Promise<void> {
     signal?.throwIfAborted();
@@ -393,7 +425,40 @@ export class SeedWorldPicker {
     );
   }
 
-  /** Called synchronously in the captured color frame, before asynchronous image encoding. */
+  /** Capture a color-only image. Use capture() when the image also needs pixel-aligned picking. */
+  captureColorOnly(
+    signal?: AbortSignal,
+    budget?: ImageResourceBudget
+  ): Promise<{
+    image: GpuPhoto;
+    metadata: ViewCaptureMetadata;
+    width: number;
+    height: number;
+  }> {
+    this.frameCapture ??= this.camera.entity.addComponent(SeedWorldFrameCapture);
+    return this.frameCapture.request(
+      (image) => ({
+        image,
+        metadata: this.captureViewMetadata(),
+        width: image.width,
+        height: image.height
+      }),
+      signal,
+      budget
+    );
+  }
+
+  /** Render identities for the current view. Pair with an existing image only if projection, viewport and scene still match. */
+  captureIdentityBuffer(
+    visit: SeedWorldPickSource,
+    resolveRef: (batch: SeedWorldPickBatch) => ViewRef,
+    image: GpuPhoto,
+    budget?: ImageResourceBudget
+  ): ViewFrame {
+    return this.captureIdentity(visit, resolveRef, image, budget);
+  }
+
+  /** Called synchronously in the captured color frame, before asynchronous image encoding or world unfreeze. */
   private captureViewMetadata(): ViewCaptureMetadata {
     const { worldPosition: p, worldForward: f } = this.camera.entity.transform;
     return {
@@ -416,14 +481,16 @@ export class SeedWorldPicker {
       identityCamera.registerRenderViewCullingSource?.({
         cull: (context) => {
           source.visitRenderViewRenderers((renderer) => {
-            if (context.isVisible(renderer.bounds)) context.submit(renderer);
+            // Render-view-culled instanced/single batches intentionally keep renderer.enabled = false
+            // so the main camera does not double-draw them; submit whenever alive and frustum-visible.
+            if (!renderer.destroyed && context.isVisible(renderer.bounds)) context.submit(renderer);
           });
         }
       });
       this.identityCamera = identityCamera;
     }
-    const sourceTransform = source.entity.transform;
     const identityTransform = identityCamera.entity.transform;
+    const sourceTransform = source.entity.transform;
     identityTransform.worldPosition = sourceTransform.worldPosition;
     if (sourceTransform.worldRotationQuaternion) {
       identityTransform.worldRotationQuaternion = sourceTransform.worldRotationQuaternion;
@@ -436,6 +503,7 @@ export class SeedWorldPicker {
     identityCamera.orthographicSize = source.orthographicSize;
     identityCamera.cullingMask = source.cullingMask;
     identityCamera.projectionMatrix = source.projectionMatrix;
+    identityCamera.viewport.copyFrom?.(source.viewport);
     identityCamera.renderFilter = source.renderFilter;
     identityCamera.enableScreenSpaceReflection = false;
     return identityCamera;
@@ -450,6 +518,8 @@ export class SeedWorldPicker {
     const { width, height } = image;
     const metadata = this.captureViewMetadata();
     const captureCamera = this.ensureIdentityCamera();
+    const surfaceProjectionMatrix = captureCamera.projectionMatrix;
+    const surfaceViewport = this.camera.viewport;
     // Scratch ID + depth + packed output. Only the packed RGBA8 survives capture.
     const release = budget?.reserve("temporary", width * height * 12);
     let result: (ViewFrame & { identities: FrozenViewIdentityTexture }) | undefined;
@@ -476,17 +546,17 @@ export class SeedWorldPicker {
               keys: instanced ? Array.from({ length: batch!.count }, (_, index) => batch!.resolve(index)) : undefined
             };
           });
-          const camera = this.camera,
-            engine = camera.engine;
-          const inverseProjection = camera.projectionMatrix.clone().invert();
-          const v = camera.viewport,
+          const engine = captureCamera.engine ?? this.camera.engine;
+          const inverseProjection = surfaceProjectionMatrix.clone().invert();
+          const v = surfaceViewport,
             identityBits = snapshotIdentityBits(this.identityCount);
+          const viewMatrix = captureCamera.viewMatrix ?? this.camera.viewMatrix;
           const projection: SnapshotSurfaceProjection = {
             identityBits,
-            near: camera.nearClipPlane,
-            far: camera.farClipPlane,
+            near: captureCamera.nearClipPlane,
+            far: captureCamera.farClipPlane,
             inverseProjection: Array.from(inverseProjection.elements),
-            cameraWorld: Array.from(camera.viewMatrix.clone().invert().elements),
+            cameraWorld: Array.from(viewMatrix.clone().invert().elements),
             viewport: [v.x, v.y, v.z, v.w]
           };
           if (!(projection.near > 0) || !Number.isFinite(projection.far) || projection.far <= projection.near)
@@ -613,8 +683,10 @@ export class SeedWorldPicker {
       camera.scene!.ambientOcclusion.enabled = false;
       background.mode = BackgroundMode.SolidColor;
       background.solidColor = this.black;
-      if (capture.visualDepth) camera.scene!.castShadows = false;
-      else {
+      // Identity/depth pick passes never consume shadow maps; disabling shadows skips the entire
+      // shadow cascade pass and avoids compiling ShadowCaster variants with RENDERER_WORLD_PICK.
+      camera.scene!.castShadows = false;
+      if (!capture.visualDepth) {
         visit(this.collectBound);
         // Photo identities retain their separate material override path.
         this.occlusion.prepare(camera, this.pickedRenderers);

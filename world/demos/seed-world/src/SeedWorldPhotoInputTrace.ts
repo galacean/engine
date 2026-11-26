@@ -108,7 +108,7 @@ export class SeedWorldPhotoInputTrace {
     this.flushTimer = undefined;
     if (this.output)
       this.output.textContent = JSON.stringify({
-        schemaVersion: 1,
+        schemaVersion: 2,
         session: this.session,
         capturedAt: new Date().toISOString(),
         records: this.records

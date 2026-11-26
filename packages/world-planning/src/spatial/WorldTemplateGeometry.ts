@@ -12,6 +12,10 @@ export interface TemplateNode {
   /** Geometry-only glTF scenes for LOD1 and LOD2, with LOD0's material slot names and coordinate system. */
   assetLod?: { url: string; screenRelativeHeights: readonly [number, number] };
   castShadows?: boolean;
+  /** Framing-only envelope node that does not create a placeholder mesh at runtime. */
+  invisible?: boolean;
+  /** Optional explicit collision switch; omitted defers to template rock collision policy using mounted GLB bounds. */
+  collision?: boolean;
   /** Stretch the asset along each axis to match the authored envelope. */
   stretchToEnvelope?: boolean;
   /** Planting plane in the imported model's metre coordinates; defaults to its lowest point. */
@@ -20,6 +24,11 @@ export interface TemplateNode {
   assetYawDegrees?: number;
   /** Source material slots whose authored normals use the shared foliage lighting contract. */
   assetLeafMaterials?: readonly string[];
+  /** Authored woody subject registered for vegetation picking and independent foliage/bark pigments. */
+  vegetation?: { kind: "tree"; assetId: string } & (
+    | { barkMaterials: readonly string[]; vertexColorParts?: false }
+    | { vertexColorParts: true; barkMaterials?: never }
+  );
   /** Optional sRGB leaf tint for the supplied model; its bark and textures retain their authored values. */
   assetLeafColor?: string;
   /** Linear intensity of the leaf pigment, including values above one. */

@@ -8,6 +8,7 @@ import {
   Logger,
   Material,
   ModelMesh,
+  ReferResource,
   ResourceManager,
   Skin,
   Texture2D,
@@ -36,9 +37,11 @@ export class GLTFParserContext {
   needAnimatorController = false;
 
   /** @internal */
-  _getPromises: AssetPromise<unknown>[] = [];
+  _aborted = false;
 
+  private _getPromises: AssetPromise<unknown>[] = [];
   private _resourceCache = new Map<string, any>();
+  private _createdResources = new Set<ReferResource>();
   private readonly _remoteAssetBaseURL: string;
   private _progress = {
     taskDetail: {},
@@ -81,31 +84,45 @@ export class GLTFParserContext {
       return resource;
     }
 
-    const glTFSchemaKey = glTFSchemaMap[type];
-    const isSubAsset = !!glTFResourceMap[type];
-
-    if (glTFSchemaKey) {
-      const glTFItems = this.glTF[glTFSchemaKey];
-      if (glTFItems && (index === undefined || glTFItems[index])) {
-        if (index === undefined) {
-          resource =
-            type === GLTFParserType.Entity
-              ? <Entity[]>glTFItems.map((_, index) => this.get<Entity>(type, index))
-              : AssetPromise.all<T>(glTFItems.map((_, index) => this.get<T>(type, index)));
-        } else {
-          resource = parser.parse(this, index);
-          isSubAsset && this._handleSubAsset(resource, type, index);
-        }
-      } else {
-        resource = AssetPromise.resolve(null);
-      }
-    } else {
-      resource = parser.parse(this, index);
-      isSubAsset && this._handleSubAsset(resource, type, index);
+    if (this._aborted) {
+      return type === GLTFParserType.Entity ? (index === undefined ? [] : null!) : new AssetPromise<T | null>(() => {});
     }
 
+    const glTFSchemaKey = glTFSchemaMap[type];
+    if (glTFSchemaKey) {
+      const glTFItems = this.glTF[glTFSchemaKey];
+      if (!glTFItems || (index !== undefined && !glTFItems[index])) {
+        resource = AssetPromise.resolve(null);
+      } else if (index === undefined) {
+        resource =
+          type === GLTFParserType.Entity
+            ? <Entity[]>glTFItems.map((_, i) => this.get<Entity>(type, i))
+            : AssetPromise.all<T>(glTFItems.map((_, i) => this.get<T>(type, i)));
+      }
+      if (resource) {
+        cache.set(cacheKey, resource);
+        return resource;
+      }
+    }
+
+    resource = parser.parse(this, index);
     if (resource instanceof AssetPromise) {
-      this._getPromises.push(resource);
+      const rawPromise = resource;
+      this._getPromises.push(rawPromise);
+      resource = new AssetPromise<T | null>((resolve, reject) => {
+        rawPromise.then(
+          (value) => {
+            if (!this._aborted) resolve(value as T | null);
+          },
+          (reason) => {
+            if (!this._aborted) reject(reason);
+          }
+        );
+      });
+    }
+
+    if (glTFResourceMap[type]) {
+      this._handleSubAsset(resource, type, index);
     }
     cache.set(cacheKey, resource);
     return resource;
@@ -126,6 +143,9 @@ export class GLTFParserContext {
         this.get<AnimationClip>(GLTFParserType.Animation),
         this.get<AnimatorController>(GLTFParserType.AnimatorController)
       ]).then(() => {
+        if (this._aborted) {
+          return this.glTFResource;
+        }
         const glTFResource = this.glTFResource;
         const animatorController = glTFResource.animatorController;
 
@@ -135,12 +155,55 @@ export class GLTFParserContext {
         }
 
         this.resourceManager.addContentRestorer(this.contentRestorer);
+        this._createdResources.clear();
+        this._getPromises.length = 0;
         return glTFResource;
       });
     });
 
     this._addTaskCompletePromise(promise);
     return promise;
+  }
+
+  /**
+   * @internal
+   */
+  _trackResource<T extends ReferResource>(resource: T): T {
+    if (this._aborted) {
+      resource.destroy();
+      return resource;
+    }
+    this._createdResources.add(resource);
+    resource._associationSuperResource(this.glTFResource);
+    return resource;
+  }
+
+  /**
+   * @internal
+   */
+  _abort(): void {
+    if (this._aborted) {
+      return;
+    }
+    this._aborted = true;
+
+    const getPromises = this._getPromises;
+    for (let i = 0, n = getPromises.length; i < n; i++) {
+      getPromises[i].cancel();
+    }
+    getPromises.length = 0;
+
+    // Keep _isLoading true while pendingDestroy so findResourcesByType() still hides it this frame
+    if (!this.glTFResource.destroy()) {
+      this.glTFResource._isLoading = false;
+    }
+
+    // Disassociate explicitly because glTFResource._onDestroy() may be deferred until end of frame
+    this._createdResources.forEach((resource) => {
+      resource._disassociationSuperResource(this.glTFResource);
+      resource.destroy();
+    });
+    this._createdResources.clear();
   }
 
   /**

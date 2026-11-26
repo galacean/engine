@@ -21,7 +21,7 @@ describe("published world picking identities", () => {
     const renderer = {};
     const scene = { plan: p, world: { visitPickBatches() {}, visitTerrainRenderers(visit: (renderer: unknown) => void) { visit(renderer); } },
       solids: { visitPickBatches() {} } } as any;
-    const batches: import("@galacean/engine-modify/rendering/SeedWorldPickBatch.ts").SeedWorldPickBatch[] = [];
+    const batches: import("@galacean/engine-project/rendering/SeedWorldPickBatch.ts").SeedWorldPickBatch[] = [];
     visitPlanningWorldPickBatches(scene, { visitPickBatches() {} } as any, batch => batches.push(batch));
     const snapshot = batches[0].snapshotResolver!();
     expect(snapshot.resolve({ x: 40, y: 0, z: 40 } as never)).toBe("mountain");
@@ -79,6 +79,9 @@ it("uses producer-owned native meadow identities and visits persistent batches f
     properties: { planningEntityId: "tree-author" }
   });
   expect(resolvePlanningNaturalPlantPick({ id: "opaque-tree-id" }, true)).toBe("opaque-tree-id");
+  expect(resolvePlanningNaturalPlantPick({ id: "shrub-member", scopeId: "brush", layerId: "小灌木" }, false)).toBe(
+    "shrub-member"
+  );
   expect(resolvePlanningNaturalPlantPick({ id: "unrelated/random:id", scopeId: "flowers" }, false)).toBe("flowers");
   expect(resolvePlanningNaturalPlantPick({ id: "understory" }, false)).toBe(PLANNING_GRASSLAND_ID);
   expect(resolvePlanningNaturalPlantPick({ id: "companion-stone-1" }, false, "stone")).toBeUndefined();

@@ -24,6 +24,8 @@ export class Primitive extends GraphicsResource {
   _vertexElementMap: Record<string, VertexElement> = {};
   /** @internal */
   _bufferStructChanged: boolean = false;
+  /** @internal Ring-buffer slot combination key (0..15) for multi-slot VAO caching; 0 for single-buffer primitives. */
+  _vaoSlotKey: number = 0;
 
   private _vertexElements: VertexElement[] = [];
   private _indexBufferBinding: IndexBufferBinding | null;
@@ -168,6 +170,35 @@ export class Primitive extends GraphicsResource {
       if (referCount > 0) binding?.buffer._addReferCount(referCount);
       this._bufferStructChanged ||= lastBinding?.buffer !== binding?.buffer;
     }
+  }
+
+  /**
+   * @internal
+   * Swaps active vertex/index bindings across live rotating ring-buffer slots without triggering
+   * `_bufferStructChanged`, allowing `GLPrimitive` to retain per-slot VAOs across frames.
+   * Callers must keep all referenced slot buffers alive until `destroy()` or a structural rebind.
+   */
+  _swapRingBufferBindings(vertexBinding: VertexBufferBinding, indexBinding: IndexBufferBinding, slotKey: number): void {
+    const referCount = this._getReferCount();
+    const prevVertexBinding = this.vertexBufferBindings[0];
+    if (prevVertexBinding !== vertexBinding) {
+      if (referCount > 0) {
+        prevVertexBinding?.buffer._addReferCount(-referCount);
+        vertexBinding.buffer._addReferCount(referCount);
+      }
+      this.vertexBufferBindings[0] = vertexBinding;
+    }
+
+    const prevIndexBinding = this._indexBufferBinding;
+    if (prevIndexBinding !== indexBinding) {
+      if (referCount > 0) {
+        prevIndexBinding?.buffer._addReferCount(-referCount);
+        indexBinding.buffer._addReferCount(referCount);
+      }
+      this._indexBufferBinding = indexBinding;
+    }
+
+    this._vaoSlotKey = slotKey;
   }
 
   draw(shaderProgram: IPlatformShaderProgram, subMesh: SubPrimitive): void {

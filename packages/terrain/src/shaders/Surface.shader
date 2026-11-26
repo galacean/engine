@@ -67,6 +67,7 @@ Shader "Terrain/Surface" {
         vec3 positionWS;
         #ifdef RENDERER_ASSET_ASSEMBLY_INSTANCE
           vec3 assetAssemblyColor;
+          vec4 plantPigment;
           #ifdef RENDERER_LOD_DITHER
             float assetAssemblyLodFade;
           #endif
@@ -153,6 +154,7 @@ Shader "Terrain/Surface" {
             tangentOS.xyz = terrainProjectAssetAssemblyTangentOS(tangentOS.xyz, attributes);
           #endif
           varyings.assetAssemblyColor = terrainProjectAssetAssemblyColor(attributes);
+          varyings.plantPigment = terrainProjectPlantPigment(attributes);
           #ifdef RENDERER_LOD_DITHER
             varyings.assetAssemblyLodFade = terrainProjectAssetAssemblyLodFade(attributes);
           #endif

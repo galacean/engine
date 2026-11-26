@@ -24,14 +24,16 @@ import {
   TREE_ASSEMBLY_GPU_VARIATION_INSTANCE_FLOATS,
   TREE_ASSEMBLY_INSTANCE_FLOATS,
   uploadTreeAssemblyInstances,
+  uploadTreeAssemblyInstanceRange,
   type TreeAssemblyInstancedMesh,
   type TreeAssemblyInstanceStorage
 } from "@galacean/engine-vegetation/asset-assembly/TreeAssemblyInstancedMesh";
 import type { LandscapePlantInstance } from "@galacean/engine-vegetation/world/VegetationLandscapePlan";
+import { LOD_SCREEN_HEIGHT_HYSTERESIS_RATIO } from "@galacean/engine-terrain/terrain/lod/TerrainLodGroupRuntime";
 import {
   SeedWorldArrayPickBatch,
   type SeedWorldPickVisitor
-} from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
+} from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 import {
   capturePopulationViewCache,
   createPopulationViewCaches,
@@ -42,8 +44,10 @@ import {
 
 const SUBCELL_SIZE_M = 16;
 const CAMERA_MATRIX_EPSILON = 1e-5;
-const LOD_HYSTERESIS_RATIO = 0.06;
 const MAX_SHADOW_CASCADES = POPULATION_RENDER_VIEW_COUNT - 1;
+
+/** Extra distance for retaining a ground-detail instance already inside the draw radius. */
+export const UNDERSTORY_DISTANCE_HYSTERESIS_METRES = 2;
 
 /** Shadow LOD selection policy for instanced vegetation shadow cascades. */
 export type InstancedShadowLodPolicy = "lowest" | "camera";
@@ -117,6 +121,8 @@ export interface InstancedUnderstoryPart {
   colorR: number;
   colorG: number;
   colorB: number;
+  pigmentCode?: number;
+  cameraSlot?: number;
   readonly varX: number;
   readonly varY: number;
   readonly varZ: number;
@@ -165,6 +171,8 @@ interface InstancedShadowView {
   capacity: number;
   nextCount: number;
   writeCursor: number;
+  uploadedCount: number;
+  stagingDirty: boolean;
   readonly visibleBounds: BoundingBox;
 }
 
@@ -178,6 +186,8 @@ interface InstancedBucket {
   capacity: number;
   nextCount: number;
   writeCursor: number;
+  uploadedCount: number;
+  stagingDirty: boolean;
   readonly pickIds: (string | undefined)[];
   readonly visibleBounds: BoundingBox;
   readonly shadowViews: (InstancedShadowView | undefined)[];
@@ -226,15 +236,15 @@ function resolveLodTier(screenHeight: number, prevTier: number, lods: readonly I
   const count = lods.length;
   if (count === 0) return -1;
   const terminal = lods[count - 1]!.screenRelativeTransitionHeight;
-  const cullThreshold = prevTier >= 0 ? terminal * (1 - LOD_HYSTERESIS_RATIO) : terminal;
+  const cullThreshold = prevTier >= 0 ? terminal * (1 - LOD_SCREEN_HEIGHT_HYSTERESIS_RATIO) : terminal;
   if (screenHeight < cullThreshold) return -1;
   for (let tier = 0; tier < count - 1; tier++) {
     const threshold = lods[tier]!.screenRelativeTransitionHeight;
     const effective =
       prevTier === tier
-        ? threshold * (1 - LOD_HYSTERESIS_RATIO)
+        ? threshold * (1 - LOD_SCREEN_HEIGHT_HYSTERESIS_RATIO)
         : prevTier > tier
-          ? threshold * (1 + LOD_HYSTERESIS_RATIO)
+          ? threshold * (1 + LOD_SCREEN_HEIGHT_HYSTERESIS_RATIO)
           : threshold;
     if (screenHeight >= effective) return tier;
   }
@@ -259,55 +269,63 @@ function resolveLowestNonEmptyLodIndex(lods: readonly InstancedUnderstoryLod[]):
   return -1;
 }
 
+function writeStagingFloat(staging: Float32Array, index: number, value: number): boolean {
+  const prev = staging[index];
+  staging[index] = value;
+  return staging[index] !== prev;
+}
+
 function writePartInstance(
   staging: Float32Array,
   offset: number,
   part: InstancedUnderstoryPart,
   usesGpuVariation: boolean
-): void {
+): boolean {
+  let changed = false;
   if (usesGpuVariation) {
-    staging[offset] = part.posX;
-    staging[offset + 1] = part.posY;
-    staging[offset + 2] = part.posZ;
-    staging[offset + 3] = part.branchX;
-    staging[offset + 4] = part.quatX;
-    staging[offset + 5] = part.quatY;
-    staging[offset + 6] = part.quatZ;
-    staging[offset + 7] = part.quatW;
-    staging[offset + 8] = part.scaleX;
-    staging[offset + 9] = part.scaleY;
-    staging[offset + 10] = part.scaleZ;
-    staging[offset + 11] = part.branchY;
-    staging[offset + 12] = part.colorR;
-    staging[offset + 13] = part.colorG;
-    staging[offset + 14] = part.colorB;
-    staging[offset + 15] = 1;
-    staging[offset + 16] = part.varX;
-    staging[offset + 17] = part.varY;
-    staging[offset + 18] = part.varZ;
-    staging[offset + 19] = part.varW;
-    staging[offset + 20] = part.colorR;
-    staging[offset + 21] = part.colorG;
-    staging[offset + 22] = part.colorB;
-    staging[offset + 23] = 1;
+    if (writeStagingFloat(staging, offset, part.posX)) changed = true;
+    if (writeStagingFloat(staging, offset + 1, part.posY)) changed = true;
+    if (writeStagingFloat(staging, offset + 2, part.posZ)) changed = true;
+    if (writeStagingFloat(staging, offset + 3, part.branchX)) changed = true;
+    if (writeStagingFloat(staging, offset + 4, part.quatX)) changed = true;
+    if (writeStagingFloat(staging, offset + 5, part.quatY)) changed = true;
+    if (writeStagingFloat(staging, offset + 6, part.quatZ)) changed = true;
+    if (writeStagingFloat(staging, offset + 7, part.quatW)) changed = true;
+    if (writeStagingFloat(staging, offset + 8, part.scaleX)) changed = true;
+    if (writeStagingFloat(staging, offset + 9, part.scaleY)) changed = true;
+    if (writeStagingFloat(staging, offset + 10, part.scaleZ)) changed = true;
+    if (writeStagingFloat(staging, offset + 11, part.branchY)) changed = true;
+    if (writeStagingFloat(staging, offset + 12, part.colorR)) changed = true;
+    if (writeStagingFloat(staging, offset + 13, part.colorG)) changed = true;
+    if (writeStagingFloat(staging, offset + 14, part.colorB)) changed = true;
+    if (writeStagingFloat(staging, offset + 15, part.pigmentCode ?? 1)) changed = true;
+    if (writeStagingFloat(staging, offset + 16, part.varX)) changed = true;
+    if (writeStagingFloat(staging, offset + 17, part.varY)) changed = true;
+    if (writeStagingFloat(staging, offset + 18, part.varZ)) changed = true;
+    if (writeStagingFloat(staging, offset + 19, part.varW)) changed = true;
+    if (writeStagingFloat(staging, offset + 20, part.colorR)) changed = true;
+    if (writeStagingFloat(staging, offset + 21, part.colorG)) changed = true;
+    if (writeStagingFloat(staging, offset + 22, part.colorB)) changed = true;
+    if (writeStagingFloat(staging, offset + 23, part.pigmentCode ?? 1)) changed = true;
   } else {
-    staging[offset] = part.posX;
-    staging[offset + 1] = part.posY;
-    staging[offset + 2] = part.posZ;
-    staging[offset + 3] = 1;
-    staging[offset + 4] = part.quatX;
-    staging[offset + 5] = part.quatY;
-    staging[offset + 6] = part.quatZ;
-    staging[offset + 7] = part.quatW;
-    staging[offset + 8] = part.scaleX;
-    staging[offset + 9] = part.scaleY;
-    staging[offset + 10] = part.scaleZ;
-    staging[offset + 11] = 1;
-    staging[offset + 12] = part.colorR;
-    staging[offset + 13] = part.colorG;
-    staging[offset + 14] = part.colorB;
-    staging[offset + 15] = 1;
+    if (writeStagingFloat(staging, offset, part.posX)) changed = true;
+    if (writeStagingFloat(staging, offset + 1, part.posY)) changed = true;
+    if (writeStagingFloat(staging, offset + 2, part.posZ)) changed = true;
+    if (writeStagingFloat(staging, offset + 3, 1)) changed = true;
+    if (writeStagingFloat(staging, offset + 4, part.quatX)) changed = true;
+    if (writeStagingFloat(staging, offset + 5, part.quatY)) changed = true;
+    if (writeStagingFloat(staging, offset + 6, part.quatZ)) changed = true;
+    if (writeStagingFloat(staging, offset + 7, part.quatW)) changed = true;
+    if (writeStagingFloat(staging, offset + 8, part.scaleX)) changed = true;
+    if (writeStagingFloat(staging, offset + 9, part.scaleY)) changed = true;
+    if (writeStagingFloat(staging, offset + 10, part.scaleZ)) changed = true;
+    if (writeStagingFloat(staging, offset + 11, 1)) changed = true;
+    if (writeStagingFloat(staging, offset + 12, part.colorR)) changed = true;
+    if (writeStagingFloat(staging, offset + 13, part.colorG)) changed = true;
+    if (writeStagingFloat(staging, offset + 14, part.colorB)) changed = true;
+    if (writeStagingFloat(staging, offset + 15, part.pigmentCode ?? 1)) changed = true;
   }
+  return changed;
 }
 
 const SUPPORTED_INSTANCED_SHADERS = new Set(["Terrain/Vegetation", "Terrain/Surface"]);
@@ -511,6 +529,7 @@ export function buildInstancedUnderstoryRecord(params: {
         colorR: color.x,
         colorG: color.y,
         colorB: color.z,
+        pigmentCode: Math.abs(color.w) > 1 ? color.w : undefined,
         varX: gpuVar?.x ?? 1,
         varY: gpuVar?.y ?? 1,
         varZ: gpuVar?.z ?? 1,
@@ -596,6 +615,8 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
   private lastFovKey = NaN;
   private lastMaxDist = Infinity;
   private lastShadowDist = 0;
+  private lodEnabled = true;
+  private lodDistanceScale = 1;
   private contentRevision = 1;
   private membershipDirty = false;
   private dataDirty = false;
@@ -776,7 +797,46 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
     if (changed) this.membershipDirty = true;
   }
 
-  /** Synchronously updates per-instance colors (and bucket override macros if needed) for previewAppearance. */
+  /** Update all LODs and upload affected visible slots in their existing draw batches. */
+  refreshLocalColors(
+    affected: (instance: LandscapePlantInstance) => boolean,
+    resolve: (instance: LandscapePlantInstance, materialId: string) => number | undefined
+  ): void {
+    const dirty = new Map<TreeAssemblyInstanceStorage, { first: number; last: number }>();
+    for (const cell of this.cells.values()) {
+      for (const record of cell.records) {
+        if (!affected(record.instance)) continue;
+        const codes = new Map<string, number | undefined>();
+        for (const lod of record.lods)
+          for (const part of lod.parts) {
+            if (!codes.has(part.materialId)) codes.set(part.materialId, resolve(record.instance, part.materialId));
+            const code = codes.get(part.materialId);
+            if (part.pigmentCode === code) continue;
+            part.pigmentCode = code;
+            if (
+              this.membershipDirty ||
+              this.dataDirty ||
+              lod !== record.lods[record.assignedLod] ||
+              part.cameraSlot === undefined
+            )
+              continue;
+            const bucket = this.buckets.get(part.bucketKey);
+            if (!bucket?.storage) continue;
+            const slot = part.cameraSlot;
+            const storage = bucket.storage;
+            writePartInstance(storage.staging, slot * storage.recordFloats, part, bucket.spec.usesGpuVariation);
+            const range = dirty.get(storage);
+            if (range) {
+              range.first = Math.min(range.first, slot);
+              range.last = Math.max(range.last, slot);
+            } else dirty.set(storage, { first: slot, last: slot });
+          }
+      }
+    }
+    for (const [storage, { first, last }] of dirty) uploadTreeAssemblyInstanceRange(storage, first, last - first + 1);
+  }
+
+  /** Synchronously updates per-species colors and bucket override macros for previewAppearance. */
   refreshAppearanceColors(
     assetId: string,
     materialId: string,
@@ -804,6 +864,7 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
             part.colorR = nextColor.x;
             part.colorG = nextColor.y;
             part.colorB = nextColor.z;
+            part.pigmentCode = Math.abs(nextColor.w) > 1 ? nextColor.w : undefined;
             const prevSpec = part.bucketSpec;
             const wantR = enableAllOverrideChannels || overrideMask[0] !== 0;
             const wantG = enableAllOverrideChannels || overrideMask[1] !== 0;
@@ -1010,6 +1071,10 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
       for (const bucket of this.buckets.values()) {
         const sv = bucket.shadowViews[cascadeIndex];
         if (sv && sv.nextCount > 0 && sv.entity.isActive) {
+          if (sv.view?.instanceBuffer?.isContentLost) {
+            uploadTreeAssemblyInstances(sv.view, sv.nextCount);
+            sv.uploadedCount = sv.nextCount;
+          }
           context.submit(sv.renderer);
         }
       }
@@ -1024,6 +1089,17 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
         context.submit(sv.renderer);
       }
     }
+  }
+
+  /** Applies debug Mesh LOD enablement and distance-scale multiplier (disabled = force LOD0 & infinite range). */
+  setLodTuning(enabled: boolean, distanceScale: number): void {
+    const scale = Number.isFinite(distanceScale) && distanceScale > 0 ? distanceScale : 1;
+    if (this.lodEnabled === enabled && this.lodDistanceScale === scale) return;
+    this.lodEnabled = enabled;
+    this.lodDistanceScale = scale;
+    this.dataDirty = true;
+    this.contentRevision++;
+    this.update(this.lastMaxDist, true, this.lastShadowDist);
   }
 
   /**
@@ -1081,7 +1157,10 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
       this.lastShadowDist = shadowCullDistanceMetres;
     }
 
-    if (!cameraChanged && !this.membershipDirty && !this.dataDirty) return;
+    if (!cameraChanged && !this.membershipDirty && !this.dataDirty) {
+      this.restoreLostCameraBuffers();
+      return;
+    }
 
     if (this.cells.size === 0) {
       for (const bucket of this.buckets.values()) {
@@ -1113,8 +1192,8 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
     const tanHalfFov = Math.tan((fov * Math.PI) / 360);
     const invTwoTanHalfFov = 1 / Math.max(1e-6, 2 * tanHalfFov);
     const invTwoOrthoSize = 1 / Math.max(1e-6, 2 * orthoSize);
-    const maxDist = maxDetailDistanceMetres;
-    const maxDistHysteresis = maxDist + 2;
+    const maxDist = this.lodEnabled ? maxDetailDistanceMetres : Infinity;
+    const maxDistHysteresis = maxDist + UNDERSTORY_DISTANCE_HYSTERESIS_METRES;
     const maxDistSq = maxDist * maxDist;
     const maxDistHystSq = maxDistHysteresis * maxDistHysteresis;
     const maxCellDistSq = (maxDistHysteresis + 4) * (maxDistHysteresis + 4);
@@ -1169,15 +1248,20 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
               }
               const shadowEligible = includeOffFrustumShadows && !inFrustum && horizDistSq <= shadowDistSq;
               if (inFrustum || shadowEligible) {
-                let screenHeight: number;
-                if (isOrtho) {
-                  screenHeight = rec.worldSize * invTwoOrthoSize;
+                let candidate: number;
+                if (!this.lodEnabled) {
+                  candidate = rec.lods.length > 0 ? 0 : -1;
                 } else {
-                  const dy = rec.worldCenterY - camY;
-                  const dist = Math.sqrt(horizDistSq + dy * dy);
-                  screenHeight = dist <= 1e-4 ? Infinity : (rec.worldSize * invTwoTanHalfFov) / dist;
+                  let screenHeight: number;
+                  if (isOrtho) {
+                    screenHeight = rec.worldSize * invTwoOrthoSize;
+                  } else {
+                    const dy = rec.worldCenterY - camY;
+                    const dist = Math.sqrt(horizDistSq + dy * dy);
+                    screenHeight = dist <= 1e-4 ? Infinity : (rec.worldSize * invTwoTanHalfFov) / dist;
+                  }
+                  candidate = resolveLodTier(screenHeight * this.lodDistanceScale, prev, rec.lods);
                 }
-                const candidate = resolveLodTier(screenHeight, prev, rec.lods);
                 if (candidate >= 0) {
                   if (inFrustum) {
                     next = candidate;
@@ -1205,12 +1289,16 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
 
     this.membershipDirty = false;
     this.dataDirty = false;
-    if (!anyChanged) return;
+    if (!anyChanged) {
+      this.restoreLostCameraBuffers();
+      return;
+    }
 
     // Pass 2: Count visible parts per bucket.
     for (const bucket of this.buckets.values()) {
       bucket.nextCount = 0;
       bucket.writeCursor = 0;
+      bucket.stagingDirty = false;
       bucket.visibleBounds.min.set(Infinity, Infinity, Infinity);
       bucket.visibleBounds.max.set(-Infinity, -Infinity, -Infinity);
     }
@@ -1254,8 +1342,11 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
           const part = parts[p]!;
           const bucket = this.buckets.get(part.bucketKey)!;
           const slot = bucket.writeCursor++;
+          part.cameraSlot = slot;
           const view = bucket.view!;
-          writePartInstance(view.staging, slot * view.recordFloats, part, bucket.spec.usesGpuVariation);
+          if (writePartInstance(view.staging, slot * view.recordFloats, part, bucket.spec.usesGpuVariation)) {
+            bucket.stagingDirty = true;
+          }
 
           bucket.pickIds[slot] = rec.pickId;
           const vb = bucket.visibleBounds;
@@ -1265,12 +1356,17 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
       }
     }
 
-    // Pass 4: Upload non-empty buckets and deactivate empty ones.
+    // Pass 4: Upload non-empty buckets whose visible instance data changed, and deactivate empty ones.
     for (const bucket of this.buckets.values()) {
       const count = bucket.nextCount;
       if (count > 0 && bucket.view) {
         bucket.view.mesh.bounds = bucket.visibleBounds;
-        uploadTreeAssemblyInstances(bucket.view, count);
+        if (bucket.stagingDirty || count !== bucket.uploadedCount || bucket.view.instanceBuffer?.isContentLost) {
+          uploadTreeAssemblyInstances(bucket.view, count);
+          bucket.uploadedCount = count;
+        } else {
+          bucket.view.mesh.instanceCount = count;
+        }
         bucket.entity.isActive = true;
         bucket.pickBatch.count = count;
         bucket.pickBatch.ids = bucket.pickIds;
@@ -1303,6 +1399,16 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
     if (!this.poolRoot.destroyed) this.poolRoot.destroy();
   }
 
+  private restoreLostCameraBuffers(): void {
+    for (const bucket of this.buckets.values()) {
+      const count = bucket.nextCount;
+      if (count > 0 && bucket.view?.instanceBuffer?.isContentLost) {
+        uploadTreeAssemblyInstances(bucket.view, count);
+        bucket.uploadedCount = count;
+      }
+    }
+  }
+
   private cullShadowCascade(context: RenderViewCullingContext, cascadeIndex: number): void {
     const camPos = this.camera?.entity?.transform?.worldPosition;
     const camX = camPos ? camPos.x : 0;
@@ -1323,6 +1429,7 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
       if (sv) {
         sv.nextCount = 0;
         sv.writeCursor = 0;
+        sv.stagingDirty = false;
         sv.visibleBounds.min.set(Infinity, Infinity, Infinity);
         sv.visibleBounds.max.set(-Infinity, -Infinity, -Infinity);
       }
@@ -1398,7 +1505,9 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
         const sv = bucket.shadowViews[cascadeIndex]!;
         const slot = sv.writeCursor++;
         const view = sv.view!;
-        writePartInstance(view.staging, slot * view.recordFloats, part, bucket.spec.usesGpuVariation);
+        if (writePartInstance(view.staging, slot * view.recordFloats, part, bucket.spec.usesGpuVariation)) {
+          sv.stagingDirty = true;
+        }
         const vb = sv.visibleBounds;
         vb.min.set(Math.min(vb.min.x, rx - r), Math.min(vb.min.y, ry - r), Math.min(vb.min.z, rz - r));
         vb.max.set(Math.max(vb.max.x, rx + r), Math.max(vb.max.y, ry + r), Math.max(vb.max.z, rz + r));
@@ -1407,14 +1516,19 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
     scratchRecs.length = 0;
     scratchLods.length = 0;
 
-    // Pass 4: Upload non-empty shadow views and deactivate empty ones.
+    // Pass 4: Upload non-empty shadow views whose visible instance data changed, and deactivate empty ones.
     for (const bucket of this.buckets.values()) {
       const sv = bucket.shadowViews[cascadeIndex];
       if (!sv) continue;
       const count = sv.nextCount;
       if (count > 0 && sv.view) {
         sv.view.mesh.bounds = sv.visibleBounds;
-        uploadTreeAssemblyInstances(sv.view, count);
+        if (sv.stagingDirty || count !== sv.uploadedCount || sv.view.instanceBuffer?.isContentLost) {
+          uploadTreeAssemblyInstances(sv.view, count);
+          sv.uploadedCount = count;
+        } else {
+          sv.view.mesh.instanceCount = count;
+        }
         sv.entity.isActive = true;
       } else {
         if (sv.view) sv.view.mesh.instanceCount = 0;
@@ -1446,6 +1560,8 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
       capacity: 0,
       nextCount: 0,
       writeCursor: 0,
+      uploadedCount: -1,
+      stagingDirty: true,
       pickIds: [],
       visibleBounds: new BoundingBox(new Vector3(), new Vector3()),
       shadowViews: new Array<InstancedShadowView | undefined>(MAX_SHADOW_CASCADES)
@@ -1470,6 +1586,8 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
       capacity: 0,
       nextCount: 0,
       writeCursor: 0,
+      uploadedCount: -1,
+      stagingDirty: true,
       visibleBounds: new BoundingBox(new Vector3(), new Vector3())
     };
     bucket.shadowViews[cascadeIndex] = sv;
@@ -1497,6 +1615,8 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
     sv.storage = storage;
     sv.view = view;
     sv.capacity = nextCap;
+    sv.uploadedCount = -1;
+    sv.stagingDirty = true;
     sv.renderer.mesh = view.mesh;
     if (prevView) prevView.mesh.destroy();
     if (prevStorage) prevStorage.instanceBuffer.destroy(true);
@@ -1523,6 +1643,8 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
     bucket.storage = storage;
     bucket.view = view;
     bucket.capacity = nextCap;
+    bucket.uploadedCount = -1;
+    bucket.stagingDirty = true;
     bucket.renderer.mesh = view.mesh;
     if (prevView) prevView.mesh.destroy();
     if (prevStorage) prevStorage.instanceBuffer.destroy(true);

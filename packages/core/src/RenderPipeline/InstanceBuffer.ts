@@ -13,11 +13,15 @@ import type { RenderContext } from "./RenderContext";
 
 /**
  * @internal
- * Manages a UBO for GPU instancing, packing per-instance renderer data (ModelMat, Layer, etc.).
+ * Manages a rotating pool of UBOs for GPU instancing, packing per-instance renderer data (ModelMat, Layer, etc.).
+ * Rotating distinct WebGLBuffers across draws and frames avoids both mid-frame write-after-read stalls and
+ * per-draw `gl.bufferData` Discard orphan thrashing on mobile TBDR GPUs.
  */
 export class InstanceBuffer {
   static gpuInstanceMacro = ShaderMacro.getByName("RENDERER_GPU_INSTANCE");
   private static readonly _matrixWriter = new Std140FieldWriter("mat4");
+  private static readonly _maxPoolSize = 192;
+  private static readonly _frameSafetyDistance = 2;
 
   buffer: Buffer;
 
@@ -29,34 +33,47 @@ export class InstanceBuffer {
   private _data: ArrayBuffer;
   private _floatView: Float32Array;
   private _intView: Int32Array;
+  private _requiredBytes: number = 0;
+  private _pool: Buffer[] = [];
+  private _poolLastFrame: number[] = [];
+  private _cursor: number = 0;
 
   constructor(engine: Engine) {
     this._engine = engine;
   }
 
   /**
-   * Set UBO layout and allocate buffer if needed.
+   * Set UBO layout and allocate staging / initial buffer if needed.
    */
   setLayout(layout: InstanceBufferLayout): void {
     this._layout = layout;
     const totalBytes = (layout.headerBytes ?? 0) + layout.instanceMaxCount * layout.structSize;
-    const alignment = this._engine._hardwareRenderer.uniformBufferOffsetAlignment;
     this._rangeBytes = totalBytes;
-    this._rangeStride = Math.ceil(totalBytes / alignment) * alignment;
-    // Only reallocate when buffer is too small
-    if (!this.buffer || totalBytes > this._data.byteLength) {
+    if (totalBytes > this._requiredBytes) {
+      this._requiredBytes = totalBytes;
       this._data = new ArrayBuffer(totalBytes);
       this._floatView = new Float32Array(this._data);
       this._intView = new Int32Array(this._data);
-      this.buffer?.destroy();
-      this.buffer = new Buffer(this._engine, BufferBindFlag.ConstantBuffer, 2 * this._rangeStride, BufferUsage.Dynamic);
-      this.buffer.isGCIgnored = true;
-      this._nextOffset = 0;
+      // Provide a correctly sized buffer immediately without disturbing the age order of the ring.
+      if (this._pool.length === 0) {
+        const initial = this._createSlotBuffer(totalBytes);
+        this._pool.push(initial);
+        this._poolLastFrame.push(-InstanceBuffer._frameSafetyDistance);
+        this.buffer = initial;
+      } else if (!this.buffer || this.buffer.byteLength < totalBytes) {
+        const replacement = this._createSlotBuffer(totalBytes);
+        const oldest = this._cursor;
+        this._pool[oldest].destroy();
+        this._pool[oldest] = replacement;
+        this._poolLastFrame[oldest] = -InstanceBuffer._frameSafetyDistance;
+        this.buffer = replacement;
+      }
     }
   }
 
   /**
-   * Pack renderer data into UBO and upload to GPU.
+   * Pack renderer data into a free UBO slot and upload to GPU.
+   * Updates `this.buffer` to the acquired slot before returning so callers bind the exact uploaded buffer.
    */
   upload(
     renderers: Renderer[],
@@ -118,30 +135,74 @@ export class InstanceBuffer {
     }
 
     // Drivers validate the size of the entire declared array, even for a short final segment.
-    const buffer = this.buffer;
-    const platform = buffer._platformBuffer;
     const activeWords = headerBytes / 4 + count * elementsPerInstance;
-    let offset: number;
+    const platform = this.buffer._platformBuffer;
+    let offset = 0;
+    let boundPlatform = platform;
     if (platform.writeInstanceData) {
       offset = platform.writeInstanceData(floatView, activeWords, this._rangeBytes);
     } else {
-      const wrap = this._nextOffset + this._rangeBytes > buffer.byteLength;
-      offset = wrap ? 0 : this._nextOffset;
-      buffer.setData(floatView, offset, 0, activeWords, wrap ? SetDataOptions.Discard : SetDataOptions.None);
-      this._nextOffset = offset + this._rangeStride;
+      const currentFrame = this._engine.time.frameCount;
+      const options = this._acquireSlot(currentFrame);
+      this.buffer.setData(floatView, 0, 0, activeWords, options);
+      boundPlatform = this.buffer._platformBuffer;
     }
     this._engine._hardwareRenderer.bindUniformBufferRange(
       ConstantBufferBindingPoint.RendererInstance,
-      platform,
+      boundPlatform,
       offset,
       this._rangeBytes
     );
   }
 
   destroy(): void {
-    this.buffer?.destroy();
+    for (let i = 0, n = this._pool.length; i < n; i++) {
+      this._pool[i]?.destroy();
+    }
+    this._pool.length = 0;
+    this._poolLastFrame.length = 0;
+    this._cursor = 0;
+    this._requiredBytes = 0;
+    this.buffer = null!;
     this._data = null!;
     this._floatView = null!;
     this._intView = null!;
+  }
+
+  private _createSlotBuffer(byteLength: number): Buffer {
+    const buf = new Buffer(this._engine, BufferBindFlag.ConstantBuffer, byteLength, BufferUsage.Dynamic);
+    buf.isGCIgnored = true;
+    return buf;
+  }
+
+  private _acquireSlot(currentFrame: number): SetDataOptions {
+    const pool = this._pool;
+    const lastFrames = this._poolLastFrame;
+    const oldest = this._cursor;
+    const requiredBytes = this._requiredBytes;
+    const busy = currentFrame - lastFrames[oldest] < InstanceBuffer._frameSafetyDistance;
+
+    if (busy && pool.length < InstanceBuffer._maxPoolSize) {
+      const slot = this._createSlotBuffer(requiredBytes);
+      // The slot before the oldest is the tail of the logical ring, including after wraparound.
+      pool.splice(oldest, 0, slot);
+      lastFrames.splice(oldest, 0, currentFrame);
+      this._cursor = oldest + 1;
+      this.buffer = slot;
+      return SetDataOptions.None;
+    }
+
+    let slot = pool[oldest];
+    let options = busy ? SetDataOptions.Discard : SetDataOptions.None;
+    if (slot.byteLength < requiredBytes) {
+      const replacement = this._createSlotBuffer(requiredBytes);
+      slot.destroy();
+      slot = pool[oldest] = replacement;
+      options = SetDataOptions.None;
+    }
+    lastFrames[oldest] = currentFrame;
+    this._cursor = (oldest + 1) % pool.length;
+    this.buffer = slot;
+    return options;
   }
 }

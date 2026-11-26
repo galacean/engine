@@ -11,6 +11,7 @@ import { planningWhiteboxes } from "../../semantic-study/PlanningWhiteboxes";
 import { treeWhiteboxes } from "../../semantic-study/TreeWhitebox";
 import { pathSample } from "./GuidancePolicy";
 import { guidanceRockBox } from "./GuidanceRock";
+import { templateRockCollisionPolicy } from "../WorldTemplateArtDirection";
 import {
   prepareGuidanceEcology,
   refreshGuidanceEcologyModule,
@@ -514,7 +515,9 @@ export function planVisualGuidance(
             protectedAt.add(protectedFootprint);
             volumes = treeWhiteboxes(tree, baseHeight);
           } else {
-            volumes = [guidanceRockBox(solid, ground)];
+            volumes = [
+              guidanceRockBox(solid, ground, templateRockCollisionPolicy(plan.parameters?.worldTemplate?.id), plan)
+            ];
             solid.boxes = volumes;
             plan.rocks.push(solid);
             const occupiedFootprint = { ...footprint(outline), groupId: solid.groupId };

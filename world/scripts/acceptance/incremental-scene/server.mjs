@@ -19,12 +19,11 @@ const shared = process.env.BENCH_SHARED_SNAPSHOT
 const baseline = process.env.BENCH_BASE_SNAPSHOT
   ? JSON.parse(fs.readFileSync(process.env.BENCH_BASE_SNAPSHOT, "utf8"))
   : undefined;
-const replacements = new Map(
-  JSON.parse(
-    shared["packages/modify/native-overrides.json"] ??
-      fs.readFileSync(path.join(root, "packages/modify/native-overrides.json"), "utf8")
-  ).map(({ original, replacement }) => [original, replacement])
-);
+const overridesPath = path.join(root, "packages/modify/native-overrides.json");
+const overridesText =
+  shared["packages/modify/native-overrides.json"] ??
+  (fs.existsSync(overridesPath) ? fs.readFileSync(overridesPath, "utf8") : "[]");
+const replacements = new Map(JSON.parse(overridesText).map(({ original, replacement }) => [original, replacement]));
 const paths = [
   "packages/project/src/runtime-editor/project/runtime-project-edit.ts",
   "packages/runtime-editor/src/runtime-editor/runtime-editor.ts",

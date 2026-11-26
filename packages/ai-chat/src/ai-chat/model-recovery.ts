@@ -92,8 +92,10 @@ export function summarizeRecoveries(records: readonly ModelRecoveryRecord[]) {
   return { retries, scheduledWaitMs, transientFailuresByCategory };
 }
 
+export const MODEL_REQUEST_STATUS = "正在还原";
+
 export function recoveryStatus(event: ModelRecoveryEvent): string {
-  if (event.phase === "requesting") return "正在分析请求";
+  if (event.phase === "requesting") return MODEL_REQUEST_STATUS;
   const reason =
     event.category === "rate_limit"
       ? "服务繁忙"

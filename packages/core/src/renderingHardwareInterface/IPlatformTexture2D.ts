@@ -59,4 +59,13 @@ export interface IPlatformTexture2D extends IPlatformTexture {
     mipLevel: number,
     out: ArrayBufferView
   ): Promise<void>;
+
+  /** Read the complete RGBA8 mip-zero image using a GPU completion fence (WebGL2 only). */
+  getPixelBufferAsyncRGBA8?(out: Uint8Array, signal?: AbortSignal): Promise<void>;
+
+  /**
+   * Restricts the WebGL2 mipmap sampling range (`TEXTURE_BASE_LEVEL` / `TEXTURE_MAX_LEVEL`).
+   * @internal
+   */
+  setMipLevelRange?(baseLevel: number, maxLevel: number): void;
 }

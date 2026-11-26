@@ -9,7 +9,7 @@ import { SeedWorldAgentApplication } from "../../demos/seed-world/agent-adapter/
 import { createSeedWorldAgentDefinition } from "../../demos/seed-world/agent-adapter/SeedWorldAgentDefinition";
 import { createSeedWorldTools } from "../../demos/seed-world/agent-adapter/SeedWorldToolCatalog";
 import * as planningResources from "../../demos/seed-world/agent-adapter/SeedWorldPlanningResources";
-import type { SeedWorldPlanningService } from "../../demos/seed-world/agent-adapter/SeedWorldPlanningService";
+import { SeedWorldPlanningService } from "../../demos/seed-world/agent-adapter/SeedWorldPlanningService";
 import type { PlanningSession } from "@galacean/engine-world-planning/spatial/PlanningSession.ts";
 import type { SeedWorldAnimalService } from "../../demos/seed-world/agent-adapter/ports/SeedWorldAnimalService";
 import { createAgentProjectFiles } from "@galacean/engine-ai-chat/ai-chat/agent-project-files.ts";
@@ -42,6 +42,255 @@ const sharedTreeShape = {
 };
 
 describe("SeedWorldAgentApplication final architecture", () => {
+  it.each([
+    ["titan-wasteland", "island-pastel-flower-1", "oasis-scarlet-tree"],
+    ["low-poly", "roadside-white-flower-1", "foreground-oak"]
+  ])(
+    "queries, paints and restores actual %s template references through the tool contracts",
+    async (templateId, flowerId, treeId) => {
+      const { createTemplatePlanningDocument } = await import(
+        "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring"
+      );
+      const { exportPlanningRecipe } = await import("@galacean/engine-world-planning/spatial/PlanningDocument");
+      const { PlanningSession } = await import("@galacean/engine-world-planning/spatial/PlanningSession");
+      const { planningPickAssets } = await import(
+        "@galacean/engine-world-planning/spatial/runtime/PlanningWorldPicking"
+      );
+      const { exportPlanningScene, importPlanningScene } = await import(
+        "../../demos/seed-world/src/planning/spatial/PlanningSceneAsset"
+      );
+      const document = createTemplatePlanningDocument(42, templateId);
+      const mount = async (doc: typeof document) => {
+        const session = new PlanningSession(exportPlanningRecipe(doc), undefined, doc);
+        await session.initialize();
+        const { engine } = createHarness([]);
+        const plan = session.result!.plan;
+        const mounted = planningPickAssets(plan).filter((a) => typeof a.properties.species === "string");
+        const templateCatalog = vi.fn((candidate: typeof plan) =>
+          candidate === session.result?.plan ? mounted : undefined
+        );
+        const port = planningResources.createPlanningResourcePort(engine, session, "template-pigments");
+        const app = new SeedWorldAgentApplication(
+          port,
+          new SeedWorldPlanningService(session, () => {}),
+          () => planningPickAssets(session.result!.plan, mounted),
+          undefined,
+          { templateCatalog }
+        );
+        const tools = createSeedWorldTools(app);
+        return {
+          session,
+          app,
+          templateCatalog,
+          execute: (name: string, input: unknown) => {
+            const tool = tools.find((t) => t.name === name)!;
+            return tool.execute(tool.parseInput(input), { signal });
+          }
+        };
+      };
+      const { session, app, templateCatalog, execute } = await mount(document);
+      const otherFlower = flowerId.replace(/1$/, "2");
+      const ids = [
+        flowerId,
+        otherFlower,
+        treeId,
+        ...(templateId === "low-poly"
+          ? ["ridge-pine-1"]
+          : ["left-bank-snag-1", "cliff-ledge-shrub-1", "hero-sage-shrub-1"])
+      ];
+      const query = (await execute("vegetation.query", { ids, sources: ["natural"] })) as {
+        items: {
+          ref: import("@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort").SeedWorldRef;
+        }[];
+      };
+      expect(query.items.map((a) => a.ref.id).sort()).toEqual([...ids].sort());
+      const ref = query.items.find((a) => a.ref.id === flowerId)!.ref;
+      const inspect = (await execute("vegetation.inspect", { ref })) as ReturnType<typeof app.inspectWorld>;
+      expect(inspect.ref.kind).toBe("flower-field");
+      expect(inspect.properties).toMatchObject({
+        distribution: "clump",
+        colorOverride: { foliage: { source: "species-default" } }
+      });
+      const [x, , z] = inspect.position!;
+      const near = query.items.find((a) => a.ref.id === otherFlower)!.ref;
+      const [nx, , nz] = app.inspectWorld(near).position!;
+      const radius = Math.hypot(x - nx, z - nz) / 2;
+      await execute("vegetation.recolorArea", {
+        areaId: "flowers-by-path",
+        area: {
+          targetKinds: ["flower"],
+          shape: { kind: "circle", center: { x, z }, radiusMetres: radius },
+          featherMetres: radius / 2
+        },
+        colorOverride: { foliageColorRgb: [0, 0, 255] }
+      });
+      expect(app.inspectWorld(ref).properties.colorOverride).toMatchObject({
+        foliage: { source: "area", colorRgb: [0, 0, 255] }
+      });
+      expect(app.inspectWorld(near).properties.colorOverride).toMatchObject({ foliage: { source: "species-default" } });
+      const edit = app.beginEdit("one-flower-cushion", signal);
+      const update = edit.tools.find((t) => t.name === "vegetation.update")!;
+      const patch = { colorOverride: { foliageColorRgb: [200, 8, 22] } };
+      expect(await update.execute(update.parseInput({ ref, patch }), { signal })).toMatchObject({
+        status: "applied",
+        updatedCount: 1,
+        assetRef: { id: flowerId }
+      });
+      const tree = query.items.find((a) => a.ref.id === treeId)!.ref;
+      const treePatch = { colorOverride: { foliageColorRgb: [62, 15, 210], barkColorRgb: [188, 55, 30] } };
+      expect(await update.execute(update.parseInput({ ref: tree, patch: treePatch }), { signal })).toMatchObject({
+        status: "applied",
+        updatedCount: 1
+      });
+      expect(templateCatalog).toHaveBeenCalledWith(session.result!.plan);
+      await edit.prepare(signal);
+      edit.commit();
+      await edit.activate!(signal);
+      const updated = app.inspectWorld(ref);
+      expect(updated.properties.colorOverride).toMatchObject({
+        foliage: { source: "instance", sourceId: flowerId, colorRgb: [200, 8, 22] }
+      });
+      const saved = await mount(importPlanningScene(exportPlanningScene(session.document)));
+      expect(saved.app.inspectWorld(ref).properties.colorOverride).toEqual(updated.properties.colorOverride);
+      expect(saved.app.inspectWorld(tree).properties.colorOverride).toMatchObject({
+        foliage: { source: "instance", colorRgb: treePatch.colorOverride.foliageColorRgb },
+        bark: { source: "instance", colorRgb: treePatch.colorOverride.barkColorRgb }
+      });
+      await saved.execute("vegetation.update", { ref, patch: { colorOverride: null } });
+      expect(saved.app.inspectWorld(ref).properties.colorOverride).toMatchObject({
+        foliage: { source: "area", colorRgb: [0, 0, 255] }
+      });
+      await saved.execute("vegetation.recolorArea", { areaId: "flowers-by-path", colorOverride: null });
+      expect(saved.app.inspectWorld(ref).properties.colorOverride).toMatchObject({
+        foliage: { source: "species-default" }
+      });
+    },
+    120_000
+  );
+
+  it("previews, saves, reloads and undoes isolated vegetation colors through the planning tool port", async () => {
+    const { createSeedPlanningDocument } = await import(
+      "@galacean/engine-world-planning/spatial/PlanningInitialization"
+    );
+    const { exportPlanningRecipe } = await import("@galacean/engine-world-planning/spatial/PlanningDocument");
+    const { PlanningSession } = await import("@galacean/engine-world-planning/spatial/PlanningSession");
+    const { exportPlanningScene, importPlanningScene } = await import(
+      "../../demos/seed-world/src/planning/spatial/PlanningSceneAsset"
+    );
+    const document = createSeedPlanningDocument(1);
+    const session = new PlanningSession(exportPlanningRecipe(document), undefined, document);
+    await session.initialize();
+    const plan = session.result!.plan;
+    const { engine } = createHarness([]);
+    const items = ["first", "neighbor"].map((id, i) => ({
+      ref: { domain: "vegetation" as const, source: "natural" as const, kind: "tree" as const, id },
+      position: [10 + i, 0, 10] as const,
+      properties: { assetKind: "tree", proceduralAssetId: "birch" }
+    }));
+    const nativeCatalog = () => ({ assets: items, objects: [] });
+    const port = planningResources.createPlanningResourcePort(engine, session, "pigments", { nativeCatalog });
+    const application = new SeedWorldAgentApplication(port, new SeedWorldPlanningService(session, () => {}), undefined, undefined, { nativeCatalog });
+    const catalog = createSeedWorldTools(application);
+    const execute = (name: string, input: unknown) => {
+      const tool = catalog.find((t) => t.name === name)!;
+      return tool.execute(tool.parseInput(input), { signal });
+    };
+    const ref = items[0].ref;
+    const inspect = async (ref: (typeof items)[number]["ref"]) =>
+      ((await execute("vegetation.inspect", { ref })) as any).properties.colorOverride;
+    const patch = { colorOverride: { foliageColorRgb: [128, 0, 255], barkColorRgb: [0, 0, 0] } };
+    expect(await execute("vegetation.update", { ref, patch, executionMode: "preview" })).toMatchObject({
+      status: "preview",
+      assetRef: null
+    });
+    expect((await inspect(ref)).foliage.source).toBe("species-default");
+    const area = {
+      targetKinds: ["tree"],
+      shape: { kind: "circle", center: { x: 10, z: 10 }, radiusMetres: 5 },
+      featherMetres: 1
+    };
+    const recolor = { areaId: "bank", area, colorOverride: { foliageColorRgb: [0, 255, 0] } };
+    await expect(
+      execute("vegetation.recolorArea", { ...recolor, impactBudget: { maxObjectCount: 1 } })
+    ).rejects.toThrow("IMPACT_LIMIT_EXCEEDED");
+    expect(
+      await execute("vegetation.recolorArea", {
+        ...recolor,
+        impactBudget: { maxObjectCount: 2, maxAreaSquareMetres: Math.PI * 25 }
+      })
+    ).toMatchObject({ status: "applied", updatedCount: 1 });
+    const edit = application.beginEdit("paint-one-plant", signal);
+    const update = edit.tools.find(tool => tool.name === "vegetation.update")!;
+    expect(await update.execute(update.parseInput({ ref, patch }), { signal })).toMatchObject({
+      status: "applied",
+      updatedCount: 1,
+      assetRef: { id: ref.id }
+    });
+    expect((await inspect(ref)).foliage.source).toBe("area");
+    await edit.prepare(signal);
+    edit.commit();
+    await edit.activate!(signal);
+    expect((await inspect(ref)).foliage).toMatchObject({ source: "instance", colorRgb: [128, 0, 255] });
+    expect((await inspect(items[1].ref)).foliage).toMatchObject({
+      source: "area",
+      sourceId: "bank",
+      colorRgb: [0, 255, 0]
+    });
+    expect(session.result!.plan).toBe(plan);
+    const saved = importPlanningScene(JSON.parse(JSON.stringify(exportPlanningScene(session.export()))));
+    expect(saved.authoredResources).toEqual(session.document.authoredResources);
+    const reloaded = new PlanningSession(exportPlanningRecipe(saved), undefined, saved);
+    await reloaded.initialize();
+    const reloadedApp = new SeedWorldAgentApplication(
+      planningResources.createPlanningResourcePort(engine, reloaded, "reload", {
+        nativeCatalog: () => ({ assets: items, objects: [] })
+      })
+    );
+    expect(reloadedApp.inspectWorld(ref).properties.colorOverride).toEqual(await inspect(ref));
+    await execute("vegetation.update", { ref, patch: { colorOverride: { foliageColorRgb: null } } });
+    expect(await inspect(ref)).toMatchObject({
+      foliage: { source: "area" },
+      bark: { source: "instance", colorRgb: [0, 0, 0] }
+    });
+    await session.undo();
+    expect((await inspect(ref)).foliage.source).toBe("instance");
+    await session.redo();
+    expect((await inspect(ref)).foliage.source).toBe("area");
+    await execute("vegetation.update", { ref, patch: { colorOverride: null } });
+    await execute("vegetation.recolorArea", { areaId: "bank", colorOverride: null });
+    expect(await execute("vegetation.recolorArea", { areaId: "bank", colorOverride: null })).toMatchObject({
+      status: "unchanged", updatedCount: 0
+    });
+    expect(await inspect(ref)).toMatchObject({
+      foliage: { source: "species-default" },
+      bark: { source: "species-default" }
+    });
+    expect(session.result!.plan).toBe(plan);
+    const bed = await application.createVegetation(
+      {
+        plant: "flower",
+        distribution: { kind: "area", radiusMetres: 4 },
+        target: { anchor: { kind: "viewer" }, relation: { kind: "at" } }
+      },
+      signal
+    );
+    if (bed.status !== "applied") throw new Error("The flower field was not created");
+    expect(
+      await execute("vegetation.update", {
+        ref: bed.assetRef,
+        patch: { radiusMetres: 7, colorOverride: { foliageColorRgb: [0, 0, 255] } }
+      })
+    ).toMatchObject({ status: "applied", matchedCount: 1, updatedCount: 1, assetRef: { id: bed.assetRef.id } });
+    expect(application.inspectWorld(bed.assetRef).properties).toMatchObject({
+      radiusMetres: 7,
+      colorOverride: { foliage: { colorRgb: [0, 0, 255], sourceId: bed.assetRef.id } }
+    });
+    await session.undo();
+    expect(application.inspectWorld(bed.assetRef).properties).toMatchObject({
+      radiusMetres: 4,
+      colorOverride: { foliage: { source: "species-default" } }
+    });
+  }, 120000);
   it("refreshes draft navigation after bridge edits and removal without rebuilding between moves", async () => {
     const { engine } = createHarness();
     const plan = { bridges: [{ a: { x: 0, z: 0 }, b: { x: 10, z: 0 }, deckY: 4, width: 3 }] } as IslandPlan;
@@ -113,6 +362,8 @@ describe("SeedWorldAgentApplication final architecture", () => {
     const animals: SeedWorldAnimalService = {
       catalog: vi.fn(),
       spawn: vi.fn(),
+      deleteAnimal: vi.fn(),
+      updateAnimal: vi.fn(),
       query: vi.fn(() => ({ enabled: false, animals: [], matchedCount: 0, offset: 0 })),
       describe: vi.fn(),
       command: vi.fn(),
@@ -1414,6 +1665,8 @@ function createHarness(initialObjects: SeedWorldObject[] = [naturalTree(0, "fore
   const mutate = async (mutations: readonly Readonly<SeedWorldResourceMutation>[]) => {
     revision += 1;
     const results = mutations.map((mutation) => {
+      if (mutation.resourceType === "vegetation-color")
+        throw new Error("Local colors are handled by the planning resource port");
       if (mutation.resourceType === "tree-variation") {
         const { recipeId, variationIndex, controls } = mutation.value;
         for (const object of objects) {
@@ -1781,7 +2034,7 @@ it("reports left/right from the frozen viewer basis in every heading", async () 
 it("returns animal direction through the public query using the same task viewer as world assets", async () => {
   const { engine, setCamera } = createHarness();
   const animals: SeedWorldAnimalService = {
-    catalog: vi.fn(), spawn: vi.fn(), describe: vi.fn(), command: vi.fn(), receipt: vi.fn(),
+    catalog: vi.fn(), spawn: vi.fn(), deleteAnimal: vi.fn(), updateAnimal: vi.fn(), describe: vi.fn(), command: vi.fn(), receipt: vi.fn(),
     query: vi.fn(() => ({ enabled: true, matchedCount: 1, offset: 0,
       animals: [{id: "cow-1", typeId: "cow", speciesId: "cattle", label: "Cow", loaded: true, visible: true, position: [3, 0, 0] as [number, number, number]}] }))
   };

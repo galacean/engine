@@ -5,6 +5,7 @@ import {
   DayNightColorGradient,
   type DayNightCurve,
   DayNightEnvironmentAdapter,
+  resolveDayNightSolarVisibility,
   type DayNightLightingReference,
   DayNightMoonLighting,
   DayNightMoonPosition,
@@ -1851,14 +1852,15 @@ export class TerrainLightingRuntime {
 
   private _applySunLensFlareState(): void {
     const state = this.system.state;
-    const sunIntensityFactor = clamp01(state.sunIntensity / 0.25);
-    const weatherFactor = clamp01(this._sunCloudTransmittance) * clamp01(this._weatherDirectModifier);
-    const attenuation = clamp01(1 - state.nightFactor) * sunIntensityFactor * weatherFactor;
+    const solarVisibility = resolveDayNightSolarVisibility(state);
+    const weatherDirect = clamp01(this._weatherDirectModifier);
+    const flareAttenuation = solarVisibility * clamp01(this._sunCloudTransmittance) * weatherDirect;
     const r = state.sunColor.r * this._seasonDirectTint.r;
     const g = state.sunColor.g * this._seasonDirectTint.g;
     const b = state.sunColor.b * this._seasonDirectTint.b;
     const peak = Math.max(r, g, b, 1e-4);
-    this._postProcess.setSunLensFlareSolarState(state.sunDirection, attenuation, r / peak, g / peak, b / peak);
+    this._postProcess.setSunLensFlareSolarState(state.sunDirection, flareAttenuation, r / peak, g / peak, b / peak);
+    this._postProcess.setVolumetricLightSolarState(state.sunDirection, solarVisibility * weatherDirect);
   }
 
   private _applyVisibility(): void {

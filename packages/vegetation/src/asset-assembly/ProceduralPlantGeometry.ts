@@ -40,26 +40,66 @@ export function validatePlantShadingField(field: PlantShadingField): void {
   field.coefficients.forEach(point);
 }
 
+let chebX = new Float64Array(8);
+let chebY = new Float64Array(8);
+let chebZ = new Float64Array(8);
+
 export function evaluatePlantShadingField(
   position: PlantPoint,
   normal: PlantPoint,
   field?: PlantShadingField
 ): PlantPoint {
   if (!field || !("kind" in field)) return evaluatePlantNormalField(position, normal, field);
-  const axes = position.map((p, axis) => {
-    const x = (p - field.origin[axis]) / field.extent[axis];
-    const values = [1, x];
-    for (let i = 2; i <= field.degree; i++) values.push(2 * x * values[i - 1] - values[i - 2]);
-    return values;
-  });
-  let direction: PlantPoint = [0, 0, 0];
+  const degree = field.degree;
+  const order = degree + 1;
+  if (chebX.length < order) {
+    chebX = new Float64Array(order);
+    chebY = new Float64Array(order);
+    chebZ = new Float64Array(order);
+  }
+  const ox = field.origin[0],
+    oy = field.origin[1],
+    oz = field.origin[2];
+  const ex = field.extent[0],
+    ey = field.extent[1],
+    ez = field.extent[2];
+  const ux = (position[0] - ox) / ex;
+  const uy = (position[1] - oy) / ey;
+  const uz = (position[2] - oz) / ez;
+  chebX[0] = 1;
+  chebX[1] = ux;
+  chebY[0] = 1;
+  chebY[1] = uy;
+  chebZ[0] = 1;
+  chebZ[1] = uz;
+  const twoUx = 2 * ux;
+  const twoUy = 2 * uy;
+  const twoUz = 2 * uz;
+  for (let i = 2; i <= degree; i++) {
+    chebX[i] = twoUx * chebX[i - 1] - chebX[i - 2];
+    chebY[i] = twoUy * chebY[i - 1] - chebY[i - 2];
+    chebZ[i] = twoUz * chebZ[i - 1] - chebZ[i - 2];
+  }
+  const coeffs = field.coefficients;
+  let dx = 0;
+  let dy = 0;
+  let dz = 0;
   let index = 0;
-  for (const x of axes[0]) {
-    for (const y of axes[1]) {
-      for (const z of axes[2]) direction = add(direction, scale(field.coefficients[index++], x * y * z));
+  for (let ix = 0; ix < order; ix++) {
+    const ax = chebX[ix];
+    for (let iy = 0; iy < order; iy++) {
+      const axy = ax * chebY[iy];
+      for (let iz = 0; iz < order; iz++) {
+        const w = axy * chebZ[iz];
+        const c = coeffs[index++];
+        dx += c[0] * w;
+        dy += c[1] * w;
+        dz += c[2] * w;
+      }
     }
   }
-  return length(direction) === 0 ? normal : unitOrZero(direction);
+  const len = Math.hypot(dx, dy, dz);
+  return len === 0 ? normal : [dx / len, dy / len, dz / len];
 }
 
 export function validatePlantNormalField(field: PlantNormalField): void {
@@ -590,17 +630,66 @@ export function buildProceduralPlantGeometry(
   leafMaterialIds?: ReadonlySet<string>,
   windHeight?: number,
   windKind: "tree" | "flower" = "tree",
-  windMaximumBendRadians = 0
+  windMaximumBendRadians = 0,
+  skipValidation = false
 ): readonly PlantPartMesh[] {
-  validateProceduralPlantStructure(structure);
-  if (windHeight !== undefined && (!Number.isFinite(windHeight) || windHeight <= 0))
+  return buildProceduralPlantGeometryInternal(
+    structure,
+    lodIndex,
+    leafMaterialIds,
+    windHeight,
+    windKind,
+    windMaximumBendRadians,
+    skipValidation
+  ).parts;
+}
+
+/** Single-pass LOD0 compilation that computes canonical windHeight and attaches windFrames without building geometry twice. */
+export function buildProceduralPlantGeometryWithAutoWindHeight(
+  structure: ProceduralPlantStructure,
+  lodIndex: number,
+  leafMaterialIds?: ReadonlySet<string>,
+  windKind: "tree" | "flower" = "tree",
+  windMaximumBendRadians = 0,
+  skipValidation = false
+): { readonly parts: readonly PlantPartMesh[]; readonly windHeight: number } {
+  return buildProceduralPlantGeometryInternal(
+    structure,
+    lodIndex,
+    leafMaterialIds,
+    "auto",
+    windKind,
+    windMaximumBendRadians,
+    skipValidation
+  );
+}
+
+function buildProceduralPlantGeometryInternal(
+  structure: ProceduralPlantStructure,
+  lodIndex: number,
+  leafMaterialIds?: ReadonlySet<string>,
+  windHeightInput?: number | "auto",
+  windKind: "tree" | "flower" = "tree",
+  windMaximumBendRadians = 0,
+  skipValidation = false
+): { readonly parts: readonly PlantPartMesh[]; readonly windHeight: number } {
+  if (!skipValidation) validateProceduralPlantStructure(structure);
+  if (
+    windHeightInput !== undefined &&
+    windHeightInput !== "auto" &&
+    (!Number.isFinite(windHeightInput) || windHeightInput <= 0)
+  )
     throw new RangeError("Plant wind requires a positive canonical height");
   if (!Number.isFinite(windMaximumBendRadians) || windMaximumBendRadians < 0)
     throw new RangeError("Plant wind requires a finite non-negative bend limit");
   if (!Number.isInteger(lodIndex) || lodIndex < 0 || lodIndex >= structure.lods.length)
     throw new Error("Invalid plant LOD");
   const lod = structure.lods[lodIndex];
-  const parts = new Map(structure.parts.map((part) => [part.id, part]));
+  const parts = new Map<string, PlantPart>();
+  for (let i = 0; i < structure.parts.length; i++) {
+    const part = structure.parts[i];
+    parts.set(part.id, part);
+  }
   const poses = new Map<string, Pose>();
   const poseFor = (part: PlantPart): Pose => {
     const cached = poses.get(part.id);
@@ -612,7 +701,8 @@ export function buildProceduralPlantGeometry(
       pending.push(current);
       current = current.parentId === null ? undefined : parts.get(current.parentId);
     }
-    for (const node of pending.reverse()) {
+    for (let i = pending.length - 1; i >= 0; i--) {
+      const node = pending[i];
       const parent = node.parentId === null ? undefined : parts.get(node.parentId)!;
       const parentPose = parent ? poses.get(parent.id)! : IDENTITY;
       const frame = parent
@@ -632,40 +722,56 @@ export function buildProceduralPlantGeometry(
     return poses.get(part.id)!;
   };
   const meshes = new Map<string, PlantMeshData>();
-  return lod.partIds.map((id) => {
+
+  const buildSinglePart = (
+    id: string,
+    effectiveWindHeight: number | undefined,
+    computeWindFrames: boolean
+  ): {
+    readonly partMesh: PlantPartMesh;
+    readonly leaf: boolean;
+    readonly pivot: PlantPoint;
+    readonly hingeAxis: PlantPoint;
+    readonly needsFlowerRefinementCheck: boolean;
+  } => {
     const part = parts.get(id)!;
     const shapeId =
       lod.shapeIdsByPart && Object.prototype.hasOwnProperty.call(lod.shapeIdsByPart, id)
         ? lod.shapeIdsByPart[id]
         : part.shapeId;
     const pose = poseFor(part);
-    const leaf = part.scaleMode === "uniform" || leafMaterialIds?.has(part.materialId);
+    const leaf = Boolean(part.scaleMode === "uniform" || leafMaterialIds?.has(part.materialId));
     const shape = structure.shapes[shapeId];
     let resolution = lod.resolutionsByShape?.[shapeId] ?? lod.resolution;
-    if (windKind === "flower" && windHeight !== undefined && windMaximumBendRadians > 0 && !leaf) {
+    const needsFlowerRefinementCheck = windKind === "flower" && windMaximumBendRadians > 0 && !leaf;
+    if (needsFlowerRefinementCheck && effectiveWindHeight !== undefined) {
       // Bound the bend's chord error by the stem's own half-width. For a circular
       // beam R = H/theta, sagitta = R*(1-cos(span/(2R))). Its inverse gives the
       // necessary samples without species, LOD, or arbitrary segment-count rules.
-      const radius = windHeight / windMaximumBendRadians;
-      const widths = shape.sections
-        .map((section) =>
+      const radius = effectiveWindHeight / windMaximumBendRadians;
+      let maxWidth = 0;
+      for (let i = 0; i < shape.sections.length; i++) {
+        const section = shape.sections[i];
+        const w =
           shape.kind === "tube"
             ? (section as PlantTubeSection).radius
-            : ((section as PlantSurfaceSection).leftWidth + (section as PlantSurfaceSection).rightWidth) / 2
-        )
-        .filter((width) => width > 0);
-      if (widths.length) {
-        // Use the organ's physical radius, including tapered/zero-area endpoints.
-        // A vanishing tip cannot define a finite sampling error for the whole stem.
-        const error = Math.max(...widths) * pose.scale;
+            : ((section as PlantSurfaceSection).leftWidth + (section as PlantSurfaceSection).rightWidth) / 2;
+        if (w > maxWidth) maxWidth = w;
+      }
+      if (maxWidth > 0) {
+        const error = maxWidth * pose.scale;
         const maximumSpan = 4 * radius * Math.asin(Math.sqrt(Math.min(error / (2 * radius), 1)));
-        const longestSpan = Math.max(
-          ...shape.sections
-            .slice(1)
-            .map((section, i) => length(sub(section.center, shape.sections[i].center)) * pose.scale)
-        );
+        let longestSpan = 0;
+        for (let i = 1; i < shape.sections.length; i++) {
+          const prev = shape.sections[i - 1].center;
+          const cur = shape.sections[i].center;
+          const span = Math.hypot(cur[0] - prev[0], cur[1] - prev[1], cur[2] - prev[2]) * pose.scale;
+          if (span > longestSpan) longestSpan = span;
+        }
         const refinement = Math.max(1, Math.ceil(longestSpan / maximumSpan / resolution.subdivisionsPerSpan));
-        resolution = { ...resolution, subdivisionsPerSpan: resolution.subdivisionsPerSpan * refinement };
+        if (refinement > 1) {
+          resolution = { ...resolution, subdivisionsPerSpan: resolution.subdivisionsPerSpan * refinement };
+        }
       }
     }
     const meshKey = `${shapeId}/${resolution.subdivisionsPerSpan}`;
@@ -674,7 +780,52 @@ export function buildProceduralPlantGeometry(
       mesh = buildPlantShapeGeometry(shape, resolution);
       meshes.set(meshKey, mesh);
     }
-    const positions = mesh.positions.map((p) => add(pose.position, rotate(pose.orientation, scale(p, pose.scale))));
+    const qx = pose.orientation[0],
+      qy = pose.orientation[1],
+      qz = pose.orientation[2],
+      qw = pose.orientation[3];
+    const px = pose.position[0],
+      py = pose.position[1],
+      pz = pose.position[2];
+    const ps = pose.scale;
+    const srcPos = mesh.positions;
+    const vertCount = srcPos.length;
+    const positions = new Array<PlantPoint>(vertCount);
+    let minX = Infinity,
+      minY = Infinity,
+      minZ = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity,
+      maxZ = -Infinity;
+    for (let i = 0; i < vertCount; i++) {
+      const p = srcPos[i];
+      const vx = p[0] * ps,
+        vy = p[1] * ps,
+        vz = p[2] * ps;
+      const tx = 2 * (qy * vz - qz * vy);
+      const ty = 2 * (qz * vx - qx * vz);
+      const tz = 2 * (qx * vy - qy * vx);
+      const rx = px + vx + tx * qw + (qy * tz - qz * ty);
+      const ry = py + vy + ty * qw + (qz * tx - qx * tz);
+      const rz = pz + vz + tz * qw + (qx * ty - qy * tx);
+      positions[i] = [rx, ry, rz];
+      if (rx < minX) minX = rx;
+      if (ry < minY) minY = ry;
+      if (rz < minZ) minZ = rz;
+      if (rx > maxX) maxX = rx;
+      if (ry > maxY) maxY = ry;
+      if (rz > maxZ) maxZ = rz;
+    }
+    const bounds: readonly [PlantPoint, PlantPoint] =
+      vertCount === 0
+        ? [
+            [0, 0, 0],
+            [0, 0, 0]
+          ]
+        : [
+            [minX, minY, minZ],
+            [maxX, maxY, maxZ]
+          ];
     // Stable membership across tessellation/LOD changes; every vertex of a leaf uses one rank.
     let rank = 2166136261;
     for (let i = 0; i < id.length; i++) rank = Math.imul(rank ^ id.charCodeAt(i), 16777619);
@@ -684,65 +835,172 @@ export function buildProceduralPlantGeometry(
     const pivot = part.scalePivot
       ? add(pose.position, rotate(pose.orientation, scale(part.scalePivot, pose.scale)))
       : pose.position;
-    const leafFrame = [...pivot, (rank >>> 8) / 2 ** 24] as const;
+    const leafFrame = [pivot[0], pivot[1], pivot[2], (rank >>> 8) / 2 ** 24] as const;
     // Lighting normals may vary at every corner. The mechanical hinge instead comes from
     // the authored organ frame, so flutter cannot shear a reconstructed leaf/card.
     const hingeAxis = rotate(pose.orientation, RIGHT);
-    return {
-      partId: id,
-      materialId: part.materialId,
-      mesh: {
-        ...mesh,
-        positions,
-        ...(leaf ? { leafFrames: positions.map(() => leafFrame) } : {}),
-        ...(windHeight === undefined
-          ? {}
-          : {
-              windFrames: (() => {
-                const frames = new Float32Array(positions.length * 4);
-                for (let i = 0; i < positions.length; i++) {
-                  // Rigid organs sample their authored attachment, independent of UVs and normals.
-                  const height = Math.max(0, leaf ? pivot[1] : positions[i][1]);
-                  const o = i * 4;
-                  if (windKind === "flower") {
-                    frames[o] = 0;
-                    frames[o + 1] = height;
-                    frames[o + 2] = 0;
-                  } else {
-                    frames[o] = hingeAxis[0];
-                    frames[o + 1] = hingeAxis[1];
-                    frames[o + 2] = hingeAxis[2];
-                  }
-                  frames[o + 3] = Math.min(1, height / windHeight);
-                }
-                return frames;
-              })()
-            }),
-        indices: part.reverseWinding
-          ? mesh.indices.map((_, index) => mesh!.indices[index - (index % 3) + (index % 3 === 0 ? 0 : 3 - (index % 3))])
-          : mesh.indices,
-        uvs: part.uvProjection
-          ? positions.map(([x, y, z]) => {
-              const [a, b, c, d, e, f, g, h] = part.uvProjection!;
-              return [a * x + b * y + c * z + d, e * x + f * y + g * z + h] as const;
-            })
-          : part.uvTransform
-            ? mesh.uvs.map(([u, v]) => {
-                const [a, b, c, d, e, f] = part.uvTransform!;
-                return [a * u + b * v + c, d * u + e * v + f] as const;
-              })
-            : mesh.uvs,
-        normals: mesh.normals.map((n, index) =>
-          evaluatePlantShadingField(
-            positions[index],
-            rotate(pose.orientation, part.reverseWinding ? scale(n, -1) : n),
-            part.normalField ?? lod.normalFields?.[part.materialId] ?? structure.normalFields?.[part.materialId]
-          )
-        ),
-        bounds: boundsOf(positions)
+    let leafFrames: (readonly [number, number, number, number])[] | undefined;
+    if (leaf) {
+      leafFrames = new Array(vertCount);
+      for (let i = 0; i < vertCount; i++) leafFrames[i] = leafFrame;
+    }
+    let windFrames: Float32Array | undefined;
+    if (computeWindFrames && effectiveWindHeight !== undefined) {
+      windFrames = buildWindFramesArray(positions, leaf, pivot, hingeAxis, windKind, effectiveWindHeight);
+    }
+    let indices = mesh.indices;
+    if (part.reverseWinding) {
+      const len = mesh.indices.length;
+      const reversed = mesh.indices instanceof Uint16Array ? new Uint16Array(len) : new Uint32Array(len);
+      for (let i = 0; i < len; i += 3) {
+        reversed[i] = mesh.indices[i];
+        reversed[i + 1] = mesh.indices[i + 2];
+        reversed[i + 2] = mesh.indices[i + 1];
       }
+      indices = reversed;
+    }
+    let uvs: readonly (readonly [number, number])[] = mesh.uvs;
+    if (part.uvProjection) {
+      const [a, b, c, d, e, f, g, h] = part.uvProjection;
+      const out = new Array<readonly [number, number]>(vertCount);
+      for (let i = 0; i < vertCount; i++) {
+        const p = positions[i];
+        out[i] = [a * p[0] + b * p[1] + c * p[2] + d, e * p[0] + f * p[1] + g * p[2] + h];
+      }
+      uvs = out;
+    } else if (part.uvTransform) {
+      const [a, b, c, d, e, f] = part.uvTransform;
+      const srcUvs = mesh.uvs;
+      const out = new Array<readonly [number, number]>(srcUvs.length);
+      for (let i = 0; i < srcUvs.length; i++) {
+        const uv = srcUvs[i];
+        out[i] = [a * uv[0] + b * uv[1] + c, d * uv[0] + e * uv[1] + f];
+      }
+      uvs = out;
+    }
+    const field = part.normalField ?? lod.normalFields?.[part.materialId] ?? structure.normalFields?.[part.materialId];
+    const srcNormals = mesh.normals;
+    const normals = new Array<PlantPoint>(vertCount);
+    const nSign = part.reverseWinding ? -1 : 1;
+    for (let i = 0; i < vertCount; i++) {
+      const n = srcNormals[i];
+      const vx = n[0] * nSign,
+        vy = n[1] * nSign,
+        vz = n[2] * nSign;
+      const tx = 2 * (qy * vz - qz * vy);
+      const ty = 2 * (qz * vx - qx * vz);
+      const tz = 2 * (qx * vy - qy * vx);
+      const rn: PlantPoint = [
+        vx + tx * qw + (qy * tz - qz * ty),
+        vy + ty * qw + (qz * tx - qx * tz),
+        vz + tz * qw + (qx * ty - qy * tx)
+      ];
+      normals[i] = field ? evaluatePlantShadingField(positions[i], rn, field) : rn;
+    }
+    return {
+      partMesh: {
+        partId: id,
+        materialId: part.materialId,
+        mesh: {
+          ...mesh,
+          positions,
+          ...(leafFrames ? { leafFrames } : {}),
+          ...(windFrames ? { windFrames } : {}),
+          indices,
+          uvs,
+          normals,
+          bounds
+        }
+      },
+      leaf,
+      pivot,
+      hingeAxis,
+      needsFlowerRefinementCheck
     };
-  });
+  };
+
+  if (windHeightInput !== "auto") {
+    const result = new Array<PlantPartMesh>(lod.partIds.length);
+    let maxHeight = -Infinity;
+    for (let i = 0; i < lod.partIds.length; i++) {
+      const built = buildSinglePart(lod.partIds[i], windHeightInput, true);
+      result[i] = built.partMesh;
+      if (built.partMesh.mesh.bounds[1][1] > maxHeight) maxHeight = built.partMesh.mesh.bounds[1][1];
+    }
+    return { parts: result, windHeight: windHeightInput ?? maxHeight };
+  }
+
+  // Single-pass auto windHeight: build all parts once, measure maxY, then attach windFrames
+  // (only rebuilding flower stems whose bend-chord refinement exceeds 1).
+  const initial = new Array<ReturnType<typeof buildSinglePart>>(lod.partIds.length);
+  let windHeight = -Infinity;
+  for (let i = 0; i < lod.partIds.length; i++) {
+    const built = buildSinglePart(lod.partIds[i], undefined, false);
+    initial[i] = built;
+    if (built.partMesh.mesh.bounds[1][1] > windHeight) windHeight = built.partMesh.mesh.bounds[1][1];
+  }
+  if (!Number.isFinite(windHeight) || windHeight <= 0)
+    throw new RangeError("Plant wind requires a positive canonical height");
+  const result = new Array<PlantPartMesh>(lod.partIds.length);
+  for (let i = 0; i < initial.length; i++) {
+    const item = initial[i];
+    if (item.needsFlowerRefinementCheck) {
+      result[i] = buildSinglePart(lod.partIds[i], windHeight, true).partMesh;
+    } else {
+      const windFrames = buildWindFramesArray(
+        item.partMesh.mesh.positions,
+        item.leaf,
+        item.pivot,
+        item.hingeAxis,
+        windKind,
+        windHeight
+      );
+      result[i] = {
+        ...item.partMesh,
+        mesh: { ...item.partMesh.mesh, windFrames }
+      };
+    }
+  }
+  return { parts: result, windHeight };
+}
+
+function buildWindFramesArray(
+  positions: readonly PlantPoint[],
+  leaf: boolean,
+  pivot: PlantPoint,
+  hingeAxis: PlantPoint,
+  windKind: "tree" | "flower",
+  windHeight: number
+): Float32Array {
+  const len = positions.length;
+  const frames = new Float32Array(len * 4);
+  const invWindHeight = 1 / windHeight;
+  const hx = hingeAxis[0],
+    hy = hingeAxis[1],
+    hz = hingeAxis[2];
+  const pivotHeight = Math.max(0, pivot[1]);
+  if (windKind === "flower") {
+    for (let i = 0; i < len; i++) {
+      const height = leaf ? pivotHeight : Math.max(0, positions[i][1]);
+      const o = i * 4;
+      frames[o] = 0;
+      frames[o + 1] = height;
+      frames[o + 2] = 0;
+      const ratio = height * invWindHeight;
+      frames[o + 3] = ratio < 1 ? ratio : 1;
+    }
+  } else {
+    for (let i = 0; i < len; i++) {
+      const height = leaf ? pivotHeight : Math.max(0, positions[i][1]);
+      const o = i * 4;
+      frames[o] = hx;
+      frames[o + 1] = hy;
+      frames[o + 2] = hz;
+      const ratio = height * invWindHeight;
+      frames[o + 3] = ratio < 1 ? ratio : 1;
+    }
+  }
+  return frames;
 }
 
 export function buildPlantShapeGeometry(shape: PlantShape, resolution: PlantGeometryResolution): PlantMeshData {
@@ -893,39 +1151,129 @@ export function buildPlantShapeGeometry(shape: PlantShape, resolution: PlantGeom
   return finishMesh(positions, uvs, indices, seams);
 }
 
+const cachedMeshTangents = new WeakMap<PlantMeshData, readonly (readonly [number, number, number, number])[]>();
+
 /** UV-derived tangent frame for normal-mapped materials, including collapsed UVs at tips and caps. */
 export function buildPlantMeshTangents(mesh: PlantMeshData): readonly (readonly [number, number, number, number])[] {
-  const tangents: PlantPoint[] = mesh.positions.map(() => [0, 0, 0]);
-  const bitangents: PlantPoint[] = mesh.positions.map(() => [0, 0, 0]);
-  for (let i = 0; i < mesh.indices.length; i += 3) {
-    const ids = [mesh.indices[i], mesh.indices[i + 1], mesh.indices[i + 2]];
-    const e1 = sub(mesh.positions[ids[1]], mesh.positions[ids[0]]);
-    const e2 = sub(mesh.positions[ids[2]], mesh.positions[ids[0]]);
-    const [u0, v0] = mesh.uvs[ids[0]],
-      [u1, v1] = mesh.uvs[ids[1]],
-      [u2, v2] = mesh.uvs[ids[2]];
-    const determinant = (u1 - u0) * (v2 - v0) - (u2 - u0) * (v1 - v0);
+  const cached = cachedMeshTangents.get(mesh);
+  if (cached && cached.length === mesh.positions.length) return cached;
+  const positions = mesh.positions;
+  const uvs = mesh.uvs;
+  const indices = mesh.indices;
+  const normals = mesh.normals;
+  const vertCount = positions.length;
+  const tangents = new Float64Array(vertCount * 3);
+  const bitangents = new Float64Array(vertCount * 3);
+  for (let i = 0; i < indices.length; i += 3) {
+    const i0 = indices[i];
+    const i1 = indices[i + 1];
+    const i2 = indices[i + 2];
+    const p0 = positions[i0];
+    const p1 = positions[i1];
+    const p2 = positions[i2];
+    const e1x = p1[0] - p0[0],
+      e1y = p1[1] - p0[1],
+      e1z = p1[2] - p0[2];
+    const e2x = p2[0] - p0[0],
+      e2y = p2[1] - p0[1],
+      e2z = p2[2] - p0[2];
+    const uv0 = uvs[i0],
+      uv1 = uvs[i1],
+      uv2 = uvs[i2];
+    const du1 = uv1[0] - uv0[0],
+      dv1 = uv1[1] - uv0[1];
+    const du2 = uv2[0] - uv0[0],
+      dv2 = uv2[1] - uv0[1];
+    const determinant = du1 * dv2 - du2 * dv1;
     if (determinant === 0) continue;
-    const t = scale(sub(scale(e1, v2 - v0), scale(e2, v1 - v0)), 1 / determinant);
-    const b = scale(sub(scale(e2, u1 - u0), scale(e1, u2 - u0)), 1 / determinant);
-    for (const index of ids) {
-      tangents[index] = add(tangents[index], t);
-      bitangents[index] = add(bitangents[index], b);
-    }
+    const invDet = 1 / determinant;
+    const tx = (e1x * dv2 - e2x * dv1) * invDet;
+    const ty = (e1y * dv2 - e2y * dv1) * invDet;
+    const tz = (e1z * dv2 - e2z * dv1) * invDet;
+    const bx = (e2x * du1 - e1x * du2) * invDet;
+    const by = (e2y * du1 - e1y * du2) * invDet;
+    const bz = (e2z * du1 - e1z * du2) * invDet;
+    const o0 = i0 * 3,
+      o1 = i1 * 3,
+      o2 = i2 * 3;
+    tangents[o0] += tx;
+    tangents[o0 + 1] += ty;
+    tangents[o0 + 2] += tz;
+    bitangents[o0] += bx;
+    bitangents[o0 + 1] += by;
+    bitangents[o0 + 2] += bz;
+    tangents[o1] += tx;
+    tangents[o1 + 1] += ty;
+    tangents[o1 + 2] += tz;
+    bitangents[o1] += bx;
+    bitangents[o1 + 1] += by;
+    bitangents[o1 + 2] += bz;
+    tangents[o2] += tx;
+    tangents[o2 + 1] += ty;
+    tangents[o2 + 2] += tz;
+    bitangents[o2] += bx;
+    bitangents[o2 + 1] += by;
+    bitangents[o2 + 2] += bz;
   }
-  return mesh.normals.map((normal, index) => {
-    const n = length(normal) === 0 ? UP : unit(normal);
-    let t = sub(tangents[index], scale(n, dot(n, tangents[index])));
-    if (length(t) === 0) {
-      // Choose the least parallel coordinate axis, so a collapsed UV never creates NaNs.
-      const axis = [0, 1, 2].reduce((best, next) => (Math.abs(n[next]) < Math.abs(n[best]) ? next : best));
-      const reference: [number, number, number] = [0, 0, 0];
-      reference[axis] = 1;
-      t = cross(reference, n);
+  const result = new Array<readonly [number, number, number, number]>(vertCount);
+  for (let index = 0; index < vertCount; index++) {
+    const normal = normals[index];
+    const nLen = Math.hypot(normal[0], normal[1], normal[2]);
+    let nx: number, ny: number, nz: number;
+    if (nLen === 0) {
+      nx = 0;
+      ny = 1;
+      nz = 0;
+    } else {
+      const invN = 1 / nLen;
+      nx = normal[0] * invN;
+      ny = normal[1] * invN;
+      nz = normal[2] * invN;
     }
-    t = unit(t);
-    return [t[0], t[1], t[2], dot(cross(n, t), bitangents[index]) < 0 ? -1 : 1];
-  });
+    const o = index * 3;
+    const t0x = tangents[o],
+      t0y = tangents[o + 1],
+      t0z = tangents[o + 2];
+    const ndt = nx * t0x + ny * t0y + nz * t0z;
+    let tx = t0x - nx * ndt;
+    let ty = t0y - ny * ndt;
+    let tz = t0z - nz * ndt;
+    let tLen = Math.hypot(tx, ty, tz);
+    if (tLen === 0) {
+      // Choose the least parallel coordinate axis, so a collapsed UV never creates NaNs.
+      const ax = Math.abs(nx),
+        ay = Math.abs(ny),
+        az = Math.abs(nz);
+      if (ax <= ay && ax <= az) {
+        // cross([1,0,0], n) = [0, -nz, ny]
+        tx = 0;
+        ty = -nz;
+        tz = ny;
+      } else if (ay <= az) {
+        // cross([0,1,0], n) = [nz, 0, -nx]
+        tx = nz;
+        ty = 0;
+        tz = -nx;
+      } else {
+        // cross([0,0,1], n) = [-ny, nx, 0]
+        tx = -ny;
+        ty = nx;
+        tz = 0;
+      }
+      tLen = Math.hypot(tx, ty, tz);
+    }
+    const invT = 1 / tLen;
+    tx *= invT;
+    ty *= invT;
+    tz *= invT;
+    const cx = ny * tz - nz * ty;
+    const cy = nz * tx - nx * tz;
+    const cz = nx * ty - ny * tx;
+    const handedness = cx * bitangents[o] + cy * bitangents[o + 1] + cz * bitangents[o + 2] < 0 ? -1 : 1;
+    result[index] = [tx, ty, tz, handedness];
+  }
+  cachedMeshTangents.set(mesh, result);
+  return result;
 }
 
 function finishMesh(
@@ -934,20 +1282,63 @@ function finishMesh(
   indices: number[],
   seams: readonly (readonly [number, number])[] = []
 ): PlantMeshData {
-  const normals: PlantPoint[] = positions.map(() => [0, 0, 0]);
+  const vertCount = positions.length;
+  const accum = new Float64Array(vertCount * 3);
   for (let i = 0; i < indices.length; i += 3) {
-    const [a, b, c] = indices.slice(i, i + 3);
-    const n = cross(sub(positions[b], positions[a]), sub(positions[c], positions[a]));
-    for (const vertex of [a, b, c]) normals[vertex] = add(normals[vertex], n);
+    const a = indices[i],
+      b = indices[i + 1],
+      c = indices[i + 2];
+    const pa = positions[a],
+      pb = positions[b],
+      pc = positions[c];
+    const abx = pb[0] - pa[0],
+      aby = pb[1] - pa[1],
+      abz = pb[2] - pa[2];
+    const acx = pc[0] - pa[0],
+      acy = pc[1] - pa[1],
+      acz = pc[2] - pa[2];
+    const nx = aby * acz - abz * acy;
+    const ny = abz * acx - abx * acz;
+    const nz = abx * acy - aby * acx;
+    const oa = a * 3,
+      ob = b * 3,
+      oc = c * 3;
+    accum[oa] += nx;
+    accum[oa + 1] += ny;
+    accum[oa + 2] += nz;
+    accum[ob] += nx;
+    accum[ob + 1] += ny;
+    accum[ob + 2] += nz;
+    accum[oc] += nx;
+    accum[oc + 1] += ny;
+    accum[oc + 2] += nz;
   }
   // Weld UV seam area vectors before normalization; cap normals remain independent.
-  for (const [a, b] of seams) normals[a] = normals[b] = add(normals[a], normals[b]);
+  for (let i = 0; i < seams.length; i++) {
+    const oa = seams[i][0] * 3;
+    const ob = seams[i][1] * 3;
+    const sx = accum[oa] + accum[ob];
+    const sy = accum[oa + 1] + accum[ob + 1];
+    const sz = accum[oa + 2] + accum[ob + 2];
+    accum[oa] = accum[ob] = sx;
+    accum[oa + 1] = accum[ob + 1] = sy;
+    accum[oa + 2] = accum[ob + 2] = sz;
+  }
+  const normals = new Array<PlantPoint>(vertCount);
+  for (let i = 0; i < vertCount; i++) {
+    const o = i * 3;
+    const nx = accum[o],
+      ny = accum[o + 1],
+      nz = accum[o + 2];
+    const len = Math.hypot(nx, ny, nz);
+    normals[i] = len === 0 ? [0, 0, 0] : [nx / len, ny / len, nz / len];
+  }
   return {
     positions,
     uvs,
-    normals: normals.map(unitOrZero),
+    normals,
     // WebGL2 reserves the all-ones index for primitive restart.
-    indices: positions.length < 2 ** 16 ? Uint16Array.from(indices) : Uint32Array.from(indices),
+    indices: vertCount < 2 ** 16 ? Uint16Array.from(indices) : Uint32Array.from(indices),
     bounds: boundsOf(positions),
     triangleCount: indices.length / 3
   };
@@ -1057,7 +1448,7 @@ function cross(a: readonly number[], b: readonly number[]): PlantPoint {
   return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 }
 function length(a: PlantPoint): number {
-  return Math.hypot(...a);
+  return Math.hypot(a[0], a[1], a[2]);
 }
 function unit(a: PlantPoint): PlantPoint {
   const n = length(a);

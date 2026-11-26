@@ -33,7 +33,7 @@ describe("Seed World task projection", () => {
     expect(view().details).toContain("正在查询时间设置");
     data.accept({ type: "script_finished", taskId: "task", step: 1, result: { ok: true, output: null } });
     data.accept({ type: "model_started", taskId: "task", step: 2 });
-    expect(view().text).toBe("正在分析请求");
+    expect(view().text).toBe("正在还原");
     expect(view().details).not.toMatch(/rejected response|本步执行已完成/);
     const snapshot = data.snapshot("executing", false, false, []);
     expect(projectSeedWorldTask(snapshot)).toEqual(projectSeedWorldTask(snapshot));
@@ -66,13 +66,13 @@ it("projects model requests and recovery from Session facts without retaining th
   data.accept({ type: "model_finished", taskId: "task", step: { step: 1, decision: { type: "snapshot" }, attempts: [] } });
   expect(view().text).toBe("查看当前画面");
   data.accept({ type: "model_started", taskId: "task", step: 2 });
-  expect(view().text).toBe("正在分析请求");
-  expect(view().details).not.toContain("正在分析请求");
+  expect(view().text).toBe("正在还原");
+  expect(view().details).not.toContain("正在还原");
   data.accept({ type: "model_recovery", taskId: "task", step: 2, attempt: 1, recovery: {
     sequence: 1, phase: "retry_wait", layer: "transport", attempt: 2, maxAttempts: 3,
     elapsedMs: 100, remainingMs: 1000, delayMs: 100, category: "rate_limit"
   } });
   expect(view().text).toContain("服务繁忙");
   data.accept({ type: "model_started", taskId: "task", step: 2 });
-  expect(view().text).toBe("正在分析请求");
+  expect(view().text).toBe("正在还原");
 });

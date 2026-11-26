@@ -589,6 +589,61 @@ describe("behavior awaiting planning", () => {
     system.dispose();
   });
 
+  it("prioritizes urgent flight escapes and keeps airborne fly clips alive while async planning runs", () => {
+    const system = new AnimalSystem(), owner = agent(system);
+    const played: string[] = [];
+    const planPriorities: boolean[] = [];
+    let endCallback: (() => void) | undefined;
+    const moveTo = vi.fn(() => () => {});
+    let allowResolve = false;
+    const controller = new AnimalTaskController({
+      defaultSkill: "soar",
+      preferredMedium: "air",
+      landingMedium: "ground",
+      skills: {
+        soar: { label: "Soar", tree: { type: "action", name: "move", params: { slot: "fly", medium: "air", arrivalMedium: "ground", target: { query: "wander" } } } },
+        shooFlight: { label: "Flee Flight", tree: { type: "action", name: "move", params: { slot: "fly", medium: "air", arrivalMedium: "ground", urgent: true, target: { query: "flee" } } } }
+      },
+      reactions: { shoo: { skillId: "shooFlight" } },
+      animationSlots: { idle: [{ clip: "idle", weight: 1 }], fly: [{ clip: "fly", weight: 1, medium: "air" }] },
+      movementSpeeds: { fly: 8 }
+    }, {
+      get time() { return system.time; },
+      wake() {},
+      schedule: (seconds, fn) => system.schedule(seconds, fn, owner),
+      position: { x: 0, z: 0 },
+      resolveTarget: () => [20, 20],
+      plan: (task, finish, urgent) => {
+        planPriorities.push(Boolean(urgent));
+        return system.plan(owner, (function* () {
+          while (!allowResolve) yield;
+          return yield* task;
+        })(), finish, urgent);
+      },
+      moveTo,
+      play: (clip) => { played.push(clip); return 1; },
+      onAnimationEnd: (cb) => {
+        endCallback = cb;
+        return () => { if (endCallback === cb) endCallback = undefined; };
+      }
+    });
+    expect(controller.notify({ id: "click", type: "shoo", source: [0, -5] })).toBe(true);
+    controller.tick();
+    expect(planPriorities).toEqual([true]);
+    expect(endCallback).toBeDefined();
+    endCallback?.();
+    expect(played).toEqual(["fly"]);
+    allowResolve = true;
+    for (let i = 0; i < 20 && !moveTo.mock.calls.length; i++) {
+      system.update(1 / 60);
+      controller.tick();
+    }
+    expect(moveTo).toHaveBeenCalledOnce();
+    expect(moveTo.mock.calls[0][0]).toEqual([20, 20]);
+    controller.dispose();
+    system.dispose();
+  });
+
   function fixture(repeated = false) {
     const system = new AnimalSystem(32, 1000, 1),
       owner = agent(system);

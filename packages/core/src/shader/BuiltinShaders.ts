@@ -27,6 +27,7 @@ export interface BuiltinShaders {
   readonly finalAntiAliasing: Shader;
   readonly bloom: Shader;
   readonly scalableAmbientOcclusion: Shader;
+  readonly screenSpaceReflection: Shader;
 }
 
 /** @internal Precompiled assets supplied by the engine flavor. */
@@ -54,6 +55,20 @@ export interface BuiltinShaderSources {
   FinalAntiAliasingSource: IPrecompiledShader;
   BloomSource: IPrecompiledShader;
   ScalableAmbientOcclusionSource: IPrecompiledShader;
+  SSRReceiverSource: IPrecompiledShader;
+  SSRContributionDepthSource: IPrecompiledShader;
+  ScreenSpaceReflectionSource: IPrecompiledShader;
+  SunLensFlareSource: IPrecompiledShader;
+  SunLensFlareVisibilitySource: IPrecompiledShader;
+  VolumetricLightSource: IPrecompiledShader;
+  ProbeDepthCaptureSource: IPrecompiledShader;
+  RealtimeIBLAccumulateSource: IPrecompiledShader;
+  RealtimeIBLProjectSHSource: IPrecompiledShader;
+  RealtimeIBLResolveSource: IPrecompiledShader;
+  VolumetricCloudSource: IPrecompiledShader;
+  WindGpuFieldSource: IPrecompiledShader;
+  WindGpuGroundResponseSource: IPrecompiledShader;
+  WindGpuTreeResponseSource: IPrecompiledShader;
 }
 
 /** @internal Creates a catalog, resolving common passes before material shaders. */
@@ -64,9 +79,25 @@ export function createBuiltinShaders(sources: BuiltinShaderSources): BuiltinShad
   // Material shaders resolve UsePass references during creation
   create(sources.ShadowCasterSource);
   create(sources.DepthOnlySource);
+  create(sources.SSRReceiverSource);
+  create(sources.SSRContributionDepthSource);
+  create(sources.SunLensFlareSource);
+  create(sources.VolumetricLightSource);
+  create(sources.ProbeDepthCaptureSource);
+  create(sources.RealtimeIBLAccumulateSource);
+  create(sources.RealtimeIBLResolveSource);
+  create(sources.VolumetricCloudSource);
+  create(sources.WindGpuFieldSource);
+  create(sources.WindGpuGroundResponseSource);
+  create(sources.WindGpuTreeResponseSource);
+  const projectSH = create(sources.RealtimeIBLProjectSHSource);
+  projectSH.subShaders[0].passes[0]._feedbackVaryings = Array.from({ length: 9 }, (_, i) => "v_SH" + i);
+  projectSH.subShaders[0].passes[1]._feedbackVaryings = ["v_SH"];
+  create(sources.SunLensFlareVisibilitySource).subShaders[0].passes[0]._feedbackVaryings = ["v_NextVisibility"];
 
   return {
     byName,
+    screenSpaceReflection: create(sources.ScreenSpaceReflectionSource),
     blit: create(sources.BlitSource),
     blitScreen: create(sources.BlitScreenSource),
     pbr: create(sources.PBRSource),

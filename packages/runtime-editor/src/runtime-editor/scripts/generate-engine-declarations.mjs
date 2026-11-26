@@ -12,8 +12,6 @@ const packages = new Map(native.map(directory => {
   const { name, version, types } = JSON.parse(readFileSync(path.join(root, "packages", directory, "package.json")));
   return [directory, { name, version, types: types.replace(/^\.\//, "") }];
 }));
-const overrides = new Map(JSON.parse(readFileSync(path.join(root, "packages/modify/native-overrides.json")))
-  .map(({ original, replacement }) => [path.join(root, original), path.join(root, replacement)]));
 const paths = Object.fromEntries([...packages].map(([dir, pkg]) => [pkg.name, [path.join(root, "packages", dir, "src/index.ts")]]));
 const options = {
   target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext, moduleResolution: ts.ModuleResolutionKind.Node10,
@@ -21,21 +19,6 @@ const options = {
   rootDir: path.join(root, "packages"), outDir: "/runtime-declarations", paths, noCheck: true, strictNullChecks: true
 };
 const host = ts.createCompilerHost(options);
-// Include manifest-only modules and directories under their canonical Engine identity.
-const directories = new Set();
-for (const file of overrides.keys()) {
-  for (let dir = path.dirname(file); dir.startsWith(root); dir = path.dirname(dir)) directories.add(dir);
-}
-const directoryExists = host.directoryExists;
-host.directoryExists = dir => directories.has(dir) || directoryExists(dir);
-const read = host.readFile;
-const exists = host.fileExists;
-host.readFile = file => read(overrides.get(file) ?? file);
-host.fileExists = file => overrides.has(file) || exists(file);
-host.getSourceFile = (file, target) => {
-  const source = host.readFile(file);
-  return source === undefined ? undefined : ts.createSourceFile(file, source, target, true);
-};
 const files = {};
 const roots = Object.values(paths).flat();
 const program = ts.createProgram(roots, options, host);

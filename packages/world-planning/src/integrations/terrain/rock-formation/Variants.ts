@@ -18,26 +18,17 @@ import type {
   RockVariantAsset,
   V3
 } from "@galacean/engine-terrain/rock-formation/types";
-import type { IslandPlan } from "../../../semantic-study/IslandPlanModel";
-import { worldTemplate } from "../../../spatial/WorldTemplateCatalog";
-import catalog from "./RockVariantCatalog.json";
+import {
+  isRockPillarDimensions,
+  pickRockVariant,
+  rockFormationFittedHeights,
+  rockVariantFittedTopHeight,
+  rockVariantPools,
+  type RockVariantEntry
+} from "../../../spatial/RockVariantFit.ts";
 
-interface RockVariantEntry {
-  id: string;
-  mesh: string;
-  hasDetachedPieces?: boolean;
-  /** Fraction of the fitted mesh height to sink below the placement base. */
-  groundInset: number;
-}
+export { pickRockVariant, rockFormationFittedHeights, rockVariantFittedTopHeight, rockVariantPools };
 
-interface RockVariantPools {
-  mountains: readonly RockVariantEntry[];
-  stones: readonly RockVariantEntry[];
-}
-
-const variantPools: Readonly<Record<keyof typeof catalog.pools, RockVariantPools>> = catalog.pools;
-
-const MAX_VARIANTS = 10;
 const meshTasks = new WeakMap<Engine, Map<string, Promise<RockVariantAsset>>>();
 const variantSurfaces = new WeakMap<
   RockVariantAsset,
@@ -141,37 +132,9 @@ export async function prepareRockVariant(engine: Engine, variant: RockVariantEnt
   return task;
 }
 
-function rankedPool(seed: number, role: string, entries: readonly RockVariantEntry[]) {
-  const unique = [...new Map(entries.map((entry) => [entry.id, entry])).values()];
-  return unique.sort(
-    (a, b) =>
-      hashSeed(seed, `rock-pool:${role}:${a.id}`) - hashSeed(seed, `rock-pool:${role}:${b.id}`) ||
-      a.id.localeCompare(b.id)
-  );
-}
-
-/** Both placement systems draw from the same seed-specific palette. */
-export function rockVariantPools(plan: IslandPlan) {
-  const seed = plan.parameters.seed;
-  const template = worldTemplate(plan.parameters.worldTemplate?.id);
-  const rockSource = template?.rockSource ?? "shared";
-  const stoneSource = template?.stoneSource ?? rockSource;
-  if (rockSource === "authored" && stoneSource === "authored") return undefined;
-  const mountains = rockSource === "authored" ? [] : rankedPool(seed, "mountains", variantPools[rockSource].mountains);
-  const stones = stoneSource === "authored" ? [] : rankedPool(seed, "stones", variantPools[stoneSource].stones);
-  const mountainCount = Math.min(mountains.length, Math.max(MAX_VARIANTS / 2, MAX_VARIANTS - stones.length));
-  mountains.length = mountainCount;
-  stones.length = Math.min(stones.length, MAX_VARIANTS - mountainCount);
-  return { mountains, stones };
-}
-
-export function pickRockVariant<T>(pool: readonly T[], seed: number): T | undefined {
-  return pool.length ? pool[hashSeed(seed, "rock-variant") % pool.length] : undefined;
-}
-
 function isPillarGuide(job: RockFormationJob): boolean {
   const [width, height, depth] = job.guides[0].size;
-  return !job.surfaceGrass && height > Math.max(width, depth) * 1.5;
+  return isRockPillarDimensions(width, height, depth, job.surfaceGrass !== false);
 }
 
 export function pickFormationVariant(pool: readonly RockVariantEntry[], job: RockFormationJob) {
@@ -197,16 +160,14 @@ export function rockVariantFit(job: RockFormationJob, asset: RockVariantAsset): 
     spanY = max[1] - min[1],
     spanZ = max[2] - min[2];
   const scales = [guide.size[0] / spanX, guide.size[1] / spanY, guide.size[2] / spanZ] as const;
-  const uniform = Math.min(...scales);
+  // Strictly uniform 3D scale driven by horizontal footprint (XZ) so rocks never distort
+  // and low planned heights do not collapse footprints inside large OBBs.
+  const xzUniform = Math.min(scales[0], scales[2]);
   // Tall narrow rock guides represent standing monolith/pillar stones using the same shared meshes.
   const isPillar = isPillarGuide(job);
-  const xScale = isPillar ? scales[0] : uniform;
-  const zScale = isPillar ? scales[2] : uniform;
-  const yScale = isPillar
-    ? scales[1]
-    : job.surfaceGrass
-      ? Math.max(uniform, Math.min(scales[1], uniform * 1.65))
-      : uniform;
+  const xScale = isPillar ? scales[0] : xzUniform;
+  const zScale = isPillar ? scales[2] : xzUniform;
+  const yScale = isPillar ? scales[1] : xzUniform;
   const c = Math.cos(yaw) * flip,
     s = Math.sin(yaw) * flip;
   const x = (-(min[0] + max[0]) * xScale) / 2,

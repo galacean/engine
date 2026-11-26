@@ -6,6 +6,7 @@ import {
 } from "@galacean/engine-project/runtime-editor/project/runtime-project";
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
 import { createSeedPlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningInitialization";
+import { registerPlanningComponent } from "@galacean/engine-world-planning/spatial/PlanningComponents";
 import {
   planningSourceDocument,
   validatePlanningProject,
@@ -121,4 +122,82 @@ it("writes one final Scene for multiple component changes, retaining unrelated p
   update.mockClear();
   writePlanningProjectSource(draft, pack.project.scene, planningSourceDocument(next)!);
   expect(update).not.toHaveBeenCalled();
+});
+
+it("invalidates cached planning inputs on in-place project.scene switch, same-length files swap, and sidecar mutation", () => {
+  const base = fixture();
+  const secondDoc = createSeedPlanningDocument(99);
+  secondDoc.revision = 777;
+  base.project.scenes = ["Main.scene", "Second.scene"];
+  base.project.files.push({ virtualPath: "Second.scene", path: "Second.scene", type: "Scene", dependencies: [] });
+  base.contents["Second.scene"] = JSON.stringify({
+    asset: { version: "2.0" },
+    scene: { rootEntities: [] },
+    entities: [],
+    components: []
+  });
+  const secondDraft = new RuntimeProjectEdit(
+    base,
+    new Map([...nativeAssetFormats(() => ({})), ["Host", { validate() {}, references: () => [], referenceTypes: [] }]])
+  );
+  writePlanningProjectSource(secondDraft, "Second.scene", secondDoc);
+  const pack = secondDraft.finish();
+  const secondSource = JSON.parse(pack.contents["Second.scene"] as string);
+  secondSource.components.find((c: any) => c.type === "PlanningGroundWind").props.windEnabled = "invalid";
+  pack.contents["Second.scene"] = JSON.stringify(secondSource);
+
+  validatePlanningProject(pack);
+  pack.project.scene = "Second.scene";
+  expect(() => validatePlanningProject(pack)).toThrow();
+  expect(planningSourceDocument(pack)?.revision).toBe(777);
+
+  pack.project.scene = "Main.scene";
+  validatePlanningProject(pack);
+  pack.project.files = pack.project.files.map((file) =>
+    file.virtualPath === "Main.scene" ? { ...file, type: "JSON" } : file
+  );
+  expect(() => planningSourceDocument(pack)).toThrow("Unregistered runtime Scene 'Main.scene'");
+
+  const sidecarPack = fixture();
+  sidecarPack.documents = { "notes.md": "ok" };
+  sidecarPack.contents["Main.scene"] = JSON.stringify({
+    asset: { version: "2.0" },
+    scene: { rootEntities: [] },
+    entities: [],
+    components: []
+  });
+  validatePlanningProject(sidecarPack);
+  sidecarPack.documents[`${sidecarPack.project.scene}.planning-source.json`] = '{"version":2}';
+  expect(() => validatePlanningProject(sidecarPack)).toThrow("requires a PlanningProjectAuthoring owner");
+});
+
+it("re-validates cached planning documents when registered components change", () => {
+  const unregister = registerPlanningComponent({
+    type: "testDynamicPlanningComp",
+    label: "Dynamic",
+    version: 1,
+    fields: [{ key: "count", label: "Count", type: "number", default: 1 }]
+  });
+  try {
+    const pack = fixture();
+    const doc = planningSourceDocument(pack)!;
+    doc.entities["dynamic-entity"] = {
+      id: "dynamic-entity",
+      name: "Dynamic",
+      origin: "authored",
+      components: { testDynamicPlanningComp: { values: { count: 3 } } }
+    };
+    const draft = new RuntimeProjectEdit(
+      pack,
+      new Map([...nativeAssetFormats(() => ({})), ["Host", { validate() {}, references: () => [], referenceTypes: [] }]])
+    );
+    writePlanningProjectSource(draft, "Main.scene", doc);
+    const updated = draft.finish();
+
+    validatePlanningProject(updated);
+    unregister();
+    expect(() => validatePlanningProject(updated)).toThrow("未注册组件");
+  } finally {
+    unregister();
+  }
 });

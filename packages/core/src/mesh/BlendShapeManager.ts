@@ -265,7 +265,7 @@ export class BlendShapeManager {
       }
       this._lastHostCreatedInfo.set(this._blendShapeCount, +this._useBlendNormal, +this._useBlendTangent, vertexCount);
     }
-    if (this._needUpdateData()) {
+    if (createHost || this._needUpdateData()) {
       if (useTexture) {
         this._updateTextureArray(vertexCount, createHost);
       } else {
@@ -286,6 +286,32 @@ export class BlendShapeManager {
     this._vertices = null;
   }
 
+  /**
+   * @internal
+   */
+  _destroyGPUResources(): void {
+    const modelMesh = this._modelMesh;
+    if (this._vertexTexture) {
+      this._vertexTexture._disassociationSuperResource(modelMesh);
+      this._vertexTexture.destroy();
+      this._vertexTexture = null!;
+    }
+    const vertexBuffers = this._vertexBuffers;
+    const bindingOffset = this._bufferBindingOffset;
+    const bindings = modelMesh._primitive.vertexBufferBindings;
+    for (let i = 0, n = vertexBuffers.length; i < n; i++) {
+      const buffer = vertexBuffers[i];
+      if (bindings[bindingOffset + i]?.buffer === buffer) {
+        modelMesh._setVertexBufferBinding(bindingOffset + i, null);
+      }
+      buffer._disassociationSuperResource(modelMesh);
+      buffer.destroy();
+    }
+    vertexBuffers.length = 0;
+    this._lastHostCreatedInfo.set(0, 0, 0, 0);
+    this._vertices = null;
+  }
+
   private _createVertexBuffers(vertexCount: number, noLongerAccessible: boolean): void {
     const {
       _engine: engine,
@@ -293,6 +319,7 @@ export class BlendShapeManager {
       _blendShapeCount: blendShapeCount,
       _vertexBuffers: vertexBuffers
     } = this;
+    this._destroyGPUResources();
     const vertexFloatCount = this._vertexElementCount * 3;
     const vertexByteCount = vertexFloatCount * 4;
     const maxCountSingleBuffer = Math.floor(255 / vertexByteCount); // 255: Attribute MaxStride
@@ -313,6 +340,7 @@ export class BlendShapeManager {
 
       const usage = noLongerAccessible ? BufferUsage.Static : BufferUsage.Dynamic;
       const blendShapeBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, byteLength, usage);
+      blendShapeBuffer._associationSuperResource(modelMesh);
       modelMesh._setVertexBufferBinding(bufferBindingOffset + i, new VertexBufferBinding(blendShapeBuffer, stride));
       vertexBuffers[i] = blendShapeBuffer;
     }
@@ -329,12 +357,10 @@ export class BlendShapeManager {
       textureWidth = maxTextureSize;
     }
 
-    let blendShapeDataTexture = this._vertexTexture;
+    this._destroyGPUResources();
+
     const blendShapeCount = this._blendShapes.length;
-
-    blendShapeDataTexture && blendShapeDataTexture.destroy();
-
-    blendShapeDataTexture = new Texture2DArray(
+    const blendShapeDataTexture = new Texture2DArray(
       this._engine,
       textureWidth,
       textureHeight,
@@ -343,6 +369,7 @@ export class BlendShapeManager {
       false,
       false
     );
+    blendShapeDataTexture._associationSuperResource(this._modelMesh);
     blendShapeDataTexture.filterMode = TextureFilterMode.Point;
 
     this._vertices = new Float32Array(blendShapeCount * textureWidth * textureHeight * 4);

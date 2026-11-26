@@ -9,7 +9,7 @@ import type { PlanningHeightmap } from "../../semantic-study/PlanningHeightmap";
 import type { PlanningAlphamap } from "../../semantic-study/PlanningAlphamap";
 import { vegetationCoverage } from "../ecology/VegetationCoverage";
 import { naturalVegetationAt } from "../../planning-data/NaturalVegetationProfile";
-import { rasterizeCoverageRegions } from "../ecology/CoverageRaster";
+import { createOwnerSamples, rasterizeCoverageRegions } from "../ecology/CoverageRaster";
 import type { SeedWorldPopulationPreview, SeedWorldPopulationInstance } from "../../runtime/SeedWorldPopulationPlan.ts";
 import {
   SEED_WORLD_DETAIL_SPECIES_PROFILES,
@@ -99,7 +99,10 @@ export function compilePlanningPopulation(
     materialWeights = new Uint8Array(n * 4),
     waterMask = new Uint8Array(n),
     habitat = new Uint8Array(n);
-  const flowerOwners = new Uint32Array(n);
+  const flowerBrushCount = (plan.authoredResources ?? []).filter(
+    (resource) => resource.resourceType === "vegetation-brush" && resource.properties.category === "flower"
+  ).length;
+  const flowerOwners = createOwnerSamples(coverage.ownership.ids.length + flowerBrushCount, n);
   const grass = new Uint8Array(n),
     flowers = new Uint8Array(n),
     road = rasterizeCoverageRegions(

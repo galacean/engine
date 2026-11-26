@@ -90,6 +90,8 @@ export interface V2Box {
   /** Semantic whitebox category, independent of camera distance. */
   appearance?: "rock" | "building" | "landmark" | "platform" | "wall" | "bridge";
   collision: boolean;
+  /** Optional explicit author/template collision switch retained across dimension edits. */
+  collisionOverride?: boolean;
   occlusion: boolean;
   locked?: boolean;
   band?: "near" | "middle" | "far";

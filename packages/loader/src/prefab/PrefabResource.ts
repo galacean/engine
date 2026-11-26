@@ -32,6 +32,9 @@ export class PrefabResource extends ReferResource {
    * @internal
    */
   _addDependenceAsset(resource: ReferResource) {
+    if (this._dependenceAssets.has(resource)) {
+      return;
+    }
     this._dependenceAssets.add(resource);
     // @todo: The PhysicsMaterial does not inherit from ReferResource. Currently,
     // ReferResource requires the engine to be passed as a parameter, which prevents cross-engine reuse.

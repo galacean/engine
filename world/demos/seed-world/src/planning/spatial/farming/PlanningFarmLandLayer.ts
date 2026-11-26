@@ -18,7 +18,7 @@ import type { GroundBounds } from "@galacean/engine-farming/farming/api/index";
 import type { FarmingSoilWorkPresentation } from "@galacean/engine-farming/farming/presentation/soil/SoilWorkReveal";
 import { disposeSoilMesh } from "@galacean/engine-farming/farming/presentation/soil/disposeSoilMesh";
 import { DEFAULT_SOIL_VISUAL_CONFIG } from "@galacean/engine-farming/farming/presentation/soil/SoilVisualConfig";
-import { restoreResource } from "@galacean/engine-modify/rendering/RestorableResources";
+import { restoreResource } from "@galacean/engine-project/rendering/RestorableResources";
 import { SEED_WORLD_GRASS_SNOW_RESPONSE } from "@galacean/engine-terrain/world/SeedWorldSurfaceSnow";
 import { getPlanningFarmLandShader } from "./PlanningFarmLandShader.ts";
 import {

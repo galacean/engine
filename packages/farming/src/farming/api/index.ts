@@ -8,7 +8,12 @@ export {
 } from "../application/FarmingStarter";
 export type { FarmingStarterPlacement, FarmingStarterInspection } from "../application/FarmingStarter";
 export type * from "../domain/FarmingDiagnostics";
-export type { FarmingServiceOptions, FarmingServiceChange, FarmingServiceError } from "../application/FarmingService";
+export type {
+  FarmingOfflineCatchUpOptions,
+  FarmingServiceOptions,
+  FarmingServiceChange,
+  FarmingServiceError
+} from "../application/FarmingService";
 export { BrowserSystemClock, ManualFarmClock } from "../application/FarmClock";
 export type { FarmClock } from "../application/FarmClock";
 export { getActionDefinitions } from "../domain/FarmActions";
