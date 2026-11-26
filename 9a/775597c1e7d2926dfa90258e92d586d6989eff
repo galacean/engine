@@ -1,0 +1,25 @@
+world/demos/seed-world/src/planning/spatial/PlanningDocumentCodec.ts
+  s_91525d4231a2fc::t_4a86870fa2cfbb 7-8
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectSource.ts
+  s_91525d4231a2fc::t_2492910219cce9 1
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectStorage.ts
+  s_91525d4231a2fc::t_aaa67878f7f109 5,9,13
+world/tests/seed-world/PlanningProjectInputs.spec.ts
+  s_91525d4231a2fc::t_7b04c157609013 11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9a775597c1e7d2926dfa90258e92d586d6989eff",
+  "prompts": {},
+  "sessions": {
+    "s_91525d4231a2fc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21794-62ee-7fb1-a0fe-f3b57c82ca14",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "cptbtptpbcptdtptp <njktsmshh@gmail.com>"
+    }
+  }
+}
