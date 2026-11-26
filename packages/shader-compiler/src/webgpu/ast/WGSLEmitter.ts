@@ -85,6 +85,20 @@ interface EmittedExpr {
   type: GType;
 }
 
+const GLSL_BUILTIN_INT_LIMITS: Record<string, number> = {
+  gl_MaxVertexAttribs: 16,
+  gl_MaxVertexUniformVectors: 256,
+  gl_MaxVertexOutputVectors: 16,
+  gl_MaxFragmentInputVectors: 15,
+  gl_MaxVertexTextureImageUnits: 16,
+  gl_MaxCombinedTextureImageUnits: 32,
+  gl_MaxTextureImageUnits: 16,
+  gl_MaxFragmentUniformVectors: 256,
+  gl_MaxDrawBuffers: 8,
+  gl_MinProgramTexelOffset: -8,
+  gl_MaxProgramTexelOffset: 7
+};
+
 const TEXTURE_BUILTINS = new Set([
   "texture",
   "texture2D",
@@ -691,8 +705,7 @@ class WGSLEmitter {
       const entryParams: string[] = [];
       for (const f of this.inputs) {
         const pName = this.freshName(`gs_in_${f.glslName}`);
-        const interp = f.flat ? " @interpolate(flat)" : "";
-        entryParams.push(`@location(${f.location})${interp} ${pName}: ${this.wgslType(f.type)}`);
+        entryParams.push(`@location(${f.location}) ${pName}: ${this.wgslType(f.type)}`);
         bodyLines.push(`  ${f.wgslVar} = ${pName};`);
       }
       if (this.usesVertexIndex) {
@@ -1339,6 +1352,28 @@ class WGSLEmitter {
 
   private emitInit(expr: ExprNode, targetType: GType): string {
     if (expr.kind === "InitListExpr") {
+      if (targetType.arraySize !== undefined) {
+        const elemType: GType = { base: targetType.base };
+        const items = expr.elements.map((e) => this.emitInit(e, elemType));
+        return `${this.wgslType(targetType)}(${items.join(", ")})`;
+      }
+      const sInfo = this.structs.get(targetType.base);
+      if (sInfo) {
+        const items = expr.elements.map((e, i) => this.emitInit(e, sInfo.fieldOrder[i]?.type ?? T_UNKNOWN));
+        return `${sInfo.wgslName}(${items.join(", ")})`;
+      }
+      const m = matrixDims(targetType);
+      if (m) {
+        const colType = makeVectorType("float", m.rows);
+        const items = expr.elements.map((e) => this.emitInit(e, colType));
+        return `${this.wgslType(targetType)}(${items.join(", ")})`;
+      }
+      const vn = vectorSize(targetType);
+      if (vn > 0) {
+        const elemType: GType = { base: scalarFamily(targetType) ?? "float" };
+        const items = expr.elements.map((e) => this.emitInit(e, elemType));
+        return `${this.wgslType(targetType)}(${items.join(", ")})`;
+      }
       const elemType: GType = { base: targetType.base };
       const items = expr.elements.map((e) => this.emitInit(e, elemType));
       return `${this.wgslType(targetType)}(${items.join(", ")})`;
@@ -1369,6 +1404,10 @@ class WGSLEmitter {
         if (expr.method === "length" && expr.args.length === 0) {
           const objType = this.inferExprType(expr.object);
           if (objType.arraySize) return { code: `i32(${objType.arraySize})`, type: T_INT };
+          const vn = vectorSize(objType);
+          if (vn > 0) return { code: `${vn}i`, type: T_INT };
+          const md = matrixDims(objType);
+          if (md) return { code: `${md.cols}i`, type: T_INT };
         }
         throw new Error(`Unsupported GLSL method call '.${expr.method}()'`);
       case "UnaryExpr":
@@ -1412,6 +1451,8 @@ class WGSLEmitter {
     if (name === "gl_FragDepth" || name === "gl_FragDepthEXT") return { code: "gs_gl_FragDepth", type: T_FLOAT };
     if (name === "gl_PointSize") return { code: "gs_gl_PointSize", type: T_FLOAT };
     if (name === "gl_PointCoord") return { code: "gs_gl_PointCoord", type: T_VEC2 };
+    const builtinLimit = GLSL_BUILTIN_INT_LIMITS[name];
+    if (builtinLimit !== undefined) return { code: `${builtinLimit}i`, type: T_INT };
 
     const info = this.lookupVar(name);
     if (!info) {
@@ -1498,6 +1539,21 @@ class WGSLEmitter {
         const cmp = Array.from(
           { length: lm.cols },
           (_, c) => `all((${left.code})[${c}] == (${right.code})[${c}])`
+        ).join(" && ");
+        return { code: op === "==" ? `(${cmp})` : `!(${cmp})`, type: T_BOOL };
+      }
+      // Fixed-size array == / !=
+      if (left.type.arraySize && /^\d+$/.test(left.type.arraySize)) {
+        const count = Number(left.type.arraySize);
+        const elemType: GType = { base: left.type.base };
+        const cmp = Array.from(
+          { length: count },
+          (_, i) =>
+            this.emitBinaryOp(
+              "==",
+              { code: `(${left.code})[${i}]`, type: elemType },
+              { code: `(${right.code})[${i}]`, type: elemType }
+            ).code
         ).join(" && ");
         return { code: op === "==" ? `(${cmp})` : `!(${cmp})`, type: T_BOOL };
       }
@@ -2116,6 +2172,7 @@ class WGSLEmitter {
 
     const isShadow = samplerType.endsWith("Shadow");
     const isArray = samplerType.includes("Array");
+    const isCube = samplerType.includes("Cube");
     const is3D = samplerType.includes("3D");
     const isInt = samplerType.startsWith("i");
     const isUint = samplerType.startsWith("u");
@@ -2150,8 +2207,13 @@ class WGSLEmitter {
       return { code: `textureLoad(${texCode}, ${p}, ${lod})`, type: sampleRet };
     }
 
-    // Helper to split coord for sampler2DArray (`vec3` -> `uv.xy, i32(round(uv.z))`) or sampler2DShadow (`vec3` -> `uv.xy, uv.z`)
+    // Helper to split coord for sampler2DArray / sampler2DShadow / samplerCubeShadow / sampler2DArrayShadow
     const splitCoord = (coord: EmittedExpr): { uv: string; extra?: string } => {
+      if (isShadow && isCube) {
+        const tmp = this.freshName("gs_sc");
+        this.hoistQueue.push(`let ${tmp} = ${coord.code};`);
+        return { uv: `${tmp}.xyz`, extra: `${tmp}.w` };
+      }
       if (isShadow && !isArray) {
         const tmp = this.freshName("gs_sc");
         this.hoistQueue.push(`let ${tmp} = ${coord.code};`);
@@ -2182,7 +2244,8 @@ class WGSLEmitter {
       const hasGrad = fn.includes("Grad");
       const hasOffset = fn.includes("Offset");
       if (isShadow) {
-        const off = hasOffset ? `, ${rest[rest.length - 1].code}` : "";
+        const offIdx = hasGrad ? 3 : hasLod ? 2 : 1;
+        const off = hasOffset && rest[offIdx] ? `, ${rest[offIdx].code}` : "";
         const wgslFn = hasLod || this.stage === "vertex" ? "textureSampleCompareLevel" : "textureSampleCompare";
         return { code: `${wgslFn}(${texCode}, ${sampCode}, ${uv}${cmp}${off})`, type: T_FLOAT };
       }
@@ -2232,6 +2295,10 @@ class WGSLEmitter {
       const ddx = rest[1].code;
       const ddy = rest[2].code;
       const off = fn.endsWith("Offset") ? `, ${rest[3].code}` : "";
+      if (isShadow) {
+        const wgslFn = this.stage === "vertex" ? "textureSampleCompareLevel" : "textureSampleCompare";
+        return { code: `${wgslFn}(${texCode}, ${sampCode}, ${uv}, ${extra}${off})`, type: T_FLOAT };
+      }
       const mid = extra ? `${uv}, ${extra}` : uv;
       return { code: `textureSampleGrad(${texCode}, ${sampCode}, ${mid}, ${ddx}, ${ddy}${off})`, type: sampleRet };
     }
@@ -2293,6 +2360,7 @@ class WGSLEmitter {
         if (expr.name === "gl_FragDepth" || expr.name === "gl_FragDepthEXT" || expr.name === "gl_PointSize")
           return T_FLOAT;
         if (expr.name === "gl_PointCoord") return T_VEC2;
+        if (GLSL_BUILTIN_INT_LIMITS[expr.name] !== undefined) return T_INT;
         return this.lookupVar(expr.name)?.type ?? T_UNKNOWN;
       }
       case "ParenExpr":
