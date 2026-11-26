@@ -86,7 +86,7 @@ node world/scripts/acceptance/shared-world-storage.mjs http://127.0.0.1:4180
 使用 `world/scripts/publish-seed-world-flash-apps.mjs` 编排 6 个应用的建表与发布。执行环境需要访问目标 ASAP Artifact 注册库。脚本先通过 ASAP 原子预留版本，再用该版本建表、打包、部署并提交发布记录。可用 `--state-dir` 指定按 Artifact 隔离的本机状态目录。
 
 ```bash
-ENGINE_WORKTREE_ROOT=/absolute/path/to/seed-world-npm-release
+ENGINE_WORKTREE_ROOT=/absolute/path/to/engine
 PUBLISHER_ROOT=/absolute/path/to/pugc-flash-app-2-seed-world
 ASAP_SERVICE_DIR=/absolute/path/to/asap-service
 
@@ -146,7 +146,6 @@ node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
 | `Publisher app-context.local.json artifactId ... does not match catalog "original"` | `--publisher-root` 指向了非 `flashapp-a3c0e021cb8cadb0` 的 PUGC checkout | 切回 `pugc-flash-app-2-seed-world`，或在明确知道原因时传 `--allow-context-mismatch` |
 | `Template "<id>" has no artifactId yet` | 尚未为其余 5 个模板首次申请 ID | 确认新建意图后加 `--init-missing --sync-catalog` 执行一次，之后提交更新后的 `flash-apps.json` |
 | `requires first-time world_save.sql DB table creation, which needs a 2099... alipayUid` | 本地状态或 PUGC 上下文未填写 `2099...` UID（或误填了 `2088...`） | 在 PUGC `app-context.local.json` 或对应 Artifact 的状态文件补全 `alipayUid` 后重试 |
-| 构建警告 `Local CDN-eligible asset(s) not yet in flash-app-cdn-manifest.json` | 新增或变更的资产（如 `oil-paint` SWB1 分包）尚未同步至 MDN CDN | 执行 `sync-flash-app-cdn-assets.py --apply` 并重编 `build:seed-world-flash-app`（收敛至 `pending upload: 0`），再重跑 `build:seed-world-flash-source` |
+| 构建警告 `Local CDN-eligible asset(s) not yet in flash-app-cdn-manifest.json` | 新增或变更的资产（如 `oil-paint` SWB1 分包）尚未同步至 MDN CDN | 执行 `sync-flash-app-cdn-assets.py --apply` 并重编 `pnpm --dir world build:seed-world-flash-app`（收敛至 `pending upload: 0`） |
 | `Artifact type differs from the ASAP registry` | 发布类型与注册库记录不一致 | 核对该应用的登记类型和清单后重试 |
 | `ASAP registry does not match` | ASAP Python 环境无法核对 HTTP 服务返回的已发布版本 | 检查注册库访问权限以及对应的 `ASAP_SERVICE_BASE_URL` |
-| 源码备份超过 100 MiB | 源码目录新增未压缩制作源素材 | 检查 `build-seed-world-flash-source.mjs` 排除列表，在保留运行时 KTX2 派生物的前提下排除制作源图 |
