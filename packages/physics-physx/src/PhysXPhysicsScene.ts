@@ -650,7 +650,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       return;
     }
 
-    // Copy the native view as a block. The next contact overwrites any trailing velocity data.
     const values = contacts!;
     const offset = this._contactFloatOffset;
     const needed = offset + values.length;
@@ -665,7 +664,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       this._contactData = arena = grown;
     }
     arena.set(values, offset);
-    this._contactFloatOffset = offset + count * 10;
+    this._contactFloatOffset = needed;
     event._floatOffset = offset;
   }
 
