@@ -708,6 +708,70 @@ describe("glTF Loader test", function () {
     }
   });
 
+  it("binds repeated animation targets in each scene after scene extensions run", async () => {
+    @registerGLTFExtension("TEST_rename_animation_target", GLTFExtensionMode.AdditiveParse)
+    class RenameAnimationTarget extends GLTFExtensionParser {
+      override additiveParse(_context: GLTFParserContext, root: Entity): void {
+        root.findByPath("Rig/Joint")!.name = "Renamed";
+      }
+    }
+
+    const bytes = new Float32Array([0, 1, 1, 2, 3, 3, 4, 5]);
+    const bufferUrl = URL.createObjectURL(new Blob([bytes]));
+    const glTF = {
+      asset: { version: "2.0" },
+      scene: 0,
+      extensionsUsed: ["TEST_rename_animation_target"],
+      scenes: [{ nodes: [0], extensions: { TEST_rename_animation_target: {} } }, { nodes: [2] }],
+      nodes: [{ name: "Rig", children: [1] }, { name: "Joint" }, { name: "Other" }, { name: "Unattached" }],
+      buffers: [{ uri: bufferUrl, byteLength: bytes.byteLength }],
+      bufferViews: [{ buffer: 0, byteLength: bytes.byteLength }],
+      accessors: [
+        { bufferView: 0, type: "SCALAR", componentType: 5126, count: 2, min: [0], max: [1] },
+        { bufferView: 0, byteOffset: 8, type: "VEC3", componentType: 5126, count: 2 }
+      ],
+      animations: [
+        {
+          samplers: [{ input: 0, output: 1 }],
+          channels: [
+            { sampler: 0, target: { node: 1, path: "translation" } },
+            { sampler: 0, target: { node: 1, path: "scale" } },
+            { sampler: 0, target: { node: 2, path: "translation" } },
+            { sampler: 0, target: { node: 3, path: "translation" } }
+          ]
+        }
+      ]
+    };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(glTF)], { type: "model/gltf+json" }));
+    let resource: GLTFResource | undefined;
+    let primary: Entity | undefined;
+    let secondary: Entity | undefined;
+    try {
+      resource = await engine.resourceManager.load<GLTFResource>({ type: AssetType.GLTF, url });
+      const clip = resource.animations![0];
+      expect(clip.curveBindings.map(({ relativePath, property }) => [relativePath, property])).toEqual([
+        ["Rig/Renamed", "position"],
+        ["Rig/Renamed", "scale"],
+        ["Other", "position"]
+      ]);
+
+      primary = resource.instantiateSceneRoot(0);
+      secondary = resource.instantiateSceneRoot(1);
+      clip.sampleAnimation(primary, 0.5);
+      clip.sampleAnimation(secondary, 0.5);
+      const joint = primary.findByPath("Rig/Renamed")!;
+      expect(joint.transform.position).toMatchObject({ x: 2, y: 3, z: 4 });
+      expect(joint.transform.scale).toMatchObject({ x: 2, y: 3, z: 4 });
+      expect(secondary.findByPath("Other")!.transform.position).toMatchObject({ x: 2, y: 3, z: 4 });
+    } finally {
+      primary?.destroy();
+      secondary?.destroy();
+      resource?.destroy();
+      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(bufferUrl);
+    }
+  });
+
   it("samples flat glTF animation channels, sparse normalized rotations, morph remapping, and keyframe edits", async () => {
     const bytes = new ArrayBuffer(148);
     new Float32Array(bytes, 4, 8).set([0, 1, 1, 2, 3, 5, 6, 7]);

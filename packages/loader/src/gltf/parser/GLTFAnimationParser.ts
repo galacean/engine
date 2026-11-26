@@ -88,22 +88,24 @@ export class GLTFAnimationParser extends GLTFParser {
         };
       }
 
+      // Animation extensions can rename or reparent targets between clips.
+      const paths: (string | null | undefined)[] = [];
+      const sceneRoots = context.glTFResource.sceneRoots;
       for (let j = 0, m = channels.length; j < m; j++) {
         const glTFChannel = channels[j];
         const { target } = glTFChannel;
-        const channelTargetEntity = entities[target.node];
-
-        let relativePath = "";
-        let entity = channelTargetEntity;
-        while (entity.parent) {
-          relativePath = relativePath === "" ? `${entity.name}` : `${entity.name}/${relativePath}`;
-          entity = entity.parent;
+        const node = target.node;
+        let relativePath = paths[node];
+        if (relativePath === undefined) {
+          let entity = entities[node];
+          relativePath = "";
+          while (entity.parent) {
+            relativePath = relativePath === "" ? entity.name : `${entity.name}/${relativePath}`;
+            entity = entity.parent;
+          }
+          paths[node] = relativePath = sceneRoots.indexOf(entity) === -1 ? null : relativePath;
         }
-
-        // If the target node is in the default scene, relativePath will be empty
-        if (context.glTFResource.sceneRoots.indexOf(entity) === -1) {
-          continue;
-        }
+        if (relativePath === null) continue;
 
         let ComponentType!: ComponentConstructor<Component>;
         let propertyName!: string;
@@ -129,7 +131,7 @@ export class GLTFAnimationParser extends GLTFParser {
         const curve = this._addCurve(target.path, sampleDataCollection[glTFChannel.sampler]);
 
         if (target.path === AnimationChannelTargetPath.WEIGHTS) {
-          const mesh = glTF.nodes![target.node].mesh;
+          const mesh = glTF.nodes![node].mesh;
           for (let i = 0, n = glTF.meshes![mesh!].primitives.length; i < n; i++) {
             animationClip.addCurveBinding(relativePath, ComponentType, i, propertyName, curve);
           }
