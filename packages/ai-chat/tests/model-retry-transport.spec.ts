@@ -3,6 +3,8 @@ import { requestAsapChat, AsapModelError, AsapRateLimitError, ASAP_TPM_RATE_LIMI
 import { formatContextTrace } from "../src/ai-chat/context-trace";
 import { AgentTraceStore } from "../src/ai-chat/agent-trace";
 import { createTestAgentLoop } from "./AIChatTestRuntime";
+import { AIChatSession } from "../src/ai-chat/ai-chat-session";
+import { fixtureBlob } from "./image-fixture";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -212,4 +214,77 @@ it("uses an independent random queryId shared between local streamChat and stopC
     sessionId: streamParams.sessionId,
     queryId: streamParams.queryId,
   });
+});
+
+it.each([false, true])("runs the same screenshot, length retry and follow-up via dedicated=%s", async dedicated => {
+  const requests: unknown[] = [];
+  const screenshot = "data:image/png;base64,AAAA";
+  const observation = { sequence: 1, phase: "requesting", layer: "output", attempt: 1, maxAttempts: 1,
+    elapsedMs: 3, remainingMs: 119000, delayMs: 0 };
+  const send = vi.fn(async (request: any) => {
+    const { messages, model, timeout, responseFormat, sessionId, queryId, signal, onEvent, version, ...direct } = request;
+    const params = dedicated ? direct : responseFormat.params;
+    requests.push({ messages, params });
+    expect(params).toMatchObject({ recoveryEvents: true, parallelToolCalls: true, debugMode: true });
+    expect(params.tools.map((tool: any) => tool.function.name)).toContain("snapshot");
+    if (dedicated) {
+      expect(responseFormat).toBeUndefined();
+      expect(version).toBe(1);
+      expect(sessionId).toMatch(/^seed-world-[0-9a-f]{32}$/);
+      expect(queryId).not.toBe(params.streamResponseNonce);
+    }
+    const nonce = params.streamResponseNonce;
+    const recovery = JSON.stringify({ type: "lingguang_ai_chat_recovery", version: 1, nonce, event: observation }) + "\n";
+    onEvent({ type: "text_delta", text: recovery, delta: recovery });
+    const result = { content: "", toolCalls: [] as unknown[], finishReason: "stop" };
+    if (requests.length === 1) {
+      result.finishReason = "length";
+      result.content = "discard this truncated result";
+    } else if (requests.length === 2) {
+      result.finishReason = "tool_calls";
+      result.toolCalls = [{ type: "function", id: "view-1", function: { name: "snapshot", arguments: "{}" } }];
+    } else if (requests.length === 3) {
+      expect(JSON.stringify(messages)).toContain(screenshot);
+      expect(messages).toContainEqual(expect.objectContaining({ role: "tool", toolCallId: "view-1" }));
+      result.content = "The image shows a lake.";
+    } else {
+      expect(JSON.stringify(messages)).toContain("The image shows a lake.");
+      result.content = "The lake is still there.";
+    }
+    const terminal = JSON.stringify({ type: "lingguang_ai_chat_stream_result_bridge", version: 1, nonce, result });
+    return { content: recovery + terminal };
+  });
+  const stop = vi.fn();
+  vi.stubGlobal("window", { location: { hostname: "example.com" }, lingguang: { ai: dedicated
+    ? { seedWorldStream: send, seedWorldStop: stop } : { streamChat: send } } });
+  const captureSnapshot = vi.fn(async () => ({
+    image: { blob: fixtureBlob(screenshot), width: 2, height: 2 }, metadata: { snapshotId: "view" }
+  }));
+  const loop = createTestAgentLoop({ tools: [], useSeedWorldAction: dedicated, definition: {
+    scriptApi: { catalog: "API", entries: [], modules: [] }, toolNames: [], captureSnapshot
+  } });
+  const session = new AIChatSession({ agent: loop });
+  try {
+    await session.run("what do you see?", { debugMode: true });
+    await session.run("is it still there?", { debugMode: true });
+    expect(captureSnapshot).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledTimes(4);
+    expect(stop).not.toHaveBeenCalled();
+  } finally {
+    session.dispose();
+  }
+});
+
+it("stops just the in-flight dedicated model call and ignores its late result", async () => {
+  const controller = new AbortController();
+  const stop = vi.fn(async () => ({ success: true, status: "accepted" }));
+  let resolveLate!: (value: unknown) => void;
+  const send = vi.fn(() => new Promise(resolve => { resolveLate = resolve; }));
+  vi.stubGlobal("window", { location: { hostname: "example.com" }, lingguang: { ai: { seedWorldStream: send, seedWorldStop: stop } } });
+  const request = requestAsapChat({ messages: [], tools: [], debugMode: false, useSeedWorldAction: true, signal: controller.signal });
+  const [{ sessionId }] = send.mock.calls[0] as unknown as [{ sessionId: string }];
+  controller.abort();
+  await expect(request).rejects.toMatchObject({ name: "AbortError" });
+  expect(stop).toHaveBeenCalledExactlyOnceWith(sessionId);
+  resolveLate({ content: "late" });
 });

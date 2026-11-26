@@ -336,6 +336,7 @@ export function mountSeedWorldChatPanel(options: SeedWorldChatPanelOptions): See
   const session = new AIChatSession({
     agent: new AgentLoop({
       ...configuration,
+      useSeedWorldAction: new URLSearchParams(window.location.search).get("seedWorldAction") === "1",
       maxToolCallsPerScript: SEED_WORLD_MAX_TOOL_CALLS_PER_SCRIPT,
       // Allow a 60s environment transition followed by the bounded 70s IBL publication wait.
       scriptTimeoutMs: 150_000

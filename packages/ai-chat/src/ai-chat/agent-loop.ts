@@ -125,6 +125,7 @@ export class AgentLoop {
   #definition: AgentLoopOptions["definition"];
   #tools: readonly AgentTool[];
   #toolRegistry: ToolRegistry;
+  readonly #useSeedWorldAction: boolean;
   readonly #getConfiguration: AgentLoopOptions["getConfiguration"];
   #configuredTools: readonly AgentTool[];
   readonly #scriptRuntime: AgentScriptRuntime;
@@ -153,6 +154,7 @@ export class AgentLoop {
 
   constructor(options: AgentLoopOptions) {
     this.#getConfiguration = options.getConfiguration;
+    this.#useSeedWorldAction = options.useSeedWorldAction === true;
     this.#configuredTools = options.tools;
     this.#definition = options.definition;
     this.#toolRegistry = new ToolRegistry(options.tools);
@@ -1286,6 +1288,7 @@ export class AgentLoop {
           }
         }
         result = await requestAsapChat({
+          useSeedWorldAction: this.#useSeedWorldAction,
           timeoutMs: deadline - performance.now(),
           onRecovery,
           messages,

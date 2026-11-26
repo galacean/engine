@@ -613,6 +613,7 @@ export type AgentConfiguration = {
   tools: readonly AgentTool[];
 };
 export type AgentLoopOptions = AgentConfiguration & {
+  useSeedWorldAction?: boolean;
   /** Sampled between model steps. Return stable references until capabilities change. */
   getConfiguration?: () => AgentConfiguration;
   scriptRuntime?: AgentScriptRuntime;

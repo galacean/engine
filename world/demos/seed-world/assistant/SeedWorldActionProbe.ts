@@ -30,7 +30,8 @@ export function startSeedWorldActionProbe(captureSnapshot: (signal: AbortSignal)
     } }]
   }).then(async raw => {
     controller.signal.throwIfAborted();
-    const frame = record(raw);
+    const result = record(raw);
+    const frame = record(typeof result.content === "string" ? JSON.parse(result.content) : result);
     if (frame.type !== "lingguang_ai_chat_stream_result_bridge" || frame.version !== 1 || frame.nonce !== nonce)
       throw new Error("Unexpected probe response envelope");
     const reply = record(frame.result);
