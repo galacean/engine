@@ -1,0 +1,21 @@
+tests/src/loader/AnimationClipDecoder.test.ts
+  s_71d829bec7869b::t_1e22129319b020 85,93-98,103-104,125-129,134,136,145,148-149,151-153,155,157-159,161,164,171,178,184-185,187-188,190-195,198,213-214,250-253
+packages/loader/src/resource-deserialize/resources/animationClip/AnimationClipDecoder.ts
+  s_71d829bec7869b::t_962147b4db738a 44-45,62,72,76,80,84,88,92,96,100,150,154,156,158-160,162-164,166-168
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7dcf356066c2fe11d67c46fe46d62d3746859e13",
+  "prompts": {},
+  "sessions": {
+    "s_71d829bec7869b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a212d6-cdf5-7f11-ba28-f30304403c44",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
