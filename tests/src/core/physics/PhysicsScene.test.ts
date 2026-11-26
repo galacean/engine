@@ -190,17 +190,12 @@ describe("Physics Test", () => {
           expect(edges).toEqual(registerEdges ? ["enter"] : []);
           expect(stays).toBe(0);
 
-          const listener = sensor.addComponent(
-            class extends Script {
-              override onEnable(): void {
-                this.onTriggerStay = (other: Collider, self: Collider) => {
-                  expect(other).toBe(collider);
-                  expect(self).toBe(trigger);
-                  stays++;
-                };
-              }
-            }
-          );
+          const listener = sensor.addComponent(class extends Script {});
+          listener.onTriggerStay = (other: Collider, self: Collider) => {
+            expect(other).toBe(collider);
+            expect(self).toBe(trigger);
+            stays++;
+          };
           step();
           expect(stays).toBe(1);
           expect(edges).toEqual(registerEdges ? ["enter"] : []);
@@ -220,6 +215,42 @@ describe("Physics Test", () => {
         }
       }
     );
+
+    it("compacts scripts after a trigger callback disables itself and throws", () => {
+      const clock = vi.spyOn(performance, "now");
+      const start = performance.now();
+      physicsScene.fixedTimeStep = 1 / 64;
+      clock.mockReturnValue(start);
+      try {
+        enginePhysX.update();
+        const scene = enginePhysX.sceneManager.activeScene;
+        const trigger = scene.createRootEntity();
+        trigger.addComponent(BoxCollider).isTrigger = true;
+        trigger.addComponent(
+          class extends Script {
+            override onTriggerEnter(): void {
+              this.enabled = false;
+              throw new Error("trigger handler");
+            }
+          }
+        );
+        const survivor = trigger.addComponent(class extends Script {});
+        const body = scene.createRootEntity();
+        body.addComponent(Rigidbody).useGravity = false;
+        body.addComponent(BoxCollider);
+
+        clock.mockReturnValue(start + 1000 / 64);
+        expect(() => enginePhysX.update()).toThrow("trigger handler");
+        clock.mockReturnValue(start + 2000 / 64);
+        enginePhysX.update();
+
+        survivor.enabled = false;
+        survivor.enabled = true;
+        expect(trigger._scripts.length).toBe(1);
+      } finally {
+        clock.mockRestore();
+      }
+    });
 
     it("fixedTimeStep", () => {
       // Test that set fixedTimeStep works correctly.
@@ -701,6 +732,60 @@ describe("Physics Test", () => {
       root.destroy();
     });
 
+    it("preserves outer raycast hits when writing a result queries and destroys colliders", () => {
+      const root = enginePhysX.sceneManager.activeScene.createRootEntity();
+      const addBox = (name: string, x: number, y: number) => {
+        const entity = root.createChild(name);
+        entity.transform.setPosition(x, y, 0);
+        entity.addComponent(BoxCollider);
+        return entity;
+      };
+      const outer0 = addBox("outer0", 2, 0);
+      const outer1 = addBox("outer1", 4, 0);
+      addBox("inner0", 6, 10);
+      addBox("inner1", 8, 10);
+      const direction = new Vector3(1, 0, 0);
+      const innerRay = new Ray(new Vector3(0, 10, 0), direction);
+      const inner: HitResult[] = [];
+      const first = new HitResult();
+      first.point = new (class extends Vector3 {
+        override set(x: number, y: number, z: number): this {
+          physicsScene.raycastAll(innerRay, inner);
+          outer0.destroy();
+          outer1.destroy();
+          return super.set(x, y, z);
+        }
+      })();
+      const outer = [first, new HitResult()];
+      expect(physicsScene.raycastAll(new Ray(new Vector3(), direction), outer)).toBe(true);
+      expect(outer.map((hit) => hit.entity?.name).sort()).toEqual(["outer0", "outer1"]);
+      expect(inner.map((hit) => hit.entity?.name).sort()).toEqual(["inner0", "inner1"]);
+    });
+
+    it("keeps a retained hit when clearing a duplicate tail reenters raycastAll", () => {
+      const entity = enginePhysX.sceneManager.activeScene.createRootEntity();
+      entity.transform.setPosition(2, 0, 0);
+      entity.addComponent(BoxCollider);
+      const direction = new Vector3(1, 0, 0);
+      const miss = new Ray(new Vector3(0, 100, 0), direction);
+      const retained = new HitResult();
+      const discarded = new HitResult();
+      discarded.point = new (class extends Vector3 {
+        override set(x: number, y: number, z: number): this {
+          physicsScene.raycastAll(miss, [new HitResult()]);
+          return super.set(x, y, z);
+        }
+      })();
+      const output = [retained, discarded, retained];
+      try {
+        expect(physicsScene.raycastAll(new Ray(new Vector3(), direction), output)).toBe(true);
+        expect(output).toEqual([retained]);
+        expect(retained.entity).toBe(entity);
+      } finally {
+        enginePhysX.resourceManager.gc();
+      }
+    });
+
     it("raycastAll shares only retired results across arrays and scenes", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const root = scene.createRootEntity("shared-raycast-output");
@@ -1120,7 +1205,7 @@ describe("Physics Test", () => {
           [3.5, 0, 0, -1, 0, 0],
           [5.5, 0, 0, -1, 0, 0]
         ]);
-        nativeScene.gc();
+        nativeScene.gc({});
         expect(read(outerOrigin)).to.deep.equal(outer);
       } finally {
         for (const { actor, shape } of bodies) {
@@ -2958,6 +3043,7 @@ describe("Physics Test", () => {
       physicsScene._update(physicsScene.fixedTimeStep);
       expect(enters).toHaveLength(2);
       const native = physicsScene._nativePhysicsScene as unknown as {
+        _activeTriggers: ITriggerEvent[];
         _triggerEventPool: ITriggerEvent[];
       };
       const receiverPool = native._triggerEventPool;
@@ -2995,6 +3081,16 @@ describe("Physics Test", () => {
       enginePhysX.resourceManager.gc();
       expect(dispatchPool).toHaveLength(0);
       expect(receiverPool).toHaveLength(0);
+
+      transient.enabled = true;
+      physicsScene._update(physicsScene.fixedTimeStep);
+      expect(native._activeTriggers).toHaveLength(1);
+      transient.enabled = false;
+      enginePhysX.resourceManager.gc();
+      expect(native._activeTriggers).toHaveLength(1);
+      transient.destroy();
+      enginePhysX.resourceManager.gc();
+      expect(native._activeTriggers).toHaveLength(0);
     });
 
     afterEach(() => {

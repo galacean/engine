@@ -84,8 +84,7 @@ export class PhysXPhysics implements IPhysics {
    * {@inheritDoc IPhysics.createPhysicsScene }
    */
   createPhysicsScene(): IPhysicsScene {
-    const scene = new PhysXPhysicsScene(this);
-    return scene;
+    return new PhysXPhysicsScene(this);
   }
 
   /**

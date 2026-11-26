@@ -9,7 +9,7 @@ import { Rigidbody } from "./Rigidbody";
  * A capsule that moves and slides along obstacles through {@link move}.
  * @remarks The Entity's world scale sizes the shape, {@link center} transforms with the Entity's world rotation and
  * scale, and {@link upDirection} orients the capsule itself. The controller moves independently of Rigidbody
- * ownership and Entity rotation.
+ * ownership and Entity rotation. Setting {@link isTrigger} to true throws.
  */
 export class CharacterController extends Collider {
   private static readonly _defaultUpDirection = Object.freeze(new Vector3(0, 1, 0));
@@ -63,20 +63,6 @@ export class CharacterController extends Collider {
     if (this._height !== value) {
       this._height = value;
       this._setGeometryDirty();
-    }
-  }
-
-  /**
-   * Character controllers cannot be triggers.
-   * @throws When set to true.
-   */
-  override get isTrigger(): boolean {
-    return false;
-  }
-
-  override set isTrigger(value: boolean) {
-    if (value) {
-      throw new Error("CharacterController cannot be a trigger.");
     }
   }
 
@@ -277,6 +263,10 @@ export class CharacterController extends Collider {
   /** @internal */
   override _findRigidbody(): Rigidbody | null {
     return null;
+  }
+
+  protected override _setIsTrigger(value: boolean): void {
+    if (value) throw new Error("CharacterController cannot be a trigger.");
   }
 
   /**

@@ -687,6 +687,7 @@ it("installs and resolves the headless engine and its PhysX runtime independentl
             throw Error("mixed-module kinematic move");
           }
           engine.destroy();
+          console.log("Physics package consumer completed");
         }).catch(error => { console.error(error); process.exitCode = 1; });`;
       const probe = spawnSync(
         process.execPath,
@@ -697,6 +698,7 @@ it("installs and resolves the headless engine and its PhysX runtime independentl
         }
       );
       expect(probe.status, probe.stdout + probe.stderr).toBe(0);
+      expect(probe.stdout).toContain("Physics package consumer completed");
     }
     const source = join(directory, "consumer.ts");
     writeFileSync(

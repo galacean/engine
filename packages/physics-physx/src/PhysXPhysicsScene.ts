@@ -96,7 +96,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private _pxSceneQueries: any;
   private _pxBodyPoses: {
     setActor(index: number, actor: unknown): void;
-    read(): number;
+    read(first: number): number;
     delete(): void;
   } | null = null;
   private readonly _bodyPoses: PhysicsBodyPoses;
@@ -446,7 +446,16 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   /**
    * {@inheritDoc IPhysicsScene.gc }
    */
-  gc(): void {
+  gc(liveColliders: Readonly<Record<number, unknown>>): void {
+    const active = this._activeTriggers;
+    for (let i = 0; i < active.length; ) {
+      const event = active[i];
+      if (liveColliders[event.shape0Id] && liveColliders[event.shape1Id]) {
+        i++;
+      } else {
+        this._retireTrigger(event);
+      }
+    }
     this._triggerEventPool.length = 0;
     this._contactSetPool.length = 0;
     const events = this._physicsEvents;
@@ -474,14 +483,14 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
   /** @internal */
   _setBodyPoseActor(index: number, actor: IDynamicActor | null): void {
-    const poses = (this._pxBodyPoses ??= new this._physXPhysics._physX.SceneBodyPoses())!;
+    const poses = (this._pxBodyPoses ??= new this._physXPhysics._physX.SceneBodyPoses());
     poses.setActor(index, (actor as PhysXActor | null)?._pxActor ?? null);
   }
 
   /** @internal */
-  _readBodyPoses(): Readonly<PhysicsBodyPoses> {
+  _readBodyPoses(first: number): Readonly<PhysicsBodyPoses> {
     const poses = this._bodyPoses;
-    poses.offset = this._pxBodyPoses!.read() >>> 2;
+    poses.offset = this._pxBodyPoses!.read(first) >>> 2;
     return poses;
   }
 

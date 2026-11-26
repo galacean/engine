@@ -275,7 +275,9 @@ describe("Collider", () => {
     const body = entity.addComponent(Rigidbody);
     const ray = new Ray(new Vector3(0, 0, -3), new Vector3(0, 0, 1));
     expect(physics.raycast(ray, 5)).toBe(true);
-    const geometryWrites = vi.spyOn(box["_native"]["_pxShape"], "setGeometry");
+    const inertia = body.inertiaTensor.x;
+    const shape = box["_native"]!;
+    const geometryWrites = vi.spyOn(shape["_pxShape"], "setGeometry");
     const massRebuilds = vi.spyOn(body["_nativeActor"]!, "updateMassAndInertia");
 
     for (let degrees = 1; degrees <= 20; degrees++) {
@@ -283,8 +285,13 @@ describe("Collider", () => {
       expect(physics.raycast(ray, 5)).toBe(true);
     }
 
+    expect(body.inertiaTensor.x).toBe(inertia);
+    expect(box["_native"]).toBe(shape);
     expect(geometryWrites).not.toHaveBeenCalled();
     expect(massRebuilds).not.toHaveBeenCalled();
+    box.size.set(2, 2, 2);
+    expect(body.inertiaTensor.x).toBeGreaterThan(inertia);
+    expect(massRebuilds).toHaveBeenCalledTimes(1);
   });
 
   describe.each([
@@ -640,7 +647,8 @@ describe("Collider", () => {
     sphere.isTrigger = true;
     probe.addComponent(Rigidbody).isKinematic = true;
     const recorder = probe.addComponent(CollisionRecorder);
-    root.createChild("volume").addComponent(BoxCollider);
+    const volume = root.createChild("volume");
+    const box = volume.addComponent(BoxCollider);
     update(2);
     expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
 
@@ -649,24 +657,34 @@ describe("Collider", () => {
     const flushB = () => sceneB.physics.raycast(new Ray(new Vector3(0, 100, 0), new Vector3(0, -1, 0)));
     const updateB = () => sceneB.physics._update(sceneB.physics.fixedTimeStep);
 
-    sceneB.addRootEntity(probe);
-    flushB();
-    sceneA.addRootEntity(probe);
-    update();
-    // Step the source first so its deferred trigger cleanup runs before the destination's.
-    updateB();
-    expect(() => update(2)).not.toThrow();
-    const enters = recorder.onTriggerEnter.mock.calls.length;
+    try {
+      sceneB.addRootEntity(probe);
+      flushB();
+      sceneA.addRootEntity(probe);
+      update();
+      // Step the source first so its deferred trigger cleanup runs before the destination's.
+      updateB();
+      update(2);
 
-    // Move both sides, then deactivate before the old scene steps
-    sceneB.addRootEntity(probe);
-    sceneB.addRootEntity(root.children.find((child) => child.name === "volume")!);
-    flushB();
-    probe.isActive = false;
-    updateB();
-    expect(() => update(2)).not.toThrow();
-    expect(recorder.onTriggerEnter.mock.calls.length).toBeGreaterThanOrEqual(enters);
-    sceneB.destroy();
+      probe.transform.position.x = 10;
+      update(2);
+      recorder.onTriggerEnter.mockClear();
+      probe.transform.position.x = 0;
+      update(2);
+      expect(recorder.onTriggerEnter).toHaveBeenCalledExactlyOnceWith(box, sphere);
+
+      // Move both sides, then deactivate before the old scene steps.
+      recorder.onTriggerEnter.mockClear();
+      sceneB.addRootEntity(probe);
+      sceneB.addRootEntity(volume);
+      flushB();
+      probe.isActive = false;
+      updateB();
+      update(2);
+      expect(recorder.onTriggerEnter).not.toHaveBeenCalled();
+    } finally {
+      sceneB.destroy();
+    }
   });
 
   describe("collision response", () => {
@@ -1309,12 +1327,16 @@ describe("Collider", () => {
       const child = bodyEntity.createChild("collider");
       const box = child.addComponent(BoxCollider);
       expect(physics.raycast(downwardRay(0), hit) && hit.collider === box).toBe(true);
-      const geometryWrites = vi.spyOn(box["_native"]["_pxShape"], "setGeometry");
-      const massSpy = vi.spyOn((body as any)._nativeActor, "updateMassAndInertia");
+      const inertia = body.inertiaTensor.x;
+      const shape = box["_native"]!;
+      const geometryWrites = vi.spyOn(shape["_pxShape"], "setGeometry");
+      const massSpy = vi.spyOn(body["_nativeActor"]!, "updateMassAndInertia");
       for (let i = 1; i <= 90; i++) {
         bodyEntity.transform.setRotation(0, i * 3.7, 0);
         expect(physics.raycast(downwardRay(0), hit) && hit.collider === box).toBe(true);
       }
+      expect(body.inertiaTensor.x).toBe(inertia);
+      expect(box["_native"]).toBe(shape);
       expect(geometryWrites).not.toHaveBeenCalled();
       expect(massSpy).not.toHaveBeenCalled();
 
@@ -1558,6 +1580,7 @@ describe("Collider", () => {
         };
         expectHit();
 
+        const inertia = body.inertiaTensor.x;
         const shape = collider["_native"]!;
         const geometryWrites = vi.spyOn(shape["_pxShape"], "setGeometry");
         const poseWrites = vi.spyOn(shape, "setLocalPose");
@@ -1566,6 +1589,8 @@ describe("Collider", () => {
           bodyEntity.transform.setRotation(0, step * 3.7, 0);
           expectHit();
         }
+        expect(body.inertiaTensor.x).toBe(inertia);
+        expect(collider["_native"]).toBe(shape);
         expect(geometryWrites).not.toHaveBeenCalled();
         expect(poseWrites).not.toHaveBeenCalled();
         expect(massRebuilds).not.toHaveBeenCalled();
@@ -1590,6 +1615,7 @@ describe("Collider", () => {
         };
         expectHit();
 
+        const inertia = body.inertiaTensor.x;
         const shape = box["_native"]!;
         const geometryWrites = vi.spyOn(shape["_pxShape"], "setGeometry");
         const poseWrites = vi.spyOn(shape, "setLocalPose");
@@ -1598,6 +1624,8 @@ describe("Collider", () => {
           bodyEntity.transform.setPosition(step % 2 === 0 ? 0 : 128, 0, 0);
           expectHit();
         }
+        expect(body.inertiaTensor.x).toBe(inertia);
+        expect(box["_native"]).toBe(shape);
         expect(geometryWrites).not.toHaveBeenCalled();
         expect(poseWrites).not.toHaveBeenCalled();
         expect(massRebuilds).not.toHaveBeenCalled();

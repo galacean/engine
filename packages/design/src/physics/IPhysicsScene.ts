@@ -210,9 +210,10 @@ export interface IPhysicsScene {
   ): ArrayLike<number>;
 
   /**
-   * Trim internal object pools after a GC cycle.
+   * Release retired events and trim internal object pools during a GC cycle.
+   * @param liveColliders - The Core registry keyed by collider ID.
    */
-  gc(): void;
+  gc(liveColliders: Readonly<Record<number, unknown>>): void;
 
   /**
    * Destroy the physics scene.
@@ -222,8 +223,8 @@ export interface IPhysicsScene {
   /** @internal Set or append a writeback slot. Passing null removes the last slot. */
   _setBodyPoseActor(index: number, actor: IDynamicActor | null): void;
 
-  /** @internal Capture the completed step's poses by writeback slot. */
-  _readBodyPoses(): Readonly<PhysicsBodyPoses>;
+  /** @internal Capture completed poses from the first required writeback slot. */
+  _readBodyPoses(first: number): Readonly<PhysicsBodyPoses>;
 }
 
 /** @internal Positions, rotations and sleep flags in eight Float32 lanes per Rigidbody. */

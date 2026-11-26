@@ -23,6 +23,7 @@ import {
 } from "@galacean/engine-core";
 import { Ray, Vector3 } from "@galacean/engine-math";
 import { AssetType, type PrefabResource, WebGLEngine } from "@galacean/engine";
+import { PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 class CollisionRecorder extends Script {
@@ -58,11 +59,11 @@ function createCubeMesh(engine: WebGLEngine, size = 1, offsetX = 0): ModelMesh {
   );
 }
 
-describe("MeshCollider", () => {
+describe.each([PhysXRuntimeMode.WebAssembly, PhysXRuntimeMode.WebAssemblySIMD])("MeshCollider (runtime %s)", (mode) => {
   let engine: WebGLEngine;
   let root: Entity;
   let physics: PhysicsScene;
-  const backend = createPhysics();
+  const backend = createPhysics(mode);
 
   beforeAll(async () => {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: backend });
@@ -201,6 +202,7 @@ describe("MeshCollider", () => {
       expect(physics.raycast(ray, hit) && hit.collider === mesh).toBe(true);
     };
     expectHit();
+    const inertia = body.inertiaTensor.x;
     const shape = mesh["_native"]!;
     const geometryWrites = vi.spyOn(shape["_pxShape"], "setGeometry");
     const poseWrites = vi.spyOn(shape, "setLocalPose");
@@ -209,6 +211,8 @@ describe("MeshCollider", () => {
       child.transform.setRotation(0, angle, 0);
       expectHit();
     }
+    expect(body.inertiaTensor.x).toBe(inertia);
+    expect(mesh["_native"]).toBe(shape);
     expect(geometryWrites).not.toHaveBeenCalled();
     expect(poseWrites).not.toHaveBeenCalled();
     expect(massUpdates).not.toHaveBeenCalled();
@@ -369,24 +373,35 @@ describe("MeshCollider", () => {
     const triangle = watchCooking(false);
     const convex = watchCooking(true);
     const mesh = createCubeMesh(engine);
+    const hit = new HitResult();
+    const expectHit = (collider: MeshCollider) => {
+      expect(physics.raycast(rayAt(collider.entity.transform.position.x), hit) && hit.collider === collider).toBe(true);
+    };
+
     const raw = addMesh(false, mesh);
     raw.cookingFlags = 0 as MeshColliderCookingFlag;
+    expectHit(raw);
+    expect(triangle).toHaveBeenCalledOnce();
+
     const noCleaning = addMesh(false, mesh);
     noCleaning.cookingFlags = MeshColliderCookingFlag.VertexWelding;
     noCleaning.entity.transform.setPosition(4, 0, 0);
+    expectHit(noCleaning);
+    expect(triangle).toHaveBeenCalledOnce();
+
     const cleaned = addMesh(false, mesh);
     cleaned.cookingFlags = MeshColliderCookingFlag.Cleaning;
     cleaned.entity.transform.setPosition(8, 0, 0);
+    expectHit(cleaned);
+    expect(triangle).toHaveBeenCalledTimes(2);
+
     const hull = addMesh(true, mesh);
     hull.entity.transform.setPosition(12, 0, 0);
     const secondHull = addMesh(true, mesh);
     secondHull.cookingFlags = MeshColliderCookingFlag.Cleaning;
     secondHull.entity.transform.setPosition(16, 0, 0);
-    const hit = new HitResult();
-    for (const collider of [raw, noCleaning, cleaned, hull, secondHull]) {
-      expect(physics.raycast(rayAt(collider.entity.transform.position.x), hit) && hit.collider === collider).toBe(true);
-    }
-    expect(triangle).toHaveBeenCalledTimes(2);
+    expectHit(hull);
+    expectHit(secondHull);
     expect(convex).toHaveBeenCalledOnce();
   });
 
@@ -1405,32 +1420,32 @@ describe("MeshCollider", () => {
     }
   );
 
-  it.each(["box", "mesh"] as const)(
-    "avoids redundant native geometry writes and mass rebuilds while rotating an unchanged uniform compound body (%s)",
-    (kind) => {
-      const bodyEntity = root.createChild(`rotate-scale-${kind}`);
-      bodyEntity.transform.setScale(2, 2, 2);
-      const body = bodyEntity.addComponent(Rigidbody);
-      body.isKinematic = true;
-      const child = bodyEntity.createChild("collider");
-      const collider = kind === "box" ? child.addComponent(BoxCollider) : child.addComponent(MeshCollider);
-      if (collider instanceof MeshCollider) {
-        collider.convex = true;
-        collider.mesh = createCubeMesh(engine, 1);
-      }
-      const hit = new HitResult();
+  it("avoids redundant native geometry writes and mass rebuilds while rotating a uniform compound mesh", () => {
+    const bodyEntity = root.createChild("rotate-scale");
+    bodyEntity.transform.setScale(2, 2, 2);
+    const body = bodyEntity.addComponent(Rigidbody);
+    body.isKinematic = true;
+    const collider = bodyEntity.createChild("collider").addComponent(MeshCollider);
+    collider.convex = true;
+    collider.mesh = createCubeMesh(engine, 1);
+    const hit = new HitResult();
+    expect(physics.raycast(rayAt(0, 8), hit) && hit.collider === collider).toBe(true);
+    const inertia = body.inertiaTensor.x;
+    const shape = collider["_native"]!;
+    const geometryWrites = vi.spyOn(shape["_pxShape"], "setGeometry");
+    const massSpy = vi.spyOn(body["_nativeActor"]!, "updateMassAndInertia");
+    for (let i = 1; i <= 90; i++) {
+      bodyEntity.transform.setRotation(0, i * 3.7, 0);
       expect(physics.raycast(rayAt(0, 8), hit) && hit.collider === collider).toBe(true);
-
-      const geometryWrites = vi.spyOn(collider["_native"]["_pxShape"], "setGeometry");
-      const massSpy = vi.spyOn((body as any)._nativeActor, "updateMassAndInertia");
-      for (let i = 1; i <= 90; i++) {
-        bodyEntity.transform.setRotation(0, i * 3.7, 0);
-        expect(physics.raycast(rayAt(0, 8), hit) && hit.collider === collider).toBe(true);
-      }
-      expect(geometryWrites).not.toHaveBeenCalled();
-      expect(massSpy).not.toHaveBeenCalled();
     }
-  );
+    expect(body.inertiaTensor.x).toBe(inertia);
+    expect(collider["_native"]).toBe(shape);
+    expect(geometryWrites).not.toHaveBeenCalled();
+    expect(massSpy).not.toHaveBeenCalled();
+    bodyEntity.transform.setScale(4, 4, 4);
+    expect(body.inertiaTensor.x).toBeGreaterThan(inertia);
+    expect(massSpy).toHaveBeenCalledTimes(1);
+  });
 
   it("reconciles active solid contacts across MeshCollider convex replaceShape transitions", () => {
     const collider = addMesh(true);
