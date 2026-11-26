@@ -1,0 +1,45 @@
+packages/core/src/Engine.ts
+  s_c72f930c19d1f3::t_6b004eeb2e6e1c 2,20,218,231-232,399-401,412-413,549
+packages/core/src/RenderPipeline/Blitter.ts
+  s_c72f930c19d1f3::t_476819a1a6e604 4-5,9,23-27,31,34-38,42,47,57-58,60-79,83-92,94,100,108,164-181
+packages/core/src/RenderPipeline/InstanceBuffer.ts
+  s_c72f930c19d1f3::t_a75d891452213c 16-18,23-24,36-39,46,52-53,57-70,75-76,139-141,145-148,152,159-166,171-207
+packages/core/src/material/Material.ts
+  s_c72f930c19d1f3::t_30439bca5b812e 6,13-17,21-39,43,47-62,98,117-137
+packages/core/src/renderingHardwareInterface/IHardwareRenderer.ts
+  s_c72f930c19d1f3::t_d4c46b63a12041 21,56,99,101-109
+packages/core/src/renderingHardwareInterface/IPlatformTexture2D.ts
+  s_c72f930c19d1f3::t_560f34becf5b98 62-70
+packages/core/src/renderingHardwareInterface/IPlatformTransformFeedbackPrimitive.ts
+  s_c72f930c19d1f3::t_2d3b8270a81a2b 40-41,43
+packages/core/src/renderingHardwareInterface/RenderPassDescriptor.ts
+  s_c72f930c19d1f3::t_c2219253d3eacb 1-4,7-10,12-22,24-29,31-45,48-54,56-59,61-65,67,69-71,73-75,77-79,81-85
+packages/core/src/texture/RenderTarget.ts
+  s_c72f930c19d1f3::t_144f637656c5ed 212,215-217,251
+packages/loader/src/MaterialLoader.ts
+  s_c72f930c19d1f3::t_4f159c1eaaf3be 4,15-23,29,33-38,61-62,69,72-75,78-81,84-87,90-92,95-96,104-105,117-151
+packages/loader/src/ShaderLoader.ts
+  s_c72f930c19d1f3::t_f36afe24414b60 4,35,38,40-47,49-72,75,78-83
+packages/project/build/vite.mjs
+  s_c72f930c19d1f3::t_c194c199ca9289 11-26,28-33,36,40,47-49,57-67,69-70,72-74,76-77,79,83
+world/demos/seed-world/src/SeedWorldPerfPanel.ts
+  s_c72f930c19d1f3::t_76008879aa82ff 1-6,92,160-161,203-206,217-219,226-270,343,816,824,830-831
+world/tests/seed-world/EngineStartup.spec.ts
+  s_c72f930c19d1f3::t_3f9c8ad4900c5f 16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6436014fd726772d2a31c2e877b37b6572b4b9c5",
+  "prompts": {},
+  "sessions": {
+    "s_c72f930c19d1f3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21604-5ead-7042-b751-c18d1813c1a0",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

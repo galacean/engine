@@ -1,0 +1,23 @@
+packages/shader-compiler/src/bundler/rollup.ts
+  s_c72f930c19d1f3::t_85be878ded7277 15-16
+rollup.config.js
+  s_c72f930c19d1f3::t_85be878ded7277 40-41
+packages/shader/package.json
+  s_c72f930c19d1f3::t_85be878ded7277 31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "deb294f6b543768bbf27b4382d6675978930927c",
+  "prompts": {},
+  "sessions": {
+    "s_c72f930c19d1f3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21604-5ead-7042-b751-c18d1813c1a0",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
