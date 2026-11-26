@@ -349,6 +349,7 @@ export function mountSeedWorldChatPanel(options: SeedWorldChatPanelOptions): See
   });
   let controller: SeedWorldVoiceHudController | undefined;
   const debug = createSeedWorldAgentDebug(traceStore, {
+    captureProbeSnapshot: signal => options.application.requireViewSnapshots().snapshot(signal),
     setContextCompactionBudget: budget => {
       if (!controller) throw new Error("Seed World AI is not ready");
       controller.setContextCompactionBudget(budget);
