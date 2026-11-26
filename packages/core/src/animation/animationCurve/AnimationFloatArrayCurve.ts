@@ -2,12 +2,7 @@ import { TypedArray } from "../../base/Constant";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
-import {
-  evaluateHermiteArray,
-  readArrayKey,
-  subtractArrayFirstKey,
-  writeArrayKey
-} from "../internal/AnimationCurvePack";
+import { evaluateHermiteArray, readArrayKey, subtractArrayFirstKey } from "../internal/AnimationCurvePack";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
@@ -18,9 +13,13 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<Float32Array>>()
 export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
   /** @internal */
+  static override readonly _keyValueSize = 0;
+  /** @internal */
   static readonly _isCopyMode = true;
   /** @internal */
   static readonly _supportInterpolationMode = true;
+
+  protected declare _values: TypedArray;
 
   /**
    * @internal
@@ -99,37 +98,17 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
     return sourceSize;
   }
 
-  /**
-   * Replace all keyframes with packed scalar arrays; per-key element width is inferred from `values.length` and `times.length`.
-   * @param times - Keyframe timestamps in seconds; must be sorted in ascending (non-decreasing) order
-   * @param values - Packed scalars (`width` per key, or `width * 3` interleaved as `[inTangent, value, outTangent]`)
-   * @param hasTangents - Whether `values` includes in/out tangents for each keyframe
-   * @throws Error If `times` is empty with non-empty `values`, or `values.length` is not a multiple of `times.length` (`times.length * 3` when `hasTangents` is true)
-   * @remarks For non-empty inputs, `times` and `values` are retained directly by reference (copy-on-write on `addKey`, `setKey`, or `removeKey`) without validating or sorting timestamps; callers must pass non-decreasing `times` and must not mutate retained buffers.
-   */
-  setKeys(times: TypedArray, values: TypedArray, hasTangents: boolean = false): void {
-    this._setNumericKeys(times, values, 0, hasTangents);
-    if (this._evaluateData.value && this._evaluateData.value.length !== this._valueSize) {
-      this._evaluateData.value = null!;
-    }
-  }
-
   /** @inheritdoc */
   override evaluate(time: number): Float32Array | undefined {
     // Allocate the scratch output lazily once the curve's element width is known.
-    if (this._keyCount > 0 && !this._evaluateData.value) {
+    if (this._keyCount > 0 && this._evaluateData.value?.length !== this._valueSize) {
       this._evaluateData.value = new Float32Array(this._valueSize);
     }
     return super.evaluate(time);
   }
 
-  protected override _prepareKeyValueSize(key: Keyframe<Float32Array>, isSingleKeyReplace: boolean): void {
-    this._prepareVariableValueSize(key.value.length, isSingleKeyReplace);
-  }
-
   protected override _clearValues(): void {
     super._clearValues();
-    this._valueSize = 0;
     this._evaluateData.value = null!;
   }
 
@@ -182,9 +161,5 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
     const valueSize = this._valueSize;
     const dstValue = out.value && out.value.length === valueSize ? out.value : new Float32Array(valueSize);
     readArrayKey(this._values, valueSize, this._hasTangents, index, out, dstValue);
-  }
-
-  protected override _writeKeyAt(index: number, key: Keyframe<Float32Array>): void {
-    writeArrayKey(this._values, this._valueSize, this._hasTangents, index, key);
   }
 }

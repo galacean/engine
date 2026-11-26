@@ -171,6 +171,56 @@ describe("Animator test", function () {
     expect(animator["_tempAnimatorStateInfo"].layerIndex).to.eq(-1);
   });
 
+  it("plays through the current end of a curve edited after binding", () => {
+    const { animator: localAnimator, clip, entity } = createLoopAnimator();
+    const state = localAnimator.animatorController.layers[0].stateMachine.findStateByName("loop");
+    state.wrapMode = WrapMode.Once;
+    localAnimator.play("loop");
+    updateAnimator(localAnimator, 0.5);
+
+    const curve = clip.curveBindings[0].curve as AnimationFloatCurve;
+    curve.setKey(1, { time: 2, value: 2 });
+    expect(clip.length).toBe(2);
+    updateAnimator(localAnimator, 1);
+    expect(entity.transform.position.x).toBeCloseTo(1.5);
+    updateAnimator(localAnimator, 1);
+    expect(entity.transform.position.x).toBe(2);
+
+    entity.destroy();
+    clip.destroy();
+  });
+
+  it("tracks shared curves and forgets replaced and cleared bindings", () => {
+    const { clip, entity } = createLoopAnimator();
+    const otherClip = new AnimationClip("other-clip");
+    const curve = clip.curveBindings[0].curve as AnimationFloatCurve;
+    const replacement = new AnimationFloatCurve();
+    replacement.addKey({ time: 0.5, value: 0 });
+    clip.addCurveBinding("", Transform, "position.y", curve);
+    otherClip.addCurveBinding("", Transform, "position.z", curve);
+
+    clip.curveBindings[0].curve = replacement;
+    curve.setKey(1, { time: 2, value: 2 });
+    expect(clip.length).toBe(2);
+    expect(otherClip.length).toBe(2);
+
+    clip.curveBindings[1].curve = replacement;
+    expect(clip.length).toBe(0.5);
+    const readReplacementLength = vi.spyOn(replacement, "length", "get");
+    curve.removeKey(1);
+    expect(clip.length).toBe(0.5);
+    expect(readReplacementLength).not.toHaveBeenCalled();
+    expect(otherClip.length).toBe(0);
+    readReplacementLength.mockRestore();
+
+    clip.clearCurveBindings();
+    replacement.clearKeys();
+    expect(clip.length).toBe(0);
+    clip.destroy();
+    otherClip.destroy();
+    entity.destroy();
+  });
+
   it("animator speed value", () => {
     // Test animator speed.
     animator.play("Run");

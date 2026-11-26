@@ -772,25 +772,21 @@ describe("glTF Loader test", function () {
     }
   });
 
-  it.each(["gltf", "glb"])("packs animation samples in %s", async (format) => {
-    const bytes = new ArrayBuffer(148);
+  it.each(["gltf", "glb"])("samples and edits compact animations from %s", async (format) => {
+    const bytes = new ArrayBuffer(156);
     new Float32Array(bytes, 4, 8).set([0, 1, 1, 2, 3, 5, 6, 7]);
     new Int8Array(bytes, 36, 8).set([0, 0, 0, 127, 0, 0, 0, 127]);
     new Uint8Array(bytes)[44] = 1;
     new Int8Array(bytes, 48, 4).set([0, 0, -128, 0]);
-    new Float32Array(bytes, 52, 6).set([0, 0, 2, 0, 1, 0]); // cubic weight: in, value, out
-    new Float32Array(bytes, 76, 9).set([0, 0, 0, 1, 0, 0, 0, 1, 0]); // triangle
-    new Float32Array(bytes, 112, 9).set([0, 0, 1, 0, 0, 1, 0, 0, 1]); // morph deltas
+    new Float32Array(bytes, 52, 8).set([0, 1, 0, 0, 2, 0, 1, 0]); // times, then cubic weights
+    new Float32Array(bytes, 84, 9).set([0, 0, 0, 1, 0, 0, 0, 1, 0]); // triangle
+    new Float32Array(bytes, 120, 9).set([0, 0, 1, 0, 0, 1, 0, 0, 1]); // morph deltas
     const bufferUrl = format === "gltf" ? URL.createObjectURL(new Blob([bytes])) : undefined;
     const glTF = {
       asset: { version: "2.0" },
       scene: 0,
       scenes: [{ nodes: [0, 1, 2] }],
-      nodes: [
-        { name: "Actor", mesh: 0 },
-        { name: "Twin", mesh: 0 },
-        { name: "Wide", mesh: 1 }
-      ],
+      nodes: [{ name: "Actor", mesh: 0 }, { name: "Twin", mesh: 0 }, { name: "Wide", mesh: 1 }, { name: "Unattached" }],
       meshes: [1, 2].map((count) => ({
         weights: new Array<number>(count).fill(0),
         primitives: [{ attributes: { POSITION: 4 }, targets: Array.from({ length: count }, () => ({ POSITION: 5 })) }]
@@ -801,9 +797,9 @@ describe("glTF Loader test", function () {
         { buffer: 0, byteOffset: 36, byteLength: 8 },
         { buffer: 0, byteOffset: 44, byteLength: 1 },
         { buffer: 0, byteOffset: 48, byteLength: 4 },
-        { buffer: 0, byteOffset: 52, byteLength: 24 },
-        { buffer: 0, byteOffset: 76, byteLength: 36, target: 34962 },
-        { buffer: 0, byteOffset: 112, byteLength: 36, target: 34962 }
+        { buffer: 0, byteOffset: 52, byteLength: 32, byteStride: 4 },
+        { buffer: 0, byteOffset: 84, byteLength: 36, target: 34962 },
+        { buffer: 0, byteOffset: 120, byteLength: 36, target: 34962 }
       ],
       accessors: [
         { bufferView: 0, type: "SCALAR", componentType: 5126, count: 2, min: [0], max: [1] },
@@ -816,9 +812,12 @@ describe("glTF Loader test", function () {
           count: 2,
           sparse: { count: 1, indices: { bufferView: 2, componentType: 5121 }, values: { bufferView: 3 } }
         },
-        { bufferView: 4, type: "SCALAR", componentType: 5126, count: 6 },
+        { bufferView: 4, byteOffset: 8, type: "SCALAR", componentType: 5126, count: 6 },
         { bufferView: 5, type: "VEC3", componentType: 5126, count: 3, min: [0, 0, 0], max: [1, 1, 0] },
-        { bufferView: 6, type: "VEC3", componentType: 5126, count: 3, min: [0, 0, 1], max: [0, 0, 1] }
+        { bufferView: 6, type: "VEC3", componentType: 5126, count: 3, min: [0, 0, 1], max: [0, 0, 1] },
+        { bufferView: 4, type: "SCALAR", componentType: 5126, count: 2, min: [0], max: [1] },
+        { bufferView: 0, byteOffset: 24, type: "SCALAR", componentType: 5126, count: 2 },
+        { bufferView: 0, byteOffset: 8, type: "SCALAR", componentType: 5126, count: 4 }
       ],
       animations: [
         {
@@ -826,7 +825,7 @@ describe("glTF Loader test", function () {
             { input: 0, output: 1 },
             { input: 0, output: 2, interpolation: "STEP" },
             { input: 0, output: 0 },
-            { input: 0, output: 2, interpolation: "LINEAR" }
+            { input: 6, output: 2, interpolation: "LINEAR" }
           ],
           channels: [
             { sampler: 0, target: { node: 0, path: "translation" } },
@@ -838,8 +837,20 @@ describe("glTF Loader test", function () {
           ]
         },
         {
-          samplers: [{ input: 0, output: 3, interpolation: "CUBICSPLINE" }],
+          samplers: [{ input: 6, output: 3, interpolation: "CUBICSPLINE" }],
           channels: [{ sampler: 0, target: { node: 0, path: "weights" } }]
+        },
+        {
+          // Unreferenced samplers and channels outside all scenes do not retain data
+          samplers: [
+            { input: 0, output: 7 },
+            { input: 0, output: 8 },
+            { input: 0, output: 1 }
+          ],
+          channels: [
+            { sampler: 0, target: { node: 0, path: "weights" } },
+            { sampler: 2, target: { node: 3, path: "translation" } }
+          ]
         }
       ]
     };
@@ -865,29 +876,26 @@ describe("glTF Loader test", function () {
       const [position, scale, rotation, weight, unplayedWeight, linearRotation] = clip.curveBindings.map(
         (binding) => binding.curve!
       );
-      const slab = position["_times"].buffer;
-      // Two timestamps, two translation vectors, and two normalized quaternions.
-      expect(slab.byteLength).toBe(64);
-      expect(scale).not.toBe(position);
-      for (const curve of [position, scale, rotation, weight, unplayedWeight, linearRotation]) {
-        expect(curve["_times"].buffer).toBe(slab);
-        expect(curve["_values"].buffer).toBe(slab);
-      }
-      expect(rotation["_values"]).toBe(linearRotation["_values"]);
-      const beforeEdit = new Uint8Array(slab).slice();
-
       expect(clip.length).toBe(1);
       expect(position.keyCount).toBe(2);
       expect(position.evaluate(0.5)).toMatchObject({ x: 3, y: 4, z: 5 });
+      const backing = position["_times"].buffer;
+      expect(position["_values"].buffer).toBe(backing);
+      expect(scale).not.toBe(position);
+      expect(scale["_times"]).toBe(position["_times"]);
+      expect(scale["_values"]).toBe(position["_values"]);
+      expect(backing.byteLength).toBe(32);
+      expect(rotation["_values"]).toBe(linearRotation["_values"]);
+      const beforeEdit = new Uint8Array(backing).slice();
 
       // Mutating `position` copies on write and leaves `scale` (which shares sampler 0) isolated.
       const firstPos = position.getKey(0);
       (firstPos.value as Vector3).x = 11;
       position.setKey(0, firstPos);
       expect(position.evaluate(0.5)).toMatchObject({ x: 8, y: 4, z: 5 });
-      expect(position["_times"].buffer).not.toBe(slab);
-      expect(position["_values"].buffer).not.toBe(slab);
-      expect(new Uint8Array(slab)).toEqual(beforeEdit);
+      expect(position["_times"].buffer).not.toBe(backing);
+      expect(position["_values"].buffer).not.toBe(backing);
+      expect(new Uint8Array(backing)).toEqual(beforeEdit);
       scale.interpolation = InterpolationType.Step;
       expect(scale.evaluate(0.5)).toMatchObject({ x: 1, y: 2, z: 3 });
 
@@ -901,18 +909,26 @@ describe("glTF Loader test", function () {
       expect(linearRotation.evaluate(1)).toMatchObject({ x: 0, y: 0, z: -1, w: 0 });
       expect(weight.evaluate(0.5)).toEqual(new Float32Array([0.5]));
       const cubic = resource.animations![1].curveBindings[0].curve!;
-      expect(cubic["_times"].buffer).not.toBe(slab);
+      expect(cubic["_times"].buffer).not.toBe(backing);
       expect(cubic["_times"].buffer).toBe(cubic["_values"].buffer);
       expect(cubic["_times"].buffer.byteLength).toBe(32);
+      expect(linearRotation["_times"].buffer.byteLength).toBe(8);
       expect(cubic.evaluate(0)).toEqual(new Float32Array([0]));
       expect(cubic.evaluate(0.5)).toEqual(new Float32Array([0.75]));
       expect(cubic.evaluate(1)).toEqual(new Float32Array([1]));
+
+      const gappedClip = resource.animations![2];
+      expect(gappedClip.curveBindings).toHaveLength(1);
+      const gapped = gappedClip.curveBindings[0].curve!;
+      expect(gapped["_times"].buffer.byteLength).toBe(8);
+      expect(gapped["_values"].buffer.byteLength).toBe(8);
+      expect(gapped.evaluate(0.5)).toEqual(new Float32Array([6.5]));
 
       instance = resource.instantiateSceneRoot();
       const wide = instance.findByName("Wide")!;
       const renderer = wide.getComponent(SkinnedMeshRenderer)!;
       const seedCurve = new AnimationFloatArrayCurve();
-      seedCurve.setKeys(new Float32Array([0, 1]), new Float32Array([0.75, 0.75, 0.75, 0.75]), false);
+      seedCurve._setKeyBuffers(new Float32Array([0, 1]), new Float32Array([0.75, 0.75, 0.75, 0.75]));
       const remapped = new AnimationClip("Retarget");
       remapped.addCurveBinding("", SkinnedMeshRenderer, "blendShapeWeights", seedCurve);
       for (const [curve, expected] of [
@@ -933,7 +949,7 @@ describe("glTF Loader test", function () {
       const replacementTimes = new Float32Array([0, 1]);
       const replacementValues = new Float32Array([2, 3, 3, 4]);
       for (const curve of [weight, unplayedWeight]) {
-        curve.setKeys(replacementTimes, replacementValues, false);
+        curve._setKeyBuffers(replacementTimes, replacementValues);
         expect(curve.evaluate(0.5)).toEqual(new Float32Array([2.5, 3.5]));
       }
     } finally {

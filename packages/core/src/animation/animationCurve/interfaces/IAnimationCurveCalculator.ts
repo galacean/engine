@@ -6,9 +6,10 @@ import { KeyframeValueType } from "../../Keyframe";
  * @internal
  */
 export type IAnimationCurveCalculator<V extends KeyframeValueType> = {
-  _supportInterpolationMode: boolean;
+  readonly _keyValueSize: number | null;
+  readonly _supportInterpolationMode: boolean;
 
-  _initializeOwner(owner: AnimationCurveOwner<V>);
+  _initializeOwner(owner: AnimationCurveOwner<V>): void;
 
   // Lerp need
   _lerpValue?(src: V, dest: V, weight: number, out?: V): V;

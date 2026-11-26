@@ -7,7 +7,7 @@ import { expect, it } from "vitest";
 it("checks nullable public declarations", { timeout: 30_000 }, () => {
   const fileName = fileURLToPath(new URL("../../../tests/entity-lookup-types.ts", import.meta.url));
   const source = `
-import { AnimationRefCurve, AnimationVector3Curve, AnimatorState, BloomEffect, Component, DirectLight, Entity, Keyframe, ModelMesh, PostProcess, ReferResource, Scene, SceneManager, Shader } from "@galacean/engine";
+import { AnimationCurve, AnimationFloatArrayCurve, AnimationRefCurve, AnimationVector3Curve, AnimatorState, BloomEffect, Component, DirectLight, Entity, Keyframe, ModelMesh, PostProcess, ReferResource, Scene, SceneManager, Shader, Vector3 } from "@galacean/engine";
 declare const entity: Entity;
 declare const scene: Scene;
 declare const component: Component;
@@ -31,14 +31,24 @@ effect?.intensity.value;
 state.clip = null;
 state.clip = undefined;
 const key = new Keyframe<ReferResource | null>();
+key.time = 0;
 key.value = null;
 const refCurve = new AnimationRefCurve();
 refCurve.addKey(key);
 const keyCount: number = refCurve.keyCount;
 const readKey: Keyframe<ReferResource | null> = refCurve.getKey(0, key);
-refCurve.setKeys(new Float32Array([0]), [null]);
-const vectorCurve = new AnimationVector3Curve();
-vectorCurve.setKeys(new Float32Array([0]), new Float32Array([1, 2, 3]), false);
+refCurve.setKeys([key]);
+const vectorCurve: AnimationCurve<Vector3> = new AnimationVector3Curve();
+vectorCurve.setKeys([{ time: 0, value: new Vector3(1, 2, 3) }]);
+const movedIndex: number = vectorCurve.setKey(0, { time: 1, value: new Vector3() });
+new AnimationFloatArrayCurve();
+// @ts-expect-error Public curve constructors do not take storage parameters.
+new AnimationFloatArrayCurve(0, true);
+// @ts-expect-error Packed arrays are not part of the public setKeys signature.
+vectorCurve.setKeys(new Float32Array([0]), new Float32Array([1, 2, 3]));
+// @ts-expect-error Batch editing requires keyframes with matching value types.
+vectorCurve.setKeys([key]);
+void movedIndex;
 void keyCount;
 void readKey;
 const shader: Shader = Shader.create("typed-shader", []);

@@ -1,4 +1,4 @@
-import { Color, Quaternion, Vector4 } from "@galacean/engine-math";
+import { Color, Quaternion, Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { TypedArray } from "../../base/Constant";
 import { Keyframe } from "../Keyframe";
 
@@ -19,65 +19,50 @@ export function evaluateHermiteScalar(
   return Number.isFinite(t0) && Number.isFinite(t1) ? a * p0 + bd * t0 + cd * t1 + d * p1 : p0;
 }
 
-/**
- * Cold-path read for 4-component numeric curves (`Vector4`, `Color`, `Quaternion`).
- */
-export function readVec4Key<V extends Vector4 | Color | Quaternion>(
+type ArrayValue = Color | Quaternion | Vector2 | Vector3 | Vector4;
+export type NumericValue = ArrayValue | Rect | number | number[] | Float32Array;
+
+export function readObjectKey<V extends ArrayValue, T extends Vector2 | Vector3 | Vector4>(
   values: TypedArray,
+  width: number,
   hasTangents: boolean,
   index: number,
-  out: { value: V; inTangent?: Vector4; outTangent?: Vector4 },
-  dstValue: V
+  out: Keyframe<V, T>,
+  Value: new () => V,
+  Tangent: new () => T
 ): void {
-  out.value = dstValue;
+  const offset = hasTangents ? index * width * 3 + width : index * width;
+  (out.value ||= new Value()).copyFromArray(values, offset);
   if (hasTangents) {
-    const base = index * 12;
-    (out.inTangent ||= new Vector4()).set(values[base], values[base + 1], values[base + 2], values[base + 3]);
-    dstValue.set(values[base + 4], values[base + 5], values[base + 6], values[base + 7]);
-    (out.outTangent ||= new Vector4()).set(values[base + 8], values[base + 9], values[base + 10], values[base + 11]);
+    (out.inTangent ||= new Tangent()).copyFromArray(values, offset - width);
+    (out.outTangent ||= new Tangent()).copyFromArray(values, offset + width);
   } else {
-    const base = index * 4;
-    dstValue.set(values[base], values[base + 1], values[base + 2], values[base + 3]);
     out.inTangent = undefined;
     out.outTangent = undefined;
   }
 }
 
-/**
- * Cold-path write for 4-component numeric curves (`Vector4`, `Color`, `Quaternion`).
- * Writes `NaN` for absent tangents when `hasTangents` is true.
- */
-export function writeVec4Key(
-  values: TypedArray,
-  hasTangents: boolean,
-  index: number,
-  v0: number,
-  v1: number,
-  v2: number,
-  v3: number,
-  inTangent?: Vector4,
-  outTangent?: Vector4
+export function writeKeyComponents(
+  values: Float64Array,
+  offset: number,
+  width: number,
+  value: NumericValue | undefined
 ): void {
-  if (hasTangents) {
-    const base = index * 12;
-    values[base] = inTangent ? inTangent.x : NaN;
-    values[base + 1] = inTangent ? inTangent.y : NaN;
-    values[base + 2] = inTangent ? inTangent.z : NaN;
-    values[base + 3] = inTangent ? inTangent.w : NaN;
-    values[base + 4] = v0;
-    values[base + 5] = v1;
-    values[base + 6] = v2;
-    values[base + 7] = v3;
-    values[base + 8] = outTangent ? outTangent.x : NaN;
-    values[base + 9] = outTangent ? outTangent.y : NaN;
-    values[base + 10] = outTangent ? outTangent.z : NaN;
-    values[base + 11] = outTangent ? outTangent.w : NaN;
+  if (value === undefined) {
+    values.fill(NaN, offset, offset + width);
+  } else if (typeof value === "number") {
+    values[offset] = value;
+  } else if (Array.isArray(value) || ArrayBuffer.isView(value)) {
+    for (let i = 0; i < width; i++) {
+      values[offset + i] = value[i];
+    }
+  } else if (value instanceof Rect) {
+    values[offset] = value.x;
+    values[offset + 1] = value.y;
+    values[offset + 2] = value.width;
+    values[offset + 3] = value.height;
   } else {
-    const base = index * 4;
-    values[base] = v0;
-    values[base + 1] = v1;
-    values[base + 2] = v2;
-    values[base + 3] = v3;
+    value.copyToArray(values, offset);
   }
 }
 
@@ -159,35 +144,5 @@ export function readArrayKey<V extends Float32Array | number[]>(
   } else {
     out.inTangent = undefined;
     out.outTangent = undefined;
-  }
-}
-
-/**
- * Cold-path write for variable-width numeric curves (`Float32Array` and `number[]`).
- * Writes `NaN` for absent tangents when `hasTangents` is true.
- */
-export function writeArrayKey(
-  values: TypedArray,
-  valueSize: number,
-  hasTangents: boolean,
-  index: number,
-  key: Keyframe<Float32Array | number[]>
-): void {
-  const { value } = key;
-  if (hasTangents) {
-    const base = index * valueSize * 3;
-    const valueOffset = base + valueSize;
-    const outOffset = valueOffset + valueSize;
-    const { inTangent, outTangent } = key;
-    for (let i = 0; i < valueSize; i++) {
-      values[base + i] = inTangent ? inTangent[i] : NaN;
-      values[valueOffset + i] = value[i];
-      values[outOffset + i] = outTangent ? outTangent[i] : NaN;
-    }
-  } else {
-    const base = index * valueSize;
-    for (let i = 0; i < valueSize; i++) {
-      values[base + i] = value[i];
-    }
   }
 }

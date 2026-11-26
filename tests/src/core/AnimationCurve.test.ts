@@ -19,14 +19,49 @@ import { Color, Quaternion, Rect, Vector2, Vector3, Vector4 } from "@galacean/en
 import { describe, expect, it, vi } from "vitest";
 
 describe("AnimationCurve flat storage", () => {
-  it("supports setKeys, keyCount, getKey(out) reuse, and Hermite/additive evaluation across all fixed-width numeric curves", () => {
+  it("replaces authored keys in stable time order and tracks a relocated edit", () => {
+    const value = new Vector3(Math.PI, 2, 3);
+    const keys = [
+      { time: 2, value },
+      { time: 1, value: new Vector3(4, 5, 6) },
+      { time: 1, value: new Vector3(7, 8, 9) }
+    ] as const;
+    const curve = new AnimationVector3Curve();
+    curve.setKeys(keys);
+    expect(keys.map((key) => key.time)).toEqual([2, 1, 1]);
+    value.x = 99;
+    expect(curve.getKey(0).value.x).toBe(4);
+    expect(curve.getKey(1).value.x).toBe(7);
+    expect(curve.getKey(2).value.x).toBe(Math.PI);
+
+    expect(curve.setKey(2, { time: 0.1, value: new Vector3(Math.E, 1, 2) })).toBe(0);
+    expect(curve.getKey(0).time).toBe(0.1);
+    expect(curve.getKey(0).value.x).toBe(Math.E);
+    expect(() => curve.removeKey(0.5)).toThrow(RangeError);
+    expect(curve.keyCount).toBe(3);
+  });
+
+  it("leaves an existing curve intact when an authored batch has conflicting widths", () => {
+    const curve = new AnimationFloatArrayCurve();
+    curve.setKeys([{ time: 1, value: new Float32Array([3, 4]) }]);
+    expect(() =>
+      curve.setKeys([
+        { time: 0, value: new Float32Array([1, 2]) },
+        { time: 2, value: new Float32Array([3]) }
+      ])
+    ).toThrow();
+    expect(curve.keyCount).toBe(1);
+    expect(curve.evaluate(1)).toEqual(new Float32Array([3, 4]));
+  });
+
+  it("supports packed buffers, keyCount, getKey(out) reuse, and Hermite/additive evaluation across all fixed-width numeric curves", () => {
     // Hermite basis at time = 1 on [0, 2] (t = 0.5, duration = 2):
     // result = 0.5 * p0 + 0.25 * outTangent0 - 0.25 * inTangent1 + 0.5 * p1.
 
     // AnimationFloatCurve
     const floatCurve = new AnimationFloatCurve();
     floatCurve.interpolation = InterpolationType.Hermite;
-    floatCurve.setKeys(new Float32Array([0, 2]), new Float32Array([0, 10, 4, -2, 20, 3]), true);
+    floatCurve._setKeyBuffers(new Float32Array([0, 2]), new Float32Array([0, 10, 4, -2, 20, 3]), true);
     expect(floatCurve.keyCount).toBe(2);
     expect(floatCurve.length).toBe(2);
     expect(floatCurve.evaluate(1)).toBeCloseTo(16.5, 5);
@@ -38,7 +73,7 @@ describe("AnimationCurve flat storage", () => {
 
     // AnimationVector2Curve (Linear, Hermite, addKey with/without tangents, additive)
     const vec2Curve = new AnimationVector2Curve();
-    vec2Curve.setKeys(new Float32Array([0, 1]), new Float32Array([1, 2, 3, 6]), false);
+    vec2Curve._setKeyBuffers(new Float32Array([0, 1]), new Float32Array([1, 2, 3, 6]), false);
     expect(vec2Curve.evaluate(0.5)).toMatchObject({ x: 2, y: 4 });
     expect(vec2Curve._evaluateAdditive(0.5, { curKeyframeIndex: 0, value: new Vector2() })).toMatchObject({
       x: 1,
@@ -77,7 +112,7 @@ describe("AnimationCurve flat storage", () => {
     // AnimationVector3Curve with asymmetric tangents, non-unit duration, and out-object tangent reuse
     const vec3Curve = new AnimationVector3Curve();
     vec3Curve.interpolation = InterpolationType.CubicSpine;
-    vec3Curve.setKeys(
+    vec3Curve._setKeyBuffers(
       new Float32Array([0, 2]),
       new Float32Array([0, 0, 0, 1, 2, 3, 4, 0, -4, -2, 4, 0, 3, 6, 9, 1, 2, 3]),
       true
@@ -105,7 +140,7 @@ describe("AnimationCurve flat storage", () => {
     // AnimationVector4Curve
     const vec4Curve = new AnimationVector4Curve();
     vec4Curve.interpolation = InterpolationType.CubicSpine;
-    vec4Curve.setKeys(
+    vec4Curve._setKeyBuffers(
       new Float32Array([0, 2]),
       new Float32Array([0, 0, 0, 0, 1, 2, 3, 4, 4, 0, -4, 8, -4, 4, 0, 4, 5, 6, 7, 8, 1, 2, 3, 4]),
       true
@@ -131,7 +166,7 @@ describe("AnimationCurve flat storage", () => {
     // AnimationQuaternionCurve normalizes asymmetric CubicSpline results (duration = 2) and handles zero-norm antipodal midpoint
     const quatCurve = new AnimationQuaternionCurve();
     quatCurve.interpolation = InterpolationType.CubicSpine;
-    quatCurve.setKeys(
+    quatCurve._setKeyBuffers(
       new Float32Array([0, 2]),
       new Float32Array([0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 4, 0, -4, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]),
       true
@@ -152,7 +187,7 @@ describe("AnimationCurve flat storage", () => {
     // Antipodal unit keys (0,0,0,1) and (0,0,0,-1) with zero tangents evaluate to zero polynomial at midpoint -> fallback to p0
     const antipodalQuat = new AnimationQuaternionCurve();
     antipodalQuat.interpolation = InterpolationType.CubicSpine;
-    antipodalQuat.setKeys(
+    antipodalQuat._setKeyBuffers(
       new Float32Array([0, 1]),
       new Float32Array([0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0]),
       true
@@ -172,7 +207,7 @@ describe("AnimationCurve flat storage", () => {
     expect(additiveQuat.z).toBeCloseTo(0, 5);
     expect(additiveQuat.w).toBeCloseTo(Math.SQRT1_2, 5);
 
-    antipodalQuat.setKeys(
+    antipodalQuat._setKeyBuffers(
       new Float32Array([0, 1]),
       new Float32Array([9, 9, 9, 9, 0, Math.SQRT1_2, 0, Math.SQRT1_2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]),
       true
@@ -193,7 +228,7 @@ describe("AnimationCurve flat storage", () => {
     expect(colorCurve.getKey(0).inTangent).toBeUndefined();
 
     colorCurve.interpolation = InterpolationType.Hermite;
-    colorCurve.setKeys(
+    colorCurve._setKeyBuffers(
       new Float32Array([0, 2]),
       new Float32Array([
         0, 0, 0, 0, 0.2, 0.4, 0.6, 0.8, 0.4, 0, -0.4, 0.4, -0.4, 0.4, 0, 0, 0.6, 0.8, 1, 1, 0, 0, 0, 0
@@ -215,7 +250,7 @@ describe("AnimationCurve flat storage", () => {
     expect(colorKey.inTangent!.z).toBe(0);
     expect(colorKey.inTangent!.w).toBe(0);
 
-    // AnimationRectCurve (Step-only, addKey + setKeys + getKey)
+    // AnimationRectCurve (Step-only, addKey + _setKeyBuffers + getKey)
     const rectCurve = new AnimationRectCurve();
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
@@ -232,14 +267,14 @@ describe("AnimationCurve flat storage", () => {
     const rectKey = rectCurve.getKey(0);
     expect(rectKey.value).toBeInstanceOf(Rect);
     expect(rectKey.inTangent).toBeUndefined();
-    rectCurve.setKeys(new Float32Array([0, 2]), new Float32Array([9, 10, 11, 12, 13, 14, 15, 16]));
+    rectCurve._setKeyBuffers(new Float32Array([0, 2]), new Float32Array([9, 10, 11, 12, 13, 14, 15, 16]));
     expect(rectCurve.evaluate(1)).toMatchObject({ x: 9, y: 10, width: 11, height: 12 });
     expect(rectCurve.evaluate(2)).toMatchObject({ x: 13, y: 14, width: 15, height: 16 });
   });
 
   it("supports dynamic-width Float32Array and number[] curves, morph remapping, and width changes", () => {
     const floatArrayCurve = new AnimationFloatArrayCurve();
-    floatArrayCurve.setKeys(new Float32Array([0, 1]), new Float32Array([1, 2, 3, 4]), false);
+    floatArrayCurve._setKeyBuffers(new Float32Array([0, 1]), new Float32Array([1, 2, 3, 4]), false);
     expect(Array.from(floatArrayCurve.evaluate(0.5)!)).toEqual([2, 3]);
 
     // Remapping onto a wider output zero-fills absent morph targets
@@ -247,9 +282,9 @@ describe("AnimationCurve flat storage", () => {
     floatArrayCurve._evaluate(0.5, wideEval);
     expect(Array.from(wideEval.value)).toEqual([2, 3, 0, 0]);
 
-    // Changing width via setKeys re-allocates public evaluate buffer and evaluates non-unit Hermite
+    // Changing width via _setKeyBuffers re-allocates public evaluate buffer and evaluates non-unit Hermite
     floatArrayCurve.interpolation = InterpolationType.Hermite;
-    floatArrayCurve.setKeys(
+    floatArrayCurve._setKeyBuffers(
       new Float32Array([0, 2]),
       new Float32Array([0, 0, 0, 0, 0, 0, 4, 0, -4, -4, 4, 0, 2, 4, 6, 1, 2, 3]),
       true
@@ -257,13 +292,13 @@ describe("AnimationCurve flat storage", () => {
     expect(Array.from(floatArrayCurve.evaluate(1)!)).toEqual([3, 1, 2]);
     expect(floatArrayCurve.getKey(1).inTangent).toEqual([-4, 4, 0]);
 
-    // Empty setKeys clears curve
-    floatArrayCurve.setKeys(new Float32Array(0), new Float32Array(0), false);
+    // Empty _setKeyBuffers clears curve
+    floatArrayCurve._setKeyBuffers(new Float32Array(0), new Float32Array(0), false);
     expect(floatArrayCurve.keyCount).toBe(0);
     expect(floatArrayCurve.length).toBe(0);
 
     // 1-key replacement via setKey changes width safely
-    floatArrayCurve.setKeys(new Float32Array([0]), new Float32Array([10, 20]), false);
+    floatArrayCurve._setKeyBuffers(new Float32Array([0]), new Float32Array([10, 20]), false);
     const singleKey = new Keyframe<Float32Array>();
     singleKey.time = 1.5;
     singleKey.value = new Float32Array([7, 8, 9]);
@@ -297,9 +332,9 @@ describe("AnimationCurve flat storage", () => {
     expect(arrayCurve._evaluateAdditive(1, { curKeyframeIndex: 0, value: [] })).toEqual([2, 3]);
   });
 
-  it("supports discrete Bool, String, and Ref curves including sorted setKeys, middle removeKey, and clearKeys", () => {
+  it("supports discrete Bool, String, and Ref curves including sorted _setKeyBuffers, middle removeKey, and clearKeys", () => {
     const boolCurve = new AnimationBoolCurve();
-    boolCurve.setKeys(new Float32Array([0, 1, 2]), [true, false, false]);
+    boolCurve._setKeyBuffers(new Float32Array([0, 1, 2]), [true, false, false]);
     expect(boolCurve.length).toBe(2);
     expect(boolCurve.evaluate(0.5)).toBe(true);
     expect(boolCurve.evaluate(1.5)).toBe(false);
@@ -308,7 +343,7 @@ describe("AnimationCurve flat storage", () => {
     boolCurve.removeKey(1);
     expect(boolCurve.keyCount).toBe(3);
     expect(boolCurve.getKey(1).time).toBe(2);
-    boolCurve.setKeys(new Float32Array(0), []);
+    boolCurve._setKeyBuffers(new Float32Array(0), []);
     expect(boolCurve.keyCount).toBe(0);
 
     const stringCurve = new AnimationStringCurve();
@@ -325,7 +360,7 @@ describe("AnimationCurve flat storage", () => {
     const refA = {} as ReferResource;
     const refB = {} as ReferResource;
     const refCurve = new AnimationRefCurve();
-    refCurve.setKeys(new Float32Array([0, 1, 2]), [refA, null, refB]);
+    refCurve._setKeyBuffers(new Float32Array([0, 1, 2]), [refA, null, refB]);
     expect(refCurve.evaluate(0.5)).toBe(refA);
     expect(refCurve.evaluate(1.5)).toBeNull();
     expect(refCurve.evaluate(2.5)).toBe(refB);
@@ -345,7 +380,7 @@ describe("AnimationCurve flat storage", () => {
     const curve = new AnimationVector3Curve();
     const seededTimes = new Float32Array([0, 1, 2]);
     const seededValues = new Float32Array([0, 0, 0, 10, 0, 0, 20, 0, 0]);
-    curve.setKeys(seededTimes, seededValues, false);
+    curve._setKeyBuffers(seededTimes, seededValues, false);
     expect(curve.length).toBe(2);
     expect(curve.evaluate(0.5)).toMatchObject({ x: 5, y: 0, z: 0 });
     expect(curve.evaluate(1.5)).toMatchObject({ x: 15, y: 0, z: 0 });
@@ -375,14 +410,14 @@ describe("AnimationCurve flat storage", () => {
     expect(curve.length).toBe(0);
   });
 
-  it("isolates shared setKeys buffers on mutation (copy-on-write) and handles tangent promotion cleanly", () => {
+  it("isolates shared _setKeyBuffers buffers on mutation (copy-on-write) and handles tangent promotion cleanly", () => {
     const sharedTimes = new Float64Array([0, 1]);
     const sharedValues = new Float32Array([0, 10]);
 
     const curveA = new AnimationFloatCurve();
     const curveB = new AnimationFloatCurve();
-    curveA.setKeys(sharedTimes, sharedValues, false);
-    curveB.setKeys(sharedTimes, sharedValues, false);
+    curveA._setKeyBuffers(sharedTimes, sharedValues, false);
+    curveB._setKeyBuffers(sharedTimes, sharedValues, false);
 
     // Switching a tangent-less curve to Hermite falls back to p0 cleanly without throwing.
     curveA.interpolation = InterpolationType.Hermite;
@@ -438,27 +473,27 @@ describe("AnimationCurve flat storage", () => {
     expect(preciseCurve.evaluate(0.1)).toBe(1);
   });
 
-  it("throws on out-of-range indices and mismatched setKeys buffer lengths", () => {
+  it("throws on out-of-range indices and mismatched _setKeyBuffers buffer lengths", () => {
     const curve = new AnimationVector3Curve();
     expect(() => curve.getKey(0)).toThrow(RangeError);
     expect(() => curve.setKey(0, { time: 0, value: new Vector3() })).toThrow(RangeError);
     expect(() => curve.removeKey(-1)).toThrow(RangeError);
 
     const vec2 = new AnimationVector2Curve();
-    vec2.setKeys(new Float32Array([0, 1, 2]), new Float32Array([1, 2, 3, 4, 5, 6]), false);
+    vec2._setKeyBuffers(new Float32Array([0, 1, 2]), new Float32Array([1, 2, 3, 4, 5, 6]), false);
     expect(() => vec2.getKey(-1)).toThrow(RangeError);
     expect(() => vec2.getKey(3)).toThrow(RangeError);
     expect(() => vec2.setKey(3, { time: 3, value: new Vector2(9, 9) })).toThrow(RangeError);
     expect(() => vec2.removeKey(3)).toThrow(RangeError);
     expect(vec2.keyCount).toBe(3);
 
-    expect(() => curve.setKeys(new Float32Array([0, 1]), new Float32Array([1, 2, 3]), false)).toThrow();
-    expect(() => curve.setKeys(new Float32Array(0), new Float32Array([1]), false)).toThrow();
+    expect(() => curve._setKeyBuffers(new Float32Array([0, 1]), new Float32Array([1, 2, 3]), false)).toThrow();
+    expect(() => curve._setKeyBuffers(new Float32Array(0), new Float32Array([1]), false)).toThrow();
 
     const arrCurve = new AnimationFloatArrayCurve();
-    expect(() => arrCurve.setKeys(new Float32Array([0, 1]), new Float32Array([1, 2, 3]), false)).toThrow();
+    expect(() => arrCurve._setKeyBuffers(new Float32Array([0, 1]), new Float32Array([1, 2, 3]), false)).toThrow();
 
     const boolCurve = new AnimationBoolCurve();
-    expect(() => boolCurve.setKeys(new Float32Array([0, 1]), [true])).toThrow();
+    expect(() => boolCurve._setKeyBuffers(new Float32Array([0, 1]), [true])).toThrow();
   });
 });

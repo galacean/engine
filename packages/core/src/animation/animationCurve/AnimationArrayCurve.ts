@@ -2,12 +2,7 @@ import { TypedArray } from "../../base/Constant";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
-import {
-  evaluateHermiteArray,
-  readArrayKey,
-  subtractArrayFirstKey,
-  writeArrayKey
-} from "../internal/AnimationCurvePack";
+import { evaluateHermiteArray, readArrayKey, subtractArrayFirstKey } from "../internal/AnimationCurvePack";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
@@ -18,9 +13,13 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<number[]>>()
 export class AnimationArrayCurve extends AnimationCurve<number[]> {
   /** @internal */
+  static override readonly _keyValueSize = 0;
+  /** @internal */
   static readonly _isCopyMode = true;
   /** @internal */
   static readonly _supportInterpolationMode = true;
+
+  protected declare _values: TypedArray;
 
   /**
    * @internal
@@ -91,24 +90,8 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
   }
 
   constructor() {
-    super(0);
+    super();
     this._evaluateData.value = [];
-  }
-
-  /**
-   * Replace all keyframes with packed scalar arrays; per-key element width is inferred from `values.length` and `times.length`.
-   * @param times - Keyframe timestamps in seconds; must be sorted in ascending (non-decreasing) order
-   * @param values - Packed scalars (`width` per key, or `width * 3` interleaved as `[inTangent, value, outTangent]`)
-   * @param hasTangents - Whether `values` includes in/out tangents for each keyframe
-   * @throws Error If `times` is empty with non-empty `values`, or `values.length` is not a multiple of `times.length` (`times.length * 3` when `hasTangents` is true)
-   * @remarks For non-empty inputs, `times` and `values` are retained directly by reference (copy-on-write on `addKey`, `setKey`, or `removeKey`) without validating or sorting timestamps; callers must pass non-decreasing `times` and must not mutate retained buffers.
-   */
-  setKeys(times: TypedArray, values: TypedArray, hasTangents: boolean = false): void {
-    this._setNumericKeys(times, values, 0, hasTangents);
-  }
-
-  protected override _prepareKeyValueSize(key: Keyframe<number[]>, isSingleKeyReplace: boolean): void {
-    this._prepareVariableValueSize(key.value.length, isSingleKeyReplace);
   }
 
   protected override _evaluateKey(index: number, out: number[]): number[] {
@@ -158,9 +141,5 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
 
   protected override _readKeyAt(index: number, out: Keyframe<number[]>): void {
     readArrayKey(this._values, this._valueSize, this._hasTangents, index, out, out.value || []);
-  }
-
-  protected override _writeKeyAt(index: number, key: Keyframe<number[]>): void {
-    writeArrayKey(this._values, this._valueSize, this._hasTangents, index, key);
   }
 }

@@ -1,9 +1,9 @@
-import { MathUtil, Quaternion } from "@galacean/engine-math";
+import { MathUtil, Quaternion, Vector4 } from "@galacean/engine-math";
 import { TypedArray } from "../../base/Constant";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
-import { evaluateHermiteScalar, readVec4Key, writeVec4Key } from "../internal/AnimationCurvePack";
+import { evaluateHermiteScalar, readObjectKey } from "../internal/AnimationCurvePack";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
@@ -14,6 +14,8 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<Quaternion>>()
 export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
   /** @internal */
+  static override readonly _keyValueSize = 4;
+  /** @internal */
   static readonly _supportInterpolationMode = true;
   /** @internal */
   static readonly _isCopyMode = true;
@@ -21,6 +23,8 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
   private static _tempConjugateQuat = new Quaternion();
   private static _tempQuat0 = new Quaternion();
   private static _tempQuat1 = new Quaternion();
+
+  protected declare _values: TypedArray;
 
   /**
    * @internal
@@ -87,20 +91,8 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
   }
 
   constructor() {
-    super(4);
+    super();
     this._evaluateData.value = new Quaternion();
-  }
-
-  /**
-   * Replace all keyframes with packed `Quaternion` buffers (`x, y, z, w`).
-   * @param times - Keyframe timestamps in seconds; must be sorted in ascending (non-decreasing) order
-   * @param values - Packed scalars (`4` per key, or `12` per key interleaved as `[inTangent, value, outTangent]`)
-   * @param hasTangents - Whether `values` includes in/out tangents for each keyframe
-   * @throws Error If `values.length` does not match `times.length * 4` (`times.length * 12` when `hasTangents` is true)
-   * @remarks For non-empty inputs, `times` and `values` are retained directly by reference (copy-on-write on `addKey`, `setKey`, or `removeKey`) without validating or sorting timestamps; callers must pass non-decreasing `times` and must not mutate retained buffers.
-   */
-  setKeys(times: TypedArray, values: TypedArray, hasTangents: boolean = false): void {
-    this._setNumericKeys(times, values, 4, hasTangents);
   }
 
   protected override _evaluateKey(index: number, out: Quaternion): Quaternion {
@@ -162,21 +154,6 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
   }
 
   protected override _readKeyAt(index: number, out: Keyframe<Quaternion>): void {
-    readVec4Key(this._values, this._hasTangents, index, out, out.value || new Quaternion());
-  }
-
-  protected override _writeKeyAt(index: number, key: Keyframe<Quaternion>): void {
-    const { value } = key;
-    writeVec4Key(
-      this._values,
-      this._hasTangents,
-      index,
-      value.x,
-      value.y,
-      value.z,
-      value.w,
-      key.inTangent,
-      key.outTangent
-    );
+    readObjectKey(this._values, this._valueSize, this._hasTangents, index, out, Quaternion, Vector4);
   }
 }

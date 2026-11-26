@@ -145,8 +145,8 @@ describe("AnimationClipDecoder", () => {
     // 1. Multi-key AnimationVector4Curve (regression for missing key loop desyncing BufferReader)
     writeBindingHeader(bytes, 2, "vec4", InterpolationType.Linear, 2, "AnimationVector4Curve");
     for (const [time, val] of [
-      [0, [1, 2, 3, 4]],
-      [1, [5, 6, 7, 8]]
+      [1, [5, 6, 7, 8]],
+      [0, [1, 2, 3, 4]]
     ] as const) {
       writeFloat32(bytes, time);
       for (const n of val) writeFloat32(bytes, n);
@@ -199,10 +199,10 @@ describe("AnimationClipDecoder", () => {
 
     // 7. AnimationRefCurve
     writeBindingHeader(bytes, 2, "ref", InterpolationType.Step, 2, "AnimationRefCurve");
-    writeFloat32(bytes, 0);
-    writeString(bytes, JSON.stringify({ url: "mock://ref-a" }));
     writeFloat32(bytes, 1);
     writeString(bytes, "");
+    writeFloat32(bytes, 0);
+    writeString(bytes, JSON.stringify({ url: "mock://ref-a" }));
 
     // 8. AnimationVector2Curve
     writeBindingHeader(bytes, 2, "vec2", InterpolationType.Linear, 2, "AnimationVector2Curve");

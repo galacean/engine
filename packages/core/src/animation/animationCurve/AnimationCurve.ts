@@ -1,17 +1,23 @@
 import { TypedArray } from "../../base/Constant";
 import { InterpolationType } from "../enums/InterpolationType";
+import { NumericValue, writeKeyComponents } from "../internal/AnimationCurvePack";
 import { IEvaluateData } from "../internal/animationCurveOwner/AnimationCurveOwner";
 import { Keyframe, KeyframeValueType } from "../Keyframe";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
 
-const EMPTY_FLOAT32 = new Float32Array(0);
 const EMPTY_FLOAT64 = new Float64Array(0);
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
 export abstract class AnimationCurve<V extends KeyframeValueType> {
-  protected _values: TypedArray = EMPTY_FLOAT32;
+  /**
+   * Fixed component count, zero for variable-width values, or null for discrete values.
+   * @internal
+   */
+  static readonly _keyValueSize: number | null = null;
+
+  protected _values: TypedArray | V[];
   protected _keyCount: number = 0;
   protected _valueSize: number = 0;
   protected _hasTangents: boolean = false;
@@ -20,8 +26,8 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
 
   private _times: TypedArray = EMPTY_FLOAT64;
   private _isBufferShared: boolean = false;
-  private _discreteValues: V[] | null;
   private _type: IAnimationCurveCalculator<V>;
+  private _lengthListeners?: (() => void) | (() => void)[];
 
   /**
    * The interpolationType of the animation curve.
@@ -54,41 +60,22 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     return this._keyCount;
   }
 
-  constructor(valueSize: number = 0, isDiscrete: boolean = false) {
+  constructor() {
     const type = (<unknown>this.constructor) as IAnimationCurveCalculator<V>;
     this._interpolation = type._supportInterpolationMode ? InterpolationType.Linear : InterpolationType.Step;
     this._type = type;
-    this._valueSize = valueSize;
-    this._discreteValues = isDiscrete ? [] : null;
+    this._valueSize = type._keyValueSize ?? 0;
+    this._values = type._keyValueSize === null ? [] : EMPTY_FLOAT64;
   }
 
   /**
    * Add a new key to the curve.
-   * Numeric keyframe values are copied into flat float32 storage; mutating `key` afterward does not affect the curve.
+   * Timestamps and numeric values are copied into the curve.
    * @param key - The keyframe
-   * @throws Error If `key.value.length` mismatches an existing variable-width array curve
+   * @throws Error If the value width differs from the existing variable-width curve
    */
   addKey(key: Keyframe<V>): void {
-    this._prepareKeyValueSize(key, false);
-    const needTangents =
-      this._type._supportInterpolationMode && (key.inTangent !== undefined || key.outTangent !== undefined);
-    const count = this._keyCount;
-    this._ensureWritable(count + 1, needTangents);
-
-    const times = this._times as Float64Array;
-    const time = key.time;
-    let insertIndex = count;
-    if (count > 0 && time < times[count - 1]) {
-      let index = count;
-      while (--index >= 0 && time < times[index]);
-      insertIndex = index + 1;
-      times.copyWithin(insertIndex + 1, insertIndex, count);
-      this._shiftValues(insertIndex + 1, insertIndex, count);
-    }
-
-    times[insertIndex] = time;
-    this._writeKeyAt(insertIndex, key);
-    this._keyCount = count + 1;
+    this._editKey(this._keyCount, key);
   }
 
   /**
@@ -110,36 +97,55 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
    * Replace the keyframe at the specified index while maintaining ascending time order.
    * @param index - Keyframe index in `[0, keyCount)`
    * @param key - Replacement keyframe (timestamps and numeric values are copied into storage)
+   * @returns Index of the keyframe after reordering
    * @throws RangeError If `index` is out of range `[0, keyCount)`
-   * @throws Error If replacing a key in a multi-key variable-width array curve changes `key.value.length`
+   * @throws Error If replacing a key in a multi-key variable-width curve changes the value width
    */
-  setKey(index: number, key: Keyframe<V>): void {
+  setKey(index: number, key: Keyframe<V>): number {
     this._checkIndex(index);
-    this._prepareKeyValueSize(key, this._keyCount === 1);
-    const needTangents =
-      this._type._supportInterpolationMode && (key.inTangent !== undefined || key.outTangent !== undefined);
-    const count = this._keyCount;
-    this._ensureWritable(count, needTangents);
+    return this._editKey(index, key);
+  }
 
-    const times = this._times as Float64Array;
-    const newTime = key.time;
-    let target = index;
-    if (index > 0 && newTime < times[index - 1]) {
-      while (target > 0 && newTime < times[target - 1]) {
-        target--;
-      }
-      times.copyWithin(target + 1, target, index);
-      this._shiftValues(target + 1, target, index);
-    } else if (index + 1 < count && newTime > times[index + 1]) {
-      while (target + 1 < count && newTime > times[target + 1]) {
-        target++;
-      }
-      times.copyWithin(index, index + 1, target + 1);
-      this._shiftValues(index, index + 1, target + 1);
+  /**
+   * Replace all keyframes in ascending time order. Equal timestamps keep their input order.
+   * @param keys - Keyframes to copy into the curve
+   * @throws Error If the keys of a variable-width curve have different value widths
+   */
+  setKeys(keys: readonly Keyframe<V>[]): void {
+    const count = keys.length;
+    if (count === 0) {
+      this.clearKeys();
+      return;
     }
 
-    times[target] = newTime;
-    this._writeKeyAt(target, key);
+    const width = this._getKeyValueSize(keys[0]);
+    const discrete = Array.isArray(this._values);
+    const supportsTangents = !discrete && this._type._supportInterpolationMode;
+    let hasTangents = false;
+    let ordered = true;
+    for (let i = 0; i < count; i++) {
+      const key = keys[i];
+      const size = this._getKeyValueSize(key);
+      if (size !== width) {
+        throw new Error(`Keyframe value length ${size} does not match curve value size ${width}.`);
+      }
+      if (supportsTangents && (key.inTangent !== undefined || key.outTangent !== undefined)) {
+        hasTangents = true;
+      }
+      if (i > 0 && key.time < keys[i - 1].time) {
+        ordered = false;
+      }
+    }
+
+    const sortedKeys = ordered ? keys : keys.slice().sort((a, b) => a.time - b.time);
+    const times = new Float64Array(count);
+    const values = discrete ? new Array<V>(count) : new Float64Array(count * width * (hasTangents ? 3 : 1));
+    for (let i = 0; i < count; i++) {
+      const key = sortedKeys[i];
+      times[i] = key.time;
+      this._writeKey(values, i, key, width, hasTangents);
+    }
+    this._replaceKeys(times, values, width, hasTangents, false);
   }
 
   /**
@@ -164,27 +170,53 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
       return;
     }
 
+    const lastLength = this.length;
     this._ensureWritable(count, false);
     if (index + 1 < count) {
-      (this._times as Float64Array).copyWithin(index, index + 1, count);
-      this._shiftValues(index, index + 1, count);
+      this._moveKeys(index, index + 1, count);
     }
     this._keyCount = count - 1;
-    if (this._discreteValues !== null) {
-      this._discreteValues.length = this._keyCount;
+    if (Array.isArray(this._values)) {
+      this._values.length = this._keyCount;
     }
+    this._notifyLengthChanged(lastLength);
   }
 
   /**
    * Remove all keyframes from the curve.
    */
   clearKeys(): void {
+    const lastLength = this.length;
     this._times = EMPTY_FLOAT64;
     this._keyCount = 0;
     this._hasTangents = false;
-    this._isBufferShared = false;
+    this._valueSize = this._type._keyValueSize ?? 0;
     this._evaluateData.curKeyframeIndex = 0;
     this._clearValues();
+    this._isBufferShared = false;
+    this._notifyLengthChanged(lastLength);
+  }
+
+  /** @internal */
+  _addLengthChangedListener(listener: () => void): void {
+    const listeners = this._lengthListeners;
+    if (!listeners) this._lengthListeners = listener;
+    else if (typeof listeners === "function") this._lengthListeners = [listeners, listener];
+    else listeners.push(listener);
+  }
+
+  /** @internal */
+  _removeLengthChangedListener(listener: () => void): void {
+    const listeners = this._lengthListeners;
+    if (typeof listeners === "function") {
+      if (listeners === listener) this._lengthListeners = undefined;
+    } else if (listeners) {
+      const index = listeners.indexOf(listener);
+      if (index !== -1) {
+        listeners.splice(index, 1);
+        if (listeners.length === 1) this._lengthListeners = listeners[0];
+      }
+    }
   }
 
   /**
@@ -266,7 +298,16 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     return this._subtractFirstKey(result!);
   }
 
-  protected _setNumericKeys(times: TypedArray, values: TypedArray, fixedValueSize: number, hasTangents: boolean): void {
+  /**
+   * Borrow timestamps and values for a curve.
+   * @param times - Non-decreasing timestamps in seconds
+   * @param values - Values per key, packed as `[inTangent, value, outTangent]` when `hasTangents` is true
+   * @param hasTangents - Whether the numeric values include tangents
+   * @throws Error If value storage or length does not match the curve and timestamps
+   * @remarks The loader must leave borrowed buffers unchanged after publishing the curve. Curve edits copy them on first write.
+   * @internal
+   */
+  _setKeyBuffers(times: TypedArray, values: TypedArray | V[], hasTangents: boolean = false): void {
     const count = times.length;
     if (count === 0) {
       if (values.length !== 0) {
@@ -276,70 +317,26 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
       return;
     }
 
-    const tangents = this._type._supportInterpolationMode && hasTangents;
-    let valueSize: number;
-    if (fixedValueSize > 0) {
-      const expected = count * (tangents ? fixedValueSize * 3 : fixedValueSize);
-      if (values.length !== expected) {
-        throw new Error(`Expected ${expected} keyframe values for ${count} keys, got ${values.length}.`);
-      }
-      valueSize = fixedValueSize;
-    } else {
-      const divisor = tangents ? count * 3 : count;
-      if (values.length % divisor !== 0) {
-        throw new Error(`Keyframe value buffer length ${values.length} must be a multiple of ${divisor}.`);
-      }
-      valueSize = values.length / divisor;
+    const discrete = Array.isArray(this._values);
+    if (discrete !== Array.isArray(values)) {
+      throw new Error("Keyframe values do not match the curve's storage format.");
     }
-
-    this._assignTimes(times);
-    this._values = values;
-    this._valueSize = valueSize;
-    this._hasTangents = tangents;
+    const tangents = !discrete && this._type._supportInterpolationMode && hasTangents;
+    const scalarCount = count * (tangents ? 3 : 1);
+    const width = discrete ? 1 : this._type._keyValueSize || values.length / scalarCount;
+    if (!Number.isInteger(width) || values.length !== scalarCount * width) {
+      throw new Error(`Keyframe value buffer length ${values.length} does not match ${count} timestamps.`);
+    }
+    this._replaceKeys(times, values, discrete ? 0 : width, tangents, true);
   }
-
-  protected _setDiscreteKeys(times: TypedArray, values: readonly V[]): void {
-    const count = times.length;
-    if (values.length !== count) {
-      throw new Error(`Expected ${count} keyframe values to match timestamps, got ${values.length}.`);
-    }
-    if (count === 0) {
-      this.clearKeys();
-      return;
-    }
-
-    this._assignTimes(times);
-    const target = this._discreteValues!;
-    target.length = count;
-    for (let i = 0; i < count; i++) {
-      target[i] = values[i];
-    }
-  }
-
-  protected _prepareVariableValueSize(size: number, isSingleKeyReplace: boolean): void {
-    if (this._keyCount === 0 || isSingleKeyReplace) {
-      if (this._valueSize !== size) {
-        this._clearValues();
-        this._valueSize = size;
-        this._hasTangents = false;
-      }
-    } else if (size !== this._valueSize) {
-      throw new Error(`Keyframe value length ${size} does not match curve value size ${this._valueSize}.`);
-    }
-  }
-
-  protected _prepareKeyValueSize(_key: Keyframe<V>, _isSingleKeyReplace: boolean): void {}
 
   protected _clearValues(): void {
-    if (this._discreteValues !== null) {
-      this._discreteValues.length = 0;
-    } else {
-      this._values = EMPTY_FLOAT32;
-    }
+    this._values = Array.isArray(this._values) ? [] : EMPTY_FLOAT64;
   }
 
-  protected _evaluateKey(index: number, _out: V): V {
-    return this._discreteValues![index];
+  protected _evaluateKey(index: number, out: V): V {
+    const value = (this._values as V[])[index];
+    return this._type._isCopyMode ? this._type._setValue(value, out) : value;
   }
 
   protected _evaluateLinear(curIndex: number, _nextIndex: number, _t: number, out: V): V {
@@ -363,13 +360,77 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
   }
 
   protected _readKeyAt(index: number, out: Keyframe<V>): void {
-    out.value = this._discreteValues![index];
+    out.value = (this._values as V[])[index];
     out.inTangent = undefined;
     out.outTangent = undefined;
   }
 
-  protected _writeKeyAt(index: number, key: Keyframe<V>): void {
-    this._discreteValues![index] = key.value;
+  private _editKey(index: number, key: Keyframe<V>): number {
+    const lastLength = this.length;
+    const count = this._keyCount;
+    const append = index === count;
+    const width = this._getKeyValueSize(key);
+    if (width !== this._valueSize) {
+      if (count !== 0 && (append || count !== 1)) {
+        throw new Error(`Keyframe value length ${width} does not match curve value size ${this._valueSize}.`);
+      }
+      this._clearValues();
+      this._valueSize = width;
+      this._hasTangents = false;
+    }
+
+    const needTangents =
+      this._type._supportInterpolationMode && (key.inTangent !== undefined || key.outTangent !== undefined);
+    const nextCount = append ? count + 1 : count;
+    this._ensureWritable(nextCount, needTangents);
+    const values = this._values as Float64Array | V[];
+    if (append && Array.isArray(values)) values.length = nextCount;
+
+    const times = this._times;
+    const time = key.time;
+    let target = index;
+    if (index > 0 && time < times[index - 1]) {
+      while (target > 0 && time < times[target - 1]) {
+        target--;
+      }
+      this._moveKeys(target + 1, target, index);
+    } else if (index + 1 < count && time > times[index + 1]) {
+      while (target + 1 < count && time > times[target + 1]) {
+        target++;
+      }
+      this._moveKeys(index, index + 1, target + 1);
+    }
+
+    this._writeKey(values, target, key, width, this._hasTangents);
+    times[target] = time;
+    this._keyCount = nextCount;
+    this._notifyLengthChanged(lastLength);
+    return target;
+  }
+
+  private _getKeyValueSize(key: Keyframe<V>): number {
+    const width = this._type._keyValueSize;
+    return width === 0 ? (key.value as number[] | Float32Array).length : (width ?? 0);
+  }
+
+  private _writeKey(
+    values: Float64Array | V[],
+    index: number,
+    key: Keyframe<V>,
+    width: number,
+    hasTangents: boolean
+  ): void {
+    if (Array.isArray(values)) {
+      values[index] = key.value;
+      return;
+    }
+
+    const offset = hasTangents ? index * width * 3 + width : index * width;
+    writeKeyComponents(values, offset, width, key.value as NumericValue);
+    if (hasTangents) {
+      writeKeyComponents(values, offset - width, width, key.inTangent as NumericValue | undefined);
+      writeKeyComponents(values, offset + width, width, key.outTangent as NumericValue | undefined);
+    }
   }
 
   private _ensureWritable(minKeyCount: number, needTangents: boolean): void {
@@ -382,7 +443,9 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
       this._times = nextTimes;
     }
 
-    if (this._discreteValues !== null) {
+    const oldValues = this._values;
+    if (Array.isArray(oldValues)) {
+      if (this._isBufferShared) this._values = oldValues.slice();
       this._isBufferShared = false;
       return;
     }
@@ -391,13 +454,12 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     const valueSize = this._valueSize;
     const newHasTangents = this._hasTangents || needTangents;
     const newStride = newHasTangents ? valueSize * 3 : valueSize;
-    const oldValues = this._values;
     const promoteTangents = needTangents && !this._hasTangents;
     const minValuesLength = minKeyCount * newStride;
 
     if (promoteTangents || this._isBufferShared || oldValues.length < minValuesLength) {
       const nextValuesCap = this._times.length * newStride;
-      const nextValues = nextValuesCap > 0 ? new Float32Array(nextValuesCap) : EMPTY_FLOAT32;
+      const nextValues = nextValuesCap > 0 ? new Float64Array(nextValuesCap) : EMPTY_FLOAT64;
       if (promoteTangents && oldValues.length > 0) {
         // Encode absent tangents as NaN so Hermite segments without tangents step-hold p0 instead of using slope 0.
         nextValues.fill(NaN, 0, count * newStride);
@@ -418,38 +480,40 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     this._isBufferShared = false;
   }
 
-  private _shiftValues(dstIndex: number, srcIndex: number, endIndex: number): void {
-    const discreteValues = this._discreteValues;
-    if (discreteValues !== null) {
-      const count = endIndex - srcIndex;
-      if (dstIndex > srcIndex) {
-        for (let i = count - 1; i >= 0; i--) {
-          discreteValues[dstIndex + i] = discreteValues[srcIndex + i];
-        }
-      } else {
-        for (let i = 0; i < count; i++) {
-          discreteValues[dstIndex + i] = discreteValues[srcIndex + i];
-        }
-      }
-      return;
-    }
-
-    const stride = this._hasTangents ? this._valueSize * 3 : this._valueSize;
-    if (stride > 0) {
-      (this._values as Float32Array).copyWithin(dstIndex * stride, srcIndex * stride, endIndex * stride);
-    }
+  private _moveKeys(dstIndex: number, srcIndex: number, endIndex: number): void {
+    this._times.copyWithin(dstIndex, srcIndex, endIndex);
+    const values = this._values;
+    const stride = Array.isArray(values) ? 1 : this._valueSize * (this._hasTangents ? 3 : 1);
+    values.copyWithin(dstIndex * stride, srcIndex * stride, endIndex * stride);
   }
 
-  private _assignTimes(times: TypedArray): void {
-    // Callers guarantee non-decreasing, immutable timestamps; defer copying to _ensureWritable.
+  private _replaceKeys(
+    times: TypedArray,
+    values: TypedArray | V[],
+    width: number,
+    hasTangents: boolean,
+    shared: boolean
+  ): void {
+    const lastLength = this.length;
+    this._values = values;
     this._times = times;
-    this._isBufferShared = true;
     this._keyCount = times.length;
+    this._valueSize = width;
+    this._hasTangents = hasTangents;
+    this._isBufferShared = shared;
     this._evaluateData.curKeyframeIndex = 0;
+    this._notifyLengthChanged(lastLength);
+  }
+
+  private _notifyLengthChanged(lastLength: number): void {
+    const listeners = this._lengthListeners;
+    if (!listeners || lastLength === this.length) return;
+    if (typeof listeners === "function") listeners();
+    else for (const listener of listeners) listener();
   }
 
   private _checkIndex(index: number): void {
-    if (index < 0 || index >= this._keyCount) {
+    if (!Number.isInteger(index) || index < 0 || index >= this._keyCount) {
       throw new RangeError(`Keyframe index ${index} out of range [0, ${this._keyCount}).`);
     }
   }

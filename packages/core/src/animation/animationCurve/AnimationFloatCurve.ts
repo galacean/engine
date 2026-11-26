@@ -12,9 +12,13 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<number>>()
 export class AnimationFloatCurve extends AnimationCurve<number> {
   /** @internal */
+  static override readonly _keyValueSize = 1;
+  /** @internal */
   static readonly _isCopyMode = false;
   /** @internal */
   static readonly _supportInterpolationMode = true;
+
+  protected declare _values: TypedArray;
 
   /**
    * @internal
@@ -55,20 +59,8 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
   }
 
   constructor() {
-    super(1);
+    super();
     this._evaluateData.value = 0;
-  }
-
-  /**
-   * Replace all keyframes with packed scalar arrays.
-   * @param times - Keyframe timestamps in seconds; must be sorted in ascending (non-decreasing) order
-   * @param values - Packed scalars (`1` per key, or `3` per key interleaved as `[inTangent, value, outTangent]`)
-   * @param hasTangents - Whether `values` includes in/out tangents for each keyframe
-   * @throws Error If `values.length` does not match `times.length` (`times.length * 3` when `hasTangents` is true)
-   * @remarks For non-empty inputs, `times` and `values` are retained directly by reference (copy-on-write on `addKey`, `setKey`, or `removeKey`) without validating or sorting timestamps; callers must pass non-decreasing `times` and must not mutate retained buffers.
-   */
-  setKeys(times: TypedArray, values: TypedArray, hasTangents: boolean = false): void {
-    this._setNumericKeys(times, values, 1, hasTangents);
   }
 
   protected override _evaluateKey(index: number): number {
@@ -112,18 +104,6 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
       out.value = values[index];
       out.inTangent = undefined;
       out.outTangent = undefined;
-    }
-  }
-
-  protected override _writeKeyAt(index: number, key: Keyframe<number>): void {
-    const values = this._values;
-    if (this._hasTangents) {
-      const offset = index * 3;
-      values[offset] = key.inTangent ?? NaN;
-      values[offset + 1] = key.value;
-      values[offset + 2] = key.outTangent ?? NaN;
-    } else {
-      values[index] = key.value;
     }
   }
 }

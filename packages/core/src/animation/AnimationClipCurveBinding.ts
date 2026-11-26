@@ -6,6 +6,9 @@ import { IAnimationCurveCalculator } from "./animationCurve/interfaces/IAnimatio
 import { AnimationCurveLayerOwner } from "./internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
 
+// Keep the backing curve out of binding JSON
+const curveKey = Symbol();
+
 /**
  * Associate AnimationCurve and the Entity
  */
@@ -30,10 +33,35 @@ export class AnimationClipCurveBinding {
    * @remarks support property:"a.b", array: "a.b[0]", method: "a.b('c', 0)"
    */
   getProperty?: string;
-  /** The animation curve. */
-  curve: AnimationCurve<KeyframeValueType> | undefined;
+  private [curveKey]: AnimationCurve<KeyframeValueType> | undefined;
+  private _lengthChangedListener: (() => void) | undefined;
+  private _tempCurveOwner: WeakMap<Entity, AnimationCurveOwner<KeyframeValueType>> | undefined;
 
-  private _tempCurveOwner?: WeakMap<Entity, AnimationCurveOwner<KeyframeValueType>>;
+  /** The animation curve. */
+  get curve(): AnimationCurve<KeyframeValueType> | undefined {
+    return this[curveKey];
+  }
+
+  set curve(curve: AnimationCurve<KeyframeValueType> | undefined) {
+    const previous = this[curveKey];
+    if (curve === previous) return;
+    const listener = this._lengthChangedListener;
+    if (listener) previous?._removeLengthChangedListener(listener);
+    this[curveKey] = curve;
+    this._tempCurveOwner = undefined;
+    if (listener) {
+      curve?._addLengthChangedListener(listener);
+      listener();
+    }
+  }
+
+  /** @internal */
+  _setLengthChangedListener(listener: (() => void) | undefined): void {
+    const previous = this._lengthChangedListener;
+    if (previous) this[curveKey]?._removeLengthChangedListener(previous);
+    this._lengthChangedListener = listener;
+    if (listener) this[curveKey]?._addLengthChangedListener(listener);
+  }
 
   /**
    * @internal
@@ -63,7 +91,7 @@ export class AnimationClipCurveBinding {
    * @internal
    */
   _getTempCurveOwner(entity: Entity, component: Component): AnimationCurveOwner<KeyframeValueType> {
-    const owners = (this._tempCurveOwner ||= new WeakMap());
+    const owners = (this._tempCurveOwner ??= new WeakMap());
     let owner = owners.get(entity);
     if (!owner) {
       owner = this._createCurveOwner(entity, component);

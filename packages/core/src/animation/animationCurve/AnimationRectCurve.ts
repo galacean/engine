@@ -13,9 +13,13 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<Rect>>()
 export class AnimationRectCurve extends AnimationCurve<Rect> {
   /** @internal */
+  static override readonly _keyValueSize = 4;
+  /** @internal */
   static readonly _isCopyMode = true;
   /** @internal */
   static readonly _supportInterpolationMode = false;
+
+  protected declare _values: TypedArray;
 
   /**
    * @internal
@@ -24,6 +28,7 @@ export class AnimationRectCurve extends AnimationCurve<Rect> {
     owner.defaultValue = new Rect();
     owner.fixedPoseValue = new Rect();
     owner.baseEvaluateData.value = new Rect();
+    owner.crossEvaluateData.value = new Rect();
   }
 
   /**
@@ -42,19 +47,8 @@ export class AnimationRectCurve extends AnimationCurve<Rect> {
   }
 
   constructor() {
-    super(4);
+    super();
     this._evaluateData.value = new Rect();
-  }
-
-  /**
-   * Replace all keyframes with packed `Rect` buffers (`x, y, width, height`).
-   * @param times - Keyframe timestamps in seconds; must be sorted in ascending (non-decreasing) order
-   * @param values - Packed scalars (`4` per keyframe)
-   * @throws Error If `values.length` does not match `times.length * 4`
-   * @remarks For non-empty inputs, `times` and `values` are retained directly by reference (copy-on-write on `addKey`, `setKey`, or `removeKey`) without validating or sorting timestamps; callers must pass non-decreasing `times` and must not mutate retained buffers.
-   */
-  setKeys(times: TypedArray, values: TypedArray): void {
-    this._setNumericKeys(times, values, 4, false);
   }
 
   protected override _evaluateKey(index: number, out: Rect): Rect {
@@ -69,15 +63,5 @@ export class AnimationRectCurve extends AnimationCurve<Rect> {
     (out.value ||= new Rect()).set(values[offset], values[offset + 1], values[offset + 2], values[offset + 3]);
     out.inTangent = undefined;
     out.outTangent = undefined;
-  }
-
-  protected override _writeKeyAt(index: number, key: Keyframe<Rect>): void {
-    const values = this._values;
-    const { value } = key;
-    const offset = index * 4;
-    values[offset] = value.x;
-    values[offset + 1] = value.y;
-    values[offset + 2] = value.width;
-    values[offset + 3] = value.height;
   }
 }
