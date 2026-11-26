@@ -91,22 +91,20 @@ void masonryDirectRadiance(vec3 albedo, vec3 normalWS, vec3 positionWS,
           PointLight light = getPointLight(i);
           if (dot(light.color, light.color) > 0.0) {
             vec3 delta = light.position - positionWS;
-            float d2 = dot(delta, delta), r2 = light.distance * light.distance;
-            if (d2 < r2 && light.distance > 0.0) {
-              float invD = inversesqrt(max(d2, 1e-20));
+            float d2 = dot(delta, delta);
+            float attenuation = getDistanceAttenuation(d2, light.distance);
+            if (attenuation > 0.0) {
+              float invD = inversesqrt(max(d2, 1e-12));
               vec3 dir = delta * invD;
               float dotNL = max(dot(normalWS, dir), 0.0);
               if (dotNL > 0.0) {
                 if (pbr) {
-                  float dOverR = (d2 * invD) / light.distance;
-                  float dOverR2 = dOverR * dOverR;
-                  vec3 irradianceColor = light.color * clamp(1.0 - dOverR2 * dOverR2, 0.0, 1.0);
                   masonrySurfaceShading(normalWS, viewDir, albedo, roughness, glossy,
-                      dir, dotNL, irradianceColor, radiance);
+                      dir, dotNL, light.color * attenuation, radiance);
                 }
-                if (legacy && (pointMask & bit) != 0u) {
+                if (legacy && (pointMask & bit) != 0u && light.distance > 0.0) {
                   float cosine = d2 > 0.0001 ? dotNL : max(0.0, dot(normalWS, delta * inversesqrt(0.0001)));
-                  float falloff = 1.0 - d2 / r2;
+                  float falloff = 1.0 - (d2 / light.distance) / light.distance;
                   radiance += albedo * light.color * (cosine * falloff * falloff / (1.0 + d2));
                 }
               }
@@ -120,18 +118,18 @@ void masonryDirectRadiance(vec3 albedo, vec3 normalWS, vec3 positionWS,
         if (!isRendererCulledByLight(renderer_Layer.xy, scene_SpotLightCullingMask[i])) {
           SpotLight light = getSpotLight(i);
           vec3 lVec = light.position - positionWS;
-          float d2 = dot(lVec, lVec), r2 = light.distance * light.distance;
-          if (d2 < r2 && light.distance > 0.0) {
-            float invD = inversesqrt(max(d2, 1e-20));
+          float d2 = dot(lVec, lVec);
+          float attenuation = getDistanceAttenuation(d2, light.distance);
+          if (attenuation > 0.0) {
+            float invD = inversesqrt(max(d2, 1e-12));
             vec3 dir = lVec * invD;
             float dotNL = max(dot(normalWS, dir), 0.0);
             if (dotNL > 0.0) {
               float spotEffect = smoothstep(light.penumbraCos, light.angleCos, dot(dir, -light.direction));
-              float dOverR = (d2 * invD) / light.distance;
-              float dOverR2 = dOverR * dOverR;
-              vec3 lightColor = light.color * (spotEffect * clamp(1.0 - dOverR2 * dOverR2, 0.0, 1.0));
-              masonrySurfaceShading(normalWS, viewDir, albedo, roughness, glossy,
-                  dir, dotNL, lightColor, radiance);
+              if (spotEffect > 0.0) {
+                masonrySurfaceShading(normalWS, viewDir, albedo, roughness, glossy,
+                    dir, dotNL, light.color * (spotEffect * attenuation), radiance);
+              }
             }
           }
         }
@@ -267,19 +265,18 @@ vec3 masonryFarProxyLight(vec3 albedo, vec3 normalWS, vec3 positionWS) {
           PointLight light = getPointLight(i);
           if (dot(light.color, light.color) > 0.0) {
             vec3 delta = light.position - positionWS;
-            float d2 = dot(delta, delta), r2 = light.distance * light.distance;
-            if (d2 < r2 && light.distance > 0.0) {
-              float invD = inversesqrt(max(d2, 1e-20));
+            float d2 = dot(delta, delta);
+            float attenuation = getDistanceAttenuation(d2, light.distance);
+            if (attenuation > 0.0) {
+              float invD = inversesqrt(max(d2, 1e-12));
               float ndotl = max(dot(normalWS, delta * invD), 0.0);
               if (ndotl > 0.0) {
                 if (pbr) {
-                  float dOverR = (d2 * invD) / light.distance;
-                  float dOverR2 = dOverR * dOverR;
-                  diffuse += diffuseAlbedo * light.color * (ndotl * clamp(1.0 - dOverR2 * dOverR2, 0.0, 1.0));
+                  diffuse += diffuseAlbedo * light.color * (ndotl * attenuation);
                 }
-                if (legacy && (pointMask & bit) != 0u) {
+                if (legacy && (pointMask & bit) != 0u && light.distance > 0.0) {
                   float cosine = d2 > 0.0001 ? ndotl : max(0.0, dot(normalWS, delta * inversesqrt(0.0001)));
-                  float falloff = 1.0 - d2 / r2;
+                  float falloff = 1.0 - (d2 / light.distance) / light.distance;
                   diffuse += (diffuseAlbedo * 1.0416667) * light.color * (cosine * falloff * falloff / (1.0 + d2));
                 }
               }

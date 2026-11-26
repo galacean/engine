@@ -118,16 +118,19 @@ export class PostProcessUberPass extends PostProcessPass {
 
     // Uber Material
     const uberMaterial = new Material(engine, Engine._builtinShaders.uber);
+    uberMaterial.isGCIgnored = true;
     this._uberMaterial = uberMaterial;
 
     // Bloom Material
     const bloomMaterial = new Material(engine, Engine._builtinShaders.bloom);
+    bloomMaterial.isGCIgnored = true;
     this._bloomMaterial = bloomMaterial;
 
     // Sun Lens Flare Material (optional builtin shader registered by World ShaderPool)
     const sunLensFlareShader = Shader.find(SunLensFlareEffect._shaderName);
     if (sunLensFlareShader) {
       const sunLensFlareMaterial = new Material(engine, sunLensFlareShader);
+      sunLensFlareMaterial.isGCIgnored = true;
       this._sunLensFlareMaterial = sunLensFlareMaterial;
       const flareShaderData = sunLensFlareMaterial.shaderData;
       flareShaderData.setVector4(SunLensFlareEffect._params0Property, new Vector4(0.5, 0.5, 0, 1));
@@ -150,6 +153,7 @@ export class PostProcessUberPass extends PostProcessPass {
     const volumetricLightShader = Shader.find(VolumetricLightEffect._shaderName);
     if (volumetricLightShader) {
       const vlMaterial = new Material(engine, volumetricLightShader);
+      vlMaterial.isGCIgnored = true;
       this._volumetricLightMaterial = vlMaterial;
       const vlShaderData = vlMaterial.shaderData;
       vlShaderData.setTexture(VolumetricLightEffect._depthTextureProperty, engine._basicResources.whiteTexture2D);

@@ -73,6 +73,12 @@ describe("Construction lighting compiler bridge", () => {
     );
     expect(source).toContain("masonrySampleShadow");
     expect(source).toContain("masonrySurfaceShading");
+    // Both scene light types consume the engine cutoff encoding. Only the finite authored
+    // wall-lamp lobe may guard light.distance > 0 (the GPU value for an unlimited light is 0).
+    const directBody = source.slice(source.indexOf("void masonryDirectRadiance")).replace(/\s+/g, "");
+    expect(directBody.match(/getDistanceAttenuation\(d2,light\.distance\)/g)).toHaveLength(2);
+    expect(directBody).not.toContain("if(d2<r2&&light.distance>0.0)");
+    expect(directBody).toContain("scene_MasonryLegacyMask");
     expect(source).toMatch(/bool\s+glossy\s*=\s*roughness\s*<\s*0\.72/);
     expect(source).not.toContain("masonryMatteDirectRadiance");
     expect(source).not.toMatch(/\binitBSDFData\s*\(/);
@@ -183,6 +189,7 @@ describe("Construction lighting compiler bridge", () => {
     );
     expect(withPointLights).not.toContain("scene_MasonryFallbackMask");
     expect(withPointLights).toMatch(/\bgetPointLight\s*\(/);
+    expect(withPointLights.replace(/\s+/g, "")).toContain("getDistanceAttenuation(d2,light.distance)");
     expect((withPointLights.match(/\bfor\s*\(/g) ?? []).length).toBe(2);
   });
 });

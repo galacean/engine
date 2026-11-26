@@ -533,12 +533,16 @@ vec3 evaluateMatteGrassLighting(
     for (int i = 0; i < SCENE_POINT_LIGHT_COUNT; i++) {
       if (!isRendererCulledByLight(renderer_Layer.xy, scene_PointLightCullingMask[i])) {
         PointLight pointLight = getPointLight(i);
-        vec3 lVector = pointLight.position - input.positionWS;
-        float lightDistance = length(lVector);
-        vec3 direction = lVector / max(lightDistance, 1e-5);
-        float attenuation = clamp(1.0 - pow(lightDistance / pointLight.distance, 4.0), 0.0, 1.0);
-        float dotNL = saturate(dot(normalWS, direction));
-        totalRadiance += (dotNL * attenuation) * pointLight.color * directResponse;
+        if (dot(pointLight.color, pointLight.color) > 0.0) {
+          vec3 lVector = pointLight.position - input.positionWS;
+          float distanceSq = dot(lVector, lVector);
+          float attenuation = getDistanceAttenuation(distanceSq, pointLight.distance);
+          if (attenuation > 0.0) {
+            vec3 direction = lVector * inversesqrt(max(distanceSq, 1e-12));
+            float dotNL = saturate(dot(normalWS, direction));
+            totalRadiance += (dotNL * attenuation) * pointLight.color * directResponse;
+          }
+        }
       }
     }
   #endif
@@ -548,13 +552,14 @@ vec3 evaluateMatteGrassLighting(
       if (!isRendererCulledByLight(renderer_Layer.xy, scene_SpotLightCullingMask[i])) {
         SpotLight spotLight = getSpotLight(i);
         vec3 lVector = spotLight.position - input.positionWS;
-        float lightDistance = length(lVector);
-        vec3 direction = lVector / max(lightDistance, 1e-5);
-        float angleCos = dot(direction, -spotLight.direction);
-        float spotEffect = smoothstep(spotLight.penumbraCos, spotLight.angleCos, angleCos);
-        float decayEffect = clamp(1.0 - pow(lightDistance / spotLight.distance, 4.0), 0.0, 1.0);
-        float dotNL = saturate(dot(normalWS, direction));
-        totalRadiance += (dotNL * spotEffect * decayEffect) * spotLight.color * directResponse;
+        float distanceSq = dot(lVector, lVector);
+        float attenuation = getDistanceAttenuation(distanceSq, spotLight.distance);
+        if (attenuation > 0.0) {
+          vec3 direction = lVector * inversesqrt(max(distanceSq, 1e-12));
+          float spotEffect = smoothstep(spotLight.penumbraCos, spotLight.angleCos, dot(direction, -spotLight.direction));
+          float dotNL = saturate(dot(normalWS, direction));
+          totalRadiance += (dotNL * spotEffect * attenuation) * spotLight.color * directResponse;
+        }
       }
     }
   #endif

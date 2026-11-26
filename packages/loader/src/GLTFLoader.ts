@@ -39,6 +39,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
   override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<GLTFResource> {
     const params = <GLTFParams>item.params;
     const glTFResource = new GLTFResource(resourceManager.engine, item.url!);
+    glTFResource._isLoading = true;
     const context = new GLTFParserContext(glTFResource, resourceManager, {
       keepMeshData: false,
       ...params
@@ -47,17 +48,17 @@ export class GLTFLoader extends Loader<GLTFResource> {
     return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress, onTaskCancel) => {
       context._setTaskCompleteProgress = setTaskCompleteProgress;
       context._setTaskDetailProgress = setTaskDetailProgress;
-      onTaskCancel(() => {
-        const getPromises = context._getPromises;
-        for (let i = 0, n = getPromises.length; i < n; i++) {
-          getPromises[i].cancel();
-        }
-      });
+      onTaskCancel(() => context._abort());
       context
         .parse()
-        .then(resolve)
+        .then((res) => {
+          if (!context._aborted) {
+            glTFResource._isLoading = false;
+            resolve(res);
+          }
+        })
         .catch((e) => {
-          glTFResource.destroy();
+          context._abort();
           reject(e);
         });
     });

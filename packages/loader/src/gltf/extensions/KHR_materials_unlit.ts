@@ -9,7 +9,7 @@ import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 class KHR_materials_unlit extends GLTFExtensionParser {
   override createAndParse(context: GLTFParserContext, _, ownerSchema: IMaterial): UnlitMaterial {
     const { engine } = context.glTFResource;
-    const material = new UnlitMaterial(engine);
+    const material = context._trackResource(new UnlitMaterial(engine));
     material.name = ownerSchema.name!;
 
     GLTFMaterialParser._parseStandardProperty(context, material, ownerSchema);

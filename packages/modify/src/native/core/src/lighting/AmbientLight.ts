@@ -125,11 +125,10 @@ export class AmbientLight extends ReferResource {
   }
 
   set specularTexture(value: TextureCube | null) {
-    this._specularTexture = value;
-
-    const scenes = this._scenes;
-    for (let i = 0, n = scenes.length; i < n; i++) {
-      this._setSpecularTexture(scenes[i].shaderData);
+    if (this._specularTexture !== value) {
+      this._replaceTextureReference(this._specularTexture, value);
+      this._specularTexture = value;
+      this._updateSceneSpecularTextures();
     }
   }
 
@@ -141,11 +140,10 @@ export class AmbientLight extends ReferResource {
   }
 
   set secondarySpecularTexture(value: TextureCube | null) {
-    this._secondarySpecularTexture = value;
-
-    const scenes = this._scenes;
-    for (let i = 0, n = scenes.length; i < n; i++) {
-      this._setSpecularTexture(scenes[i].shaderData);
+    if (this._secondarySpecularTexture !== value) {
+      this._replaceTextureReference(this._secondarySpecularTexture, value);
+      this._secondarySpecularTexture = value;
+      this._updateSceneSpecularTextures();
     }
   }
 
@@ -200,20 +198,38 @@ export class AmbientLight extends ReferResource {
    * @internal
    */
   _removeFromScene(scene: Scene): void {
-    this._addReferCount(-1);
+    if (this._destroyed) return;
     const scenes = this._scenes;
     const index = scenes.indexOf(scene);
+    if (index === -1) return;
+    this._addReferCount(-1);
     scenes.splice(index, 1);
     const shaderData = scene.shaderData;
-    shaderData.setTexture(AmbientLight._specularTextureProperty, null);
-    shaderData.setTexture(AmbientLight._secondarySpecularTextureProperty, null);
-    shaderData.disableMacro(AmbientLight._specularMacro);
-    shaderData.disableMacro(AmbientLight._specularBlendMacro);
+    this._clearSpecularTextures(shaderData);
     shaderData.disableMacro(AmbientLight._realtimeSHMacro);
+  }
+
+  /** @internal */
+  override _addReferCount(value: number): void {
+    super._addReferCount(value);
+    this._specularTexture?._addReferCount(value);
+    this._secondarySpecularTexture?._addReferCount(value);
   }
 
   constructor(engine: Engine) {
     super(engine);
+  }
+
+  protected override _onDestroy(): void {
+    super._onDestroy();
+    for (const scene of this._scenes) {
+      this._clearSpecularTextures(scene.shaderData);
+      scene.shaderData.disableMacro(AmbientLight._realtimeSHMacro);
+    }
+    this._scenes.length = 0;
+    this._specularTexture = null;
+    this._secondarySpecularTexture = null;
+    this._realtimeSphericalHarmonicsBuffer = null;
   }
 
   /** Installs or clears the GPU-authored realtime SH override. @internal */
@@ -250,6 +266,27 @@ export class AmbientLight extends ReferResource {
     }
   }
 
+  private _replaceTextureReference(previous: TextureCube | null, next: TextureCube | null): void {
+    const refCount = this._getReferCount();
+    if (refCount > 0) {
+      previous?._addReferCount(-refCount);
+      next?._addReferCount(refCount);
+    }
+  }
+
+  private _updateSceneSpecularTextures(): void {
+    for (const scene of this._scenes) {
+      this._setSpecularTexture(scene.shaderData);
+    }
+  }
+
+  private _clearSpecularTextures(sceneShaderData: ShaderData): void {
+    sceneShaderData.setTexture(AmbientLight._specularTextureProperty, null);
+    sceneShaderData.setTexture(AmbientLight._secondarySpecularTextureProperty, null);
+    sceneShaderData.disableMacro(AmbientLight._specularMacro);
+    sceneShaderData.disableMacro(AmbientLight._specularBlendMacro);
+  }
+
   private _setSpecularTexture(sceneShaderData: ShaderData): void {
     if (this._specularTexture) {
       sceneShaderData.setTexture(AmbientLight._specularTextureProperty, this._specularTexture);
@@ -267,10 +304,7 @@ export class AmbientLight extends ReferResource {
         sceneShaderData.disableMacro(AmbientLight._specularBlendMacro);
       }
     } else {
-      sceneShaderData.setTexture(AmbientLight._specularTextureProperty, null);
-      sceneShaderData.setTexture(AmbientLight._secondarySpecularTextureProperty, null);
-      sceneShaderData.disableMacro(AmbientLight._specularMacro);
-      sceneShaderData.disableMacro(AmbientLight._specularBlendMacro);
+      this._clearSpecularTextures(sceneShaderData);
     }
   }
 

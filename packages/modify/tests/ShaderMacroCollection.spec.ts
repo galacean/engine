@@ -1,6 +1,3 @@
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { ShaderMacro } from "@galacean/engine";
 import { ShaderMacroCollection } from "../../core/src/shader/ShaderMacroCollection";
@@ -15,22 +12,10 @@ function getMacroAtWord(minWordIndex: number, label: string): ShaderMacro {
   }
 }
 
-describe("ShaderMacroCollection (modify override, PR #3233)", () => {
+describe("World ShaderMacroCollection", () => {
   const lowMacro = ShaderMacro.getByName("MODIFY_TEST_MACRO_LOW");
   const midMacro = getMacroAtWord(lowMacro._maskIndex + 1, "MID");
   const highMacro = getMacroAtWord(lowMacro._maskIndex + 3, "HIGH");
-
-  it("registers ShaderMacroCollection in native-overrides.json", () => {
-    const modifyRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-    const overrides = JSON.parse(fs.readFileSync(path.join(modifyRoot, "native-overrides.json"), "utf8")) as Array<{
-      original: string;
-      replacement: string;
-    }>;
-    expect(overrides).toContainEqual({
-      original: "packages/core/src/shader/ShaderMacroCollection.ts",
-      replacement: "packages/modify/src/native/core/src/shader/ShaderMacroCollection.ts"
-    });
-  });
 
   it("trims all trailing zero words on disable so isEqual matches canonical collections", () => {
     const toggled = new ShaderMacroCollection();

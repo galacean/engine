@@ -18,6 +18,25 @@ const grass = JSON.parse(
 const grassForward = grass.subShaders[0].passes.find((pass) => pass.name === "Forward");
 
 describe("Terrain near/far production shader variants", () => {
+  it.each(["Terrain", "Surface", "Vegetation", "Billboard"])("ships the engine point and spot falloff in %s", (name) => {
+    const asset = JSON.parse(
+      fs.readFileSync(
+        new URL(`../../../packages/terrain/src/data/seed-world/public/Shader/${name}.shaderc`, import.meta.url),
+        "utf8"
+      )
+    );
+    const pass = asset.subShaders[0].passes.find((entry) => entry.name === "Forward");
+    const macros = new Map([
+      ["GRAPHICS_API_WEBGL2", ""],
+      ["SCENE_POINT_LIGHT_COUNT", "1"],
+      ["SCENE_SPOT_LIGHT_COUNT", "1"]
+    ]);
+    const source = ShaderMacroProcessor.evaluate(pass.fragmentShaderInstructions, macros).replace(/\s+/g, "");
+    expect(source).toContain("getDistanceAttenuation(distanceSq,pointLight.distance)");
+    expect(source).toContain("getDistanceAttenuation(distanceSq,spotLight.distance)");
+    expect(source).toContain("if(cutoffDistance>0.0)");
+  });
+
   it("keeps per-pixel baked slopes on distant sand without sampling the micro normal", () => {
     const macros = new Map([
       ["GRAPHICS_API_WEBGL2", ""],
@@ -102,7 +121,7 @@ describe("Terrain near/far production shader variants", () => {
     expect(source).not.toContain("terrainProjectGroundColor");
   });
 
-  it("keeps far-terrain SSRReceiver discard conditional so ANGLE/Adreno retains the struct return", () => {
+  it("keeps both far-terrain SSR outputs defined on the path past the conditional discard", () => {
     const pass = terrain.subShaders[0].passes.find((entry) => entry.name === "SSRReceiver");
     const macros = new Map([
       ["GRAPHICS_API_WEBGL2", ""],
@@ -110,13 +129,12 @@ describe("Terrain near/far production shader variants", () => {
       ["MATERIAL_TERRAIN_FAR", ""]
     ]);
     const source = ShaderMacroProcessor.evaluate(pass.fragmentShaderInstructions, macros);
-    const fnMatch = source.match(
-      /TerrainProjectSSRReceiverOutput\s+TerrainSSRReceiverFragment\s*\([\s\S]*?\)\s*\{([\s\S]*)\}/
-    );
-    expect(fnMatch).not.toBeNull();
-    const body = fnMatch![1];
+    // The compiler lowers the ShaderLab struct to two fragment outputs in this pass.
+    const body = source.slice(source.indexOf("void TerrainSSRReceiverFragment"), source.indexOf("void main()"));
+    expect(body).toMatch(/output_color\s*=\s*vec4\s*\(\s*0\.0\s*\)/);
+    expect(body).toMatch(/output_color_1\s*=\s*vec4\s*\(\s*0\.0\s*\)/);
     expect(body).toMatch(/if\s*\(\s*!\s*\(\s*varyings\.terrainValid\s*>\s*2\.0\s*\)\s*\)\s*\{\s*discard\s*;\s*\}/);
-    expect(body).toMatch(/return\s+output_\s*;/);
+    expect(body).toMatch(/return\s*;/);
     expect(body).not.toContain("evaluateTerrainLayerWaterFilm");
   });
 
@@ -447,6 +465,12 @@ describe("Terrain near/far production shader variants", () => {
     expect(pointLightFs).toContain("getPointLight");
     expect(pointLightFs).toContain("getSpotLight");
     expect(pointLightFs).toContain("sampleProbeVolume");
+    const matteGrass = pointLightFs
+      .slice(pointLightFs.indexOf("vec3 evaluateMatteGrassLighting"), pointLightFs.indexOf("void GrassFragment"))
+      .replace(/\s+/g, "");
+    expect(matteGrass).toContain("getDistanceAttenuation(distanceSq,pointLight.distance)");
+    expect(matteGrass).toContain("getDistanceAttenuation(distanceSq,spotLight.distance)");
+    expect(matteGrass).toContain("dot(pointLight.color,pointLight.color)>0.0");
   });
 
   it("retains volumetric cloud shadow attenuation on dry grass when directional shadows are disabled (P1-6)", () => {

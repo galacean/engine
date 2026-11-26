@@ -23,7 +23,7 @@ if (!existsSync(join(root, "package-lock.json"))) {
 run("npm", ["ci", ...installFlags], { ...process.env, HUSKY: "0", ELECTRON_SKIP_BINARY_DOWNLOAD: "1" });
 run("npm", ["run", "b:module"]);
 run("npm", ["run", "prepare:engine", "--workspace", "world"]);
-run(process.execPath, ["world/scripts/prepare-terrain-shaders.mjs", "Grass", "Surface", "Terrain", "Vegetation"]);
+run(process.execPath, ["world/scripts/prepare-terrain-shaders.mjs"]);
 run("npm", ["run", "build:seed-world-flash-app", "--workspace", "world"]);
 run("npm", ["run", "build:seed-world-flash-source", "--workspace", "world"]);
 

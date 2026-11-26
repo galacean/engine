@@ -107,12 +107,20 @@ export class AmbientLight extends ReferResource {
     return this._specularTexture;
   }
 
-  set specularTexture(value: TextureCube) {
-    this._specularTexture = value;
+  set specularTexture(value: TextureCube | null) {
+    const lastTexture = this._specularTexture;
+    if (lastTexture !== value) {
+      const refCount = this._getReferCount();
+      if (refCount > 0) {
+        lastTexture?._addReferCount(-refCount);
+        value?._addReferCount(refCount);
+      }
+      this._specularTexture = value!;
 
-    const scenes = this._scenes;
-    for (let i = 0, n = scenes.length; i < n; i++) {
-      this._setSpecularTexture(scenes[i].shaderData);
+      const scenes = this._scenes;
+      for (let i = 0, n = scenes.length; i < n; i++) {
+        this._setSpecularTexture(scenes[i].shaderData);
+      }
     }
   }
 
@@ -151,17 +159,39 @@ export class AmbientLight extends ReferResource {
    * @internal
    */
   _removeFromScene(scene: Scene): void {
+    if (this._destroyed) return;
     this._addReferCount(-1);
     const scenes = this._scenes;
     const index = scenes.indexOf(scene);
-    scenes.splice(index, 1);
-    const shaderData = scene.shaderData;
-    shaderData.setTexture(AmbientLight._specularTextureProperty, null);
-    shaderData.disableMacro(AmbientLight._specularMacro);
+    if (index !== -1) {
+      scenes.splice(index, 1);
+    }
+    this._clearSpecularTexture(scene.shaderData);
+  }
+
+  /**
+   * @internal
+   */
+  override _addReferCount(value: number): void {
+    super._addReferCount(value);
+    this._specularTexture?._addReferCount(value);
   }
 
   constructor(engine: Engine) {
     super(engine);
+  }
+
+  /**
+   * @internal
+   */
+  protected override _onDestroy(): void {
+    super._onDestroy();
+    const scenes = this._scenes;
+    for (let i = 0, n = scenes.length; i < n; i++) {
+      this._clearSpecularTexture(scenes[i].shaderData);
+    }
+    scenes.length = 0;
+    this._specularTexture = null!;
   }
 
   private _setDiffuseMode(sceneShaderData: ShaderData): void {
@@ -178,8 +208,13 @@ export class AmbientLight extends ReferResource {
       sceneShaderData.setFloat(AmbientLight._mipLevelProperty, this._specularTexture.mipmapCount - 1);
       sceneShaderData.enableMacro(AmbientLight._specularMacro);
     } else {
-      sceneShaderData.disableMacro(AmbientLight._specularMacro);
+      this._clearSpecularTexture(sceneShaderData);
     }
+  }
+
+  private _clearSpecularTexture(sceneShaderData: ShaderData): void {
+    sceneShaderData.setTexture(AmbientLight._specularTextureProperty, null);
+    sceneShaderData.disableMacro(AmbientLight._specularMacro);
   }
 
   private _preComputeSH(sh: SphericalHarmonics3, out: Float32Array): void {
