@@ -80,11 +80,10 @@ import {
 } from "./SeedWorldAsrTailTuning.ts";
 import {
   SEED_WORLD_WORKING_TEXT_SHADER_NAME,
-  SEED_WORLD_VOICE_ORB_SHADER_NAME,
   SeedWorldLiquidGlassUiMaterial,
-  seedWorldWorkingTextShaderSource,
-  seedWorldVoiceOrbShaderSource
+  seedWorldWorkingTextShaderSource
 } from "./SeedWorldVoiceHudShaders.ts";
+import { SeedWorldVoiceOrbCache } from "./SeedWorldVoiceOrbCache.ts";
 
 import { projectSeedWorldTask } from "./SeedWorldTaskPresentation.ts";
 import { SeedWorldTurnGesture, turnDragIntent, TURN_DISMISS_DISTANCE, turnAnchorOffset, turnThrow } from "./SeedWorldTurnGesture.ts";
@@ -394,7 +393,7 @@ interface VoiceHudResources {
   readonly retrySprite: Sprite;
   readonly panelGlass: SeedWorldLiquidGlassUiMaterial;
   readonly orbGlass: SeedWorldLiquidGlassUiMaterial;
-  readonly orbMaterial: Material;
+  readonly orbCache: SeedWorldVoiceOrbCache;
   readonly transcriptMaterial: Material;
   destroy(): void;
 }
@@ -403,7 +402,6 @@ interface VoiceHudView {
   readonly root: Entity;
   readonly orbEntity: Entity;
   readonly transcript: Text;
-  readonly orbMaterial: Material;
   readonly transcriptMaterial: Material;
   readonly layout: VoiceHudLayout;
   readonly resources: VoiceHudResources;
@@ -1283,9 +1281,7 @@ export class SeedWorldVoiceHudController implements SeedWorldChatPanel {
     if (state.kind !== "idle") this._view.layout.setPresentation(
       state.kind === "agent" ? "progress" : state.kind === "feedback" && (state.category === "task-result" || state.category === "task-error") ? "result" : "voice"
     );
-    const listening = state.kind === "voice" && state.phase === "listening";
     const working = state.kind === "agent" || (state.kind === "voice" && state.phase !== "listening");
-    this._view.orbMaterial.shaderData.setFloat("material_Listening", listening ? 1 : 0);
     this._view.layout.setTranscriptWorking(working);
     // Keep the current transcript while fading out. Replacing it with hidden-state
     // copy before opacity reaches zero causes that copy to flash for one frame.
@@ -1746,7 +1742,8 @@ export class VoiceHudLayout extends Script {
   panelTransform: UITransform | undefined;
   orbGlassImage: Image | undefined;
   orbGlass: SeedWorldLiquidGlassUiMaterial | undefined;
-  orbMaterial: Material | undefined;
+  orbCache: SeedWorldVoiceOrbCache | undefined;
+  orbDisplayMaterial: Material | undefined;
   orbTransform: UITransform | undefined;
   private _orbGlassShade = 1;
   transcriptViewport: Image | undefined;
@@ -2175,9 +2172,7 @@ export class VoiceHudLayout extends Script {
     }
     this._orbBreathPhase += dt;
     this._orbPhase += dt * (1.0 + this._orbListeningBlend * ORB_LISTEN_SPEED);
-    const orbShaderData = this.orbMaterial?.shaderData;
-    orbShaderData?.setFloat("material_Time", this._orbPhase);
-    orbShaderData?.setFloat("material_Listening", this._orbListeningBlend);
+    this.orbCache?.scheduleUpdate(this._orbPhase, this._orbListeningBlend, dt);
     this.orbGlass?.setRimHighlight(this._orbListeningBlend * 0.08);
     if (this._transcriptWorking) {
       this.transcriptMaterial?.shaderData.setFloat(
@@ -2191,7 +2186,7 @@ export class VoiceHudLayout extends Script {
     // Animate orb breathing and press expansion purely via GPU vertex-shader uniforms so
     // orbTransform stays immutable and chunkUI performs zero VBO rebuilds/uploads during idle.
     const expandOrbPixels = this._orbBasePixelSize * (totalOrbScale - 1);
-    orbShaderData?.setFloat("material_OrbScaleExpandPixels", expandOrbPixels);
+    this.orbDisplayMaterial?.shaderData.setFloat("material_OrbScaleExpandPixels", expandOrbPixels);
     this.orbGlass?.setQuadExpandPixels(expandOrbPixels, expandOrbPixels);
     const scaledOrbPixels = this._orbBasePixelSize * totalOrbScale;
     this.orbGlass?.setLayout(scaledOrbPixels, scaledOrbPixels, scaledOrbPixels * 0.5);
@@ -2209,13 +2204,19 @@ export class VoiceHudLayout extends Script {
     // Keep the authentic Liquid Glass refraction shell visible during photo markup,
     // gently matching its brightness to the darkened backdrop shade so grass refractions never look overly bright.
     const targetGlassShade = photoActive ? 0.56 : 1;
-    this._orbGlassShade += (targetGlassShade - this._orbGlassShade) * (1 - Math.exp(-16 * dt));
-    if (Math.abs(targetGlassShade - this._orbGlassShade) < 0.002) {
-      this._orbGlassShade = targetGlassShade;
+    if (this._orbGlassShade !== targetGlassShade) {
+      this._orbGlassShade += (targetGlassShade - this._orbGlassShade) * (1 - Math.exp(-16 * dt));
+      if (Math.abs(targetGlassShade - this._orbGlassShade) < 0.002) {
+        this._orbGlassShade = targetGlassShade;
+      }
     }
-    this.orbGlass?.setOpacity(1);
-    if (this.orbGlassImage) {
-      this.orbGlassImage.color.set(this._orbGlassShade, this._orbGlassShade, this._orbGlassShade, 1);
+    const orbGlassImage = this.orbGlassImage;
+    if (orbGlassImage) {
+      const shade = this._orbGlassShade;
+      const color = orbGlassImage.color;
+      if (color.r !== shade || color.g !== shade || color.b !== shade || color.a !== 1) {
+        color.set(shade, shade, shade, 1);
+      }
     }
     this._updatePanelFade(deltaTime);
     this._updatePanelMotion(deltaTime);
@@ -2231,7 +2232,8 @@ export class VoiceHudLayout extends Script {
     const text = this.transcript?.entity.transform as UITransform | undefined;
     const material = this.transcriptMaterial;
     if (!viewport || !text || !material || !viewport.entity.isActiveInHierarchy) return;
-    text.alignTop = -this._scroll.offset;
+    const nextAlignTop = -this._scroll.offset;
+    if (text.alignTop !== nextAlignTop) text.alignTop = nextAlignTop;
     if (this._clipTransformEntity !== viewport.entity) {
       this._clipTransformFlag?.destroy();
       this._clipTransformEntity = viewport.entity;
@@ -2455,8 +2457,7 @@ function createVoiceHudResources(engine: Engine, camera: Camera): VoiceHudResour
   const whiteTexture = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false, false);
   whiteTexture.setPixelBuffer(new Uint8Array([255, 255, 255, 255]));
   const whiteSprite = new Sprite(engine, whiteTexture);
-  const orbShader = Shader.find(SEED_WORLD_VOICE_ORB_SHADER_NAME) ?? Shader.create(seedWorldVoiceOrbShaderSource);
-  const orbMaterial = new Material(engine, orbShader);
+  const orbCache = new SeedWorldVoiceOrbCache(engine, camera);
   const transcriptShader =
     Shader.find(SEED_WORLD_WORKING_TEXT_SHADER_NAME) ?? Shader.create(seedWorldWorkingTextShaderSource);
   const transcriptMaterial = new Material(engine, transcriptShader);
@@ -2470,25 +2471,9 @@ function createVoiceHudResources(engine: Engine, camera: Camera): VoiceHudResour
   panelGlass.setInteriorRefractionStrength(0);
   // Restore the authentic original Liquid Glass orb lens:
   // crystal-clear center (roughness = 0, interiorRefraction = 0) + signature 32% curved edge lens & specular rim reflection.
+  orbGlass.setOpacity(1);
   orbGlass.setInteriorRefractionStrength(0);
-  orbMaterial.isGCIgnored = true;
   transcriptMaterial.isGCIgnored = true;
-  const orbData = orbMaterial.shaderData;
-  orbData.setFloat("material_Time", 0);
-  orbData.setFloat("material_Listening", 0);
-  orbData.setFloat("material_OrbScaleExpandPixels", 0);
-  orbData.setVector4("material_OrbCyan", new Vector4(0.0, 0.96, 1.0, 1));
-  orbData.setVector4("material_OrbAzure", new Vector4(0.14, 0.44, 1.0, 1));
-  orbData.setVector4("material_OrbViolet", new Vector4(0.52, 0.16, 1.0, 1));
-  orbData.setVector4("material_OrbOrchid", new Vector4(0.94, 0.16, 0.86, 1));
-  orbData.setVector4("material_OrbRose", new Vector4(1.0, 0.24, 0.68, 1));
-  orbData.setVector4("material_OrbCore", new Vector4(1, 1, 1, 1));
-  orbData.setVector4("material_OrbMotion", new Vector4(0.90, 1.62, 0.26, 0.96));
-  orbData.setVector4("material_OrbRibbon", new Vector4(0.74, 0.28, 1.72, 1.42));
-  orbData.setVector4("material_OrbDisp", new Vector4(0.036, 0.045, 0.42, 0));
-  orbData.setVector4("material_OrbTone", new Vector4(1.16, 1.48, 0.92, 0.62));
-  orbData.setVector4("material_OrbRim", new Vector4(0.20, 0.05, 0.22, 0.45));
-  orbData.setFloat("material_OrbShellThickness", 0.11);
   transcriptMaterial.shaderData.setFloat("material_SeedWorldWorking", 0);
   transcriptMaterial.shaderData.setFloat("material_SeedWorldWorkingTime", 0);
   transcriptMaterial.shaderData.setFloat("material_SeedWorldPanelLeftUv", 0);
@@ -2502,7 +2487,7 @@ function createVoiceHudResources(engine: Engine, camera: Camera): VoiceHudResour
     retrySprite: retryIcon.sprite,
     panelGlass,
     orbGlass,
-    orbMaterial,
+    orbCache,
     transcriptMaterial,
     destroy() {
       if (destroyed) return;
@@ -2514,8 +2499,8 @@ function createVoiceHudResources(engine: Engine, camera: Camera): VoiceHudResour
       retryIcon.texture.destroy();
       panelGlass.destroy();
       orbGlass.destroy();
+      orbCache.destroy();
       transcriptMaterial.destroy();
-      orbMaterial.destroy();
       whiteSprite.destroy();
       whiteTexture.destroy();
     }
@@ -2618,10 +2603,11 @@ function createVoiceHudView(options: SeedWorldChatPanelOptions, resources: Voice
   orbVisualTransform.alignTop = 0;
   orbVisualTransform.alignBottom = 0;
   const orbVisual = orbVisualEntity.addComponent(Image);
-  orbVisual.sprite = resources.whiteSprite;
+  orbVisual.sprite = resources.orbCache.sprite;
   orbVisual.color = new Color(1, 1, 1, 1);
   orbVisual.raycastEnabled = false;
-  orbVisual.setMaterial(resources.orbMaterial);
+  orbVisual.setMaterial(resources.orbCache.displayMaterial);
+  resources.orbCache.isVisible = () => orbVisualEntity.isActiveInHierarchy && orbVisual.enabled;
 
   const controlEntity = panelEntity.createChild("Stop or retry unfinished task");
   const controlTransform = controlEntity.transform as UITransform;
@@ -2665,7 +2651,8 @@ function createVoiceHudView(options: SeedWorldChatPanelOptions, resources: Voice
   layout.panelTransform = panelTransform;
   layout.orbGlassImage = orbGlassImage;
   layout.orbGlass = resources.orbGlass;
-  layout.orbMaterial = resources.orbMaterial;
+  layout.orbCache = resources.orbCache;
+  layout.orbDisplayMaterial = resources.orbCache.displayMaterial;
   layout.transcriptMaterial = resources.transcriptMaterial;
   layout.orbTransform = orbTransform;
   layout.transcriptViewport = transcriptViewport;
@@ -2678,7 +2665,6 @@ function createVoiceHudView(options: SeedWorldChatPanelOptions, resources: Voice
     controlButton, controlImage, controlIcon, pendingLabel,
     orbEntity,
     transcript,
-    orbMaterial: resources.orbMaterial,
     transcriptMaterial: resources.transcriptMaterial,
     layout,
     resources

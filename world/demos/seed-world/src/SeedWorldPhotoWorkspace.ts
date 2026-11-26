@@ -93,6 +93,7 @@ export class SeedWorldPhotoWorkspace {
   private shade = 0;
   private statusUntil = 0;
   private disposed = false;
+  private reducedMotionQuery?: { readonly matches: boolean };
   private restoreLayer?: () => void;
   private readonly originalLabel: string | null;
   private readonly originalTabIndex: number;
@@ -758,33 +759,39 @@ export class SeedWorldPhotoWorkspace {
         motion.cancel();
       }
     }
-    const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!reducedMotion) {
-      this.brushVisualTime = (this.brushVisualTime + Math.min(Math.max(dt, 0), 0.1)) % 3600;
-    }
-    const t = reducedMotion ? 1 : 1 - Math.exp(-Math.min(dt, 0.1) * 18);
-    for (const entry of this.entries.values()) {
-      const id = entry.photo.snapshotId;
-      const clearing = this.clearingIds.has(id);
-      if (entry !== this.editing?.entry && entry !== this.discarding?.entry && !clearing && id !== this.drag?.id)
-        entry.pose = interpolate(entry.pose, entry.target, t);
-      entry.lift = mix(entry.lift, entry.liftTarget, t);
-      if (entry !== this.discarding?.entry && !clearing) {
-        entry.opacity = mix(entry.opacity, entry.opacityTarget, t);
-        if (Math.abs(entry.opacity - entry.opacityTarget) < 0.001) entry.opacity = entry.opacityTarget;
+    const hasEntries = this.entries.size > 0;
+    if (hasEntries) {
+      const reducedMotion = this.isReducedMotion();
+      if (!reducedMotion) {
+        this.brushVisualTime = (this.brushVisualTime + Math.min(Math.max(dt, 0), 0.1)) % 3600;
       }
-      entry.surface.setBrushTime(this.brushVisualTime);
-      this.render(entry);
+      const t = reducedMotion ? 1 : 1 - Math.exp(-Math.min(dt, 0.1) * 18);
+      for (const entry of this.entries.values()) {
+        const id = entry.photo.snapshotId;
+        const clearing = this.clearingIds.has(id);
+        if (entry !== this.editing?.entry && entry !== this.discarding?.entry && !clearing && id !== this.drag?.id)
+          entry.pose = interpolate(entry.pose, entry.target, t);
+        entry.lift = mix(entry.lift, entry.liftTarget, t);
+        if (entry !== this.discarding?.entry && !clearing) {
+          entry.opacity = mix(entry.opacity, entry.opacityTarget, t);
+          if (Math.abs(entry.opacity - entry.opacityTarget) < 0.001) entry.opacity = entry.opacityTarget;
+        }
+        entry.surface.setBrushTime(this.brushVisualTime);
+        this.render(entry);
+      }
     }
     const backdrop = this.graphics.backdrop;
-    backdrop.entity.isActive = this.shade > 0.001;
-    (backdrop.getMaterial() as UnlitMaterial).baseColor.a = this.shade;
+    const backdropActive = this.shade > 0.001;
+    if (backdrop.entity.isActive !== backdropActive) backdrop.entity.isActive = backdropActive;
+    const backdropColor = (backdrop.getMaterial() as UnlitMaterial).baseColor;
+    if (backdropColor.a !== this.shade) backdropColor.a = this.shade;
     if (this.statusUntil && now > this.statusUntil) {
       this.statusUntil = 0;
       this.graphics.status.text = "";
     }
-    this.graphics.camera.enabled =
-      !this.graphics.warmingUp && (this.entries.size > 0 || this.mode !== "idle" || !!this.graphics.status.text);
+    const cameraEnabled =
+      !this.graphics.warmingUp && (hasEntries || this.mode !== "idle" || !!this.graphics.status.text);
+    if (this.graphics.camera.enabled !== cameraEnabled) this.graphics.camera.enabled = cameraEnabled;
     if (this.editing && this.trace.enabled)
       this.trace.sample("frame", {
         dt,
@@ -793,6 +800,12 @@ export class SeedWorldPhotoWorkspace {
         rootActive: this.editing.entry.surface.root.isActiveInHierarchy,
         hasUserMarks: this.editing.entry.surface.hasUserMarks
       });
+  }
+  private isReducedMotion(): boolean {
+    if (!this.reducedMotionQuery && typeof matchMedia === "function") {
+      this.reducedMotionQuery = matchMedia("(prefers-reduced-motion: reduce)");
+    }
+    return this.reducedMotionQuery?.matches ?? false;
   }
   private render(entry: Entry): void {
     const { surface, pose: p } = entry;
@@ -819,7 +832,7 @@ export class SeedWorldPhotoWorkspace {
   }
   private animate(duration: number, signal: AbortSignal, update: (t: number) => void): Promise<void> {
     signal.throwIfAborted();
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (this.isReducedMotion()) {
       update(1);
       return Promise.resolve();
     }

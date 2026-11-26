@@ -1855,6 +1855,24 @@ function collectSeedWorldRendererVariantsInternal(
         maskedMacros.enable(ShaderMacro.getByName("SEED_WORLD_GLASS_MASK"));
         appendShaderVariants(material.shader, maskedMacros, variants, false, false, material);
       }
+      if (material.shader.name === "SeedWorld/VoiceOrbDisplayV1") {
+        const bakeShader = Shader.find("SeedWorld/VoiceOrbBakeV1");
+        if (bakeShader && !bakeShader.destroyed) {
+          const bakeMacros = new ShaderMacroCollection();
+          bakeMacros.unionCollection(engine._macroCollection);
+          appendShaderVariants(bakeShader, bakeMacros, variants, false, true, undefined, supportsRendering);
+        }
+      }
+    }
+  }
+  if ((options.overlayRenderers?.length ?? 0) > 0 || options.includePhotoCopy) {
+    const atlasTileShader = Shader.find("SeedWorld/UIAtlasTileV1");
+    if (atlasTileShader && !atlasTileShader.destroyed) {
+      const atlasMacros = new ShaderMacroCollection();
+      atlasMacros.unionCollection(engine._macroCollection);
+      atlasMacros.enable(ShaderMacro.getByName("ENGINE_SHOULD_SRGB_CORRECT"));
+      atlasMacros.enable(ShaderMacro.getByName("RENDERER_IS_RECEIVE_SHADOWS"));
+      appendShaderVariants(atlasTileShader, atlasMacros, variants, false, false, undefined, supportsRendering);
     }
   }
   // Resource preparation compiles the actual scene/material contract. A
