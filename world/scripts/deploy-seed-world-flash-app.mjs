@@ -7,20 +7,23 @@ import { fileURLToPath } from "node:url";
 const registryScript = fileURLToPath(new URL("./seed-world-flash-registry.py", import.meta.url));
 
 export function callFlashRegistry(asapPython, asapServiceDir, request) {
-  const child = spawnSync(asapPython, [registryScript, asapServiceDir], {
-    cwd: asapServiceDir,
-    input: JSON.stringify(request),
-    encoding: "utf8",
-    timeout: 30000
-  });
+  const attempts = request.operation === "verify" ? 1 : 3;
   const prefix = "SEED_WORLD_REGISTRY ";
-  const resultLine = child.stdout?.split("\n").findLast((line) => line.startsWith(prefix));
-  if (child.status !== 0 || !resultLine) {
-    throw new Error(`ASAP registry ${request.operation} failed (${child.error?.code || child.status})`);
+  const input = JSON.stringify(request);
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const child = spawnSync(asapPython, [registryScript, asapServiceDir], {
+      cwd: asapServiceDir, input, encoding: "utf8", timeout: 30000
+    });
+    const resultLine = child.stdout?.split("\n").findLast((line) => line.startsWith(prefix));
+    if (child.status !== 0 || !resultLine) {
+      if (attempt < attempts && (child.signal || child.error?.code === "ETIMEDOUT" || child.status === 0)) continue;
+      throw new Error(`ASAP registry ${request.operation} failed (${child.error?.code || child.signal || child.status})`);
+    }
+    const result = JSON.parse(resultLine.slice(prefix.length));
+    if (!result.error) return result;
+    if (result.retryable && attempt < attempts) continue;
+    throw new Error(`ASAP registry ${request.operation}: ${result.error}`);
   }
-  const result = JSON.parse(resultLine.slice(prefix.length));
-  if (result.error) throw new Error(`ASAP registry ${request.operation}: ${result.error}`);
-  return result;
 }
 
 function pack(source, archive) {

@@ -1,6 +1,6 @@
 ---
 name: seed-world-flash-publish
-description: 将 Seed World 构建为共享公共运行时与共享 MDN CDN、以各自静态产物作为 OSS 备份的 6 个独立模板灵光闪应用产物（original 复用旧 Artifact，其余 5 模板各自独立 Artifact），校验根入口、classic Worker 与 PUGC 扩展名兼容，并通过 ASAP HTTP 注册接口完成建表、上传、部署与版本核对。触发词：发布这个闪应用、发布闪应用、发布成灵光闪应用、更新闪应用、灵光闪应用上架、发布六个模板闪应用。不用于本地 ASAP/Wrapper 联调（见 seed-world-local-debug）。
+description: 将 Seed World 构建为共享公共运行时与共享 MDN CDN、以各自静态产物作为 OSS 备份的 6 个独立模板灵光闪应用产物（original 复用旧 Artifact，其余 5 模板各自独立 Artifact），校验根入口、classic Worker 与 PUGC 扩展名兼容，并通过 ASAP 登记库完成建表、上传、部署与版本核对。触发词：发布这个闪应用、发布闪应用、发布成灵光闪应用、更新闪应用、灵光闪应用上架、发布六个模板闪应用。不用于本地 ASAP/Wrapper 联调（见 seed-world-local-debug）。
 ---
 
 # Seed World 灵光闪应用发布（6 模板独立应用版）
@@ -75,7 +75,7 @@ python3 -m http.server 4180 --bind 127.0.0.1 --directory world/dist/seed-world-f
 
 ## 4. 执行 6 应用 PUGC 编排发布
 
-使用 `world/scripts/publish-seed-world-flash-apps.mjs` 编排发布。默认干跑。执行时，默认 HTTP 模式调用目标 ASAP Demo 的 `/api/flash-app/release/reserve` 预留版本，使用该版本建表、打包和部署，再调用 `/api/flash-app/release/complete` 完成登记。瞬时故障重试沿用同一个发布 ID。具备直连 OceanBase/Layotto 权限的发布机可使用 `--registry-mode direct-db`。
+使用 `world/scripts/publish-seed-world-flash-apps.mjs` 在能访问目标 OceanBase/Layotto 登记库的发布机执行。先用 `--verify-registry` 只读核对发布机的登记库与 PUGC HTTP 服务环境。编排器先预留版本，再使用该版本建表、打包、上传和部署，最后提交登记。预留或登记重试沿用同一个发布 ID。
 
 **跳过云端构建的备份红线（必守）。** 云端 `copy` / 克隆沙箱通过检查 `backup_<version>.tar.gz` 根目录是否存在 `package.json` 来决定是否执行 `npm run build`——而沙箱不会运行 `npm ci` 且存在 60s `build_timeout`，一旦备份内包含 `package.json` 会直接报缺包或超时失败。因此**严禁在派生静态目录放入 `package.json`**；即便手工兜底调用 PUGC `deploy.cjs`，也必须令 `--source-dir` 与 `--project-dir` 同指向 `world/dist/seed-world-flash-apps/<templateId>`（绝不能传仓库根目录）。
 

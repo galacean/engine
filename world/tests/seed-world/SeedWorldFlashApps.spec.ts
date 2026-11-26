@@ -136,7 +136,7 @@ describe("Seed World 6-app Flash publishing", () => {
         };
       `);
       const run = (mode: string, template = "sakura-pearl", ...flags: string[]) => promisify(execFile)(process.execPath, [
-        publishScript, mode, "--registry-mode", "direct-db", "--engine-root", engineRoot, "--catalog", catalog, "--publisher-root", publisher,
+        publishScript, mode, "--engine-root", engineRoot, "--catalog", catalog, "--publisher-root", publisher,
         "--asap-service-dir", engineRoot, "--asap-python", registry, "--state-dir", stateDir,
         "--templates", template, ...flags
       ]);
@@ -180,13 +180,16 @@ describe("Seed World 6-app Flash publishing", () => {
       ddlResponse = { success: true, code: "0", data: "创建表成功！\n\n**表类型**: share" };
       const results = await Promise.all(Object.keys(artifacts).map((template) => run("--execute", template)));
       const calls = fs.readFileSync(logPath, "utf8").trim().split("\n").map((line) => JSON.parse(line));
+      const checks = calls.filter(call => call.operation === "verify");
+      expect(checks).toHaveLength(Object.keys(artifacts).length);
+      expect(checks.every(call => call.artifactId === "flashapp-a3c0e021cb8cadb0")).toBe(true);
       for (const [index, [template, artifactId]] of Object.entries(artifacts).entries()) {
         const prefix = `leopard/sandbox/workspace/${artifactId}-3/`;
         const backupOss = prefix + "backup_3.tar.gz";
         const appCalls = calls.filter((call) => call.artifactId === artifactId || call.object_name?.startsWith(prefix));
         const databaseCalls = template === "sakura-pearl" ? ["ddl", "read-schema"] : ["ddl"];
         expect(appCalls.map((call) => call.operation)).toEqual([
-          "verify", "reserve", ...databaseCalls, "upload", "upload", "deploy", "publish"
+          "reserve", ...databaseCalls, "upload", "upload", "deploy", "publish"
         ]);
         expect(appCalls.find((call) => call.operation === "ddl"))
           .toMatchObject({ artifactVersion: "3", params: { table_kind: "share" } });
@@ -209,55 +212,16 @@ describe("Seed World 6-app Flash publishing", () => {
     }
   });
 
-  it("reserves a version before deploy and replays the same HTTP release after a lost response", async () => {
-    const engineRoot = makeTempDir("sw-http-release-");
-    const publishScript = path.join(repoRoot, "world/scripts/publish-seed-world-flash-apps.mjs");
-    const catalog = path.join(repoRoot, DEFAULT_FLASH_APPS_CATALOG_RELATIVE);
+  it("retries lost registry replies with one release ID and resumes completion without redeploying", async () => {
+    const engineRoot = makeTempDir("sw-release-retry-");
     const publisher = path.join(engineRoot, "publisher");
     const stateDir = path.join(engineRoot, "state");
-    const artifactId = "flashapp-aa964a26bde230fb";
-    const logPath = path.join(engineRoot, "operations.jsonl");
-    const calls: Array<{ operation: string; body: Record<string, string> }> = [];
-    const reservations = new Map<string, string>();
-    const published = new Map<string, Record<string, string>>();
-    let dropReserveReply = true;
-    let dropCompleteReply = true;
-    let rejectComplete = false;
-    let rejectReserve = false;
-
+    const callsPath = path.join(engineRoot, "registry.jsonl");
+    const logPath = path.join(engineRoot, "deploy.jsonl");
+    const blockedPath = path.join(engineRoot, "block-completion");
     const server = http.createServer((req, res) => {
-      if (req.url?.startsWith("/api/trace/versions_by_artifact")) {
-        res.end(JSON.stringify({ versions: [{ artifact_version: "1" }], type: "miniapp" }));
-        return;
-      }
-      const operation = req.url?.match(/^\/api\/flash-app\/release\/(reserve|complete)$/)?.[1];
-      if (!operation) return res.writeHead(404).end();
-      let raw = "";
-      req.setEncoding("utf8");
-      req.on("data", chunk => { raw += chunk; });
-      req.on("end", () => {
-        const body = JSON.parse(raw);
-        const { release_id: releaseId } = body;
-        calls.push({ operation, body });
-        if (operation === "reserve") {
-          if (rejectReserve) return res.writeHead(404).end(JSON.stringify({ detail: "route unavailable" }));
-          // Published history shows v1, while the registry has already consumed v2.
-          if (!reservations.has(releaseId)) reservations.set(releaseId, String(3 + reservations.size));
-          if (dropReserveReply) {
-            dropReserveReply = false;
-            return res.destroy();
-          }
-        } else {
-          if (rejectComplete) return res.writeHead(409).end(JSON.stringify({ detail: "completion rejected" }));
-          if (body.version_number !== reservations.get(releaseId)) return res.writeHead(409).end();
-          published.set(releaseId, body);
-          if (dropCompleteReply) {
-            dropCompleteReply = false;
-            return res.destroy();
-          }
-        }
-        res.end(JSON.stringify({ success: true, data: { version_number: reservations.get(releaseId) } }));
-      });
+      if (!req.url?.startsWith("/api/trace/versions_by_artifact")) return res.writeHead(404).end();
+      res.end(JSON.stringify({ versions: [{ artifact_version: "1", html_url: "https://render.example.com/v1" }] }));
     });
     await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
     try {
@@ -266,63 +230,61 @@ describe("Seed World 6-app Flash publishing", () => {
         `exports.asapServiceUrl = p => 'http://127.0.0.1:${port}' + p`);
       write(path.join(publisher, "scripts/asap-publish.cjs"), String.raw`
         const fs = require("node:fs");
-        const { execFileSync } = require("node:child_process");
         exports.callAsap = request => {
-          const html = request.local_file
-            ? execFileSync("tar", ["-xOzf", request.local_file, "index.html"], { encoding: "utf8" })
-            : undefined;
-          fs.appendFileSync(${JSON.stringify(logPath)}, JSON.stringify({ ...request, html }) + "\n");
+          fs.appendFileSync(${JSON.stringify(logPath)}, JSON.stringify(request) + "\n");
           return { entry_url: "https://render.example.com/index.html" };
         };
       `);
-      const dummyPython = path.join(engineRoot, ".venv/bin/python");
-      write(dummyPython, "#!/bin/sh\nexit 99\n");
-      fs.chmodSync(dummyPython, 0o755);
-      write(
-        path.join(engineRoot, "world/dist/seed-world-flash-apps/oil-paint/index.html"),
-        '<html><head><meta name="seed-world-default-template" content="oil-paint" /></head></html>'
-      );
+      const python = path.join(engineRoot, "registry");
+      write(python, String.raw`#!${process.execPath}
+        const fs = require("node:fs");
+        const file = ${JSON.stringify(callsPath)};
+        const req = JSON.parse(fs.readFileSync(0, "utf8"));
+        const prior = fs.existsSync(file) ? fs.readFileSync(file, "utf8").trim().split("\n").map(JSON.parse) : [];
+        fs.appendFileSync(file, JSON.stringify(req) + "\n");
+        const op = req.operation;
+        if (op !== "verify" && !prior.some(call => call.operation === op && call.releaseId === req.releaseId)) {
+          process.exit(0); // The registry wrote the change before its reply was lost.
+        }
+        const result = op === "verify" ? { matches: true } :
+          op === "publish" && fs.existsSync(${JSON.stringify(blockedPath)}) ? { error: "completion unavailable" } :
+          {version: op === "reserve" ? "3" : req.version};
+        console.log("SEED_WORLD_REGISTRY " + JSON.stringify(result));
+      `);
+      fs.chmodSync(python, 0o755);
+      write(path.join(engineRoot, "world/dist/seed-world-flash-apps/oil-paint/index.html"),
+        '<html><head><meta name="seed-world-default-template" content="oil-paint" /></head></html>');
       const run = (...extra: string[]) => promisify(execFile)(process.execPath, [
-        publishScript, "--execute", "--skip-db-init",
-        "--engine-root", engineRoot, "--catalog", catalog, "--publisher-root", publisher,
-        "--asap-service-dir", engineRoot, "--state-dir", stateDir, "--templates", "oil-paint", ...extra
+        path.join(repoRoot, "world/scripts/publish-seed-world-flash-apps.mjs"), "--skip-db-init",
+        "--engine-root", engineRoot, "--catalog", path.join(repoRoot, DEFAULT_FLASH_APPS_CATALOG_RELATIVE),
+        "--publisher-root", publisher, "--asap-service-dir", engineRoot, "--asap-python", python,
+        "--state-dir", stateDir, "--templates", "oil-paint", ...extra
       ]);
+      const calls = () => fs.readFileSync(callsPath, "utf8").trim().split("\n").map(line => JSON.parse(line));
 
-      const first = await run();
-      expect(first.stdout).toContain(`| ${artifactId} | 3 | miniapp | skipped | OK |`);
-      expect(calls.map(({ operation }) => operation)).toEqual(["reserve", "reserve", "complete", "complete"]);
-      expect(calls[0].body).toEqual(calls[1].body);
-      expect(calls[2].body).toEqual(calls[3].body);
-      expect(calls[2].body).toMatchObject({
-        artifact_id: artifactId,
-        release_id: calls[0].body.release_id,
-        version_number: "3",
-        backup_url: `leopard/sandbox/workspace/${artifactId}-3/backup_3.tar.gz`
-      });
-      expect(published.size).toBe(1);
-      const firstDeploy = fs.readFileSync(logPath, "utf8").trim().split("\n").map(line => JSON.parse(line));
-      expect(firstDeploy.map(call => call.operation)).toEqual(["upload", "upload", "deploy"]);
-      expect(firstDeploy[1].html).toContain('window.artifactVersion = "3"');
+      await run("--verify-registry");
+      expect(calls().map(call => call.operation)).toEqual(["verify"]);
+      expect(fs.existsSync(logPath)).toBe(false);
+      fs.rmSync(callsPath);
 
-      rejectComplete = true;
-      await expect(run()).rejects.toMatchObject({ stderr: expect.stringContaining("--resume-release") });
-      const pendingId = calls.at(-1)!.body.release_id;
-      const completedRequest = calls.at(-1)!.body;
-      const beforeResume = fs.readFileSync(logPath, "utf8");
-      rejectComplete = false;
-      await expect(run("--resume-release", pendingId)).resolves.toMatchObject({
-        stdout: expect.stringContaining("Completed oil-paint v4")
+      write(blockedPath, "");
+      await expect(run("--execute")).rejects.toMatchObject({ stderr: expect.stringContaining("--resume-release") });
+      const [verify, reserve, reserveReplay, publish, publishReplay] = calls();
+      expect(verify.operation).toBe("verify");
+      expect(reserve.operation).toBe("reserve");
+      expect(reserveReplay).toEqual(reserve);
+      expect(publishReplay).toEqual(publish);
+      expect(publish).toMatchObject({ operation: "publish", releaseId: reserve.releaseId, version: "3" });
+      const deployed = fs.readFileSync(logPath, "utf8");
+      expect(deployed.trim().split("\n")).toHaveLength(3);
+
+      fs.rmSync(blockedPath);
+      await expect(run("--execute", "--resume-release", reserve.releaseId)).resolves.toMatchObject({
+        stdout: expect.stringContaining("Completed oil-paint v3")
       });
-      expect(calls.at(-1)).toEqual({ operation: "complete", body: completedRequest });
-      expect(fs.readFileSync(logPath, "utf8")).toBe(beforeResume);
+      expect(calls().at(-1)).toEqual(publish);
+      expect(fs.readFileSync(logPath, "utf8")).toBe(deployed);
       expect(fs.readdirSync(path.join(stateDir, "pending-releases"))).toEqual([]);
-      expect(JSON.parse(fs.readFileSync(path.join(stateDir, `${artifactId}.local.json`), "utf8"))).toMatchObject({
-        lastPublishedVersion: "4", artifactVersion: "5"
-      });
-
-      rejectReserve = true;
-      await expect(run()).rejects.toMatchObject({ stderr: expect.stringContaining("HTTP 404") });
-      expect(fs.readFileSync(logPath, "utf8")).toBe(beforeResume);
     } finally {
       await new Promise<void>(resolve => server.close(() => resolve()));
     }

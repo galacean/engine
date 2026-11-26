@@ -6,9 +6,7 @@
  * - Each Artifact keeps its local publish state in its own file in `~/.config/galacean-flash-app/apps/`.
  * - Each Artifact backs up its own built static directory (`world/dist/seed-world-flash-apps/<templateId>`, no `package.json`)
  *   so cloud `copy`/clone skips `npm run build` and directly re-injects the cloned `artifactId`/`artifactVersion`.
- * - By default (`--registry-mode http`), reserves and completes releases via ASAP HTTP.
- *   Pass `--registry-mode direct-db` only on hosts with
- *   direct ASAP OceanBase/Layotto access to pre-reserve versions via `seed-world-flash-registry.py`.
+ * - Reserves and completes versions through the existing ASAP registry from a release host.
  *
  * Defaults to `--dry-run`. Pass `--execute` to perform remote DB/OSS/Yuyan/PUGC operations.
  */
@@ -99,7 +97,7 @@ export function parseCliArgs(argv) {
     publisherRoot: process.env.PUBLISHER_ROOT || "",
     asapServiceDir: process.env.ASAP_SERVICE_DIR || "",
     asapPython: process.env.ASAP_PYTHON || "",
-    registryMode: "http",
+    verifyRegistry: false,
     resumeRelease: null,
     templates: "all",
     type: null,
@@ -140,8 +138,8 @@ export function parseCliArgs(argv) {
       case "--asap-python":
         parsed.asapPython = resolve(argv[++i] || "");
         break;
-      case "--registry-mode":
-        parsed.registryMode = (argv[++i] || "").trim();
+      case "--verify-registry":
+        parsed.verifyRegistry = true;
         break;
       case "--resume-release":
         parsed.resumeRelease = argv[++i] || "";
@@ -196,11 +194,11 @@ export function parseCliArgs(argv) {
   if (parsed.type !== null && parsed.type !== "game" && parsed.type !== "miniapp") {
     throw new Error(`Invalid --type "${parsed.type}"; expected "game" or "miniapp"`);
   }
-  if (parsed.registryMode !== "http" && parsed.registryMode !== "direct-db") {
-    throw new Error(`Invalid --registry-mode "${parsed.registryMode}"; expected "http" or "direct-db"`);
+  if (parsed.resumeRelease !== null && (!parsed.execute || !RELEASE_ID.test(parsed.resumeRelease))) {
+    throw new Error("--resume-release requires --execute and a valid release ID");
   }
-  if (parsed.resumeRelease !== null && (!parsed.execute || parsed.registryMode !== "http" || !RELEASE_ID.test(parsed.resumeRelease))) {
-    throw new Error("--resume-release requires --execute, HTTP registry mode and a valid release ID");
+  if (parsed.verifyRegistry && (parsed.execute || parsed.skipOnlineCheck)) {
+    throw new Error("--verify-registry is read-only and requires the online version lookup");
   }
   if (!Number.isFinite(parsed.timeout) || parsed.timeout <= 0) {
     throw new Error(`Invalid --timeout "${parsed.timeout}"`);
@@ -472,86 +470,46 @@ export async function queryOnlineArtifactInfo(publisherRoot, artifactId) {
   }
 }
 
-async function callFlashAppReleaseHttp(publisherRoot, operation, request) {
-  const maxAttempts = 3;
-  const retryDelayMs = 1000;
-  const urlHelperPath = resolve(publisherRoot, "scripts/asap-service-url.cjs");
-  if (!existsSync(urlHelperPath)) throw new Error(`Missing ${urlHelperPath}`);
-  const { asapServiceUrl } = require(urlHelperPath);
-  const endpoint = asapServiceUrl(`/api/flash-app/release/${operation}`);
-  const label = `ASAP HTTP release ${operation} for ${request.artifact_id}`;
-  const payload = JSON.stringify(request);
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    let response;
-    let bodyText = "";
-    try {
-      response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: payload,
-        signal: AbortSignal.timeout(30000)
-      });
-      bodyText = await response.text();
-    } catch (error) {
-      if (attempt < maxAttempts) {
-        await new Promise((resolveDelay) => setTimeout(resolveDelay, retryDelayMs * attempt));
-        continue;
-      }
-      throw new Error(`${label} request failed: ${error.message}`, {
-        cause: error
-      });
-    }
-
-    if (response.status >= 500 && response.status <= 504 && attempt < maxAttempts) {
-      await new Promise((resolveDelay) => setTimeout(resolveDelay, retryDelayMs * attempt));
-      continue;
-    }
-
-    let json;
-    try {
-      json = JSON.parse(bodyText);
-    } catch (error) {
-      if (attempt < maxAttempts) {
-        await new Promise((resolveDelay) => setTimeout(resolveDelay, retryDelayMs * attempt));
-        continue;
-      }
-      throw new Error(
-        `${label} returned non-JSON (HTTP ${response.status})`,
-        { cause: error }
-      );
-    }
-
-    if (!response.ok || json?.success !== true) {
-      const detail = typeof json?.detail === "string" ? json.detail : json?.message;
-      throw new Error(`${label} rejected (HTTP ${response.status})${detail ? `: ${detail}` : ""}`);
-    }
-
-    const versionNumber = String(json?.data?.version_number ?? "");
-    if (!/^[1-9][0-9]*$/u.test(versionNumber) || !Number.isSafeInteger(Number(versionNumber))) {
-      throw new Error(`${label} returned an invalid version: ${versionNumber}`);
-    }
-    return versionNumber;
-  }
-
-  throw new Error(`${label} exhausted retries`);
-}
-
 function receiptPath(stateDir, releaseId) {
   return resolve(stateDir, "pending-releases", `${releaseId}.json`);
 }
 
-async function completeHttpRelease(options, path, receipt) {
+function releaseRegistry(options) {
+  if (!options.asapServiceDir) {
+    throw new Error("Missing --asap-service-dir (or env ASAP_SERVICE_DIR)");
+  }
+  const python = options.asapPython || resolve(options.asapServiceDir, ".venv/bin/python");
+  if (!existsSync(python)) throw new Error(`ASAP Python interpreter not found: ${python}`);
+  return {
+    python,
+    call: (request) => callFlashRegistry(python, options.asapServiceDir, request)
+  };
+}
+
+async function verifyRegistry(publisherRoot, catalog, registry) {
+  const original = catalog.apps.find((app) => app.reuseExisting && app.artifactId);
+  if (!original || !publisherRoot) {
+    throw new Error("Registry verification requires the original Artifact and --publisher-root");
+  }
+  const { latestVersion, entryUrl } = await queryOnlineArtifactInfo(publisherRoot, original.artifactId);
+  if (!entryUrl || !registry.call({
+    operation: "verify", artifactId: original.artifactId, version: String(latestVersion), entryUrl
+  }).matches) {
+    throw new Error("ASAP registry does not match the original Artifact in the configured HTTP service");
+  }
+}
+
+function completeRelease(options, registry, path, receipt) {
   const { request, item, dbInitialized } = receipt;
-  const confirmed = await callFlashAppReleaseHttp(options.publisherRoot, "complete", request);
-  if (confirmed !== request.version_number) throw new Error("ASAP confirmed a different version from the reservation");
+  const confirmed = registry.call(request).version;
+  if (confirmed !== request.version) throw new Error("ASAP confirmed a different version from the reservation");
 
   saveLocalState(options.stateDir, item, {
     artifactVersion: String(Number(confirmed) + 1),
     dbInitialized,
     lastPublishedVersion: confirmed,
-    lastEntryUrl: request.entry_url,
-    lastBackupOss: request.backup_url
+    lastEntryUrl: request.entryUrl,
+    lastBackupOss: request.backupOss
   });
   rmSync(path, { force: true });
 }
@@ -584,8 +542,8 @@ Options:
   --publisher-root <dir>      PUGC checkout containing scripts/asap-publish.cjs (or env PUBLISHER_ROOT)
   --asap-service-dir <dir>    ASAP checkout containing .venv/bin/python (or env ASAP_SERVICE_DIR)
   --asap-python <path>        Override ASAP Python path (default: <asap-service-dir>/.venv/bin/python)
-  --registry-mode <mode>      Version registration mode: "http" (default, ASAP HTTP reservation) or "direct-db" (requires Layotto/OceanBase access)
-  --resume-release <id>       Complete a deployed HTTP release using its saved receipt
+  --verify-registry           Check read-only access to the configured release registry
+  --resume-release <id>       Complete a deployed release using its saved receipt
   --templates <all|csv>       Templates to publish (default: all)
   --type <game|miniapp>       Explicit PUGC artifact type (otherwise auto-detected from original online record)
   --title-override <id=name>  Override title for a template (repeatable)
@@ -625,19 +583,26 @@ async function main() {
     return;
   }
 
-  if (options.resumeRelease) {
-    if (!options.publisherRoot) throw new Error("--resume-release requires --publisher-root or PUBLISHER_ROOT");
+  const catalog = loadFlashAppsCatalog(options.catalogPath);
+  if (options.verifyRegistry || options.resumeRelease) {
+    const registry = releaseRegistry(options);
+    await verifyRegistry(options.publisherRoot, catalog, registry);
+    if (options.verifyRegistry) {
+      console.log("ASAP release registry matches the configured HTTP service.");
+      return;
+    }
+
     const path = receiptPath(options.stateDir, options.resumeRelease);
     const receipt = JSON.parse(readFileSync(path, "utf8"));
-    if (receipt.request.release_id !== options.resumeRelease || receipt.request.artifact_id !== receipt.item.artifactId) {
+    if (receipt.request.operation !== "publish" || receipt.request.releaseId !== options.resumeRelease ||
+        receipt.request.artifactId !== receipt.item.artifactId) {
       throw new Error("Release receipt does not match the requested release");
     }
-    await completeHttpRelease(options, path, receipt);
-    console.log(`Completed ${receipt.item.templateId} v${receipt.request.version_number}: ${receipt.request.entry_url}`);
+    completeRelease(options, registry, path, receipt);
+    console.log(`Completed ${receipt.item.templateId} v${receipt.request.version}: ${receipt.request.entryUrl}`);
     return;
   }
 
-  const catalog = loadFlashAppsCatalog(options.catalogPath);
   const targetApps = selectTargetApps(catalog, options.templates);
   const publisherContext = readPublisherContext(options.publisherRoot);
   const state = loadLocalState(options.stateDir, catalog, publisherContext);
@@ -671,7 +636,6 @@ async function main() {
     console.log(`[dry-run] Catalog: ${options.catalogPath}`);
     console.log(`[dry-run] Local state directory: ${options.stateDir}`);
     console.log(`[dry-run] Publisher root: ${options.publisherRoot || "<not set>"}`);
-    console.log(`[dry-run] Registry mode: ${options.registryMode}`);
     console.log(`[dry-run] Resolved default --type: ${plan.defaultType || "<requires --type or online check>"}`);
     printSummaryTable(
       plan.items.map((item) => ({
@@ -693,13 +657,7 @@ async function main() {
   if (!options.publisherRoot || !existsSync(resolve(options.publisherRoot, "scripts/asap-publish.cjs"))) {
     throw new Error("Missing valid --publisher-root containing scripts/asap-publish.cjs");
   }
-  if (!options.asapServiceDir) {
-    throw new Error("Missing --asap-service-dir (or env ASAP_SERVICE_DIR)");
-  }
-  const asapPython = options.asapPython || resolve(options.asapServiceDir, ".venv/bin/python");
-  if (!existsSync(asapPython)) {
-    throw new Error(`ASAP Python interpreter not found: ${asapPython}`);
-  }
+  const registry = releaseRegistry(options);
   const ddlPath = resolve(options.engineRoot, WORLD_SAVE_DDL_RELATIVE);
 
   // Validate pre-conditions for every selected app BEFORE making any remote calls.
@@ -726,28 +684,7 @@ async function main() {
     }
   }
 
-  const registry =
-    options.registryMode === "direct-db"
-      ? (request) => callFlashRegistry(asapPython, options.asapServiceDir, request)
-      : null;
-  if (registry) {
-    // Ensure that the ASAP Python environment and the PUGC HTTP settings refer to the same registry.
-    let published = plan.items.find((item) => onlineInfoByTemplate[item.templateId]?.entryUrl);
-    if (!published) {
-      const original = catalog.apps.find((app) => app.reuseExisting && app.artifactId);
-      if (original) {
-        onlineInfoByTemplate[original.templateId] ??= await queryOnlineArtifactInfo(options.publisherRoot, original.artifactId);
-        published = original;
-      }
-    }
-    const reference = published && onlineInfoByTemplate[published.templateId];
-    if (!reference?.entryUrl || !registry({
-      operation: "verify", artifactId: published.artifactId,
-      version: String(reference.latestVersion), entryUrl: reference.entryUrl
-    }).matches) {
-      throw new Error("ASAP registry does not match a published Artifact from the configured HTTP service");
-    }
-  }
+  await verifyRegistry(options.publisherRoot, catalog, registry);
 
   const { callAsap } = require(resolve(options.publisherRoot, "scripts/asap-publish.cjs"));
   const callRemoteSkill = plan.items.some((item) => item.needsDbInit)
@@ -756,7 +693,7 @@ async function main() {
   delete process.env.OSS_ACCESS_KEY_ID;
   delete process.env.OSS_SECRET_ACCESS_KEY;
   process.env.ASAP_SERVICE_DIR = options.asapServiceDir;
-  process.env.ASAP_PYTHON = asapPython;
+  process.env.ASAP_PYTHON = registry.python;
 
   // Persist newly minted IDs before publishing so a retry can resolve the same Artifact.
   if (plan.newlyMinted.length > 0) {
@@ -790,19 +727,16 @@ async function main() {
     summaryRows.push(row);
     let pendingReleaseId;
     try {
-      const request = { artifactId: item.artifactId, title: item.title };
-      const releaseId = registry ? null : randomUUID();
-      const version = registry
-        ? registry({ ...request, operation: "reserve", type: item.type, reuseExisting: item.reuseExisting }).version
-        : await callFlashAppReleaseHttp(options.publisherRoot, "reserve", {
-            artifact_id: item.artifactId, release_id: releaseId, title: item.title,
-            type: item.type, reuse_existing: item.reuseExisting
-          });
+      const releaseId = randomUUID();
+      const { version } = registry.call({
+        operation: "reserve", artifactId: item.artifactId, title: item.title, releaseId,
+        type: item.type, reuseExisting: item.reuseExisting
+      });
       if (typeof version !== "string" || !/^[1-9][0-9]*$/u.test(version) || !Number.isSafeInteger(Number(version))) {
         throw new Error("ASAP registry returned an invalid version");
       }
       row.version = version;
-      console.log(`\n========== [${item.templateId}] ${item.title} (${item.artifactId} v${version}, type=${item.type}, registry=${options.registryMode}) ==========`);
+      console.log(`\n========== [${item.templateId}] ${item.title} (${item.artifactId} v${version}, type=${item.type}) ==========`);
       if (item.needsDbInit) {
         await ensureWorldSaveTable(callRemoteSkill, item, version, readFileSync(ddlPath, "utf8").trim());
         row.dbStatus = "initialized";
@@ -814,28 +748,15 @@ async function main() {
       });
       row.entryUrl = entryUrl;
 
-      const dbInitialized = row.dbStatus === "ready" || row.dbStatus === "initialized";
-      if (registry) {
-        const published = registry({ ...request, operation: "publish", version, entryUrl, backupOss });
-        if (published.version !== version) throw new Error("ASAP confirmed a different version from the reservation");
-        saveLocalState(options.stateDir, item, {
-          artifactVersion: String(Number(version) + 1), dbInitialized,
-          lastPublishedVersion: version, lastEntryUrl: entryUrl, lastBackupOss: backupOss
-        });
-      } else {
-        const path = receiptPath(options.stateDir, releaseId);
-        const receipt = {
-          item: { artifactId: item.artifactId, templateId: item.templateId, sessionId: item.sessionId, type: item.type },
-          dbInitialized,
-          request: {
-            artifact_id: item.artifactId, release_id: releaseId, version_number: version,
-            backup_url: backupOss, entry_url: entryUrl
-          }
-        };
-        writeFileAtomic(path, JSON.stringify(receipt));
-        pendingReleaseId = releaseId;
-        await completeHttpRelease(options, path, receipt);
-      }
+      const path = receiptPath(options.stateDir, releaseId);
+      const receipt = {
+        item: { artifactId: item.artifactId, templateId: item.templateId, sessionId: item.sessionId, type: item.type },
+        dbInitialized: row.dbStatus === "ready" || row.dbStatus === "initialized",
+        request: { operation: "publish", artifactId: item.artifactId, releaseId, version, entryUrl, backupOss }
+      };
+      writeFileAtomic(path, JSON.stringify(receipt));
+      pendingReleaseId = releaseId;
+      completeRelease(options, registry, path, receipt);
     } catch (error) {
       if (pendingReleaseId) pendingCompletions.push(pendingReleaseId);
       else failedTemplates.push(item.templateId);
@@ -847,18 +768,17 @@ async function main() {
   printSummaryTable(summaryRows, plan.newlyMinted);
 
   if (failedTemplates.length > 0) {
-    const modeFlag = options.registryMode === "http" ? "" : ` --registry-mode ${options.registryMode}`;
     console.error(
       `\nFailed templates (${failedTemplates.length}): ${failedTemplates.join(", ")}\n` +
         `Retry only failed templates with:\n` +
-        `  node world/scripts/publish-seed-world-flash-apps.mjs --execute${modeFlag} --templates ${failedTemplates.join(",")} ` +
+        `  node world/scripts/publish-seed-world-flash-apps.mjs --execute --templates ${failedTemplates.join(",")} ` +
         `--publisher-root "${options.publisherRoot}" --asap-service-dir "${options.asapServiceDir}" --state-dir "${options.stateDir}"`
     );
   }
   for (const releaseId of pendingCompletions) {
     console.error(
       `Retry completion: node world/scripts/publish-seed-world-flash-apps.mjs --execute --resume-release ${releaseId} ` +
-      `--publisher-root "${options.publisherRoot}" --state-dir "${options.stateDir}"`
+      `--publisher-root "${options.publisherRoot}" --asap-service-dir "${options.asapServiceDir}" --asap-python "${registry.python}" --state-dir "${options.stateDir}"`
     );
   }
   if (failedTemplates.length || pendingCompletions.length) process.exitCode = 1;

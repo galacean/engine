@@ -83,12 +83,16 @@ node world/scripts/acceptance/shared-world-storage.mjs http://127.0.0.1:4180
 
 ## 3. 编排发布 6 个灵光闪应用
 
-使用 `world/scripts/publish-seed-world-flash-apps.mjs` 编排 6 个应用的建表与发布。默认 HTTP 模式需要目标 ASAP Demo 提供 `POST /api/flash-app/release/reserve` 和 `POST /api/flash-app/release/complete`。ASAP 先预留版本，脚本使用该版本建表、打包和部署，再提交发布回执。超时等瞬时故障会使用同一个发布 ID 重试。具备直连 OceanBase/Layotto 权限的发布机也可使用 `--registry-mode direct-db`。可用 `--state-dir` 指定本地状态目录。
+使用 `world/scripts/publish-seed-world-flash-apps.mjs` 在能访问目标 OceanBase/Layotto 登记库的发布机执行。先用 `--verify-registry` 只读核对发布机的登记库与 PUGC HTTP 服务环境。编排器先预留版本，再使用该版本建表、打包、上传和部署，最后提交登记。预留或登记重试沿用同一个发布 ID。 `PUBLISHER_ROOT` 下的 `scripts` 目录须提供 `asap-publish.cjs` 和 `asap-service-url.cjs`。
 
 ```bash
 ENGINE_WORKTREE_ROOT=/absolute/path/to/engine
 PUBLISHER_ROOT=/absolute/path/to/pugc-flash-app-2-seed-world
 ASAP_SERVICE_DIR=/absolute/path/to/asap-service
+
+# 0. 只读核对发布机的登记库
+node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
+  --verify-registry --publisher-root "$PUBLISHER_ROOT" --asap-service-dir "$ASAP_SERVICE_DIR"
 
 # 1. 干跑预览 6 应用发布计划（默认 --dry-run，不会触发任何远端写操作）
 node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
@@ -148,5 +152,5 @@ node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
 | `requires first-time world_save.sql DB table creation, which needs a 2099... alipayUid` | 本地状态或 PUGC 上下文未填写 `2099...` UID（或误填了 `2088...`） | 在 PUGC `app-context.local.json` 或对应 Artifact 的状态文件补全 `alipayUid` 后重试 |
 | 构建警告 `Local CDN-eligible asset(s) not yet in flash-app-cdn-manifest.json` | 新增或变更的资产（如 `oil-paint` SWB1 分包）尚未同步至 MDN CDN | 执行 `sync-flash-app-cdn-assets.py --apply` 并重编 `pnpm --dir world build:seed-world-flash-app`（收敛至 `pending upload: 0`） |
 | 完成登记失败，输出 `--resume-release <id>` | 产物已部署，登记结果待确认 | 用输出的命令重放本机发布回执。该命令只完成原预留版本的登记 |
-| `ASAP HTTP release reserve ... rejected (HTTP 409)` / `Artifact type differs` | 发布类型与线上记录不一致 | 核对该应用的登记类型和 `flash-apps.json` 后重试 |
-| `ASAP registry does not match`（仅 `--registry-mode direct-db`） | 本机未连通目标 ASAP OceanBase / Layotto 注册库 | 研发机请改用默认 `--registry-mode http`，或在具备 Layotto/OceanBase 通道的发布机执行 `direct-db` |
+| `Artifact type differs from the ASAP registry` | 发布类型与线上记录不一致 | 核对该应用的登记类型和 `flash-apps.json` 后重试 |
+| `ASAP registry does not match` 或 `check ASAP registry access` | 发布机无法访问目标登记库，或 PUGC HTTP 服务与登记库指向不同环境 | 在发布机运行 `--verify-registry`，核对连接和服务环境后再发布 |
