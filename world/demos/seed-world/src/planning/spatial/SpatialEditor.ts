@@ -539,6 +539,7 @@ export async function mountSpatialEditor(
         document: session.export(),
         result,
         waterResetRequest: storage.pendingWaterReset,
+        temporaryStorage: !project.isPersistent,
         userEdit: !project.isPersistent && hasUserEdits
       });
     } catch (error) {

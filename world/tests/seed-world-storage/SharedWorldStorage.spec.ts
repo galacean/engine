@@ -1056,24 +1056,17 @@ describe("Lingguang shared world checkpoints", () => {
     expect(await (await open(true)).load()).toEqual(stored(project("new")));
   });
 
-  it("uses the app template only when the stored project is incompatible", async () => {
+  it("rejects a checkpoint for another entry template before reading or changing its files", async () => {
     const { db, sql } = instance();
-    const appIdentity = { seed: identity.seed, template: "app-template" };
     seedLegacy(sql, project());
-    expect((await SharedWorldStorage.select(db, "2", appIdentity.template))?.checkpoint).toBeDefined();
-    const wrong = await SharedWorldStorage.open(db, false, "2", appIdentity);
-    await expect(wrong.load()).rejects.toThrow("世界模板版本不兼容");
-    wrong.close();
-    sql.exec("DELETE FROM world_save");
-    const old = project();
-    Object.assign(old, { version: 6 });
-    seedLegacy(sql, old);
-    expect((await SharedWorldStorage.select(db, "2", appIdentity.template))?.checkpoint).toBeUndefined();
-    const owner = await SharedWorldStorage.open(db, false, "2", appIdentity);
-    expect(await owner.load()).toBeUndefined();
-    await owner.save("", project("app world"));
-    expect((await SharedWorldStorage.select(db, "2"))?.identity).toEqual(appIdentity);
-    owner.close();
+    const before = sql.prepare("SELECT * FROM world_save ORDER BY id").all();
+    const selection = await SharedWorldStorage.select(db, "2", "app-template");
+    expect(selection).toMatchObject({ identity, olderApp: false, restoreFailed: true });
+    expect(selection.checkpoint).toBeUndefined();
+    expect(db.query).toHaveBeenCalledTimes(1);
+    expect(db.execute).not.toHaveBeenCalled();
+    expect(sql.prepare("SELECT * FROM world_save ORDER BY id").all()).toEqual(before);
+    expect((await SharedWorldStorage.select(db, "2", identity.template)).checkpoint).toBeDefined();
   });
 
   it("keeps a retirement list larger than the 100000-character column limit in hashed index blocks", async () => {

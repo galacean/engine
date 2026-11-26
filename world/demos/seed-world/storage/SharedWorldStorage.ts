@@ -51,6 +51,7 @@ export interface WorldSelection {
   readonly olderApp: boolean;
   readonly identity?: WorldIdentity;
   readonly checkpoint?: Head;
+  readonly restoreFailed?: boolean;
 }
 
 export const WORLD_SAVE_VERSION = 12;
@@ -232,15 +233,12 @@ export class SharedWorldStorage implements RuntimeProjectBackend {
     const version = appVersionNumber(appVersion);
     const olderApp = appVersionNumber(current.appVersion) > version;
     const head = await this.visibleHead(db, current, version);
-    if (!head) return { raw, olderApp };
-    const saved = { ...parseHead(head), raw, olderApp };
-    // Only inspect the nested format here if it can change which template the entry must start.
-    if (entryTemplate && saved.checkpoint && saved.identity?.template !== entryTemplate) {
-      const bytes = await this.readBlocks(db, saved.checkpoint);
-      const projectVersion = JSON.parse(textDecoder.decode(bytes))?.version;
-      if (!supportsProjectVersion(projectVersion)) return { ...saved, checkpoint: undefined };
+    if (!head) return { raw, olderApp, restoreFailed: Boolean(entryTemplate) };
+    const { identity, checkpoint } = parseHead(head);
+    if (entryTemplate && (!checkpoint || identity?.template !== entryTemplate)) {
+      return { raw, olderApp, identity, restoreFailed: true };
     }
-    return saved;
+    return { raw, olderApp, identity, checkpoint };
   }
 
   static async open(

@@ -15,7 +15,7 @@ Seed World 6 个模板分别对应 6 个独立闪应用，元信息与本机状�
   - `low-poly`：标题 `Seed World · Low Poly`，首次发布新申请 `artifactId`；
   - `titan-wasteland`：标题 `Seed World · 幻兽荒原`，首次发布新申请 `artifactId`；
   - `oil-paint`：标题 `Seed World · 秋林油画`，首次发布新申请 `artifactId`。
-- **本机可变状态**（`~/.config/galacean-flash-app/apps-state.local.json`，**永不入库**）：记录作者 `alipayUid`（`2099...` UID，非 `2088...`）、各应用本地版本号、`dbInitialized` 标记与最近发布结果。
+- **本机可变状态**按 Artifact 保存在 `~/.config/galacean-flash-app/apps/<artifactId>.local.json`，记录版本号、建表状态与发布结果。这些文件均不入库。
 
 每个独立 Demo（`world/demos/seed-world/{index,sakura-pearl,emerald-forest,low-poly,titan-wasteland,oil-paint}.html`）及对应派生闪应用均在 HTML 中声明 `<meta name="seed-world-default-template" content="<templateId>" />` 与应用 `<title>`：
 - 6 个应用与本地 Demo 均**严格单模板**，应用内已彻底移除启动 6 选 1 弹窗、规划器风格切换入口、`?template=` URL 参数与跨模板历史存档恢复分支。
@@ -103,7 +103,7 @@ node world/scripts/acceptance/shared-world-storage.mjs http://127.0.0.1:4180
 
 ## 5. 编排发布 6 个灵光闪应用
 
-使用 `world/scripts/publish-seed-world-flash-apps.mjs` 统一编排 6 个应用的建表与 PUGC 发布。脚本通过 `FLASH_APP_CONTEXT_PATH` 为每个应用隔离上下文文件（`original` 直接使用 `$PUBLISHER_ROOT/scripts/app-context.local.json`，其余 5 个应用各自使用 `~/.config/galacean-flash-app/contexts/<templateId>.local.json`），无需锁文件或临时覆写共享上下文，并在每个应用完成后立即把新版本与 `Entry URL` 持久化到 `~/.config/galacean-flash-app/apps-state.local.json`。
+使用 `world/scripts/publish-seed-world-flash-apps.mjs` 编排 6 个应用的建表与发布。脚本通过 `FLASH_APP_CONTEXT_PATH` 传入应用上下文。`original` 使用已绑定到同一 Artifact 的 PUGC `app-context.local.json`，其他应用各自使用状态目录下的 `contexts/<artifactId>.local.json`。可用 `--state-dir` 指定状态目录。
 
 ```bash
 ENGINE_WORKTREE_ROOT=/absolute/path/to/seed-world-npm-release
@@ -117,7 +117,7 @@ node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
   --asap-service-dir "$ASAP_SERVICE_DIR"
 
 # 2A. 首次为其余 5 个模板申请新 ID、自动执行 world_save.sql 首次建表并发布全部 6 个应用
-#     前置：确保 ~/.config/galacean-flash-app/apps-state.local.json（或 PUGC app-context.local.json）已填写 2099... alipayUid
+#     确保 PUGC app-context.local.json 已填写 2099... alipayUid
 node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
   --execute --init-missing --sync-catalog \
   --engine-root "$ENGINE_WORKTREE_ROOT" \
@@ -165,7 +165,7 @@ node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
 | --- | --- | --- |
 | `Publisher app-context.local.json artifactId ... does not match catalog "original"` | `--publisher-root` 指向了非 `flashapp-a3c0e021cb8cadb0` 的 PUGC checkout | 切回 `pugc-flash-app-2-seed-world`，或在明确知道原因时传 `--allow-context-mismatch` |
 | `Template "<id>" has no artifactId yet` | 尚未为其余 5 个模板首次申请 ID | 确认新建意图后加 `--init-missing --sync-catalog` 执行一次，之后提交更新后的 `flash-apps.json` |
-| `requires first-time world_save.sql DB table creation, which needs a 2099... alipayUid` | 本地状态或 PUGC 上下文未填写 `2099...` UID（或误填了 `2088...`） | 在 `~/.config/galacean-flash-app/apps-state.local.json` 补全 `alipayUid` 后重试 |
+| `requires first-time world_save.sql DB table creation, which needs a 2099... alipayUid` | 本地状态或 PUGC 上下文未填写 `2099...` UID（或误填了 `2088...`） | 在 PUGC `app-context.local.json` 或对应 Artifact 的状态文件补全 `alipayUid` 后重试 |
 | `... does not support FLASH_APP_CONTEXT_PATH` | `$PUBLISHER_ROOT/scripts/app-context.cjs` 版本过旧，尚未支持环境变量覆盖上下文路径 | 更新 `pugc-flash-app-2/scripts/app-context.cjs` 支持 `process.env.FLASH_APP_CONTEXT_PATH` |
 | 构建警告 `Local CDN-eligible asset(s) not yet in flash-app-cdn-manifest.json` | 新增或变更的资产（如 `oil-paint` SWB1 分包）尚未同步至 MDN CDN | 执行 `sync-flash-app-cdn-assets.py --apply` 并重编 `build:seed-world-flash-app`（收敛至 `pending upload: 0`），再重跑 `build:seed-world-flash-source` |
 | Step 5 报 `type 不匹配` | `--type` 与数据库已有记录不一致 | 对照 `versions_by_artifact` 实际登记类型显式传入 `--type`，复用已有入口重试登记 |

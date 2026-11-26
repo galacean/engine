@@ -16,6 +16,7 @@ import {
 import {
   assertPublisherSupportsContextPath,
   isValidAlipayUidForDb,
+  loadLocalState,
   parseDeployStdout,
   resolveAppReleasePlan,
   resolvePerAppContextPath,
@@ -248,10 +249,10 @@ Backup OSS: leopard/sandbox/workspace/flashapp-a3c0e021cb8cadb0-56/backup_56.tar
     );
     expect(() => assertPublisherSupportsContextPath(fakePublisher)).not.toThrow();
 
-    const statePath = path.join(makeTempDir("sw-state-"), "nested/apps-state.local.json");
+    const stateDir = path.join(makeTempDir("sw-state-"), "apps");
     expect(
       resolvePerAppContextPath(
-        statePath,
+        stateDir,
         fakePublisher,
         { templateId: "original", artifactId: "flashapp-a3c0e021cb8cadb0", reuseExisting: true },
         { artifactId: "flashapp-a3c0e021cb8cadb0" }
@@ -259,12 +260,12 @@ Backup OSS: leopard/sandbox/workspace/flashapp-a3c0e021cb8cadb0-56/backup_56.tar
     ).toBe(path.join(scriptsDir, "app-context.local.json"));
     expect(
       resolvePerAppContextPath(
-        statePath,
+        stateDir,
         fakePublisher,
         { templateId: "oil-paint", artifactId: "flashapp-aa964a26bde230fb", reuseExisting: false },
         { artifactId: "flashapp-a3c0e021cb8cadb0" }
       )
-    ).toBe(path.join(path.dirname(statePath), "contexts/oil-paint.local.json"));
+    ).toBe(path.join(stateDir, "contexts/flashapp-aa964a26bde230fb.local.json"));
 
     // Heterogeneous catalog types (`original`=game, 5 new=miniapp) resolve cleanly without --type,
     // reject conflicting global --type on multi-app runs, and allow --type on single-template runs.
@@ -321,8 +322,14 @@ Backup OSS: leopard/sandbox/workspace/flashapp-a3c0e021cb8cadb0-56/backup_56.tar
     });
     expect(singleOverridePlan.items[0].type).toBe("game");
 
-    // Local state file containing private alipayUid is written with 0600 permissions.
-    saveLocalState(statePath, { schemaVersion: 1, alipayUid: "2099123456789", apps: {} });
-    expect(fs.statSync(statePath).mode & 0o777).toBe(0o600);
+    // Separate Artifact state files retain their own results and can recover an ID minted before updating the catalog.
+    saveLocalState(stateDir, origPlan, { artifactVersion: "57", dbInitialized: true });
+    saveLocalState(stateDir, oilPlan, { artifactVersion: "2", dbInitialized: true });
+    expect(fs.statSync(path.join(stateDir, `${origPlan.artifactId}.local.json`)).mode & 0o777).toBe(0o600);
+    expect(loadLocalState(stateDir, unmintedCatalog).apps).toMatchObject({
+      original: { artifactId: origPlan.artifactId, artifactVersion: "57" },
+      "oil-paint": { artifactId: oilPlan.artifactId, artifactVersion: "2" }
+    });
+    expect(loadLocalState(stateDir, catalog).apps["oil-paint"]).toBeUndefined();
   });
 });

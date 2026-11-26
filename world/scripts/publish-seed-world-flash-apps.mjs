@@ -3,8 +3,7 @@
  * Multi-template Seed World Flash App publish orchestrator (6 apps sharing 1 common runtime & 1 source snapshot).
  *
  * - Static app metadata (`templateId`, `title`, `artifactId`, `type`) lives in `world/demos/seed-world/flash-apps.json`.
- * - Mutable local publish state (`alipayUid`, `artifactVersion`, `dbInitialized`, `lastEntryUrl`) lives outside git
- *   in `~/.config/galacean-flash-app/apps-state.local.json`.
+ * - Each Artifact keeps its local publish state in its own file in `~/.config/galacean-flash-app/apps/`.
  * - Each template runs `db-update-table-schema.cjs` and `deploy.cjs` with its own `FLASH_APP_CONTEXT_PATH`,
  *   so apps stay isolated without mutating or locking a shared `app-context.local.json`.
  *
@@ -18,6 +17,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  readdirSync,
   renameSync,
   rmSync,
   writeFileSync
@@ -35,7 +35,7 @@ import {
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const defaultEngineRoot = resolve(scriptDirectory, "../..");
-const defaultStateFile = join(homedir(), ".config/galacean-flash-app/apps-state.local.json");
+const defaultStateDir = join(homedir(), ".config/galacean-flash-app/apps");
 const WORLD_SAVE_DDL_RELATIVE = "world/demos/seed-world/storage/world_save.sql";
 
 export function mintArtifactId() {
@@ -46,7 +46,7 @@ export function parseCliArgs(argv) {
   const parsed = {
     engineRoot: defaultEngineRoot,
     catalogPath: null,
-    stateFile: defaultStateFile,
+    stateDir: defaultStateDir,
     publisherRoot: process.env.PUBLISHER_ROOT || "",
     asapServiceDir: process.env.ASAP_SERVICE_DIR || "",
     asapPython: process.env.ASAP_PYTHON || "",
@@ -77,8 +77,8 @@ export function parseCliArgs(argv) {
       case "--catalog":
         parsed.catalogPath = resolve(argv[++i] || "");
         break;
-      case "--state-file":
-        parsed.stateFile = resolve(argv[++i] || "");
+      case "--state-dir":
+        parsed.stateDir = resolve(argv[++i] || "");
         break;
       case "--publisher-root":
         parsed.publisherRoot = resolve(argv[++i] || "");
@@ -176,16 +176,36 @@ export function selectTargetApps(catalog, templatesArg = "all") {
   return selected;
 }
 
-export function loadLocalState(stateFile) {
-  if (!existsSync(stateFile)) {
-    return { schemaVersion: 1, alipayUid: "", apps: {} };
+function artifactStateFileName(artifactId) {
+  if (typeof artifactId !== "string" || !/^[a-z0-9_-]+$/u.test(artifactId)) {
+    throw new Error(`Invalid Artifact ID: ${artifactId}`);
   }
-  const raw = JSON.parse(readFileSync(stateFile, "utf8"));
-  return {
-    schemaVersion: raw?.schemaVersion ?? 1,
-    alipayUid: typeof raw?.alipayUid === "string" ? raw.alipayUid.trim() : "",
-    apps: raw?.apps && typeof raw.apps === "object" ? { ...raw.apps } : {}
-  };
+  return `${artifactId}.local.json`;
+}
+
+export function loadLocalState(stateDir, catalog, publisherContext) {
+  const apps = {};
+  for (const app of catalog.apps) {
+    const artifactId = app.artifactId || (app.reuseExisting ? publisherContext?.artifactId : null);
+    if (artifactId) {
+      const file = resolve(stateDir, artifactStateFileName(artifactId));
+      if (!existsSync(file)) continue;
+      const state = JSON.parse(readFileSync(file, "utf8"));
+      if (state.artifactId !== artifactId) throw new Error(`Artifact ID mismatch in ${file}`);
+      apps[app.templateId] = state;
+      continue;
+    }
+    // A newly minted ID may be saved locally before the catalog is updated.
+    const matches = (existsSync(stateDir) ? readdirSync(stateDir) : [])
+      .filter((name) => name.endsWith(".local.json"))
+      .map((name) => ({ name, state: JSON.parse(readFileSync(resolve(stateDir, name), "utf8")) }))
+      .filter(({ name, state }) => state.templateId === app.templateId && name === artifactStateFileName(state.artifactId));
+    if (matches.length > 1) {
+      throw new Error(`Multiple local Artifacts for "${app.templateId}". Set its artifactId in the catalog.`);
+    }
+    if (matches.length === 1) apps[app.templateId] = matches[0].state;
+  }
+  return { apps };
 }
 
 function writeFileAtomic(filePath, content, mode = 0o600) {
@@ -201,8 +221,18 @@ function writeFileAtomic(filePath, content, mode = 0o600) {
   }
 }
 
-export function saveLocalState(stateFile, state) {
-  writeFileAtomic(stateFile, `${JSON.stringify(state, null, 2)}\n`, 0o600);
+export function saveLocalState(stateDir, item, updates) {
+  const file = resolve(stateDir, artifactStateFileName(item.artifactId));
+  const previous = existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : {};
+  writeFileAtomic(file, `${JSON.stringify({
+    ...previous,
+    ...updates,
+    artifactId: item.artifactId,
+    templateId: item.templateId,
+    sessionId: item.sessionId,
+    type: item.type,
+    updatedAt: new Date().toISOString()
+  }, null, 2)}\n`);
 }
 
 export function readPublisherContext(publisherRoot) {
@@ -253,7 +283,7 @@ export function resolveAppReleasePlan({
     }
   }
 
-  const sharedAlipayUid = (state.alipayUid || publisherContext?.alipayUid || "").trim();
+  const sharedAlipayUid = (publisherContext?.alipayUid || "").trim();
   const planItems = [];
   const newlyMinted = [];
 
@@ -294,7 +324,7 @@ export function resolveAppReleasePlan({
 
     const seededVersion =
       prevState.artifactVersion ||
-      (app.reuseExisting ? publisherContext?.artifactVersion : null) ||
+      (app.reuseExisting && publisherContext?.artifactId === artifactId ? publisherContext.artifactVersion : null) ||
       "1";
     let targetVersion = Number.parseInt(String(seededVersion), 10);
     if (!Number.isFinite(targetVersion) || targetVersion <= 0) targetVersion = 1;
@@ -332,7 +362,6 @@ export function resolveAppReleasePlan({
   }
 
   return {
-    alipayUid: sharedAlipayUid,
     defaultType: resolvedDefaultType,
     items: planItems,
     newlyMinted
@@ -355,11 +384,11 @@ export function parseDeployStdout(output) {
   };
 }
 
-export function resolvePerAppContextPath(stateFile, publisherRoot, item, publisherContext) {
+export function resolvePerAppContextPath(stateDir, publisherRoot, item, publisherContext) {
   if (item.reuseExisting && publisherRoot && publisherContext?.artifactId === item.artifactId) {
     return resolve(publisherRoot, "scripts/app-context.local.json");
   }
-  return resolve(dirname(stateFile), "contexts", `${item.templateId}.local.json`);
+  return resolve(stateDir, "contexts", artifactStateFileName(item.artifactId));
 }
 
 export function assertPublisherSupportsContextPath(publisherRoot) {
@@ -451,7 +480,7 @@ Options:
   --templates <all|csv>       Templates to publish (default: all)
   --type <game|miniapp>       Explicit PUGC artifact type (otherwise auto-detected from original online record)
   --title-override <id=name>  Override title for a template (repeatable)
-  --state-file <path>         Local state JSON path (default: ~/.config/galacean-flash-app/apps-state.local.json)
+  --state-dir <path>          Per-Artifact state directory (default: ~/.config/galacean-flash-app/apps)
   --init-missing              Explicitly mint new Artifact IDs for templates with artifactId=null
   --sync-catalog              Write newly minted Artifact IDs back to world/demos/seed-world/flash-apps.json
   --skip-db-init              Skip running db-update-table-schema.cjs for new templates
@@ -501,8 +530,8 @@ async function main() {
 
   const catalog = loadFlashAppsCatalog(options.catalogPath);
   const targetApps = selectTargetApps(catalog, options.templates);
-  const state = loadLocalState(options.stateFile);
   const publisherContext = readPublisherContext(options.publisherRoot);
+  const state = loadLocalState(options.stateDir, catalog, publisherContext);
 
   const onlineInfoByTemplate = {};
   if (options.publisherRoot && !options.skipOnlineCheck) {
@@ -533,7 +562,7 @@ async function main() {
   if (!options.execute) {
     console.log(`[dry-run] Engine root: ${options.engineRoot}`);
     console.log(`[dry-run] Catalog: ${options.catalogPath}`);
-    console.log(`[dry-run] Local state: ${options.stateFile}`);
+    console.log(`[dry-run] Local state directory: ${options.stateDir}`);
     console.log(`[dry-run] Publisher root: ${options.publisherRoot || "<not set>"}`);
     console.log(`[dry-run] Resolved default --type: ${plan.defaultType || "<requires --type or online check>"}`);
     printSummaryTable(
@@ -584,7 +613,7 @@ async function main() {
     if (item.needsDbInit && !isValidAlipayUidForDb(item.alipayUid)) {
       throw new Error(
         `Template "${item.templateId}" requires first-time world_save.sql DB table creation, which needs a 2099... alipayUid ` +
-          `in ${options.stateFile} (or in publisher app-context.local.json). Pass --skip-db-init only if already created.`
+          `in publisher app-context.local.json or in the Artifact state file under ${options.stateDir}. Pass --skip-db-init only if already created.`
       );
     }
     if (item.needsDbInit && !existsSync(ddlPath)) {
@@ -592,23 +621,15 @@ async function main() {
     }
   }
 
-  // Persist any newly minted Artifact IDs immediately BEFORE remote operations so retries never mint duplicate IDs.
+  assertPublisherSupportsContextPath(options.publisherRoot);
+
+  // Persist newly minted IDs before publishing so a retry can resolve the same Artifact.
   if (plan.newlyMinted.length > 0) {
-    if (plan.alipayUid && !state.alipayUid) state.alipayUid = plan.alipayUid;
     for (const item of plan.items) {
       if (item.mintedNow) {
-        state.apps[item.templateId] = {
-          ...(state.apps[item.templateId] || {}),
-          artifactId: item.artifactId,
-          artifactVersion: item.targetVersion,
-          sessionId: item.sessionId,
-          type: item.type,
-          dbInitialized: false,
-          updatedAt: new Date().toISOString()
-        };
+        saveLocalState(options.stateDir, item, { artifactVersion: item.targetVersion, dbInitialized: false });
       }
     }
-    saveLocalState(options.stateFile, state);
     if (options.syncCatalog) {
       writeCatalogArtifactIds(
         options.catalogPath,
@@ -616,8 +637,6 @@ async function main() {
       );
     }
   }
-
-  assertPublisherSupportsContextPath(options.publisherRoot);
 
   const deployEnv = { ...process.env };
   delete deployEnv.OSS_ACCESS_KEY_ID;
@@ -630,7 +649,7 @@ async function main() {
 
   for (const item of plan.items) {
     console.log(`\n========== [${item.templateId}] ${item.title} (${item.artifactId} v${item.targetVersion}, type=${item.type}) ==========`);
-    const contextPath = resolvePerAppContextPath(options.stateFile, options.publisherRoot, item, publisherContext);
+    const contextPath = resolvePerAppContextPath(options.stateDir, options.publisherRoot, item, publisherContext);
     const contextForApp = {
       artifactId: item.artifactId,
       artifactVersion: item.targetVersion,
@@ -661,16 +680,7 @@ async function main() {
           throw new Error(`db-update-table-schema.cjs failed with exit code ${dbRes.status}`);
         }
         dbStatus = "initialized";
-        state.apps[item.templateId] = {
-          ...(state.apps[item.templateId] || {}),
-          artifactId: item.artifactId,
-          artifactVersion: item.targetVersion,
-          sessionId: item.sessionId,
-          type: item.type,
-          dbInitialized: true,
-          updatedAt: new Date().toISOString()
-        };
-        saveLocalState(options.stateFile, state);
+        saveLocalState(options.stateDir, item, { artifactVersion: item.targetVersion, dbInitialized: true });
       }
 
       const result = runSubprocess(
@@ -712,19 +722,13 @@ async function main() {
 
       const publishedVersion = parsed.version || item.targetVersion;
       const nextVersion = afterContext?.artifactVersion || String(Number.parseInt(publishedVersion, 10) + 1);
-      state.apps[item.templateId] = {
-        ...(state.apps[item.templateId] || {}),
-        artifactId: item.artifactId,
+      saveLocalState(options.stateDir, item, {
         artifactVersion: nextVersion,
-        sessionId: item.sessionId,
-        type: item.type,
         dbInitialized: dbStatus === "ready" || dbStatus === "initialized",
         lastPublishedVersion: publishedVersion,
         lastEntryUrl: parsed.entryUrl || "",
-        lastBackupOss: parsed.backupOss || "",
-        updatedAt: new Date().toISOString()
-      };
-      saveLocalState(options.stateFile, state);
+        lastBackupOss: parsed.backupOss || ""
+      });
 
       summaryRows.push({
         templateId: item.templateId,
@@ -759,7 +763,7 @@ async function main() {
       `\nFailed templates (${failedTemplates.length}): ${failedTemplates.join(", ")}\n` +
         `Retry only failed templates with:\n` +
         `  node world/scripts/publish-seed-world-flash-apps.mjs --execute --templates ${failedTemplates.join(",")} ` +
-        `--publisher-root "${options.publisherRoot}" --asap-service-dir "${options.asapServiceDir}"`
+        `--publisher-root "${options.publisherRoot}" --asap-service-dir "${options.asapServiceDir}" --state-dir "${options.stateDir}"`
     );
     process.exitCode = 1;
   }

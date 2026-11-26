@@ -86,9 +86,11 @@ function openInstance(id) {
 }
 const browser = await chromium.launch({ args: ["--ignore-gpu-blocklist", "--use-angle=metal"] });
 try {
+  let sourceHead;
   for (const step of [
     "empty visitor", "create", "share", "recall", "reopen", "older visitor", "planner publication race", "reconciliation failure",
-    "incompatible visitor", "incompatible owner", "regenerated visitor", "retired template", "browser", "planner"
+    "incompatible visitor", "incompatible owner", "mismatched template visitor", "unreadable checkpoint owner", "retired template",
+    "browser", "planner"
   ]) {
     const role = step === "share" || step.endsWith("visitor") ? "USER" : "MANAGER";
     const version = step === "create" || step === "older visitor" || step === "planner publication race" ? 1 : 2;
@@ -96,8 +98,16 @@ try {
     const clone = step === "recall";
     const id = "flashapp-local-" + (clone || step === "retired template" || step === "planner" ? step : "source");
     const sql = openInstance(id);
-    if (step === "incompatible visitor")
+    if (step === "incompatible visitor") {
+      sourceHead = sql.prepare("SELECT payload FROM world_save WHERE id='world'").get().payload;
       sql.exec("UPDATE world_save SET payload=json_set(payload,'$.engineVersion',999) WHERE id='world'");
+    }
+    if (step === "mismatched template visitor") {
+      sql.prepare("UPDATE world_save SET payload=json_set(?, '$.template', 'sakura-pearl') WHERE id='world'").run(sourceHead);
+    }
+    if (step === "unreadable checkpoint owner") {
+      sql.prepare("UPDATE world_save SET payload=json_set(?, '$.digest', ?) WHERE id='world'").run(sourceHead, "0".repeat(64));
+    }
     if (step === "retired template") {
       const revision = randomUUID();
       const bytes = Buffer.from(JSON.stringify({ version: 6 }));
@@ -108,6 +118,11 @@ try {
         seed: 123, template: "retired-template", format: 1, engineVersion: 12, appVersion: "1", revision, parts: 1, digest
       }));
     }
+    const rows = sql.prepare("SELECT * FROM world_save ORDER BY id");
+    const fallback = [
+      "incompatible visitor", "incompatible owner", "mismatched template visitor", "unreadable checkpoint owner", "retired template"
+    ].includes(step);
+    const preservedSave = fallback ? rows.all() : undefined;
     const seed = step === "recall" || step === "planner" ? "124" : "123";
     const context = await browser.newContext({ viewport: { width: 800, height: 600 } });
     try {
@@ -249,7 +264,7 @@ try {
       assert.equal(new URL(page.url()).searchParams.get("seed"), seed);
       assert.equal(await page.evaluate(() => Boolean(window.seedWorldAI)), role === "MANAGER");
       const hasLocalProject = await page.evaluate(async () =>
-        (await indexedDB.databases()).some((db) => db.name?.startsWith("lingguang-world-save:"))
+        (await indexedDB.databases()).some((db) => db.name === 'lingguang-world-save:"original"')
       );
       assert.equal(hasLocalProject, localDb);
       if (step === "create" || step === "browser") {
@@ -263,6 +278,25 @@ try {
           await page.reload();
           await waitForWorld(page);
           assert.equal(await page.evaluate(() => window.seedWorldAI.application.getTime().timeHours), 21);
+
+          const oilPaintPreview = new URL("?seed=123", origin);
+          oilPaintPreview.searchParams.set("preview-test", "oil-paint");
+          await page.route(oilPaintPreview.href, async (route) => {
+            const response = await route.fetch();
+            const html = await response.text();
+            await route.fulfill({
+              response,
+              body: html.replace('name="seed-world-default-template" content="original"',
+                'name="seed-world-default-template" content="oil-paint"')
+            });
+          });
+          await page.goto(oilPaintPreview.href);
+          await waitForWorld(page);
+          const localWorlds = await page.evaluate(async () =>
+            (await indexedDB.databases()).map((db) => db.name).filter((name) => name.startsWith("lingguang-world-save:")).sort()
+          );
+          assert.deepEqual(localWorlds, ['lingguang-world-save:"oil-paint"', 'lingguang-world-save:"original"']);
+          assert.notEqual(await page.evaluate(() => window.seedWorldAI.application.getTime().timeHours), 21);
         } else {
           assert.ok((await page.evaluate(() => window.storageGzipReplies)) > 0, "scene saved by gzip worker");
           assert.ok(writes > 0);
@@ -295,15 +329,16 @@ try {
         const head = JSON.parse(sql.prepare("SELECT payload FROM world_save WHERE id='world'").get().payload);
         assert.equal(head.seed, Number(seed));
       }
-      if (step === "incompatible visitor") assert.equal(blockReads, 0);
-      if (step === "regenerated visitor") assert.ok(blockReads > 0);
-      if (step === "incompatible owner" || step === "retired template") {
-        assert.ok(writes > 0);
-        assert.notEqual(await page.evaluate(() => window.seedWorldAI.application.getTime().timeHours), 21);
-        const head = JSON.parse(sql.prepare("SELECT payload FROM world_save WHERE id='world'").get().payload);
-        assert.notEqual(head.engineVersion, 999);
-        assert.equal(head.seed, Number(seed));
-        assert.equal(head.template, "original");
+      if (fallback) {
+        if (step === "unreadable checkpoint owner") assert.ok(blockReads > 0);
+        else assert.equal(blockReads, 0);
+        if (role === "MANAGER") {
+          assert.equal(await page.evaluate(() => window.seedWorldAI._options.nativeEditor.project.isPersistent), false);
+          assert.notEqual(await page.evaluate(() => window.seedWorldAI.application.getTime().timeHours), 21);
+          await saveTime(page, 23);
+        }
+        assert.equal(writes, 0);
+        assert.deepEqual(rows.all(), preservedSave);
       }
       if (step === "reopen") {
         assert.equal(await page.evaluate(() => window.seedWorldAI.application.getTime().timeHours), 21);

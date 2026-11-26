@@ -60,12 +60,17 @@ async function start(): Promise<void> {
   const page = planningPageUrl();
   const storage = await seedWorldStorageHost();
   const appTemplate = resolveAppTemplate();
-  const selection = storage && await SharedWorldStorage.select(storage.db, storage.appVersion, appTemplate);
+  const selection: WorldSelection | undefined = storage && await SharedWorldStorage
+    .select(storage.db, storage.appVersion, appTemplate)
+    .catch((error) => {
+      console.warn("读取世界存档失败，将初始化入口模板", error);
+      return { olderApp: false, restoreFailed: true };
+    });
   const saved = selection?.raw === undefined ? undefined : selection;
   const readOnly = storage?.readOnly || saved?.olderApp;
   const seed = saved?.identity?.seed ?? planningStartupSeed(page.url.searchParams);
   let updateUrl = page.url.searchParams.get("seed") !== String(seed);
-  if (readOnly && (!saved || (saved.olderApp && !saved.identity))) {
+  if (readOnly && !selection?.restoreFailed && (!saved || (saved.olderApp && !saved.identity))) {
     const message = document.createElement("p");
     message.style.color = "white";
     message.textContent = saved?.olderApp ? "世界已更新，请从最新版本打开。" : "作者尚未保存这个世界。";
@@ -120,7 +125,7 @@ async function start(): Promise<void> {
           const source = document.querySelector<HTMLMetaElement>('meta[name="flash-app-html-url"]');
           if (source) source.content = url.href;
         }
-        await enterSeedWorld(handoff);
+        await enterSeedWorld(handoff, handoff.temporaryStorage ? { olderApp: false, restoreFailed: true } : undefined);
       } catch (error) { showStartupError(error); }
     }
   });

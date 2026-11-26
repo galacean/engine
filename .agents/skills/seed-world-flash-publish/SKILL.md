@@ -26,15 +26,15 @@ Seed World 对外发布为 **6 个独立灵光闪应用**，但完全复用同�
 - **共享 CDN 与共享源码快照**：6 个模板（含 `oil-paint`）均走 SWB1 分包 + `mdn.alipayobjects.com` 不可变直链；6 个应用的 `--source-dir` 共用 1 份通用源码快照 `world/dist/seed-world-flash-source`（`< 100 MiB`，1 次未压缩构建逐文件 SHA-256 校验）。
 - **配置与状态分离**：
   - 仓库静态目录：`world/demos/seed-world/flash-apps.json`（记录 6 模板 ID、默认标题、线上 `artifactId` 与逐应用 `type`：`original` 为 `game`，其余 5 应用为 `miniapp`，**绝不存放 `alipayUid` 或凭据**）。
-  - 本机可变状态：`~/.config/galacean-flash-app/apps-state.local.json`（`0600`）与每应用独立上下文 `~/.config/galacean-flash-app/contexts/<templateId>.local.json`（通过 `FLASH_APP_CONTEXT_PATH` 传入 `pugc-flash-app-2/scripts/app-context.cjs`）。
+  - 发布结果按 Artifact 分文件保存在 `~/.config/galacean-flash-app/apps/<artifactId>.local.json`，权限为 `0600`。通过 `FLASH_APP_CONTEXT_PATH` 将对应应用的发布上下文传给 PUGC。
 
 ## 1. 发布前核对
 
 1. 选定 Engine 提交，记录路径、分支和 HEAD。用独立 Git 工作树做 npm 发布构建。若要纳入当前未提交的应用源码，明确范围并应用到发布工作树。影响源码快照重建的原生引擎改动须纳入所选提交。
 2. 仅打包时执行第 2 节。发布时还需定位含 `scripts/deploy.cjs` 与 `scripts/db-update-table-schema.cjs` 的 PUGC checkout（`PUBLISHER_ROOT`，建议指向绑定 `flashapp-a3c0e021cb8cadb0` 的 `pugc-flash-app-2-seed-world`），以及具备 `.venv/bin/python` 的 ASAP checkout（`ASAP_SERVICE_DIR`）。
-3. 核对 `world/demos/seed-world/flash-apps.json` 与 `~/.config/galacean-flash-app/apps-state.local.json`：
+3. 核对 `world/demos/seed-world/flash-apps.json` 与对应 Artifact 的本机状态文件。
    - `original` 必须继续绑定 `flashapp-a3c0e021cb8cadb0`（`type: "game"`），其余 5 应用使用清单中各自登记的 `artifactId` 与 `type: "miniapp"`；发布前通过 `GET /api/trace/versions_by_artifact` 自动对齐线上最新版本号。多应用批量发布不要传全局 `--type`（避免覆盖异构类型导致 Step 5 失败）。
-   - **首次创建其余 5 个新模板应用前**，必须先经用户明确确认新申请 5 个 ID 与标题，并确保 `~/.config/galacean-flash-app/apps-state.local.json`（或 PUGC `app-context.local.json`）已填好 `2099...` 开头的 `alipayUid`，以便为 5 个新应用自动执行首次 `world_save.sql` 建表。
+   - **首次创建其余 5 个新模板应用前**，必须先经用户明确确认新申请 5 个 ID 与标题，并确保 PUGC `app-context.local.json` 或对应 Artifact 状态文件已填好 `2099...` 开头的 `alipayUid`，以便为 5 个新应用自动执行首次 `world_save.sql` 建表。
 
 ## 2. 使用 npm 打包（1 次公共构建 + 6 份模板派生）
 

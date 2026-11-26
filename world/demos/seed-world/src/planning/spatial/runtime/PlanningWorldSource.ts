@@ -15,6 +15,8 @@ export interface PlanningWorldHandoff {
   document: PlanningDocument;
   result: SemanticResult;
   waterResetRequest?: string;
+  /** The preview is running in memory because its save could not be restored. */
+  temporaryStorage?: boolean;
   /** The handoff contains user edits without a durable source copy. */
   userEdit?: boolean;
 }

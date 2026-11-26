@@ -109,9 +109,8 @@ function execute(rows, sql, binds, done) {
   }
 }
 
-export function createLocalWorldDb(artifactId) {
-  // Keep unnamed previews independent of published IDs, including an ID named "preview".
-  const name = "lingguang-world-save:" + JSON.stringify(artifactId || null);
+export function createLocalWorldDb(name) {
+  const databaseName = "lingguang-world-save:" + JSON.stringify(name);
   /** @template T
    * @param {IDBTransactionMode} mode
    * @param {(rows: IDBObjectStore, sql: string, binds: Array<string | number>, done: (data: T) => void) => void} operation
@@ -121,7 +120,7 @@ export function createLocalWorldDb(artifactId) {
   async function run(mode, operation, input, emptyData) {
     let db;
     try {
-      db = await openDatabase(name);
+      db = await openDatabase(databaseName);
       /** @type {Promise<T>} */
       const completed = new Promise((resolve, reject) => {
         const tx = db.transaction("world_save", mode);

@@ -14,7 +14,7 @@ import { registerPlanningFarmingAssets } from "./src/planning/spatial/farming/Pl
 import { seedWorldProjectFormats } from "./SeedWorldProjectFormats.ts";
 import { seedWorldScriptModules } from "./systems/SeedWorldScriptModules.ts";
 import { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
-import { RuntimeProjectStorage, type RuntimeProjectManifest } from "@galacean/engine-project/runtime-editor/project/runtime-project";
+import { RuntimeProjectStorage, type RuntimeProjectBackend, type RuntimeProjectManifest } from "@galacean/engine-project/runtime-editor/project/runtime-project";
 import { extractAssetDependencies } from "@galacean/engine-project/runtime-editor/project/runtime-project-dependencies";
 import { SEED_WORLD_PRODUCTION_ASSET_CATALOG } from "@galacean/engine-vegetation/asset-assembly/SeedWorldProductionAssetCatalog";
 import { worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
@@ -154,20 +154,35 @@ export async function openSeedWorldProject(
   const host = await seedWorldStorageHost();
   const isRegisteredComponent = (name: string) => Boolean(Loader.getClass(name));
   const published = host && !host.readOnly && !selection?.olderApp ? new PublishedWorldAssets(prefetchedTextAssets, isRegisteredComponent) : undefined;
-  const storage = host && await SharedWorldStorage.open(
-    host.db, host.readOnly, host.appVersion, { seed, template }, published,
-    host.importLegacyPreview ? readLegacyPreview : undefined,
-    planningSourceIdentity, selection
-  );
-  const project = await seedWorldBootTrace.span("openSeedWorldProject.sessionOpen", () =>
-    RuntimeProjectSession.open(seedWorldProjectStorageId(seed, projectUrl, template), initial, projectUrl, {
-      storage,
-      scriptModules: seedWorldScriptModules,
-      prefetchedTextAssets
-    })
-  );
+  const projectId = seedWorldProjectStorageId(seed, projectUrl, template);
+  const openSession = (storage?: RuntimeProjectBackend) =>
+    RuntimeProjectSession.open(projectId, initial, projectUrl, { storage, scriptModules: seedWorldScriptModules, prefetchedTextAssets });
+
+  const project = await seedWorldBootTrace.span("openSeedWorldProject.sessionOpen", async () => {
+    if (!host) return openSession();
+    try {
+      selection ??= await SharedWorldStorage.select(host.db, host.appVersion, template);
+      if (!selection.restoreFailed) {
+        const storage = await SharedWorldStorage.open(
+          host.db, host.readOnly, host.appVersion, { seed, template }, published,
+          host.importLegacyPreview ? readLegacyPreview : undefined,
+          planningSourceIdentity, selection
+        );
+        const restored = await openSession(storage);
+        if (!selection.checkpoint || restored.restoredFromStorage) return restored;
+        restored.dispose();
+      }
+    } catch (error) {
+      console.warn("恢复世界存档失败，将初始化入口模板", error);
+    }
+    // Keep normalization, autosave and in-session edits away from the unreadable checkpoint.
+    const storage = Object.assign(RuntimeProjectStorage.createInMemory(), {
+      readOnly: host.readOnly || Boolean(selection?.olderApp)
+    });
+    return openSession(storage);
+  });
   try {
-    if (published && project.canSave) project.observeAssetReads((file, content) => published.recordRead(file, content));
+    if (published && project.isPersistent && project.canSave) project.observeAssetReads((file, content) => published.recordRead(file, content));
     registerNativeFarming();
     registerNativeWater();
     registerPlanningFarmingAssets();
