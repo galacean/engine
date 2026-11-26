@@ -1,9 +1,7 @@
 import { ControllerCollisionFlag, ControllerNonWalkableMode, ICharacterController } from "@galacean/engine-design";
 import { MathUtil, Vector3, type Vector3Like } from "@galacean/engine-math";
 import { assignmentClone, ignoreClone } from "../clone/CloneDecorators";
-import { Engine } from "../Engine";
 import { Collider } from "./Collider";
-import type { PhysicsScene } from "./PhysicsScene";
 import { PhysicsUtils } from "./PhysicsUtils";
 import { Rigidbody } from "./Rigidbody";
 
@@ -15,7 +13,9 @@ import { Rigidbody } from "./Rigidbody";
  */
 export class CharacterController extends Collider {
   private static readonly _defaultUpDirection = Object.freeze(new Vector3(0, 1, 0));
+  // A Transform hook can sync another controller while publishing a moved position.
   private static readonly _tempMovePosition = new Vector3();
+  private static readonly _tempSyncPosition = new Vector3();
 
   private _radius = 0.5;
   private _height = 2;
@@ -27,8 +27,6 @@ export class CharacterController extends Collider {
 
   @ignoreClone
   private _controller: ICharacterController | null = null;
-  @ignoreClone
-  private _inScene = false;
   @ignoreClone
   private _syncedCenter = new Vector3();
 
@@ -159,18 +157,13 @@ export class CharacterController extends Collider {
    * @returns A bit mask of {@link ControllerCollisionFlag} values, or {@link ControllerCollisionFlag.None} if inactive or no collision is reported.
    */
   move(disp: Vector3, minDist: number, elapsedTime: number): ControllerCollisionFlag {
-    const scene = this._registeredScene;
-    if (!scene) {
-      return ControllerCollisionFlag.None;
-    }
-    scene.physics._syncColliders(false);
-    if (!this._inScene) {
-      return ControllerCollisionFlag.None;
-    }
-    const controller = this._controller!;
+    this._registeredScene?.physics._syncColliders(false);
+    const controller = this._controller;
+    if (!controller) return ControllerCollisionFlag.None;
     const flags = controller.move(disp, minDist, elapsedTime);
     const position = CharacterController._tempMovePosition;
-    controller.getWorldPosition(position);
+    controller.getPosition(position);
+    position.subtract(this._syncedCenter);
     const transform = this.entity.transform;
     const worldPosition = transform.worldPosition;
     if (position.x !== worldPosition.x || position.y !== worldPosition.y || position.z !== worldPosition.z) {
@@ -198,27 +191,8 @@ export class CharacterController extends Collider {
     // Reading the world matrix re-arms transform change notifications that are only sent from a clean state.
     const worldMatrix = transform.worldMatrix;
     const lossyScale = transform.lossyWorldScale;
-    const needsAttach = !this._inScene;
-
-    // Sync capsule dimensions and lazily create the native controller.
-    const absScale = this._getGeometryScale(lossyScale, worldMatrix);
-    if (needsAttach || this._geometryDirty || this._scaleChanged(absScale)) {
-      const radius = this._radius * Math.max(absScale.x, absScale.z);
-      const scaledHeight = this._height * absScale.y;
-      if (!PhysicsUtils.isValidPositiveFloat32(radius) || !Number.isFinite(Math.fround(scaledHeight))) {
-        this._detach();
-        return;
-      }
-      this._geometryDirty = false;
-      this._nativeScale.copyFrom(absScale);
-      const halfHeight = Math.max(0, scaledHeight * 0.5 - radius);
-      const stepOffset = Math.min(this._stepOffset, Math.max(scaledHeight, 2 * radius));
-      (this._controller ||= this._createNative()).setCapsule(radius, halfHeight, stepOffset);
-    }
-
-    // Sync world position and local center transformed into world space.
-    const controller = this._controller!;
     const position = transform.worldPosition;
+    const controller = this._controller;
     const colliderCenter = this.center;
     const cx = colliderCenter.x;
     const cy = colliderCenter.y;
@@ -234,43 +208,70 @@ export class CharacterController extends Collider {
     }
     const syncedCenter = this._syncedCenter;
     const nativePosition = this._nativePosition;
-    if (
-      needsAttach ||
+    const poseChanged =
+      !controller ||
       centerX !== syncedCenter.x ||
       centerY !== syncedCenter.y ||
       centerZ !== syncedCenter.z ||
       position.x !== nativePosition.x ||
       position.y !== nativePosition.y ||
-      position.z !== nativePosition.z
-    ) {
+      position.z !== nativePosition.z;
+    const capsuleX = position.x + centerX;
+    const capsuleY = position.y + centerY;
+    const capsuleZ = position.z + centerZ;
+    if (poseChanged) {
       if (
-        !Number.isFinite(Math.fround(position.x + centerX)) ||
-        !Number.isFinite(Math.fround(position.y + centerY)) ||
-        !Number.isFinite(Math.fround(position.z + centerZ))
+        !Number.isFinite(Math.fround(capsuleX)) ||
+        !Number.isFinite(Math.fround(capsuleY)) ||
+        !Number.isFinite(Math.fround(capsuleZ))
       ) {
         this._detach();
         return;
       }
       syncedCenter.set(centerX, centerY, centerZ);
       nativePosition.copyFrom(position);
-      controller.setWorldPosition(position, syncedCenter);
     }
 
-    // Register in the native scene on first sync or after detaching.
-    if (needsAttach) {
-      this._registeredScene!.physics._nativePhysicsScene.addCharacterController(controller);
-      this._inScene = true;
+    const absScale = this._getGeometryScale(lossyScale, worldMatrix);
+    if (!controller || this._geometryDirty || this._scaleChanged(absScale)) {
+      const radius = this._radius * Math.max(absScale.x, absScale.z);
+      const scaledHeight = this._height * absScale.y;
+      if (!PhysicsUtils.isValidPositiveFloat32(radius) || !Number.isFinite(Math.fround(scaledHeight))) {
+        this._detach();
+        return;
+      }
+      this._geometryDirty = false;
+      this._nativeScale.copyFrom(absScale);
+      const halfHeight = Math.max(0, scaledHeight * 0.5 - radius);
+      const stepOffset = Math.min(this._stepOffset, Math.max(scaledHeight, 2 * radius));
+      if (!controller) {
+        this._controller = this._registeredScene!.physics._nativePhysicsScene.createCharacterController({
+          uniqueID: this._id,
+          material: this._getNativeMaterial(),
+          radius,
+          halfHeight,
+          stepOffset,
+          contactOffset: this.contactOffset,
+          collisionLayer: this._collisionLayerIndex,
+          nonWalkableMode: this._nonWalkableMode,
+          upDirection: this._upDirection,
+          slopeLimit: this._slopeLimit,
+          position: CharacterController._tempSyncPosition.set(capsuleX, capsuleY, capsuleZ)
+        });
+        return;
+      }
+      controller.setCapsule(radius, halfHeight, stepOffset);
     }
+    if (poseChanged) controller.setPosition(CharacterController._tempSyncPosition.set(capsuleX, capsuleY, capsuleZ));
   }
 
   /**
    * @internal
    */
-  override _detach(physicsScene?: PhysicsScene): void {
-    if (this._inScene) {
-      (physicsScene ?? this._registeredScene!.physics)._nativePhysicsScene.removeCharacterController(this._controller!);
-      this._inScene = false;
-    }
+  override _detach(): void {
+    const controller = this._controller;
+    this._controller = null;
+    controller?.destroy();
   }
 
   /** @internal */
@@ -293,11 +294,6 @@ export class CharacterController extends Collider {
     return this._controller;
   }
 
-  protected override _destroyNative(): void {
-    this._controller?.destroy();
-    this._controller = null;
-  }
-
   // Runtime Prefab calls use this method name.
   private _setUpDirection(value: Readonly<Vector3Like>): void {
     const up = PhysicsUtils.normalizeDirection(this._upDirection, value, "CharacterController upDirection");
@@ -305,15 +301,5 @@ export class CharacterController extends Collider {
       this._upDirection = up;
       this._controller?.setUpDirection(up);
     }
-  }
-
-  private _createNative(): ICharacterController {
-    const controller = Engine._nativePhysics.createCharacterController(this._id, this._getNativeMaterial());
-    controller.setContactOffset(this.contactOffset);
-    controller.setCollisionLayer(this._collisionLayerIndex);
-    controller.setNonWalkableMode(this._nonWalkableMode);
-    controller.setUpDirection(this._upDirection);
-    controller.setSlopeLimit(this._slopeLimit);
-    return controller;
   }
 }

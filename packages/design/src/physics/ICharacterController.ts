@@ -3,8 +3,8 @@ import { ControllerCollisionFlag, ControllerNonWalkableMode } from "./enums/inde
 import { IPhysicsMaterial } from "./IPhysicsMaterial";
 
 /**
- * Native capsule character controller.
- * @remarks The caller applies entity scale to geometry dimensions and the center offset before passing them in.
+ * Native capsule character controller attached to a scene.
+ * @remarks The caller applies entity scale to geometry dimensions before passing them in.
  */
 export interface ICharacterController {
   /**
@@ -38,22 +38,21 @@ export interface ICharacterController {
    * @param disp - World-space displacement
    * @param minDist - The remaining distance threshold for stopping the move
    * @param elapsedTime - Time in seconds since the last call
-   * @returns A bit mask of {@link ControllerCollisionFlag} values, or {@link ControllerCollisionFlag.None} if unavailable or clear
+   * @returns A bit mask of {@link ControllerCollisionFlag} values, or {@link ControllerCollisionFlag.None} if clear
    */
   move(disp: Vector3, minDist: number, elapsedTime: number): ControllerCollisionFlag;
 
   /**
-   * Place the controller's geometry at the sum of the world position and the center offset.
-   * @param position - The world position before applying the offset
-   * @param center - The world-space geometry offset
+   * Place the capsule center at a world-space position.
+   * @param position - The capsule center
    */
-  setWorldPosition(position: Vector3, center: Vector3): void;
+  setPosition(position: Vector3): void;
 
   /**
-   * Write the world position with the center offset subtracted.
-   * @param position - Receives the world position
+   * Write the world-space capsule center.
+   * @param position - Receives the capsule center
    */
-  getWorldPosition(position: Vector3): void;
+  getPosition(position: Vector3): void;
 
   /**
    * Set the non-walkable mode.
@@ -77,4 +76,21 @@ export interface ICharacterController {
    * Release the controller.
    */
   destroy(): void;
+}
+
+/** Initial settings for a scene-owned capsule character controller. */
+export interface CharacterControllerOptions {
+  readonly uniqueID: number;
+  readonly material: IPhysicsMaterial;
+  /** World-space center of the capsule. */
+  readonly position: Vector3;
+  readonly radius: number;
+  /** Half the cylindrical height in world units, excluding both caps. */
+  readonly halfHeight: number;
+  readonly stepOffset: number;
+  readonly contactOffset: number;
+  readonly collisionLayer: number;
+  readonly nonWalkableMode: ControllerNonWalkableMode;
+  readonly upDirection: Vector3;
+  readonly slopeLimit: number;
 }

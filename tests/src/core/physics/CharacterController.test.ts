@@ -18,7 +18,9 @@ import {
   PhysicsScene,
   PlaneCollider,
   Rigidbody,
+  Scene,
   Script,
+  Transform,
   WrapMode
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
@@ -373,6 +375,86 @@ describe("CharacterController", () => {
     expect(controller.stepOffset).toBe(0.2);
     expect(controller.slopeLimit).toBe(30);
     expect(controller.nonWalkableMode).toBe(ControllerNonWalkableMode.PreventClimbingAndForceSliding);
+  });
+
+  it("keeps the character controller queryable only in its current scene", () => {
+    const destination = new Scene(engine);
+    engine.sceneManager.addScene(destination);
+    role.transform.setPosition(0, 5, 0);
+    controller.center.set(1, 0, 0);
+    controller.collisionLayer = Layer.Layer6;
+    const ray = new Ray(new Vector3(1, 5, 5), new Vector3(0, 0, -1));
+    const hit = new HitResult();
+
+    try {
+      expect(physics.raycast(ray, 10, Layer.Layer6, hit)).toBe(true);
+      expect(hit.collider).toBe(controller);
+
+      destination.addRootEntity(role);
+      expect(physics.raycast(ray, 10, Layer.Layer6)).toBe(false);
+      expect(destination.physics.raycast(ray, 10, Layer.Layer6, hit)).toBe(true);
+      expect(hit.collider).toBe(controller);
+      expect(controller.move(new Vector3(0, 0, 1), 0.001, destination.physics.fixedTimeStep)).toBe(
+        ControllerCollisionFlag.None
+      );
+      expect(role.transform.worldPosition.z).toBeCloseTo(1);
+
+      root.addChild(role);
+      expect(destination.physics.raycast(ray, 10, Layer.Layer6)).toBe(false);
+      expect(physics.raycast(ray, 10, Layer.Layer6, hit)).toBe(true);
+      expect(hit.collider).toBe(controller);
+    } finally {
+      destination.destroy();
+    }
+  });
+
+  it("keeps poses when character Transform hooks query another controller", () => {
+    const other = root.createChild("other");
+    other.transform.setPosition(20, 5, 0);
+    other.addComponent(CharacterController).collisionLayer = Layer.Layer7;
+    const otherRay = new Ray(new Vector3(20, 5, 5), new Vector3(0, 0, -1));
+    let queryOnScale = false;
+    let queryOnMove = false;
+    const character = new Entity(
+      engine,
+      "character",
+      class extends Transform {
+        override get lossyWorldScale(): Vector3 {
+          if (queryOnScale) {
+            queryOnScale = false;
+            expect(physics.raycast(otherRay, 10, Layer.Layer7)).toBe(true);
+          }
+          return super.lossyWorldScale;
+        }
+
+        override get worldPosition(): Vector3 {
+          return super.worldPosition;
+        }
+
+        override set worldPosition(value: Vector3) {
+          if (queryOnMove) {
+            queryOnMove = false;
+            other.transform.setPosition(21, 5, 0);
+            otherRay.origin.x = 21;
+            expect(physics.raycast(otherRay, 10, Layer.Layer7)).toBe(true);
+          }
+          super.worldPosition = value;
+        }
+      }
+    );
+    root.addChild(character);
+    character.transform.setPosition(4, 5, 0);
+    const cc = character.addComponent(CharacterController);
+    cc.collisionLayer = Layer.Layer6;
+
+    queryOnScale = true;
+    expect(physics.raycast(new Ray(new Vector3(4, 5, 5), new Vector3(0, 0, -1)), 10, Layer.Layer6)).toBe(true);
+    expect(queryOnScale).toBe(false);
+
+    queryOnMove = true;
+    expect(cc.move(new Vector3(1, 0, 0), 0.001, physics.fixedTimeStep)).toBe(ControllerCollisionFlag.None);
+    expect(queryOnMove).toBe(false);
+    expect(character.transform.worldPosition.x).toBeCloseTo(5);
   });
 
   it("applies geometry edited while disabled on re-entry", () => {

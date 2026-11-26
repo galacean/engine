@@ -1,6 +1,5 @@
 import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { CapsuleColliderDirection, MeshColliderCookingFlag } from "./enums/index";
-import { ICharacterController } from "./ICharacterController";
 import { IDynamicActor } from "./IDynamicActor";
 import { IPhysicsMaterial, IPhysicsMaterialProperties } from "./IPhysicsMaterial";
 import { IPhysicsScene } from "./IPhysicsScene";
@@ -35,13 +34,6 @@ export interface IPhysics {
    * @param rotation - The global rotation
    */
   createStaticActor(position: Vector3, rotation: Quaternion): IStaticActor;
-
-  /**
-   * Create a character controller for later insertion into a scene.
-   * @param uniqueID - The collider ID reported by queries and events
-   * @param material - The controller material
-   */
-  createCharacterController(uniqueID: number, material: IPhysicsMaterial): ICharacterController;
 
   /**
    * Create physics material.

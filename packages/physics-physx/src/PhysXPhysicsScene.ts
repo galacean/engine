@@ -1,5 +1,6 @@
 import { Vector3, Quaternion } from "@galacean/engine";
 import {
+  CharacterControllerOptions,
   IContactEvent,
   IContactPoint,
   IDynamicActor,
@@ -229,17 +230,11 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsScene.addCharacterController }
+   * {@inheritDoc IPhysicsScene.createCharacterController }
    */
-  addCharacterController(characterController: PhysXCharacterController): void {
-    characterController._addToScene(this);
-  }
-
-  /**
-   * {@inheritDoc IPhysicsScene.removeCharacterController }
-   */
-  removeCharacterController(characterController: PhysXCharacterController): void {
-    characterController._removeFromScene();
+  createCharacterController(options: CharacterControllerOptions): PhysXCharacterController | null {
+    const manager = (this._pxControllerManager ??= this._pxScene.createControllerManager());
+    return PhysXCharacterController._create(this, this._physXPhysics._physX, manager, options);
   }
 
   /**
@@ -487,17 +482,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     // The controller manager releases its controllers through the scene.
     this._pxControllerManager?.release();
     this._pxScene.release();
-  }
-
-  /**
-   * @internal
-   */
-  _getControllerManager(): any {
-    let pxControllerManager = this._pxControllerManager;
-    if (pxControllerManager === null) {
-      this._pxControllerManager = pxControllerManager = this._pxScene.createControllerManager();
-    }
-    return pxControllerManager;
   }
 
   /**

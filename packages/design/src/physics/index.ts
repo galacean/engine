@@ -1,4 +1,4 @@
-export type { ICharacterController } from "./ICharacterController";
+export type { ICharacterController, CharacterControllerOptions } from "./ICharacterController";
 export type { IPhysicsActor } from "./IPhysicsActor";
 export type { IDynamicActor } from "./IDynamicActor";
 export type { IPhysics } from "./IPhysics";

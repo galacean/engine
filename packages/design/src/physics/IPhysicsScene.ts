@@ -1,5 +1,5 @@
 import { Quaternion, Vector3 } from "@galacean/engine-math";
-import { ICharacterController } from "./ICharacterController";
+import { ICharacterController, CharacterControllerOptions } from "./ICharacterController";
 import { IDynamicActor } from "./IDynamicActor";
 import { IPhysicsActor } from "./IPhysicsActor";
 import { IPhysicsEvents } from "./IPhysicsEvents";
@@ -41,16 +41,11 @@ export interface IPhysicsScene {
   removeActor(actor: IPhysicsActor): void;
 
   /**
-   * Add a character controller to the scene.
-   * @param characterController - The controller configured for this scene
+   * Create a character controller attached to this scene.
+   * @param options - Initial settings consumed synchronously.
+   * @returns The attached controller, or null if creation fails.
    */
-  addCharacterController(characterController: ICharacterController): void;
-
-  /**
-   * Remove a character controller from the scene.
-   * @param characterController - The controller to remove
-   */
-  removeCharacterController(characterController: ICharacterController): void;
+  createCharacterController(options: CharacterControllerOptions): ICharacterController | null;
 
   /**
    * Create a fixed joint bound to this scene.

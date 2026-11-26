@@ -3,7 +3,6 @@ import {
   CapsuleColliderDirection,
   IBoxShape,
   ICapsuleShape,
-  ICharacterController,
   IDynamicActor,
   IMeshShape,
   IPhysics,
@@ -15,7 +14,6 @@ import {
   IStaticActor,
   MeshColliderCookingFlag
 } from "@galacean/engine-design";
-import { PhysXCharacterController } from "./PhysXCharacterController";
 import { PhysXDynamicActor } from "./PhysXDynamicActor";
 import { PhysXPhysicsMaterial } from "./PhysXPhysicsMaterial";
 import { PhysXPhysicsScene } from "./PhysXPhysicsScene";
@@ -102,13 +100,6 @@ export class PhysXPhysics implements IPhysics {
    */
   createDynamicActor(position: Vector3, rotation: Quaternion): IDynamicActor {
     return new PhysXDynamicActor(this, position, rotation);
-  }
-
-  /**
-   * {@inheritDoc IPhysics.createCharacterController }
-   */
-  createCharacterController(uniqueID: number, material: PhysXPhysicsMaterial): ICharacterController {
-    return new PhysXCharacterController(this, uniqueID, material);
   }
 
   /**
