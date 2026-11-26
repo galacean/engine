@@ -2,15 +2,15 @@ import type { RuntimeProjectSession } from "@galacean/engine-runtime-editor/proj
 import { exportPlanningAuthoring, exportPlanningRecipe, type PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
 import { createSeedPlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningInitialization";
 import { planningSeed } from "@galacean/engine-world-planning/spatial/PlanningLayoutScope";
-import { parsePlanningDocument } from "../PlanningDocumentCodec.ts";
+import { parsePlanningDocument, PLANNING_PROJECT_PATH } from "../PlanningDocumentCodec.ts";
 import { exportPlanningScene } from "../PlanningSceneAsset.ts";
 import { RuntimeProjectEdit, type RuntimeAssetFormat } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
-import { PLANNING_PROJECT_PATH, planningSourceDocument, retainPlanningWaterSource, writePlanningProjectSource } from "./PlanningProjectSource.ts";
+import { planningSourceDocument, retainPlanningWaterSource, writePlanningProjectSource } from "./PlanningProjectSource.ts";
 import { clearPlanningWaterSource, initializePlanningWater, initializePlanningOcean, installPlanningWaterDefaults, loadPlanningWaterDefaults, waterInitialization, waterInitializationPath } from "./PlanningWaterInitialization.ts";
 import type { SemanticResult } from "@galacean/engine-world-planning/semantic-study/WorldPlanningContract";
 
-export { PLANNING_PROJECT_PATH } from "./PlanningProjectSource.ts";
+export { PLANNING_PROJECT_PATH };
 export const PLANNING_PROJECT_TYPE = "SeedWorldPlanning";
 
 /** Project asset is the sole source of persisted planning state. */

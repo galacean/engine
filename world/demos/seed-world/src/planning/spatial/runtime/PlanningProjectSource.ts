@@ -1,3 +1,4 @@
+import { PLANNING_PROJECT_PATH } from "../PlanningDocumentCodec.ts";
 import { RuntimeProjectInputs } from "@galacean/engine-project/runtime-editor/project/runtime-project-inputs";
 import { RuntimeProjectEdit } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
 import type { RuntimeProjectPackage } from "@galacean/engine-project/runtime-editor/project/runtime-project";
@@ -64,8 +65,6 @@ import {
 } from "@galacean/engine-water/water/native/WaterMaterial";
 import { withSeedWorldWaterColor } from "@galacean/engine-water/world/SeedWorldWaterColor";
 import { WORLD_TEMPLATE_ART } from "@galacean/engine-world-planning/spatial/WorldTemplateArtDirection";
-
-export const PLANNING_PROJECT_PATH = "World/Planning.json";
 
 const ownedProperties = new Map<string, readonly string[]>([
   [WATER_COMPONENT, ["authoring", "enabled"]],

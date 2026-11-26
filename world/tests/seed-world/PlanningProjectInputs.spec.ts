@@ -8,8 +8,8 @@ import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runt
 import { createSeedPlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningInitialization";
 import { createTemplatePlanningDocument } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
 import { registerPlanningComponent } from "@galacean/engine-world-planning/spatial/PlanningComponents";
+import { PLANNING_PROJECT_PATH } from "../../demos/seed-world/src/planning/spatial/PlanningDocumentCodec";
 import {
-  PLANNING_PROJECT_PATH,
   planningSourceDocument,
   validatePlanningProject,
   writePlanningProjectSource
