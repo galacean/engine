@@ -40,7 +40,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
   }
 
   /**
-   * Animation curve length in seconds.
+   * Animation curve length in seconds (`0` when empty or the final timestamp is non-positive).
    */
   get length(): number {
     const last = this._keyCount > 0 ? this._times[this._keyCount - 1] : 0;
@@ -66,6 +66,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
    * Add a new key to the curve.
    * Numeric keyframe values are copied into flat float32 storage; mutating `key` afterward does not affect the curve.
    * @param key - The keyframe
+   * @throws Error If `key.value.length` mismatches an existing variable-width array curve
    */
   addKey(key: Keyframe<V>): void {
     this._prepareKeyValueSize(key, false);
@@ -110,6 +111,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
    * @param index - Keyframe index in `[0, keyCount)`
    * @param key - Replacement keyframe (timestamps and numeric values are copied into storage)
    * @throws RangeError If `index` is out of range `[0, keyCount)`
+   * @throws Error If replacing a key in a multi-key variable-width array curve changes `key.value.length`
    */
   setKey(index: number, key: Keyframe<V>): void {
     this._checkIndex(index);
@@ -440,6 +442,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
   }
 
   private _assignTimes(times: TypedArray): void {
+    // Callers guarantee non-decreasing, immutable timestamps; defer copying to _ensureWritable.
     this._times = times;
     this._isBufferShared = true;
     this._keyCount = times.length;

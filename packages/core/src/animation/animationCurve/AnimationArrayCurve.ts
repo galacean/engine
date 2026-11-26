@@ -101,7 +101,7 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
    * @param values - Packed scalars (`width` per key, or `width * 3` interleaved as `[inTangent, value, outTangent]`)
    * @param hasTangents - Whether `values` includes in/out tangents for each keyframe
    * @throws Error If `times` is empty with non-empty `values`, or `values.length` is not a multiple of `times.length` (`times.length * 3` when `hasTangents` is true)
-   * @remarks Non-empty inputs retain `times` and `values` directly by reference (copy-on-write on `addKey`, `setKey`, or `removeKey`) without validating or sorting timestamp order; callers must pass non-decreasing `times` and must not mutate retained buffers.
+   * @remarks For non-empty inputs, `times` and `values` are retained directly by reference (copy-on-write on `addKey`, `setKey`, or `removeKey`) without validating or sorting timestamps; callers must pass non-decreasing `times` and must not mutate retained buffers.
    */
   setKeys(times: TypedArray, values: TypedArray, hasTangents: boolean = false): void {
     this._setNumericKeys(times, values, 0, hasTangents);

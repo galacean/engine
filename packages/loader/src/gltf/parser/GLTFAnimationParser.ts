@@ -121,6 +121,7 @@ export class GLTFAnimationParser extends GLTFParser {
             break;
         }
         curve.interpolation = samplerInterpolation;
+        // glTF 2.0 §5.8.1 requires strictly increasing sampler input times; samples() detaches shared views.
         curve.setKeys(
           samples(sampler.input),
           samples(sampler.output, accessors![sampler.output].normalized),

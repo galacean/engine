@@ -96,8 +96,8 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
    * @param times - Keyframe timestamps in seconds; must be sorted in ascending (non-decreasing) order
    * @param values - Packed scalars (`4` per key, or `12` per key interleaved as `[inTangent, value, outTangent]`)
    * @param hasTangents - Whether `values` includes in/out tangents for each keyframe
-   * @throws Error If `values.length` does not match `times.length` and the expected stride
-   * @remarks Non-empty inputs retain `times` and `values` directly by reference (copy-on-write on `addKey`, `setKey`, or `removeKey`) without validating or sorting timestamp order; callers must pass non-decreasing `times` and must not mutate retained buffers.
+   * @throws Error If `values.length` does not match `times.length * 4` (`times.length * 12` when `hasTangents` is true)
+   * @remarks For non-empty inputs, `times` and `values` are retained directly by reference (copy-on-write on `addKey`, `setKey`, or `removeKey`) without validating or sorting timestamps; callers must pass non-decreasing `times` and must not mutate retained buffers.
    */
   setKeys(times: TypedArray, values: TypedArray, hasTangents: boolean = false): void {
     this._setNumericKeys(times, values, 4, hasTangents);
