@@ -15,8 +15,8 @@ import {
 import { PhysXCharacterController } from "./PhysXCharacterController";
 import { PhysXActor } from "./PhysXActor";
 import { PhysXPhysics } from "./PhysXPhysics";
-import { PhysXFixedJoint } from "./joint/PhysXFixedJoint";
 import { PhysXHingeJoint } from "./joint/PhysXHingeJoint";
+import { PhysXJoint } from "./joint/PhysXJoint";
 import { PhysXSpringJoint } from "./joint/PhysXSpringJoint";
 import { PhysXShape } from "./shape/PhysXShape";
 
@@ -240,22 +240,22 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   /**
    * {@inheritDoc IPhysicsScene.createFixedJoint }
    */
-  createFixedJoint(actor: PhysXActor): IFixedJoint {
-    return new PhysXFixedJoint(this._physXPhysics, actor);
+  createFixedJoint(actor: PhysXActor, connectedActor: PhysXActor | null): IFixedJoint {
+    return new PhysXJoint(this._physXPhysics, actor, connectedActor, "createFixedJoint");
   }
 
   /**
    * {@inheritDoc IPhysicsScene.createHingeJoint }
    */
-  createHingeJoint(actor: PhysXActor): IHingeJoint {
-    return new PhysXHingeJoint(this._physXPhysics, actor);
+  createHingeJoint(actor: PhysXActor, connectedActor: PhysXActor | null): IHingeJoint {
+    return new PhysXHingeJoint(this._physXPhysics, actor, connectedActor);
   }
 
   /**
    * {@inheritDoc IPhysicsScene.createSpringJoint }
    */
-  createSpringJoint(actor: PhysXActor): ISpringJoint {
-    return new PhysXSpringJoint(this._physXPhysics, actor);
+  createSpringJoint(actor: PhysXActor, connectedActor: PhysXActor | null): ISpringJoint {
+    return new PhysXSpringJoint(this._physXPhysics, actor, connectedActor);
   }
 
   /**

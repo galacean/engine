@@ -1,48 +1,55 @@
 import { IJoint } from "@galacean/engine-design";
 import { Quaternion, Vector3 } from "@galacean/engine";
 import { PhysXActor } from "../PhysXActor";
+import { PhysXPhysics } from "../PhysXPhysics";
 
 /**
  * Shared actor frames and constraint settings for PhysX joints.
  */
 export class PhysXJoint implements IJoint {
   protected static readonly _maxFloat32 = 3.4028234663852886e38;
-  protected static _defaultVec = new Vector3();
-  protected static _defaultQuat = new Quaternion();
+  private static readonly _zero = new Vector3();
+  private static readonly _identity = new Quaternion();
 
   protected _pxJoint: any;
-  protected _connectedAnchor: Vector3;
-  protected _rotation: Quaternion = new Quaternion();
-  protected _actor: PhysXActor;
+  protected readonly _connectedRotation = new Quaternion();
+
+  constructor(
+    physics: PhysXPhysics,
+    actor: PhysXActor,
+    connectedActor: PhysXActor | null,
+    create: "createFixedJoint" | "createRevoluteJoint" | "createDistanceJoint"
+  ) {
+    this._pxJoint = physics._pxPhysics[create](
+      actor._pxActor,
+      PhysXJoint._zero,
+      PhysXJoint._identity,
+      connectedActor?._pxActor ?? null,
+      PhysXJoint._zero,
+      PhysXJoint._identity
+    );
+  }
 
   /**
-   * {@inheritDoc IJoint.setConnectedActor }
+   * {@inheritDoc IJoint.setActors }
    */
-  setConnectedActor(value: PhysXActor): void {
-    this._pxJoint.setActors(this._actor._pxActor, value?._pxActor || null);
+  setActors(actor: PhysXActor, connectedActor: PhysXActor | null): void {
+    this._pxJoint.setActors(actor._pxActor, connectedActor?._pxActor ?? null);
   }
 
   /**
    * {@inheritDoc IJoint.setAnchor }
    */
   setAnchor(value: Vector3): void {
-    this._setLocalPose(0, value, PhysXJoint._defaultQuat);
+    this._pxJoint.setLocalPose(0, value, PhysXJoint._identity);
   }
 
   /**
    * {@inheritDoc IJoint.setConnectedAnchor }
    */
-  setConnectedAnchor(value: Vector3): void {
-    this._setLocalPose(1, value, this._rotation);
-    this._connectedAnchor = value;
-  }
-
-  /**
-   * {@inheritDoc IJoint.setRotation }
-   */
-  setRotation(value: Quaternion): void {
-    this._setLocalPose(1, this._connectedAnchor, value);
-    this._rotation.copyFrom(value);
+  setConnectedAnchor(value: Vector3, rotation?: Quaternion): void {
+    if (rotation) this._connectedRotation.copyFrom(rotation);
+    this._pxJoint.setLocalPose(1, value, this._connectedRotation);
   }
 
   /**
@@ -86,15 +93,5 @@ export class PhysXJoint implements IJoint {
   destroy(): void {
     this._pxJoint.release();
     this._pxJoint = null;
-    this._actor = null!;
-  }
-  /**
-   * Set a joint frame. A frame for the world connection uses world coordinates.
-   * @param actor - 0 for the owning actor, 1 for the connected actor or world
-   * @param position - The anchor position in the selected frame
-   * @param rotation - The joint rotation in the selected frame
-   */
-  protected _setLocalPose(actor: number, position: Vector3, rotation: Quaternion): void {
-    this._pxJoint.setLocalPose(actor, position, rotation);
   }
 }

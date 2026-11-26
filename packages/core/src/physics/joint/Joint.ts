@@ -309,11 +309,10 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     }
     const nativeJoint = this._nativeJoint;
     if (nativeJoint) {
-      nativeJoint.setConnectedActor(connectedActor);
+      nativeJoint.setActors(bodyActor, connectedActor);
       this._syncConnectedFrame(nativeJoint);
     } else {
-      const joint = (this._nativeJoint = this._createJoint(scene.physics._nativePhysicsScene, bodyActor));
-      connectedActor && joint.setConnectedActor(connectedActor);
+      this._nativeJoint = this._createJoint(scene.physics._nativePhysicsScene, bodyActor, connectedActor);
       this._syncNative();
     }
     this._wakeBodies();
@@ -333,7 +332,11 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     }
   }
 
-  protected abstract _createJoint(physicsScene: IPhysicsScene, actor: IDynamicActor): IJoint;
+  protected abstract _createJoint(
+    physicsScene: IPhysicsScene,
+    actor: IDynamicActor,
+    connectedActor: IDynamicActor | null
+  ): IJoint;
 
   protected _destroyNativeJoint(): void {
     const nativeJoint = this._nativeJoint;
@@ -352,9 +355,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     nativeJoint.setConnectedInertiaScale(this._connectedBodyInfo.inertiaScale);
     nativeJoint.setMassScale(this._bodyInfo.massScale);
     nativeJoint.setInertiaScale(this._bodyInfo.inertiaScale);
-    // Preserve the force limit when the authored torque is rejected.
-    nativeJoint.setBreakForce(this._force, Infinity);
-    nativeJoint.setBreakForce(this._force, this._torque);
+    nativeJoint.setBreakForce(this._force, Number.isNaN(this._torque) ? Infinity : this._torque);
   }
 
   protected _wakeBodies(onlyIfSleeping = false): void {
@@ -390,8 +391,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
       if (updateRotation) Quaternion.multiply(invRotation, rotation, rotation);
     }
     if (automatic) anchor._onValueChanged = this._handleConnectedAnchorChanged;
-    this._syncAnchor(nativeJoint, this._connectedBodyInfo, true);
-    if (updateRotation) nativeJoint.setRotation(rotation);
+    this._syncAnchor(nativeJoint, this._connectedBodyInfo, true, updateRotation ? rotation : undefined);
   }
 
   @ignoreClone
@@ -428,7 +428,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     if (this._syncAnchor(nativeJoint, info)) this._wakeBodies(true);
   }
 
-  private _syncAnchor(nativeJoint: IJoint, info: JointBodyInfo, force = false): boolean {
+  private _syncAnchor(nativeJoint: IJoint, info: JointBodyInfo, force = false, rotation?: Quaternion): boolean {
     const self = info === this._bodyInfo;
     const entity = self ? this.entity : this._connectedBody?.entity;
     const scaled = Joint._tempVector3;
@@ -443,7 +443,7 @@ export abstract class Joint extends Component implements ICloneHook<Joint> {
     if (!force && !PhysicsUtils.differsF32(scaled, actual)) return false;
     actual.copyFrom(scaled);
     if (self) nativeJoint.setAnchor(actual);
-    else nativeJoint.setConnectedAnchor(actual);
+    else nativeJoint.setConnectedAnchor(actual, rotation);
     return true;
   }
 }

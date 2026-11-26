@@ -50,20 +50,23 @@ export interface IPhysicsScene {
   /**
    * Create a fixed joint bound to this scene.
    * @param actor - Owning actor of the joint
+   * @param connectedActor - Connected actor, or null for a world connection
    */
-  createFixedJoint(actor: IPhysicsActor): IFixedJoint;
+  createFixedJoint(actor: IPhysicsActor, connectedActor: IPhysicsActor | null): IFixedJoint;
 
   /**
    * Create a hinge joint bound to this scene.
    * @param actor - Owning actor of the joint
+   * @param connectedActor - Connected actor, or null for a world connection
    */
-  createHingeJoint(actor: IPhysicsActor): IHingeJoint;
+  createHingeJoint(actor: IPhysicsActor, connectedActor: IPhysicsActor | null): IHingeJoint;
 
   /**
    * Create a spring joint bound to this scene.
    * @param actor - Owning actor of the joint
+   * @param connectedActor - Connected actor, or null for a world connection
    */
-  createSpringJoint(actor: IPhysicsActor): ISpringJoint;
+  createSpringJoint(actor: IPhysicsActor, connectedActor: IPhysicsActor | null): ISpringJoint;
 
   /**
    * Advance the simulation by one step.

@@ -6,14 +6,14 @@ import { IPhysicsActor } from "../IPhysicsActor";
  */
 export interface IJoint {
   /**
-   * Connect the joint to a second actor, or to the world if the value is absent.
+   * Bind both actors. A null connected actor connects the owning actor to the world.
    */
-  setConnectedActor(value: IPhysicsActor | null | undefined): void;
+  setActors(actor: IPhysicsActor, connectedActor: IPhysicsActor | null): void;
 
   /**
-   * Set the anchor in the connected actor’s frame, or in world space for a world connection.
+   * Set the anchor and optionally the rotation in the connected actor's frame or in world space.
    */
-  setConnectedAnchor(value: Vector3): void;
+  setConnectedAnchor(value: Vector3, rotation?: Quaternion): void;
 
   /**
    * Set the anchor in the owning actor’s frame.
@@ -24,11 +24,6 @@ export interface IJoint {
    * Set the connected actor’s mass multiplier for this constraint.
    */
   setConnectedMassScale(value: number): void;
-
-  /**
-   * Set the joint frame rotation relative to the connected actor, or in world space for a world connection.
-   */
-  setRotation(value: Quaternion): void;
 
   /**
    * Set the owning actor’s mass multiplier for this constraint.

@@ -103,8 +103,12 @@ export class SpringJoint extends Joint {
     }
   }
 
-  protected override _createJoint(physicsScene: IPhysicsScene, actor: IDynamicActor): ISpringJoint {
-    return physicsScene.createSpringJoint(actor);
+  protected override _createJoint(
+    physicsScene: IPhysicsScene,
+    actor: IDynamicActor,
+    connectedActor: IDynamicActor | null
+  ): ISpringJoint {
+    return physicsScene.createSpringJoint(actor, connectedActor);
   }
 
   protected override _syncNative(): void {

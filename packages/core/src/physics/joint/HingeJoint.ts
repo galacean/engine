@@ -161,8 +161,12 @@ export class HingeJoint extends Joint {
     this._jointMotor = this._limits = null;
   }
 
-  protected override _createJoint(physicsScene: IPhysicsScene, actor: IDynamicActor): IHingeJoint {
-    return physicsScene.createHingeJoint(actor);
+  protected override _createJoint(
+    physicsScene: IPhysicsScene,
+    actor: IDynamicActor,
+    connectedActor: IDynamicActor | null
+  ): IHingeJoint {
+    return physicsScene.createHingeJoint(actor, connectedActor);
   }
 
   protected override _syncNative(): void {
