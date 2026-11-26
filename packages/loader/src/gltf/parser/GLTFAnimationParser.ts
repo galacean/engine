@@ -41,7 +41,6 @@ export class GLTFAnimationParser extends GLTFParser {
       this._loadSamplerAccessors(context, samplers),
       context.get<Entity>(GLTFParserType.Scene)
     ]).then(([data]) => {
-      const sampleDataCollection = new Array<SampleData>(samplers.length);
       let normalizedOutputs: Map<number, Float32Array> | undefined;
 
       function samples(index: number, normalize = false): TypedArray {
@@ -66,28 +65,6 @@ export class GLTFAnimationParser extends GLTFParser {
         return retained;
       }
 
-      for (let j = 0, m = samplers.length; j < m; j++) {
-        const sampler = samplers[j];
-        const interpolation = sampler.interpolation ?? AnimationSamplerInterpolation.Linear;
-        let samplerInterpolation: InterpolationType;
-        switch (interpolation) {
-          case AnimationSamplerInterpolation.CubicSpine:
-            samplerInterpolation = InterpolationType.CubicSpine;
-            break;
-          case AnimationSamplerInterpolation.Step:
-            samplerInterpolation = InterpolationType.Step;
-            break;
-          case AnimationSamplerInterpolation.Linear:
-            samplerInterpolation = InterpolationType.Linear;
-            break;
-        }
-        sampleDataCollection[j] = {
-          interpolation: samplerInterpolation,
-          input: samples(sampler.input),
-          output: samples(sampler.output, accessors![sampler.output].normalized)
-        };
-      }
-
       // Animation extensions can rename or reparent targets between clips.
       const paths: (string | null | undefined)[] = [];
       const sceneRoots = context.glTFResource.sceneRoots;
@@ -107,28 +84,48 @@ export class GLTFAnimationParser extends GLTFParser {
         }
         if (relativePath === null) continue;
 
-        let ComponentType!: ComponentConstructor<Component>;
-        let propertyName!: string;
+        let ComponentType: ComponentConstructor<Component>;
+        let propertyName: string;
+        let curve: AnimationVector3Curve | AnimationQuaternionCurve | AnimationFloatArrayCurve;
         switch (target.path) {
           case AnimationChannelTargetPath.TRANSLATION:
+          case AnimationChannelTargetPath.SCALE:
             ComponentType = Transform;
-            propertyName = "position";
+            propertyName = target.path === AnimationChannelTargetPath.TRANSLATION ? "position" : "scale";
+            curve = new AnimationVector3Curve();
             break;
           case AnimationChannelTargetPath.ROTATION:
             ComponentType = Transform;
             propertyName = "rotationQuaternion";
-            break;
-          case AnimationChannelTargetPath.SCALE:
-            ComponentType = Transform;
-            propertyName = "scale";
+            curve = new AnimationQuaternionCurve();
             break;
           case AnimationChannelTargetPath.WEIGHTS:
             ComponentType = SkinnedMeshRenderer;
             propertyName = "blendShapeWeights";
+            curve = new AnimationFloatArrayCurve();
             break;
         }
 
-        const curve = this._addCurve(target.path, sampleDataCollection[glTFChannel.sampler]);
+        const sampler = samplers[glTFChannel.sampler];
+        const interpolation = sampler.interpolation ?? AnimationSamplerInterpolation.Linear;
+        let samplerInterpolation: InterpolationType;
+        switch (interpolation) {
+          case AnimationSamplerInterpolation.CubicSpine:
+            samplerInterpolation = InterpolationType.CubicSpine;
+            break;
+          case AnimationSamplerInterpolation.Step:
+            samplerInterpolation = InterpolationType.Step;
+            break;
+          case AnimationSamplerInterpolation.Linear:
+            samplerInterpolation = InterpolationType.Linear;
+            break;
+        }
+        curve.interpolation = samplerInterpolation;
+        curve.setKeys(
+          samples(sampler.input),
+          samples(sampler.output, accessors![sampler.output].normalized),
+          samplerInterpolation === InterpolationType.CubicSpine
+        );
 
         if (target.path === AnimationChannelTargetPath.WEIGHTS) {
           const mesh = glTF.nodes![node].mesh;
@@ -196,29 +193,6 @@ export class GLTFAnimationParser extends GLTFParser {
     return AssetPromise.all(pending).then(() => data);
   }
 
-  private static _addCurve(animationChannelTargetPath: AnimationChannelTargetPath, sampleData: SampleData) {
-    const { input, output, interpolation } = sampleData;
-    const hasTangents = interpolation === InterpolationType.CubicSpine;
-    let curve: AnimationVector3Curve | AnimationQuaternionCurve | AnimationFloatArrayCurve;
-
-    switch (animationChannelTargetPath) {
-      case AnimationChannelTargetPath.TRANSLATION:
-      case AnimationChannelTargetPath.SCALE:
-        curve = new AnimationVector3Curve();
-        break;
-      case AnimationChannelTargetPath.ROTATION:
-        curve = new AnimationQuaternionCurve();
-        break;
-      case AnimationChannelTargetPath.WEIGHTS:
-        curve = new AnimationFloatArrayCurve();
-        break;
-    }
-
-    curve.interpolation = interpolation;
-    curve.setKeys(input, output, hasTangents);
-    return curve;
-  }
-
   parse(context: GLTFParserContext, index: number): AssetPromise<AnimationClip> {
     const animationInfo = context.glTF.animations![index];
     const { name = `AnimationClip${index}` } = animationInfo;
@@ -233,10 +207,4 @@ export class GLTFAnimationParser extends GLTFParser {
       return animationClip;
     });
   }
-}
-
-interface SampleData {
-  input: TypedArray;
-  output: TypedArray;
-  interpolation: InterpolationType;
 }
