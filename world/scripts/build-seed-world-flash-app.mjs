@@ -69,9 +69,14 @@ console.log(
 );
 
 function ensurePreparedEngine() {
-  const shaderEntry = resolve(repoRoot, "packages/shader/compiledShaders/index.ts");
-  if (!existsSync(shaderEntry)) {
-    throw new Error("Missing packages/shader/compiledShaders/index.ts. Run `pnpm --dir world prepare:engine` first.");
+  const required = [
+    "packages/core/dist/main.js",
+    "packages/shader-parser/dist/module.js",
+    "packages/shader/compiledShaders/index.ts"
+  ];
+  const missing = required.filter((file) => !existsSync(resolve(repoRoot, file)));
+  if (missing.length > 0) {
+    throw new Error(`Missing engine build files: ${missing.join(", ")}. Run \`pnpm b:module\` from the repository root first.`);
   }
 }
 

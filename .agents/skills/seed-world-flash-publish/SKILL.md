@@ -41,8 +41,8 @@ Seed World 对外发布为 **6 个独立灵光闪应用**，完全复用同一�
 在 Node.js ≥ 20.19 环境直接于当前 pnpm 工作树执行：
 
 ```bash
-# 如拉入或修改了引擎/地形着色器，先刷新预编译件：
-pnpm --dir world prepare:engine
+# 在仓库根目录构建原生引擎和地形着色器
+pnpm b:module
 node world/scripts/prepare-terrain-shaders.mjs Grass Surface Terrain Vegetation
 
 # 1 次公共构建 + 自动派生 6 份单模板运行目录
@@ -75,7 +75,7 @@ python3 -m http.server 4180 --bind 127.0.0.1 --directory world/dist/seed-world-f
 
 ## 4. 执行 6 应用 PUGC 编排发布
 
-统一使用 `world/scripts/publish-seed-world-flash-apps.mjs`（默认 `--dry-run`，默认 `--registry-mode http`）。执行时先查询线上最新版本对齐目标版本号，依次完成首次建表（如需）、独立临时目录打包与 OSS 上传、雨燕部署，并通过 `POST /api/flash-app/register` 完成注册与版本一致性核对（研发机无需直连 OceanBase/Layotto；若发生并发版本漂移会自动报错并推进本地版本号便于局部重试）。仅在具备 ASAP 数据库直连/Layotto 的发布机上可显式传 `--registry-mode direct-db` 做预占版本发布。
+使用 `world/scripts/publish-seed-world-flash-apps.mjs` 编排发布。默认干跑。执行时，默认 HTTP 模式调用目标 ASAP Demo 的 `/api/flash-app/release/reserve` 预留版本，使用该版本建表、打包和部署，再调用 `/api/flash-app/release/complete` 完成登记。瞬时故障重试沿用同一个发布 ID。具备直连 OceanBase/Layotto 权限的发布机可使用 `--registry-mode direct-db`。
 
 **跳过云端构建的备份红线（必守）。** 云端 `copy` / 克隆沙箱通过检查 `backup_<version>.tar.gz` 根目录是否存在 `package.json` 来决定是否执行 `npm run build`——而沙箱不会运行 `npm ci` 且存在 60s `build_timeout`，一旦备份内包含 `package.json` 会直接报缺包或超时失败。因此**严禁在派生静态目录放入 `package.json`**；即便手工兜底调用 PUGC `deploy.cjs`，也必须令 `--source-dir` 与 `--project-dir` 同指向 `world/dist/seed-world-flash-apps/<templateId>`（绝不能传仓库根目录）。
 
@@ -113,7 +113,7 @@ node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
   --timeout 300
 ```
 
-远端部署或注册失败时，已成功模板的状态与新 ID 均已落盘，只重试失败模板即可；若在默认 HTTP 模式下发生并发版本漂移，本地版本号会自动推进，按提示重跑失败模板即可对齐。建表结果未确认时，脚本会读回实际表结构，确认 `world_save` 是符合预期的 Share 表后继续。
+部署后登记失败时，使用脚本输出的 `--resume-release <id>` 重放保存的发布回执。建表结果未确认时，脚本会读回表结构，确认 `world_save` 为预期的 Share 表后继续。
 
 ## 5. 交付与发布后验收清单
 

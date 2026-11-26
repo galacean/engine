@@ -6,14 +6,14 @@
  * - Each Artifact keeps its local publish state in its own file in `~/.config/galacean-flash-app/apps/`.
  * - Each Artifact backs up its own built static directory (`world/dist/seed-world-flash-apps/<templateId>`, no `package.json`)
  *   so cloud `copy`/clone skips `npm run build` and directly re-injects the cloned `artifactId`/`artifactVersion`.
- * - By default (`--registry-mode http`), publishes via ASAP HTTP `/api/flash-app/register` (works from any developer machine)
- *   and verifies that the allocated version matches the injected version. Pass `--registry-mode direct-db` only on hosts with
+ * - By default (`--registry-mode http`), reserves and completes releases via ASAP HTTP.
+ *   Pass `--registry-mode direct-db` only on hosts with
  *   direct ASAP OceanBase/Layotto access to pre-reserve versions via `seed-world-flash-registry.py`.
  *
  * Defaults to `--dry-run`. Pass `--execute` to perform remote DB/OSS/Yuyan/PUGC operations.
  */
 
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import {
   chmodSync,
   existsSync,
@@ -39,6 +39,7 @@ const require = createRequire(import.meta.url);
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const defaultEngineRoot = resolve(scriptDirectory, "../..");
 const defaultStateDir = join(homedir(), ".config/galacean-flash-app/apps");
+const RELEASE_ID = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/u;
 const WORLD_SAVE_DDL_RELATIVE = "world/demos/seed-world/storage/world_save.sql";
 
 function matchesWorldSaveTable(schema) {
@@ -99,6 +100,7 @@ export function parseCliArgs(argv) {
     asapServiceDir: process.env.ASAP_SERVICE_DIR || "",
     asapPython: process.env.ASAP_PYTHON || "",
     registryMode: "http",
+    resumeRelease: null,
     templates: "all",
     type: null,
     appKey: "flash-app",
@@ -140,6 +142,9 @@ export function parseCliArgs(argv) {
         break;
       case "--registry-mode":
         parsed.registryMode = (argv[++i] || "").trim();
+        break;
+      case "--resume-release":
+        parsed.resumeRelease = argv[++i] || "";
         break;
       case "--templates":
         parsed.templates = argv[++i] || "all";
@@ -193,6 +198,9 @@ export function parseCliArgs(argv) {
   }
   if (parsed.registryMode !== "http" && parsed.registryMode !== "direct-db") {
     throw new Error(`Invalid --registry-mode "${parsed.registryMode}"; expected "http" or "direct-db"`);
+  }
+  if (parsed.resumeRelease !== null && (!parsed.execute || parsed.registryMode !== "http" || !RELEASE_ID.test(parsed.resumeRelease))) {
+    throw new Error("--resume-release requires --execute, HTTP registry mode and a valid release ID");
   }
   if (!Number.isFinite(parsed.timeout) || parsed.timeout <= 0) {
     throw new Error(`Invalid --timeout "${parsed.timeout}"`);
@@ -464,22 +472,15 @@ export async function queryOnlineArtifactInfo(publisherRoot, artifactId) {
   }
 }
 
-export async function registerFlashAppHttp(
-  publisherRoot,
-  { artifactId, title, type, backupUrl, entryUrl },
-  { maxAttempts = 3, retryDelayMs = 1000 } = {}
-) {
+async function callFlashAppReleaseHttp(publisherRoot, operation, request) {
+  const maxAttempts = 3;
+  const retryDelayMs = 1000;
   const urlHelperPath = resolve(publisherRoot, "scripts/asap-service-url.cjs");
   if (!existsSync(urlHelperPath)) throw new Error(`Missing ${urlHelperPath}`);
   const { asapServiceUrl } = require(urlHelperPath);
-  const endpoint = asapServiceUrl("/api/flash-app/register");
-  const payload = JSON.stringify({
-    artifact_id: artifactId,
-    title,
-    type,
-    backup_url: backupUrl,
-    entry_url: entryUrl
-  });
+  const endpoint = asapServiceUrl(`/api/flash-app/release/${operation}`);
+  const label = `ASAP HTTP release ${operation} for ${request.artifact_id}`;
+  const payload = JSON.stringify(request);
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     let response;
@@ -497,12 +498,12 @@ export async function registerFlashAppHttp(
         await new Promise((resolveDelay) => setTimeout(resolveDelay, retryDelayMs * attempt));
         continue;
       }
-      throw new Error(`HTTP /api/flash-app/register request failed for ${artifactId}: ${error.message}`, {
+      throw new Error(`${label} request failed: ${error.message}`, {
         cause: error
       });
     }
 
-    if (response.status >= 502 && response.status <= 504 && attempt < maxAttempts) {
+    if (response.status >= 500 && response.status <= 504 && attempt < maxAttempts) {
       await new Promise((resolveDelay) => setTimeout(resolveDelay, retryDelayMs * attempt));
       continue;
     }
@@ -516,24 +517,43 @@ export async function registerFlashAppHttp(
         continue;
       }
       throw new Error(
-        `HTTP /api/flash-app/register returned non-JSON (HTTP ${response.status}) for ${artifactId}`,
+        `${label} returned non-JSON (HTTP ${response.status})`,
         { cause: error }
       );
     }
 
     if (!response.ok || json?.success !== true) {
-      const message = json?.message || `HTTP ${response.status}`;
-      throw new Error(`ASAP HTTP register rejected ${artifactId}: ${message}`);
+      const detail = typeof json?.detail === "string" ? json.detail : json?.message;
+      throw new Error(`${label} rejected (HTTP ${response.status})${detail ? `: ${detail}` : ""}`);
     }
 
     const versionNumber = String(json?.data?.version_number ?? "");
     if (!/^[1-9][0-9]*$/u.test(versionNumber) || !Number.isSafeInteger(Number(versionNumber))) {
-      throw new Error(`ASAP HTTP register returned an invalid version for ${artifactId}: ${versionNumber}`);
+      throw new Error(`${label} returned an invalid version: ${versionNumber}`);
     }
-    return { versionNumber };
+    return versionNumber;
   }
 
-  throw new Error(`ASAP HTTP register exhausted retries for ${artifactId}`);
+  throw new Error(`${label} exhausted retries`);
+}
+
+function receiptPath(stateDir, releaseId) {
+  return resolve(stateDir, "pending-releases", `${releaseId}.json`);
+}
+
+async function completeHttpRelease(options, path, receipt) {
+  const { request, item, dbInitialized } = receipt;
+  const confirmed = await callFlashAppReleaseHttp(options.publisherRoot, "complete", request);
+  if (confirmed !== request.version_number) throw new Error("ASAP confirmed a different version from the reservation");
+
+  saveLocalState(options.stateDir, item, {
+    artifactVersion: String(Number(confirmed) + 1),
+    dbInitialized,
+    lastPublishedVersion: confirmed,
+    lastEntryUrl: request.entry_url,
+    lastBackupOss: request.backup_url
+  });
+  rmSync(path, { force: true });
 }
 
 function writeCatalogArtifactIds(catalogPath, updatesByTemplate) {
@@ -564,7 +584,8 @@ Options:
   --publisher-root <dir>      PUGC checkout containing scripts/asap-publish.cjs (or env PUBLISHER_ROOT)
   --asap-service-dir <dir>    ASAP checkout containing .venv/bin/python (or env ASAP_SERVICE_DIR)
   --asap-python <path>        Override ASAP Python path (default: <asap-service-dir>/.venv/bin/python)
-  --registry-mode <mode>      Version registration mode: "http" (default, via /api/flash-app/register) or "direct-db" (requires Layotto/OceanBase access)
+  --registry-mode <mode>      Version registration mode: "http" (default, ASAP HTTP reservation) or "direct-db" (requires Layotto/OceanBase access)
+  --resume-release <id>       Complete a deployed HTTP release using its saved receipt
   --templates <all|csv>       Templates to publish (default: all)
   --type <game|miniapp>       Explicit PUGC artifact type (otherwise auto-detected from original online record)
   --title-override <id=name>  Override title for a template (repeatable)
@@ -601,6 +622,18 @@ async function main() {
   const options = parseCliArgs(process.argv.slice(2));
   if (options.help) {
     printHelp();
+    return;
+  }
+
+  if (options.resumeRelease) {
+    if (!options.publisherRoot) throw new Error("--resume-release requires --publisher-root or PUBLISHER_ROOT");
+    const path = receiptPath(options.stateDir, options.resumeRelease);
+    const receipt = JSON.parse(readFileSync(path, "utf8"));
+    if (receipt.request.release_id !== options.resumeRelease || receipt.request.artifact_id !== receipt.item.artifactId) {
+      throw new Error("Release receipt does not match the requested release");
+    }
+    await completeHttpRelease(options, path, receipt);
+    console.log(`Completed ${receipt.item.templateId} v${receipt.request.version_number}: ${receipt.request.entry_url}`);
     return;
   }
 
@@ -742,6 +775,7 @@ async function main() {
 
   const summaryRows = [];
   const failedTemplates = [];
+  const pendingCompletions = [];
   for (const item of plan.items) {
     const row = {
       templateId: item.templateId,
@@ -754,14 +788,18 @@ async function main() {
       entryUrl: "-"
     };
     summaryRows.push(row);
+    let pendingReleaseId;
     try {
       const request = { artifactId: item.artifactId, title: item.title };
-      let version = item.targetVersion;
-      if (registry) {
-        ({ version } = registry({ ...request, operation: "reserve", type: item.type, reuseExisting: item.reuseExisting }));
-        if (typeof version !== "string" || !/^[1-9][0-9]*$/u.test(version) || !Number.isSafeInteger(Number(version))) {
-          throw new Error("ASAP registry returned an invalid version");
-        }
+      const releaseId = registry ? null : randomUUID();
+      const version = registry
+        ? registry({ ...request, operation: "reserve", type: item.type, reuseExisting: item.reuseExisting }).version
+        : await callFlashAppReleaseHttp(options.publisherRoot, "reserve", {
+            artifact_id: item.artifactId, release_id: releaseId, title: item.title,
+            type: item.type, reuse_existing: item.reuseExisting
+          });
+      if (typeof version !== "string" || !/^[1-9][0-9]*$/u.test(version) || !Number.isSafeInteger(Number(version))) {
+        throw new Error("ASAP registry returned an invalid version");
       }
       row.version = version;
       console.log(`\n========== [${item.templateId}] ${item.title} (${item.artifactId} v${version}, type=${item.type}, registry=${options.registryMode}) ==========`);
@@ -776,38 +814,31 @@ async function main() {
       });
       row.entryUrl = entryUrl;
 
-      let publishedVersion = version;
+      const dbInitialized = row.dbStatus === "ready" || row.dbStatus === "initialized";
       if (registry) {
         const published = registry({ ...request, operation: "publish", version, entryUrl, backupOss });
         if (published.version !== version) throw new Error("ASAP confirmed a different version from the reservation");
-      } else {
-        const { versionNumber } = await registerFlashAppHttp(options.publisherRoot, {
-          artifactId: item.artifactId,
-          title: item.title,
-          type: item.type,
-          backupUrl: backupOss,
-          entryUrl
+        saveLocalState(options.stateDir, item, {
+          artifactVersion: String(Number(version) + 1), dbInitialized,
+          lastPublishedVersion: version, lastEntryUrl: entryUrl, lastBackupOss: backupOss
         });
-        publishedVersion = versionNumber;
-        row.version = publishedVersion;
-      }
-
-      saveLocalState(options.stateDir, item, {
-        artifactVersion: String(Number(publishedVersion) + 1),
-        dbInitialized: row.dbStatus === "ready" || row.dbStatus === "initialized",
-        lastPublishedVersion: publishedVersion,
-        lastEntryUrl: entryUrl,
-        lastBackupOss: backupOss
-      });
-
-      if (publishedVersion !== version) {
-        throw new Error(
-          `ASAP allocated version ${publishedVersion} while release HTML/backup targeted ${version}; ` +
-            `re-run --templates ${item.templateId} so the injected version matches the registry`
-        );
+      } else {
+        const path = receiptPath(options.stateDir, releaseId);
+        const receipt = {
+          item: { artifactId: item.artifactId, templateId: item.templateId, sessionId: item.sessionId, type: item.type },
+          dbInitialized,
+          request: {
+            artifact_id: item.artifactId, release_id: releaseId, version_number: version,
+            backup_url: backupOss, entry_url: entryUrl
+          }
+        };
+        writeFileAtomic(path, JSON.stringify(receipt));
+        pendingReleaseId = releaseId;
+        await completeHttpRelease(options, path, receipt);
       }
     } catch (error) {
-      failedTemplates.push(item.templateId);
+      if (pendingReleaseId) pendingCompletions.push(pendingReleaseId);
+      else failedTemplates.push(item.templateId);
       console.error(`[${item.templateId}] Error: ${error.message}`);
       row.status = `FAILED (${error.message})`;
     }
@@ -823,8 +854,14 @@ async function main() {
         `  node world/scripts/publish-seed-world-flash-apps.mjs --execute${modeFlag} --templates ${failedTemplates.join(",")} ` +
         `--publisher-root "${options.publisherRoot}" --asap-service-dir "${options.asapServiceDir}" --state-dir "${options.stateDir}"`
     );
-    process.exitCode = 1;
   }
+  for (const releaseId of pendingCompletions) {
+    console.error(
+      `Retry completion: node world/scripts/publish-seed-world-flash-apps.mjs --execute --resume-release ${releaseId} ` +
+      `--publisher-root "${options.publisherRoot}" --state-dir "${options.stateDir}"`
+    );
+  }
+  if (failedTemplates.length || pendingCompletions.length) process.exitCode = 1;
 }
 
 const isDirectEntry = process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url;

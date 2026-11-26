@@ -22,11 +22,11 @@ Seed World 6 个模板分别对应 6 个独立闪应用，元信息与本机状�
 
 ## 1. 前置环境与构建产物（1 公共基座 + 6 模板运行目录）
 
-闪应用构建直接使用仓库默认的 `pnpm` 工作树（Node.js ≥ 20.19），无需额外创建 npm worktree 或转换 `package-lock.json`。若当前分支拉入了引擎/着色器改动，先刷新预编译件，再一次生成公共运行基座与全部 6 份模板运行目录：
+闪应用构建直接使用仓库默认的 `pnpm` 工作树（Node.js ≥ 20.19），无需额外创建 npm worktree 或转换 `package-lock.json`。干净工作树先执行 `pnpm install --frozen-lockfile`。随后构建引擎模块和地形着色器，再生成公共运行基座与全部 6 份模板运行目录：
 
 ```bash
-# 如刚 rebase/修改引擎或地形着色器，先执行：
-pnpm --dir world prepare:engine
+# 在仓库根目录构建原生引擎和地形着色器
+pnpm b:module
 node world/scripts/prepare-terrain-shaders.mjs Grass Surface Terrain Vegetation
 
 # 构建公共运行基座 + 自动派生 6 份单模板运行目录
@@ -83,7 +83,7 @@ node world/scripts/acceptance/shared-world-storage.mjs http://127.0.0.1:4180
 
 ## 3. 编排发布 6 个灵光闪应用
 
-使用 `world/scripts/publish-seed-world-flash-apps.mjs` 编排 6 个应用的建表与发布。默认走 ASAP HTTP 注册模式（`--registry-mode http`，调用 `/api/flash-app/register`），在普通研发机即可直接执行（无需直连 OceanBase/Layotto），并在注册后校验服务端分配的版本号是否与构建注入版本一致；仅在具备 ASAP 数据库直连/Layotto 环境的发布机上可按需传 `--registry-mode direct-db` 做预占版本发布。可用 `--state-dir` 指定按 Artifact 隔离的本机状态目录。
+使用 `world/scripts/publish-seed-world-flash-apps.mjs` 编排 6 个应用的建表与发布。默认 HTTP 模式需要目标 ASAP Demo 提供 `POST /api/flash-app/release/reserve` 和 `POST /api/flash-app/release/complete`。ASAP 先预留版本，脚本使用该版本建表、打包和部署，再提交发布回执。超时等瞬时故障会使用同一个发布 ID 重试。具备直连 OceanBase/Layotto 权限的发布机也可使用 `--registry-mode direct-db`。可用 `--state-dir` 指定本地状态目录。
 
 ```bash
 ENGINE_WORKTREE_ROOT=/absolute/path/to/engine
@@ -124,7 +124,7 @@ node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
 
 关键保护机制：
 - **防误切 checkout**：发布 `original` 时若 `$PUBLISHER_ROOT/scripts/app-context.local.json` 中的 `artifactId` 与 `flash-apps.json` 的 `flashapp-a3c0e021cb8cadb0` 不一致，默认直接拒绝执行。
-- **逐应用 `--type` 与版本对齐**：各应用登记类型由 `world/demos/seed-world/flash-apps.json` 分别声明（`original` 为 `game`，其余 5 个新应用为 `miniapp`）；默认 `http` 模式按线上最新版本 `+1` 注入并部署，在 `/api/flash-app/register` 返回后核对版本号是否一致（若发生并发漂移会立即报错并推进本地版本以便局部重试）。只在发布单个模板时才使用与清单不同的 `--type`。
+- **逐应用类型与版本**。应用类型由清单声明，服务端在预留版本时核对类型。只有发布单个模板时才能使用与清单不同的 `--type`。
 - **防重复申请 ID**：新申请的 5 个 `artifactId` 在调用远端接口前即落盘到本地状态（传 `--sync-catalog` 时同步回写 `flash-apps.json`），失败重试时严格复用同一个 ID。
 - **首次自动建表**：对每个未建表的新应用，使用该应用的 `artifactId`、目标版本和作者的 `2099...` `alipayUid` 应用 `world_save.sql`。建表结果未确认时读取服务端表结构，只有确认 `world_save` 为符合预期的 Share 表才继续发布并标记 `dbInitialized: true`。
 
@@ -147,6 +147,6 @@ node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
 | `Template "<id>" has no artifactId yet` | 尚未为其余 5 个模板首次申请 ID | 确认新建意图后加 `--init-missing --sync-catalog` 执行一次，之后提交更新后的 `flash-apps.json` |
 | `requires first-time world_save.sql DB table creation, which needs a 2099... alipayUid` | 本地状态或 PUGC 上下文未填写 `2099...` UID（或误填了 `2088...`） | 在 PUGC `app-context.local.json` 或对应 Artifact 的状态文件补全 `alipayUid` 后重试 |
 | 构建警告 `Local CDN-eligible asset(s) not yet in flash-app-cdn-manifest.json` | 新增或变更的资产（如 `oil-paint` SWB1 分包）尚未同步至 MDN CDN | 执行 `sync-flash-app-cdn-assets.py --apply` 并重编 `pnpm --dir world build:seed-world-flash-app`（收敛至 `pending upload: 0`） |
-| `ASAP allocated version X while release HTML/backup targeted Y` | 并发发布导致 HTTP `/api/flash-app/register` 分配了更新版本号 | 本地状态已自动推进至 `X+1`，按提示对失败模板执行 `--execute --templates <id>` 重发一次即可对齐 |
-| `ASAP HTTP register rejected ... type 不匹配` / `Artifact type differs` | 发布类型与线上记录不一致 | 核对该应用的登记类型和 `flash-apps.json` 后重试 |
+| 完成登记失败，输出 `--resume-release <id>` | 产物已部署，登记结果待确认 | 用输出的命令重放本机发布回执。该命令只完成原预留版本的登记 |
+| `ASAP HTTP release reserve ... rejected (HTTP 409)` / `Artifact type differs` | 发布类型与线上记录不一致 | 核对该应用的登记类型和 `flash-apps.json` 后重试 |
 | `ASAP registry does not match`（仅 `--registry-mode direct-db`） | 本机未连通目标 ASAP OceanBase / Layotto 注册库 | 研发机请改用默认 `--registry-mode http`，或在具备 Layotto/OceanBase 通道的发布机执行 `direct-db` |
