@@ -1,0 +1,45 @@
+tests/src/core/RenderPipeline/ForwardOpaqueOrder.test.ts
+  s_dcadea7fd99279::t_d8fdc1ddd045a8 1-68
+packages/core/src/RenderPipeline/enums/ForwardOpaqueOrder.ts
+  s_dcadea7fd99279::t_d8fdc1ddd045a8 1-6
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_dcadea7fd99279::t_7b0d42bd9f23bc 33,42-44,227,291,413-420
+packages/core/src/RenderPipeline/BatcherManager.ts
+  s_dcadea7fd99279::t_5a077bb9954020 71-76
+packages/core/src/RenderPipeline/CullingResults.ts
+  s_dcadea7fd99279::t_a87041bfe055e5 3-4,6-7,18-22,33-34,43-82
+packages/core/src/RenderPipeline/RenderQueue.ts
+  s_dcadea7fd99279::t_6383333bd67296 11,55-58,83-84,130,253-256
+packages/core/src/Renderer.ts
+  s_dcadea7fd99279::t_60f54571001e08 9,53-54
+packages/core/src/index.ts
+  s_dcadea7fd99279::t_29732a81f3eeda 16
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_dcadea7fd99279::t_c6453058254631 53,93-95,720,831,1085-1092
+packages/modify/src/native/core/src/RenderPipeline/RenderQueue.ts
+  s_dcadea7fd99279::t_746bf3d8fda6f8 95-98,133-134,189,322-334
+packages/modify/src/native/core/src/Renderer.ts
+  s_dcadea7fd99279::t_a1caad84b8a505 9,54-55
+packages/terrain/src/terrain/TerrainRenderer.ts
+  s_dcadea7fd99279::t_641d20bdaf72fb 1,8-10
+packages/world-planning/src/runtime/SeedWorldForwardGrass.ts
+  s_dcadea7fd99279::t_f06970c7ec2fcd 14,590
+packages/world-planning/src/world/SeedWorldPicker.ts
+  s_dcadea7fd99279::t_5a9174d33080d7 647-648,671,724
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9e27004f67d414f8ea323a2768d37f824892fc3a",
+  "prompts": {},
+  "sessions": {
+    "s_dcadea7fd99279": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21356-8848-70c2-980b-85c8418ffb42",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "阿霑 <zhanyingwei.zyw@antgroup.com>"
+    }
+  }
+}
