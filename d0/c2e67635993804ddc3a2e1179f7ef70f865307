@@ -1,0 +1,19 @@
+packages/core/src/animation/animationCurve/AnimationCurve.ts
+  s_3e551792d86977::t_04b4060ee76e0d 46-47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d0c2e67635993804ddc3a2e1179f7ef70f865307",
+  "prompts": {},
+  "sessions": {
+    "s_3e551792d86977": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a216f5-1079-7e73-89fc-3e69db337785",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
