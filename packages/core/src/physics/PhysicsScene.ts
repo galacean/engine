@@ -320,6 +320,38 @@ export class PhysicsScene {
   }
 
   /**
+   * Get the layers that can collide with the specified layer in this physics scene.
+   * @param layer - A single collision layer
+   * @returns The enabled layer mask, including the layer itself when self-collision is enabled
+   */
+  getColliderLayerCollisionMask(layer: Layer): Layer {
+    const index = Collider._getLayerIndex(layer);
+    const nativeScene = this._nativePhysicsScene;
+    let mask = 0;
+    for (let other = 0; other < 32; other++) {
+      if (nativeScene.getColliderLayerCollision(index, other)) mask |= 1 << other;
+    }
+    return mask >>> 0;
+  }
+
+  /**
+   * Replace the layers that can collide with the specified layer in this physics scene.
+   * @remarks Collision rules are symmetric, so this also updates the corresponding bits in other layers' masks.
+   * @param layer - A single collision layer
+   * @param mask - The layers to enable, including the layer itself to permit self-collision
+   */
+  setColliderLayerCollisionMask(layer: Layer, mask: Layer): void {
+    const index = Collider._getLayerIndex(layer);
+    if (mask >>> 0 !== mask && (mask | 0) !== mask) {
+      throw new Error("Collision mask must be a 32-bit layer mask.");
+    }
+    const nativeScene = this._nativePhysicsScene;
+    for (let other = 0; other < 32; other++) {
+      nativeScene.setColliderLayerCollision(index, other, (mask & (1 << other)) !== 0);
+    }
+  }
+
+  /**
    * Tests whether a world-space ray hits a collider.
    */
   raycast(ray: Ray): boolean;

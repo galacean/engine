@@ -166,7 +166,29 @@ class SceneLoader extends Loader<Scene> {
       resourceManager
         ._request<SceneFile>(item.url!, { ...item, type: "json" })
         .then((data: SceneFile) => {
+          const masks = data.scene.physics?.disabledCollisionMasks;
+          if (masks !== undefined) {
+            if (!Array.isArray(masks) || masks.length > 32) {
+              throw new Error("scene.physics.disabledCollisionMasks must be an array of up to 32 rows.");
+            }
+            for (let row = 0; row < masks.length; row++) {
+              const mask = masks[row];
+              if (mask >>> 0 !== mask || mask % 2 ** row !== 0) {
+                throw new Error(
+                  `scene.physics.disabledCollisionMasks[${row}] must be an unsigned mask without bits below the row index.`
+                );
+              }
+            }
+          }
           const scene = new Scene(engine, data.scene.name ?? "");
+          if (masks && engine._physicsInitialized) {
+            for (let row = 0; row < masks.length; row++) {
+              const layer = (1 << row) >>> 0;
+              for (let mask = masks[row]; mask; mask &= mask - 1) {
+                scene.physics.setColliderLayerCollision(layer, (mask & -mask) >>> 0, false);
+              }
+            }
+          }
           const context = new ParserContext(engine, ParserType.Scene, scene);
           const parser = new SceneParser(data, context, scene);
           parser._collectDependentAssets(data);

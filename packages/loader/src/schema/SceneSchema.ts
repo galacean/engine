@@ -13,6 +13,14 @@ export interface SceneFile extends HierarchyFile {
   scene: {
     name?: string;
     rootEntities: number[];
+    physics?: {
+      /**
+       * Upper-triangular collision exclusions. In row i, bit j disables collision between
+       * layers i and j, including self-collision. Only bits j >= i are valid.
+       * Rows are unsigned 32-bit integers. Omitted trailing rows and unset bits allow collision.
+       */
+      disabledCollisionMasks?: number[];
+    };
     background: {
       mode: BackgroundMode;
       color: Vec4Tuple;

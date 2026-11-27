@@ -31,6 +31,10 @@ scene.physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, true);
 console.log(scene.physics.getColliderLayerCollision(Layer.Layer1, Layer.Layer2));
 ```
 
+Use `setColliderLayerCollisionMask(layer, mask)` to replace the enabled collision mask for a layer and `getColliderLayerCollisionMask(layer)` to read it. Rules are symmetric, so editing a row also updates its matching bits in other rows.
+
+A scene asset can store exclusions in `scene.physics.disabledCollisionMasks`. Row i is an unsigned 32-bit mask. Bit j disables collisions between layers i and j, including self-collision. Store each pair once (j ≥ i) and omit trailing zero rows. For example, `[0, 4]` disables collisions between layers 1 and 2. Each scene uses its own configuration when loaded directly or through a project.
+
 ## Important Notes
 
 1. Each collider can only belong to one collision layer
