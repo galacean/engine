@@ -1143,7 +1143,8 @@ export class Lexer extends BaseLexer {
   }
 
   private static readonly _IMAGE_TYPE_NAMES = new Set(["image2D", "iimage2D", "uimage2D"]);
-  private static readonly _CONTEXTUAL_QUALIFIERS = new Set([
+  private static readonly _PRECISION_QUALIFIERS = new Set(["highp", "mediump", "lowp"]);
+  private static readonly _IMAGE_QUALIFIERS = new Set([
     "highp",
     "mediump",
     "lowp",
@@ -1217,7 +1218,7 @@ export class Lexer extends BaseLexer {
           const afterName = skipWs(blockName.end);
           return afterName < len && src.charCodeAt(afterName) === 123; // '{'
         }
-        if (Lexer._CONTEXTUAL_QUALIFIERS.has(ident.word)) {
+        if (Lexer._IMAGE_QUALIFIERS.has(ident.word)) {
           pos = ident.end;
           continue;
         }
@@ -1227,12 +1228,13 @@ export class Lexer extends BaseLexer {
     }
 
     if (kt === Keyword.SHARED) {
-      // `shared [qualifiers...] <Type>[N] <Name>` or `shared [qualifiers...] <Type> <Name>`
+      // `shared [highp|mediump|lowp] <Type>[N] <Name>` or `shared [highp|mediump|lowp] <Type> <Name>`.
+      // Only skip precision qualifiers here so user struct types named e.g. `readwrite` are not skipped.
       let typeIdent: { word: string; end: number } | undefined;
-      for (let pos = this._currentIndex, step = 0; step < 8; step++) {
+      for (let pos = this._currentIndex, step = 0; step < 4; step++) {
         const ident = scanIdent(pos);
         if (!ident) return false;
-        if (Lexer._CONTEXTUAL_QUALIFIERS.has(ident.word)) {
+        if (Lexer._PRECISION_QUALIFIERS.has(ident.word)) {
           pos = ident.end;
           continue;
         }

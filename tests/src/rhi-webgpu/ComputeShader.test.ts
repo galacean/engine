@@ -1146,6 +1146,197 @@ describe("ShaderLab ComputeShader & WebGPU-only Capabilities", () => {
     }
   );
 
+  it.skipIf(!navigator.gpu)(
+    "retains storage buffers bound to ComputeShader.shaderData across resourceManager.gc() and releases them on destroy()",
+    async () => {
+      const engine = await WebGPUEngine.create({ canvas: document.createElement("canvas") });
+      const { device } = engine._hardwareRenderer as WebGPUGraphicDevice;
+      device.pushErrorScope("validation");
+      try {
+        const cs = ComputeShader.create(
+          `ComputeShader "Tests/ComputeBufferGC" {
+            WorkgroupSize = (1, 1, 1);
+            ComputeKernel = csMain;
+            storage OutBuf {
+              uint outVal;
+            };
+            void csMain() {
+              outVal = 7u;
+            }
+          }`,
+          engine
+        );
+
+        const buf = new Buffer(engine, BufferBindFlag.StorageBuffer, 4, BufferUsage.Dynamic);
+        cs.shaderData.setBuffer("OutBuf", buf);
+        expect(buf._getReferCount()).toBe(1);
+
+        cs.dispatch(1);
+        const first = new Uint32Array(1);
+        await buf.getDataAsync(first);
+        expect(first[0]).toBe(7);
+
+        // GC must NOT destroy a buffer still bound to a live ComputeShader
+        engine.resourceManager.gc();
+        expect(buf.destroyed).toBe(false);
+
+        buf.setData(new Uint32Array([0]));
+        cs.dispatch(1);
+        const second = new Uint32Array(1);
+        await buf.getDataAsync(second);
+        expect(second[0]).toBe(7);
+
+        // Destroying ComputeShader releases shaderData ref-count so GC reclaims the buffer
+        cs.destroy();
+        expect(buf._getReferCount()).toBe(0);
+        engine.resourceManager.gc();
+        expect(buf.destroyed).toBe(true);
+        expect(await device.popErrorScope()).toBeNull();
+      } finally {
+        engine.destroy();
+      }
+    }
+  );
+
+  it.skipIf(!navigator.gpu)(
+    "preserves for-loop init variables when condition uses atomicCompSwap or hoisted side effects, and supports macro-wrapped atomicCompSwap",
+    async () => {
+      const engine = await WebGPUEngine.create({ canvas: document.createElement("canvas") });
+      const { device } = engine._hardwareRenderer as WebGPUGraphicDevice;
+      device.pushErrorScope("validation");
+      try {
+        const cs = ComputeShader.create(
+          `ComputeShader "Tests/AtomicForAndMacro" {
+            WorkgroupSize = (1, 1, 1);
+            ComputeKernel = csMain;
+
+            storage OutBuf {
+              atomic_uint a;
+              atomic_uint b;
+              uint resForCas[2];
+              uint resForHoist;
+              uint resMacroOld[2];
+              uint resMacroParam[2];
+              uint resMacroInc;
+            };
+
+            shared atomic_uint wgAtom;
+
+            #define OLD(c, v) atomicCompSwap(a, c, v)
+            #define CAS(t, c, v) atomicCompSwap(t, c, v)
+            #define INC(x) (++x)
+
+            void csMain() {
+              // 1. for-loop condition using atomicCompSwap
+              uint iterCas = 0u;
+              for (int i = 0; i < 4 && atomicCompSwap(b, 0u, 7u) == 0u; i++) {
+                iterCas += uint(i + 1);
+              }
+              resForCas[0] = iterCas;
+              resForCas[1] = atomicLoad(b);
+
+              // 2. for-loop condition that forces WGSL loop lowering via hoisted ++step
+              uint stepCount = 0u;
+              uint iterHoist = 0u;
+              for (int i = 0; i < 4 && (++stepCount <= 2u); i++) {
+                iterHoist += uint(i + 1);
+              }
+              // i=0 -> +1, i=1 -> +2 => 3
+              resForHoist = iterHoist;
+
+              // 3. function-like macro wrapping atomicCompSwap on global SSBO atomic
+              uint oldVal = OLD(0u, 1u);
+              resMacroOld[0] = atomicLoad(a);
+              resMacroOld[1] = oldVal;
+
+              // 4. function-like macro with target parameter on workgroup atomic + hoisting INC macro
+              atomicStore(wgAtom, 10u);
+              uint prevWg = CAS(wgAtom, 10u, 25u);
+              resMacroParam[0] = atomicLoad(wgAtom);
+              resMacroParam[1] = prevWg;
+
+              uint n = 5u;
+              resMacroInc = INC(n) + n;
+            }
+          }`,
+          engine
+        );
+        await assertCleanComputeWGSL(device, cs);
+
+        const init = new Uint32Array(10);
+        const buf = new Buffer(engine, BufferBindFlag.StorageBuffer, init, BufferUsage.Dynamic);
+        cs.shaderData.setBuffer("OutBuf", buf);
+        cs.dispatch(1);
+
+        const out = new Uint32Array(10);
+        await buf.getDataAsync(out);
+        // out[2..3] = resForCas -> [1, 7]
+        expect([out[2], out[3]]).toEqual([1, 7]);
+        // out[4] = resForHoist -> 3
+        expect(out[4]).toBe(3);
+        // out[5..6] = resMacroOld -> [1, 0]
+        expect([out[5], out[6]]).toEqual([1, 0]);
+        // out[7..8] = resMacroParam -> [25, 10]
+        expect([out[7], out[8]]).toEqual([25, 10]);
+        // out[9] = resMacroInc -> 6 + 6 = 12
+        expect(out[9]).toBe(12);
+
+        cs.destroy();
+        expect(await device.popErrorScope()).toBeNull();
+      } finally {
+        engine.destroy();
+      }
+    }
+  );
+
+  it.skipIf(!navigator.gpu)(
+    "allows user struct types named readwrite in workgroup shared declarations",
+    async () => {
+      const engine = await WebGPUEngine.create({ canvas: document.createElement("canvas") });
+      const { device } = engine._hardwareRenderer as WebGPUGraphicDevice;
+      device.pushErrorScope("validation");
+      try {
+        const cs = ComputeShader.create(
+          `ComputeShader "Tests/SharedUserTypeReadwrite" {
+            WorkgroupSize = (1, 1, 1);
+            ComputeKernel = csMain;
+
+            struct readwrite {
+              uint v;
+            };
+
+            shared readwrite tmp;
+
+            storage OutBuf {
+              uint outVal;
+            };
+
+            void csMain() {
+              tmp.v = 42u;
+              workgroupBarrier();
+              outVal = tmp.v;
+            }
+          }`,
+          engine
+        );
+        await assertCleanComputeWGSL(device, cs);
+
+        const buf = new Buffer(engine, BufferBindFlag.StorageBuffer, 4, BufferUsage.Dynamic);
+        cs.shaderData.setBuffer("OutBuf", buf);
+        cs.dispatch(1);
+
+        const out = new Uint32Array(1);
+        await buf.getDataAsync(out);
+        expect(out[0]).toBe(42);
+
+        cs.destroy();
+        expect(await device.popErrorScope()).toBeNull();
+      } finally {
+        engine.destroy();
+      }
+    }
+  );
+
   it("compiles GLSL ES 3.00 identifiers named storage, shared, and readwrite in real Chrome WebGL2 (note: readonly/writeonly are GLSL ES 3.00 reserved words)", () => {
     const compiler = new ShaderCompiler();
     const source = `

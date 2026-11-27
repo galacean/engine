@@ -152,6 +152,9 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
     { wgslName: string; base: string; format: string; access: string }
   >();
   private readonly _sharedVarBySym = new Map<VarSymbol, { wgslName: string; type: WGSLTypeDesc }>();
+  private readonly _sharedVarByName = new Map<string, { wgslName: string; type: WGSLTypeDesc }>();
+  private readonly _inlineHoistMacros = new Map<string, { isFunction: boolean; params: string[]; expr: TreeNode }>();
+  private readonly _macroParamStack: Array<Map<string, TreeNode>> = [];
   private readonly _looseUniformName = new Map<VarSymbol, string>();
   private readonly _looseUniformByName = new Map<string, { wgslName: string; type: WGSLTypeDesc }>();
   private readonly _samplerGlobalPair = new Map<VarSymbol, { tex: string; samp: string; samplerType: string }>();
@@ -219,6 +222,9 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
     this._storageTexBySym.clear();
     this._storageTexByName.clear();
     this._sharedVarBySym.clear();
+    this._sharedVarByName.clear();
+    this._inlineHoistMacros.clear();
+    this._macroParamStack.length = 0;
     this._looseUniformName.clear();
     this._looseUniformByName.clear();
     this._samplerGlobalPair.clear();
@@ -294,6 +300,9 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
     this._storageTexBySym.clear();
     this._storageTexByName.clear();
     this._sharedVarBySym.clear();
+    this._sharedVarByName.clear();
+    this._inlineHoistMacros.clear();
+    this._macroParamStack.length = 0;
     this._looseUniformName.clear();
     this._looseUniformByName.clear();
     this._samplerGlobalPair.clear();
@@ -367,6 +376,7 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
 
     // Pre-register structs, functions (overload mangling), and uniform symbols across the pass
     this._preScanPassSymbols(shaderData, coreInfo);
+    this._preScanInlineMacros(outerGlobalMacroDeclarations);
 
     shaderData.symbolTable.forEach((symbol) => {
       if (
@@ -513,6 +523,9 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
     this._storageTexBySym.clear();
     this._storageTexByName.clear();
     this._sharedVarBySym.clear();
+    this._sharedVarByName.clear();
+    this._inlineHoistMacros.clear();
+    this._macroParamStack.length = 0;
     this._looseUniformName.clear();
     this._looseUniformByName.clear();
     this._samplerGlobalPair.clear();
@@ -564,6 +577,7 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
     for (const decl of outerGlobalMacroDeclarations) scanMacroAliases(decl);
 
     this._preScanPassSymbols(shaderData, coreInfo);
+    this._preScanInlineMacros(outerGlobalMacroDeclarations);
 
     shaderData.symbolTable.forEach((symbol) => {
       if (
@@ -691,7 +705,9 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
       const declNode = sym.astNode instanceof ASTNode.VariableDeclaration ? sym.astNode : undefined;
       if (declNode?.isShared) {
         const wgslName = this._safeWGSLIdent(sym.ident, "shared");
-        this._sharedVarBySym.set(sym, { wgslName, type: t });
+        const entry = { wgslName, type: t };
+        this._sharedVarBySym.set(sym, entry);
+        this._sharedVarByName.set(sym.ident, entry);
         return;
       }
       if (isImageType(t.base)) {
@@ -1929,6 +1945,10 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
     if (!condHoists.length && !stepLines) {
       loopCode = `  for (${initStr}; ${condStr}; ${stepStr}) ${this._ensureBracedStmt(bodyNode)}`;
     } else {
+      if (initStr) {
+        outerLines.push(`  ${initStr};`);
+        initHoisted = true;
+      }
       const header: string[] = [];
       if (condStr) {
         header.push(...condHoists);
@@ -2061,8 +2081,14 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
         if (mapped) return `\n#define ${node.macroName} ${mapped}\n`;
       }
     }
+    // Skip macros whose body requires statement hoisting; they are expanded inline at each call site.
+    if (this._inlineHoistMacros.has(node.macroName)) {
+      return "";
+    }
     const prev = this._inMacroDefineBody;
+    const savedHoists = this._hoistQueue;
     this._inMacroDefineBody = true;
+    this._hoistQueue = [];
     try {
       const paramsStr = node.isFunction ? (node.children[2] as BaseToken).lexeme : "";
       if (!node.isFunction && node.valueExpression) {
@@ -2075,6 +2101,7 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
       const valStr = node.valueExpression ? this._emitNode(node.valueExpression).code : "";
       return `\n#define ${node.macroName}${paramsStr} ${valStr}\n`;
     } finally {
+      this._hoistQueue = savedHoists;
       this._inMacroDefineBody = prev;
     }
   }
@@ -2087,6 +2114,21 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
     const paramList = node.children[2];
     const params = paramList instanceof ASTNode.FunctionCallParameterList ? paramList.paramNodes : [];
     const argNodes = params.filter((p): p is TreeNode => p instanceof TreeNode);
+
+    // Inline expansion for hoisting function-like macros (e.g. `#define CAS(t,c,v) atomicCompSwap(t,c,v)`)
+    const inlineDef = this._inlineHoistMacros.get(node.macroName);
+    if (inlineDef && inlineDef.isFunction && argNodes.length === inlineDef.params.length) {
+      const subst = new Map<string, TreeNode>();
+      for (let i = 0; i < inlineDef.params.length; i++) {
+        subst.set(inlineDef.params[i], argNodes[i]);
+      }
+      this._macroParamStack.push(subst);
+      try {
+        return this._emitNode(inlineDef.expr);
+      } finally {
+        this._macroParamStack.pop();
+      }
+    }
 
     // FXAA texture sampling macros taking a sampler parameter
     if (node.macroName === "FxaaTexTop" && argNodes.length === 2) {
@@ -2214,6 +2256,10 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
     }
     if (n instanceof ASTNode.MacroCallSymbol) {
       const tok = n.children[0] as BaseToken;
+      const inlineDef = this._inlineHoistMacros.get(tok.lexeme);
+      if (inlineDef && !inlineDef.isFunction) {
+        return this._emitNode(inlineDef.expr);
+      }
       const aliased = this._identMacroAliases.get(tok.lexeme);
       if (aliased) {
         const aliasSamp = this._samplerGlobalByName.get(aliased);
@@ -2392,6 +2438,12 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
       return this._emitNode(child);
     }
 
+    // Macro parameter substitution during inline expansion of hoisting macros
+    if (this._macroParamStack.length > 0 && rawName) {
+      const subst = this._lookupMacroParam(rawName);
+      if (subst) return this._emitNode(subst);
+    }
+
     // Resolved variable symbol
     const symbols = node.resolvedValueSymbols();
     const sym = symbols[0];
@@ -2478,6 +2530,11 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
     if (stexByName) {
       this.context.referenceGlobal(rawName, ESymbolType.VAR);
       return { code: stexByName.wgslName, type: { base: stexByName.base } };
+    }
+    const sharedByName = this._sharedVarByName.get(rawName);
+    if (sharedByName) {
+      this.context.referenceGlobal(rawName, ESymbolType.VAR);
+      return { code: sharedByName.wgslName, type: sharedByName.type };
     }
     const sampByName = this._samplerGlobalByName.get(rawName);
     if (sampByName) {
@@ -2798,6 +2855,13 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
 
   private _emitLValue(node: TreeNode): string {
     const n = this._unwrapSingle(node);
+    if (this._macroParamStack.length > 0 && n instanceof ASTNode.VariableIdentifier) {
+      const child = n.children[0];
+      if (child instanceof BaseToken) {
+        const subst = this._lookupMacroParam(child.lexeme);
+        if (subst) return this._emitLValue(subst);
+      }
+    }
     if (n instanceof ASTNode.PrimaryExpression && n.children.length === 3) {
       return this._emitLValue(n.children[1] as TreeNode);
     }
@@ -3478,6 +3542,14 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
       // may fail spuriously (`!exchanged && old_value == cmp`). Retry only on spurious failure.
       const cmp = this._emitNode(argNodes[1]);
       const val = this._emitNode(argNodes[2]);
+      const space = this._resolveAtomicAddressSpace(targetNode);
+      if (space) {
+        const helper = this._ensureAtomicCompSwapHelper(space, scalarType);
+        return {
+          code: `${helper}(${ptr}, ${this._coerceExpr(cmp, scalarType)}, ${this._coerceExpr(val, scalarType)})`,
+          type: scalarType
+        };
+      }
       const oldTmp = this._freshTemp("gs_cas_old");
       const cmpTmp = this._freshTemp("gs_cas_cmp");
       const valTmp = this._freshTemp("gs_cas_val");
@@ -3596,8 +3668,19 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
   private _inferType(node: TreeNode): WGSLTypeDesc {
     const n = this._unwrapSingle(node);
     if (n instanceof ASTNode.VariableIdentifier) {
+      const child = n.children[0];
+      if (this._macroParamStack.length > 0 && child instanceof BaseToken) {
+        const subst = this._lookupMacroParam(child.lexeme);
+        if (subst) return this._inferType(subst);
+      }
       const sym = n.resolvedValueSymbols()[0];
       if (sym instanceof VarSymbol) return this._typeFromSymbolType(sym.dataType);
+      if (child instanceof BaseToken) {
+        const ssboByName = this._ssboMemberByName.get(child.lexeme);
+        if (ssboByName) return ssboByName.type;
+        const sharedByName = this._sharedVarByName.get(child.lexeme);
+        if (sharedByName) return sharedByName.type;
+      }
       const b = galaceanTypeToBase(n.typeInfo);
       if (b !== "unknown") return { base: b };
       if (
@@ -3763,6 +3846,116 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
       this._helpers.set(
         key,
         `fn ${key}(m: mat${sc}x${sr}<f32>) -> mat${tc}x${tr}<f32> {\n  return mat${tc}x${tr}<f32>(${colExprs});\n}`
+      );
+    }
+    return key;
+  }
+
+  private _preScanInlineMacros(macros: readonly ASTNode.GlobalDeclaration[]): void {
+    const defCounts = new Map<string, number>();
+    const candidates: ASTNode.MacroDefine[] = [];
+    const walk = (node: TreeNode | BaseToken, inConditional: boolean) => {
+      if (node instanceof BaseToken) {
+        const m = /^\s*#\s*define\s+([A-Za-z_]\w*)/.exec(node.lexeme);
+        if (m) defCounts.set(m[1], (defCounts.get(m[1]) ?? 0) + 1);
+        return;
+      }
+      if (node instanceof ASTNode.MacroDefine) {
+        defCounts.set(node.macroName, (defCounts.get(node.macroName) ?? 0) + 1);
+        if (!inConditional && node.valueExpression && this._exprMayHoist(node.valueExpression)) {
+          candidates.push(node);
+        }
+        return;
+      }
+      const nextCond = inConditional || node instanceof ASTNode.GlobalMacroIfStatement;
+      for (const ch of node.children) walk(ch, nextCond);
+    };
+    for (const decl of macros) walk(decl, false);
+
+    for (const def of candidates) {
+      if (defCounts.get(def.macroName) !== 1 || !def.valueExpression) continue;
+      const params = def.isFunction ? ParserUtils.parseMacroParamList((def.children[2] as BaseToken).lexeme) : [];
+      this._inlineHoistMacros.set(def.macroName, {
+        isFunction: def.isFunction,
+        params,
+        expr: def.valueExpression
+      });
+    }
+  }
+
+  private _exprMayHoist(node: TreeNode): boolean {
+    if (node instanceof ASTNode.AssignmentExpression && node.children.length === 3) return true;
+    if (node instanceof ASTNode.Expression && node.children.length === 3) return true;
+    if (node instanceof ASTNode.UnaryExpression && node.children.length === 2) {
+      const op = node.children[0];
+      if (op instanceof BaseToken && (op.lexeme === "++" || op.lexeme === "--")) return true;
+    }
+    if (node instanceof ASTNode.PostfixExpression && node.children.length === 2) return true;
+    if (node instanceof ASTNode.FunctionCallGeneric) {
+      const callee = (node.children[0] as ASTNode.FunctionIdentifier).lexeme;
+      if (callee === "atomicCompSwap") {
+        const paramList = node.children.length === 4 ? node.children[2] : undefined;
+        const firstArg =
+          paramList instanceof ASTNode.FunctionCallParameterList
+            ? paramList.paramNodes.find((p): p is TreeNode => p instanceof TreeNode)
+            : undefined;
+        if (!firstArg || !this._resolveAtomicAddressSpace(firstArg)) return true;
+      }
+    }
+    for (const c of node.children) {
+      if (c instanceof TreeNode && this._exprMayHoist(c)) return true;
+    }
+    return false;
+  }
+
+  private _lookupMacroParam(name: string): TreeNode | undefined {
+    for (let i = this._macroParamStack.length - 1; i >= 0; i--) {
+      const found = this._macroParamStack[i].get(name);
+      if (found) return found;
+    }
+    return undefined;
+  }
+
+  private _resolveAtomicAddressSpace(node: TreeNode): "storage" | "workgroup" | undefined {
+    const n = this._unwrapSingle(node);
+    if (n instanceof ASTNode.PrimaryExpression && n.children.length === 3) {
+      return this._resolveAtomicAddressSpace(n.children[1] as TreeNode);
+    }
+    if (n instanceof ASTNode.PostfixExpression && (n.children.length === 3 || n.children.length === 4)) {
+      return this._resolveAtomicAddressSpace(n.children[0] as TreeNode);
+    }
+    if (n instanceof ASTNode.VariableIdentifier) {
+      const sym = n.resolvedValueSymbols()[0];
+      if (sym instanceof VarSymbol) {
+        if (this._ssboMemberToBlock.has(sym)) return "storage";
+        if (this._sharedVarBySym.has(sym)) return "workgroup";
+      }
+      const child = n.children[0];
+      if (child instanceof BaseToken) {
+        const subst = this._lookupMacroParam(child.lexeme);
+        if (subst) return this._resolveAtomicAddressSpace(subst);
+        if (this._ssboMemberByName.has(child.lexeme)) return "storage";
+        if (this._sharedVarByName.has(child.lexeme)) return "workgroup";
+      }
+    }
+    return undefined;
+  }
+
+  private _ensureAtomicCompSwapHelper(space: "storage" | "workgroup", scalarType: WGSLTypeDesc): string {
+    const wScalar = scalarType.base === "int" ? "i32" : "u32";
+    const key = `gs_atomicCompSwap_${space}_${wScalar}`;
+    if (!this._helpers.has(key)) {
+      const ptrType =
+        space === "storage" ? `ptr<storage, atomic<${wScalar}>, read_write>` : `ptr<workgroup, atomic<${wScalar}>>`;
+      this._helpers.set(
+        key,
+        `fn ${key}(p: ${ptrType}, cmp: ${wScalar}, val: ${wScalar}) -> ${wScalar} {\n` +
+          `  loop {\n` +
+          `    let res = atomicCompareExchangeWeak(p, cmp, val);\n` +
+          `    let old_val = res.old_value;\n` +
+          `    if (res.exchanged || old_val != cmp) { return old_val; }\n` +
+          `  }\n` +
+          `}`
       );
     }
     return key;

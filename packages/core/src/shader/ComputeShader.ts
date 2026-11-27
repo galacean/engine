@@ -100,6 +100,7 @@ export class ComputeShader {
     this.kernelNames = Object.freeze(kernelNames);
     this._defaultKernelName = kernelNames[0];
     this.shaderData = new ShaderData(ShaderDataGroup.Material);
+    this.shaderData._addReferCount(1);
     engine.on(EngineEventType.DeviceLost, this._onDeviceInvalidated);
     engine.on(EngineEventType.DeviceRestored, this._onDeviceInvalidated);
   }
@@ -187,6 +188,7 @@ export class ComputeShader {
     this._destroyed = true;
     this._engine.off(EngineEventType.DeviceLost, this._onDeviceInvalidated);
     this._engine.off(EngineEventType.DeviceRestored, this._onDeviceInvalidated);
+    this.shaderData._addReferCount(-1);
     this._invalidateVariants();
     this._kernels.clear();
   }
