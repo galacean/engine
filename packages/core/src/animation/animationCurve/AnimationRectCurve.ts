@@ -57,9 +57,8 @@ export class AnimationRectCurve extends AnimationCurve<Rect> {
     return out.set(values[offset], values[offset + 1], values[offset + 2], values[offset + 3]);
   }
 
-  protected override _readKeyAt(index: number, out: Keyframe<Rect>): void {
+  protected override _readKeyAt(offset: number, out: Keyframe<Rect>): void {
     const values = this._values;
-    const offset = index * 4;
     (out.value ||= new Rect()).set(values[offset], values[offset + 1], values[offset + 2], values[offset + 3]);
     out.inTangent = undefined;
     out.outTangent = undefined;

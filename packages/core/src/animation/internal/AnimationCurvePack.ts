@@ -24,22 +24,18 @@ export type NumericValue = ArrayValue | Rect | number | number[] | Float32Array;
 
 export function readObjectKey<V extends ArrayValue, T extends Vector2 | Vector3 | Vector4>(
   values: TypedArray,
-  width: number,
-  hasTangents: boolean,
-  index: number,
+  offset: number,
+  inOffset: number,
+  outOffset: number,
   out: Keyframe<V, T>,
   Value: new () => V,
   Tangent: new () => T
 ): void {
-  const offset = hasTangents ? index * width * 3 + width : index * width;
   (out.value ||= new Value()).copyFromArray(values, offset);
-  if (hasTangents) {
-    (out.inTangent ||= new Tangent()).copyFromArray(values, offset - width);
-    (out.outTangent ||= new Tangent()).copyFromArray(values, offset + width);
-  } else {
-    out.inTangent = undefined;
-    out.outTangent = undefined;
-  }
+  if (inOffset >= 0) (out.inTangent ||= new Tangent()).copyFromArray(values, inOffset);
+  else out.inTangent = undefined;
+  if (outOffset >= 0) (out.outTangent ||= new Tangent()).copyFromArray(values, outOffset);
+  else out.outTangent = undefined;
 }
 
 export function writeKeyComponents(
@@ -115,34 +111,26 @@ export function subtractArrayFirstKey<V extends Float32Array | number[]>(
 export function readArrayKey<V extends Float32Array | number[]>(
   values: TypedArray,
   valueSize: number,
-  hasTangents: boolean,
-  index: number,
+  offset: number,
+  inOffset: number,
+  outOffset: number,
   out: { value: V; inTangent?: number[]; outTangent?: number[] },
   dstValue: V
 ): void {
-  const stride = hasTangents ? valueSize * 3 : valueSize;
-  const offset = index * stride + (hasTangents ? valueSize : 0);
-  out.value = dstValue;
-  for (let i = 0; i < valueSize; i++) {
-    dstValue[i] = values[offset + i];
-  }
-  if (Array.isArray(dstValue)) {
-    dstValue.length = valueSize;
-  }
+  out.value = readArrayComponents(values, offset, valueSize, dstValue);
+  out.inTangent = inOffset >= 0 ? readArrayComponents(values, inOffset, valueSize, out.inTangent ?? []) : undefined;
+  out.outTangent = outOffset >= 0 ? readArrayComponents(values, outOffset, valueSize, out.outTangent ?? []) : undefined;
+}
 
-  if (hasTangents) {
-    const inOffset = offset - valueSize;
-    const outOffset = offset + valueSize;
-    const inTangent = (out.inTangent ||= []);
-    const outTangent = (out.outTangent ||= []);
-    for (let i = 0; i < valueSize; i++) {
-      inTangent[i] = values[inOffset + i];
-      outTangent[i] = values[outOffset + i];
-    }
-    inTangent.length = valueSize;
-    outTangent.length = valueSize;
-  } else {
-    out.inTangent = undefined;
-    out.outTangent = undefined;
+function readArrayComponents<V extends Float32Array | number[]>(
+  values: TypedArray,
+  offset: number,
+  valueSize: number,
+  out: V
+): V {
+  for (let i = 0; i < valueSize; i++) {
+    out[i] = values[offset + i];
   }
+  if (Array.isArray(out)) out.length = valueSize;
+  return out;
 }

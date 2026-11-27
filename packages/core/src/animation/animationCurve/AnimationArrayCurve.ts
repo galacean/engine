@@ -139,7 +139,7 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
     return subtractArrayFirstKey(this._values, this._valueSize, this._hasTangents, out);
   }
 
-  protected override _readKeyAt(index: number, out: Keyframe<number[]>): void {
-    readArrayKey(this._values, this._valueSize, this._hasTangents, index, out, out.value || []);
+  protected override _readKeyAt(offset: number, out: Keyframe<number[]>, inOffset: number, outOffset: number): void {
+    readArrayKey(this._values, this._valueSize, offset, inOffset, outOffset, out, out.value || []);
   }
 }

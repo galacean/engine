@@ -21,7 +21,7 @@ export class AnimationVector2Curve extends AnimationComponentCurve<Vector2> {
     return out.set(out.x - values[offset], out.y - values[offset + 1]);
   }
 
-  protected override _readKeyAt(index: number, out: Keyframe<Vector2>): void {
-    readObjectKey(this._values, this._valueSize, this._hasTangents, index, out, Vector2, Vector2);
+  protected override _readKeyAt(offset: number, out: Keyframe<Vector2>, inOffset: number, outOffset: number): void {
+    readObjectKey(this._values, offset, inOffset, outOffset, out, Vector2, Vector2);
   }
 }

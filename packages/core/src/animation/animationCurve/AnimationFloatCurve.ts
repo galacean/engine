@@ -2,7 +2,6 @@ import { TypedArray } from "../../base/Constant";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
 import { evaluateHermiteScalar } from "../internal/AnimationCurvePack";
-import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
 
@@ -91,19 +90,5 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
 
   protected override _subtractFirstKey(out: number): number {
     return out - this._values[this._hasTangents ? 1 : 0];
-  }
-
-  protected override _readKeyAt(index: number, out: Keyframe<number>): void {
-    const values = this._values;
-    if (this._hasTangents) {
-      const offset = index * 3;
-      out.inTangent = values[offset];
-      out.value = values[offset + 1];
-      out.outTangent = values[offset + 2];
-    } else {
-      out.value = values[index];
-      out.inTangent = undefined;
-      out.outTangent = undefined;
-    }
   }
 }

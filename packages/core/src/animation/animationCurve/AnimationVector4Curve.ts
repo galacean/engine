@@ -26,7 +26,7 @@ export class AnimationVector4Curve extends AnimationComponentCurve<Vector4> {
     );
   }
 
-  protected override _readKeyAt(index: number, out: Keyframe<Vector4>): void {
-    readObjectKey(this._values, this._valueSize, this._hasTangents, index, out, Vector4, Vector4);
+  protected override _readKeyAt(offset: number, out: Keyframe<Vector4>, inOffset: number, outOffset: number): void {
+    readObjectKey(this._values, offset, inOffset, outOffset, out, Vector4, Vector4);
   }
 }

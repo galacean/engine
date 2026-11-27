@@ -153,7 +153,7 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
     return AnimationQuaternionCurve._subtractValue(out, base, out);
   }
 
-  protected override _readKeyAt(index: number, out: Keyframe<Quaternion>): void {
-    readObjectKey(this._values, this._valueSize, this._hasTangents, index, out, Quaternion, Vector4);
+  protected override _readKeyAt(offset: number, out: Keyframe<Quaternion>, inOffset: number, outOffset: number): void {
+    readObjectKey(this._values, offset, inOffset, outOffset, out, Quaternion, Vector4);
   }
 }

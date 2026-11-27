@@ -41,6 +41,9 @@ refCurve.setKeys([key]);
 const vectorCurve: AnimationCurve<Vector3> = new AnimationVector3Curve();
 vectorCurve.setKeys([{ time: 0, value: new Vector3(1, 2, 3) }]);
 const movedIndex: number = vectorCurve.setKey(0, { time: 1, value: new Vector3() });
+const tangent: Vector3 | undefined = vectorCurve.getKey(0).outTangent;
+// @ts-expect-error The curve owns its keys and exposes snapshots for editing
+vectorCurve.keys[0].time = 1;
 new AnimationFloatArrayCurve();
 // @ts-expect-error Public curve constructors do not take storage parameters.
 new AnimationFloatArrayCurve(0, true);
@@ -49,6 +52,7 @@ vectorCurve.setKeys(new Float32Array([0]), new Float32Array([1, 2, 3]));
 // @ts-expect-error Batch editing requires keyframes with matching value types.
 vectorCurve.setKeys([key]);
 void movedIndex;
+void tangent;
 void keyCount;
 void readKey;
 const shader: Shader = Shader.create("typed-shader", []);

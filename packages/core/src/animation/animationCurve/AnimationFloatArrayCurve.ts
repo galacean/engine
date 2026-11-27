@@ -157,9 +157,14 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
     return subtractArrayFirstKey(this._values, this._valueSize, this._hasTangents, out);
   }
 
-  protected override _readKeyAt(index: number, out: Keyframe<Float32Array>): void {
+  protected override _readKeyAt(
+    offset: number,
+    out: Keyframe<Float32Array>,
+    inOffset: number,
+    outOffset: number
+  ): void {
     const valueSize = this._valueSize;
     const dstValue = out.value && out.value.length === valueSize ? out.value : new Float32Array(valueSize);
-    readArrayKey(this._values, valueSize, this._hasTangents, index, out, dstValue);
+    readArrayKey(this._values, valueSize, offset, inOffset, outOffset, out, dstValue);
   }
 }

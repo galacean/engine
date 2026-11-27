@@ -54,6 +54,78 @@ describe("AnimationCurve flat storage", () => {
     expect(curve.evaluate(1)).toEqual(new Float32Array([3, 4]));
   });
 
+  it("round-trips each optional tangent on a curve with mixed keys", () => {
+    const curve = new AnimationFloatCurve();
+    const keys = [
+      { time: 0, value: 0 },
+      { time: 1, value: 1, outTangent: 4 },
+      { time: 2, value: 5, inTangent: 0 }
+    ];
+    curve.setKeys([keys[2], keys[0], keys[1]]);
+    const snapshots = keys.map((_, i) => curve.getKey(i));
+    expect(snapshots).toEqual(keys);
+    const saved = JSON.parse(JSON.stringify(snapshots));
+    expect(saved).toStrictEqual(keys);
+    curve.setKeys(saved);
+    curve.interpolation = InterpolationType.Hermite;
+    expect(curve.evaluate(0.5)).toBe(0);
+    expect(curve.evaluate(1.5)).toBe(3.5);
+  });
+
+  it("keeps tangent presence attached to its key through promotion, growth and reordering", () => {
+    const curve = new AnimationFloatCurve();
+    curve._setKeyBuffers(new Float32Array([0, 2]), new Float32Array([0, 2]));
+    curve.addKey({ time: 1, value: 1, outTangent: 0 });
+    expect(curve.getKey(0).outTangent).toBeUndefined();
+    expect(curve.getKey(1).inTangent).toBeUndefined();
+    expect(curve.getKey(1).outTangent).toBe(0);
+    expect(curve.setKey(1, { time: 3, value: 3, inTangent: -Infinity, outTangent: NaN })).toBe(2);
+    curve.addKey({ time: 4, value: 4, inTangent: NaN });
+    curve.addKey({ time: -1, value: -1, outTangent: 0 });
+    curve.removeKey(1);
+    expect(Array.from({ length: curve.keyCount }, (_, i) => curve.getKey(i))).toEqual([
+      { time: -1, value: -1, outTangent: 0 },
+      { time: 2, value: 2 },
+      { time: 3, value: 3, inTangent: -Infinity, outTangent: NaN },
+      { time: 4, value: 4, inTangent: NaN }
+    ]);
+    curve._setKeyBuffers(new Float32Array([0]), new Float32Array([NaN, 2, 0]), true);
+    expect(curve.getKey(0)).toEqual({ time: 0, value: 2, inTangent: NaN, outTangent: 0 });
+  });
+
+  it("preserves missing and explicitly supplied vector and array tangents when reusing a snapshot", () => {
+    const vectors = new AnimationVector3Curve();
+    const incoming = new Vector3(NaN, NaN, NaN);
+    const outgoing = new Vector3(0, -Infinity, 2);
+    vectors.setKeys([
+      { time: 0, value: new Vector3(), inTangent: incoming },
+      { time: 1, value: new Vector3(), outTangent: outgoing }
+    ]);
+    const out = vectors.getKey(0);
+    expect(out.inTangent).toEqual(incoming);
+    expect(out.outTangent).toBeUndefined();
+    expect(vectors.getKey(1, out)).toBe(out);
+    expect(out.inTangent).toBeUndefined();
+    expect(out.outTangent).toEqual(outgoing);
+
+    const arrays = new AnimationFloatArrayCurve();
+    arrays.addKey({ time: 0, value: new Float32Array([1, 2]), outTangent: [NaN, NaN] });
+    arrays.addKey({ time: 1, value: new Float32Array([3, 4]), inTangent: [0, 0] });
+    const arrayOut = arrays.getKey(0);
+    expect(arrayOut.inTangent).toBeUndefined();
+    expect(arrayOut.outTangent).toEqual([NaN, NaN]);
+    arrays.getKey(1, arrayOut);
+    expect(arrayOut.inTangent).toEqual([0, 0]);
+    expect(arrayOut.outTangent).toBeUndefined();
+
+    arrays.setKeys([{ time: 0, value: new Float32Array(), inTangent: [] }]);
+    expect(arrays.getKey(0).inTangent).toEqual([]);
+    expect(arrays.getKey(0).outTangent).toBeUndefined();
+    arrays.setKey(0, { time: 0, value: new Float32Array([1]), outTangent: [0] });
+    expect(arrays.getKey(0).inTangent).toBeUndefined();
+    expect(arrays.getKey(0).outTangent).toEqual([0]);
+  });
+
   it("supports packed buffers, keyCount, getKey(out) reuse, and Hermite/additive evaluation across all fixed-width numeric curves", () => {
     // Hermite basis at time = 1 on [0, 2] (t = 0.5, duration = 2):
     // result = 0.5 * p0 + 0.25 * outTangent0 - 0.25 * inTangent1 + 0.5 * p1.

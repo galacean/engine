@@ -6,6 +6,8 @@ import { Keyframe, KeyframeValueType } from "../Keyframe";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
 
 const EMPTY_FLOAT64 = new Float64Array(0);
+const MISSING_IN_TANGENT = 1;
+const MISSING_OUT_TANGENT = 2;
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
@@ -25,6 +27,8 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
   protected _interpolation: InterpolationType;
 
   private _times: TypedArray = EMPTY_FLOAT64;
+  // Mixed authored keys can omit a tangent or explicitly supply NaN
+  private _missingTangents?: Uint8Array;
   private _isBufferShared: boolean = false;
   private _type: IAnimationCurveCalculator<V>;
   private _lengthListeners?: (() => void) | (() => void)[];
@@ -80,7 +84,8 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
 
   /**
    * Read a snapshot of the keyframe at the specified index.
-   * Mutating the returned `Keyframe` does not modify the curve; call `setKey` to apply edits.
+   * Call `setKey` to apply edits to the returned snapshot.
+   * On interpolatable curves, an omitted incoming or outgoing tangent is returned as `undefined`.
    * @param index - Keyframe index in `[0, keyCount)`
    * @param out - Optional keyframe instance to populate and return (compatible `value` and tangent objects are reused in place)
    * @throws RangeError If `index` is out of range `[0, keyCount)`
@@ -89,7 +94,17 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     this._checkIndex(index);
     const key = out ?? new Keyframe<V>();
     key.time = this._times[index];
-    this._readKeyAt(index, key);
+    const width = this._valueSize;
+    let offset = index * (width || 1);
+    let inOffset = -1;
+    let outOffset = -1;
+    if (this._hasTangents) {
+      offset = (index * 3 + 1) * width;
+      const missing = this._missingTangents?.[index] ?? 0;
+      if (!(missing & MISSING_IN_TANGENT)) inOffset = offset - width;
+      if (!(missing & MISSING_OUT_TANGENT)) outOffset = offset + width;
+    }
+    this._readKeyAt(offset, key, inOffset, outOffset);
     return key;
   }
 
@@ -107,7 +122,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
   }
 
   /**
-   * Replace all keyframes in ascending time order. Equal timestamps keep their input order.
+   * Copy the keyframes and sort them by ascending time. Equal timestamps keep their input order.
    * @param keys - Keyframes to copy into the curve
    * @throws Error If the keys of a variable-width curve have different value widths
    */
@@ -140,12 +155,14 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     const sortedKeys = ordered ? keys : keys.slice().sort((a, b) => a.time - b.time);
     const times = new Float64Array(count);
     const values = discrete ? new Array<V>(count) : new Float64Array(count * width * (hasTangents ? 3 : 1));
+    let missingTangents: Uint8Array | undefined;
     for (let i = 0; i < count; i++) {
       const key = sortedKeys[i];
       times[i] = key.time;
       this._writeKey(values, i, key, width, hasTangents);
+      if (hasTangents) missingTangents = recordMissingTangents(missingTangents, i, key, count);
     }
-    this._replaceKeys(times, values, width, hasTangents, false);
+    this._replaceKeys(times, values, width, hasTangents, false, missingTangents);
   }
 
   /**
@@ -332,6 +349,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
 
   protected _clearValues(): void {
     this._values = Array.isArray(this._values) ? [] : EMPTY_FLOAT64;
+    this._missingTangents = undefined;
   }
 
   protected _evaluateKey(index: number, out: V): V {
@@ -359,10 +377,11 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     return out;
   }
 
-  protected _readKeyAt(index: number, out: Keyframe<V>): void {
-    out.value = (this._values as V[])[index];
-    out.inTangent = undefined;
-    out.outTangent = undefined;
+  protected _readKeyAt(offset: number, out: Keyframe<V>, inOffset: number, outOffset: number): void {
+    const values = this._values;
+    out.value = values[offset] as V;
+    out.inTangent = inOffset >= 0 ? (values[inOffset] as Keyframe<V>["inTangent"]) : undefined;
+    out.outTangent = outOffset >= 0 ? (values[outOffset] as Keyframe<V>["outTangent"]) : undefined;
   }
 
   private _editKey(index: number, key: Keyframe<V>): number {
@@ -402,6 +421,9 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     }
 
     this._writeKey(values, target, key, width, this._hasTangents);
+    if (this._hasTangents) {
+      this._missingTangents = recordMissingTangents(this._missingTangents, target, key, times.length);
+    }
     times[target] = time;
     this._keyCount = nextCount;
     this._notifyLengthChanged(lastLength);
@@ -457,6 +479,14 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     const promoteTangents = needTangents && !this._hasTangents;
     const minValuesLength = minKeyCount * newStride;
 
+    const missing = this._missingTangents;
+    if ((promoteTangents && count > 0) || (missing && missing.length < minKeyCount)) {
+      const next = new Uint8Array(this._times.length);
+      if (missing) next.set(missing);
+      else next.fill(MISSING_IN_TANGENT | MISSING_OUT_TANGENT, 0, count);
+      this._missingTangents = next;
+    }
+
     if (promoteTangents || this._isBufferShared || oldValues.length < minValuesLength) {
       const nextValuesCap = this._times.length * newStride;
       const nextValues = nextValuesCap > 0 ? new Float64Array(nextValuesCap) : EMPTY_FLOAT64;
@@ -482,6 +512,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
 
   private _moveKeys(dstIndex: number, srcIndex: number, endIndex: number): void {
     this._times.copyWithin(dstIndex, srcIndex, endIndex);
+    this._missingTangents?.copyWithin(dstIndex, srcIndex, endIndex);
     const values = this._values;
     const stride = Array.isArray(values) ? 1 : this._valueSize * (this._hasTangents ? 3 : 1);
     values.copyWithin(dstIndex * stride, srcIndex * stride, endIndex * stride);
@@ -492,7 +523,8 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     values: TypedArray | V[],
     width: number,
     hasTangents: boolean,
-    shared: boolean
+    shared: boolean,
+    missingTangents?: Uint8Array
   ): void {
     const lastLength = this.length;
     this._values = values;
@@ -500,6 +532,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     this._keyCount = times.length;
     this._valueSize = width;
     this._hasTangents = hasTangents;
+    this._missingTangents = missingTangents;
     this._isBufferShared = shared;
     this._evaluateData.curKeyframeIndex = 0;
     this._notifyLengthChanged(lastLength);
@@ -517,4 +550,19 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
       throw new RangeError(`Keyframe index ${index} out of range [0, ${this._keyCount}).`);
     }
   }
+}
+
+function recordMissingTangents<V extends KeyframeValueType>(
+  flags: Uint8Array | undefined,
+  index: number,
+  key: Keyframe<V>,
+  capacity: number
+): Uint8Array | undefined {
+  const missing =
+    (key.inTangent === undefined ? MISSING_IN_TANGENT : 0) | (key.outTangent === undefined ? MISSING_OUT_TANGENT : 0);
+  if (missing || flags) {
+    flags ??= new Uint8Array(capacity);
+    flags[index] = missing;
+  }
+  return flags;
 }

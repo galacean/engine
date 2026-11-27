@@ -26,7 +26,7 @@ export class AnimationColorCurve extends AnimationComponentCurve<Color> {
     );
   }
 
-  protected override _readKeyAt(index: number, out: Keyframe<Color>): void {
-    readObjectKey(this._values, this._valueSize, this._hasTangents, index, out, Color, Vector4);
+  protected override _readKeyAt(offset: number, out: Keyframe<Color>, inOffset: number, outOffset: number): void {
+    readObjectKey(this._values, offset, inOffset, outOffset, out, Color, Vector4);
   }
 }
