@@ -140,10 +140,12 @@ describe("Precompile Benchmark", async () => {
   const PBRSource = builtinSource("Shaders/PBR.shader");
   const ShadowCasterSource = builtinSource("Shaders/Pipeline/ShadowCaster.shader");
   const DepthOnlySource = builtinSource("Shaders/Pipeline/DepthOnly.shader");
+  const DepthNormalsSource = builtinSource("Shaders/Pipeline/DepthNormals.shader");
 
   // Create Pipeline shaders first — PBR uses UsePass from them
   if (!Shader.find("Pipeline/ShadowCaster")) Shader.create(ShadowCasterSource);
   if (!Shader.find("Pipeline/DepthOnly")) Shader.create(DepthOnlySource);
+  if (!Shader.find("Pipeline/DepthNormals")) Shader.create(DepthNormalsSource);
 
   // Load all test shaders upfront
   const shaderFiles = [

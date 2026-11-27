@@ -78,12 +78,11 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   }
 
   /**
-   * Set which face and mipLevel of the cube texture to render to.
-   * @param mipLevel - Set mip level the data want to write
-   * @param faceIndex - Cube texture face
+   * Activate this render target and rebind its color/depth attachments when mip level or cube face changes.
+   * @param mipLevel - Mip level to render into
+   * @param faceIndex - Cube texture face to render into
    */
-  activeRenderTarget(mipLevel: number, faceIndex?: TextureCubeFace): void {
-    // @todo: support MRT
+  activeRenderTarget(mipLevel: number = 0, faceIndex: TextureCubeFace = TextureCubeFace.PositiveX): void {
     const { _gl: gl, _target: target } = this;
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
@@ -91,44 +90,51 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     const mipChanged = mipLevel !== this._curMipLevel;
     const faceChanged = faceIndex !== this._curFaceIndex;
 
-    const colorTexture = target.getColorTexture(0);
-    if (colorTexture) {
-      const isCube = colorTexture instanceof TextureCube;
-      if (mipChanged || (isCube && faceChanged)) {
-        gl.framebufferTexture2D(
-          gl.FRAMEBUFFER,
-          gl.COLOR_ATTACHMENT0,
-          isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex! : gl.TEXTURE_2D,
-          (colorTexture._platformTexture as GLTexture)._glTexture,
-          mipLevel
-        );
+    if (mipChanged || faceChanged) {
+      // Rebind all color attachments so MRT targets stay consistent across mip/face switches.
+      const { colorTextureCount } = target;
+      for (let i = 0; i < colorTextureCount; i++) {
+        const colorTexture = target.getColorTexture(i)!;
+        const isCube = colorTexture instanceof TextureCube;
+        if (mipChanged || (isCube && faceChanged)) {
+          gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,
+            gl.COLOR_ATTACHMENT0 + i,
+            isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex : gl.TEXTURE_2D,
+            (colorTexture._platformTexture as GLTexture)._glTexture,
+            mipLevel
+          );
+        }
       }
-    }
 
-    const { depthTexture } = target;
-    if (depthTexture) {
-      const isCube = depthTexture instanceof TextureCube;
-      if (mipChanged || isCube) {
-        const platformTexture = <GLTexture>depthTexture._platformTexture;
-        gl.framebufferTexture2D(
-          gl.FRAMEBUFFER,
-          platformTexture._formatDetail.attachment!,
-          isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex! : gl.TEXTURE_2D,
-          platformTexture._glTexture,
-          mipLevel
-        );
-      }
-    } else {
-      if (mipChanged) {
-        // @ts-ignore
-        const { internalFormat } = GLTexture._getRenderBufferDepthFormatDetail(target._depth, gl);
+      const { depthTexture } = target;
+      if (depthTexture) {
+        const isCube = depthTexture instanceof TextureCube;
+        if (mipChanged || (isCube && faceChanged)) {
+          const platformTexture = <GLTexture>depthTexture._platformTexture;
+          gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,
+            platformTexture._formatDetail.attachment!,
+            isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex : gl.TEXTURE_2D,
+            platformTexture._glTexture,
+            mipLevel
+          );
+        }
+      } else if (mipChanged && this._depthRenderBuffer) {
+        // Resize depth RBO only when present (color-only mip RTs omit it); clamp >= 1 for NPOT/top mips.
+        const { internalFormat } = GLTexture._getRenderBufferDepthFormatDetail(target._depthFormat!, gl);
         gl.bindRenderbuffer(gl.RENDERBUFFER, this._depthRenderBuffer);
-        gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, target.width >> mipLevel, target.height >> mipLevel);
+        gl.renderbufferStorage(
+          gl.RENDERBUFFER,
+          internalFormat,
+          Math.max(1, target.width >> mipLevel),
+          Math.max(1, target.height >> mipLevel)
+        );
       }
-    }
 
-    this._curMipLevel = mipLevel;
-    this._curFaceIndex = faceIndex;
+      this._curMipLevel = mipLevel;
+      this._curFaceIndex = faceIndex;
+    }
 
     if (this._MSAAFrameBuffer) {
       gl.bindFramebuffer(gl.FRAMEBUFFER, this._MSAAFrameBuffer);

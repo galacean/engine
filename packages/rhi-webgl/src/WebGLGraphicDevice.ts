@@ -408,11 +408,12 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     if (renderTarget) {
       renderTarget._isContentLost = false;
 
+      const level = mipLevel ?? 0;
       const platformRenderTarget = renderTarget._platformRenderTarget as GLRenderTarget;
-      platformRenderTarget.activeRenderTarget(mipLevel!, faceIndex);
+      platformRenderTarget.activeRenderTarget(level, faceIndex);
 
-      bufferWidth = renderTarget.width >> mipLevel!;
-      bufferHeight = renderTarget.height >> mipLevel!;
+      bufferWidth = Math.max(1, renderTarget.width >> level);
+      bufferHeight = Math.max(1, renderTarget.height >> level);
     } else {
       const gl = this._gl;
       gl.bindFramebuffer(gl.FRAMEBUFFER, this._mainFrameBuffer);

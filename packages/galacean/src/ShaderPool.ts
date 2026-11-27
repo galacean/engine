@@ -14,6 +14,7 @@ import {
   BackgroundTextureSource,
   SkyProceduralSource,
   DepthOnlySource,
+  DepthNormalsSource,
   ShadowCasterSource,
   BlitSource,
   BlitScreenSource,
@@ -23,7 +24,8 @@ import {
   FinalSRGBSource,
   FinalAntiAliasingSource,
   BloomSource,
-  ScalableAmbientOcclusionSource
+  ScalableAmbientOcclusionSource,
+  ScreenSpaceReflectionSource
 } from "@galacean/engine-shader";
 
 /**
@@ -41,6 +43,7 @@ export class ShaderPool {
     // Material shaders resolve UsePass references during creation
     Shader._createFromPrecompiled(ShadowCasterSource);
     Shader._createFromPrecompiled(DepthOnlySource);
+    Shader._createFromPrecompiled(DepthNormalsSource);
 
     return {
       blit: Shader._createFromPrecompiled(BlitSource),
@@ -63,7 +66,8 @@ export class ShaderPool {
       finalSRGB: Shader._createFromPrecompiled(FinalSRGBSource),
       finalAntiAliasing: Shader._createFromPrecompiled(FinalAntiAliasingSource),
       bloom: Shader._createFromPrecompiled(BloomSource),
-      scalableAmbientOcclusion: Shader._createFromPrecompiled(ScalableAmbientOcclusionSource)
+      scalableAmbientOcclusion: Shader._createFromPrecompiled(ScalableAmbientOcclusionSource),
+      screenSpaceReflection: Shader._createFromPrecompiled(ScreenSpaceReflectionSource)
     };
   }
 }

@@ -173,5 +173,7 @@ Shader "PBR" {
 
         #include "ShaderLibrary/PBR/ForwardPassPBR.glsl"
       }
+
+      UsePass "Pipeline/DepthNormals/Default/PBRDepthNormals"
     }
   }

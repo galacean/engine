@@ -18,7 +18,8 @@ export class NullGraphicDevice implements IHardwareRenderer {
   readonly capability = {
     maxTextureSize: 0,
     maxAntiAliasing: 1,
-    maxVertexUniformVectors: 0
+    maxVertexUniformVectors: 0,
+    maxDrawBuffers: 4
   };
   _currentBindShaderProgram = null;
   _enableGlobalDepthBias = false;

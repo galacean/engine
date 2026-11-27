@@ -12,7 +12,9 @@ import Effect_Particle from "./Effect/Particle.shader";
 import Effect_ParticleFeedback from "./Effect/ParticleFeedback.shader";
 import Effect_Trail from "./Effect/Trail.shader";
 import Lighting_ScalableAmbientOcclusion from "./Lighting/ScalableAmbientOcclusion.shader";
+import Lighting_ScreenSpaceReflection from "./Lighting/ScreenSpaceReflection.shader";
 import PBR from "./PBR.shader";
+import Pipeline_DepthNormals from "./Pipeline/DepthNormals.shader";
 import Pipeline_DepthOnly from "./Pipeline/DepthOnly.shader";
 import Pipeline_ShadowCaster from "./Pipeline/ShadowCaster.shader";
 import PostProcess_Bloom from "./PostProcess/Bloom.shader";
@@ -43,7 +45,9 @@ export const shaders: IShaderSource[] = [
   { source: Effect_ParticleFeedback, path: "Shaders/Effect/ParticleFeedback.shader" },
   { source: Effect_Trail, path: "Shaders/Effect/Trail.shader" },
   { source: Lighting_ScalableAmbientOcclusion, path: "Shaders/Lighting/ScalableAmbientOcclusion.shader" },
+  { source: Lighting_ScreenSpaceReflection, path: "Shaders/Lighting/ScreenSpaceReflection.shader" },
   { source: PBR, path: "Shaders/PBR.shader" },
+  { source: Pipeline_DepthNormals, path: "Shaders/Pipeline/DepthNormals.shader" },
   { source: Pipeline_DepthOnly, path: "Shaders/Pipeline/DepthOnly.shader" },
   { source: Pipeline_ShadowCaster, path: "Shaders/Pipeline/ShadowCaster.shader" },
   { source: PostProcess_Bloom, path: "Shaders/PostProcess/Bloom.shader" },

@@ -42,6 +42,8 @@ export class Camera extends Component {
   /** @internal */
   static _cameraDepthTextureProperty = ShaderProperty.getByName("camera_DepthTexture");
   /** @internal */
+  static _cameraDepthNormalsTextureProperty = ShaderProperty.getByName("camera_DepthNormalsTexture");
+  /** @internal */
   static _cameraOpaqueTextureProperty = ShaderProperty.getByName("camera_OpaqueTexture");
   /** @internal */
   static _cameraAOTextureProperty = ShaderProperty.getByName("camera_AOTexture");
@@ -711,6 +713,7 @@ export class Camera extends Component {
    */
   override _onDisableInScene(): void {
     this.scene!._componentsManager.removeCamera(this);
+    this._renderPipeline._onCameraDisabled();
     this._dispatchModify(CameraModifyFlags.DisableInScene);
   }
 
@@ -803,6 +806,15 @@ export class Camera extends Component {
    */
   _unRegisterModifyListener(onChange: (flag: CameraModifyFlags) => void): void {
     this._updateFlagManager?.removeListener(onChange);
+  }
+
+  /**
+   * @internal
+   * Notify the render pipeline that a camera cut or discontinuity occurred so temporal history resets cleanly.
+   * Kept internal until the public Camera API is approved by engine API review.
+   */
+  _invalidateRenderHistory(): void {
+    this._renderPipeline._notifyHistoryInvalidated();
   }
 
   /**
