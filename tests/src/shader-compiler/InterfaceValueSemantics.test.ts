@@ -75,8 +75,27 @@ const cases: {
   },
   {
     name: "varying members rename to avoid shadowing function parameters of another type",
-    source: valueShader("Varyings v; v.a = extractVal(vec4(0.25)); return v;", "float extractVal(vec4 a) { return a.x; }"),
+    source: valueShader(
+      "Varyings v; v.a = extractVal(vec4(0.25)); return v;",
+      "float extractVal(vec4 a) { return a.x; }"
+    ),
     outputName: "a_1",
+    pixel: [64, 0, 0, 255]
+  },
+  {
+    name: "varying members rename to avoid shadowing conditional function parameters inside macro blocks",
+    source: valueShader(
+      "Varyings v; v.a = extractVal(0.0\n#ifdef USE_EXTRA_PARAM\n, vec4(0.25)\n#endif\n); return v;",
+      "float extractVal(float base\n#ifdef USE_EXTRA_PARAM\n, vec4 a\n#endif\n) {\n#ifdef USE_EXTRA_PARAM\nreturn a.x;\n#else\nreturn base;\n#endif\n}"
+    ),
+    macros: new Map([["USE_EXTRA_PARAM", "1"]]),
+    outputName: "a_1",
+    pixel: [64, 0, 0, 255]
+  },
+  {
+    name: "varying members avoid occupied suffixes when shadowed by function-local variables",
+    source: valueShader("Varyings v; vec4 a = vec4(0.25); float a_1 = a.x; v.a = a_1; return v;"),
+    outputName: "a_2",
     pixel: [64, 0, 0, 255]
   },
   {

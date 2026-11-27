@@ -36,8 +36,10 @@ import { ShaderInstructionEncoder } from "../ShaderInstructionEncoder";
 export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBackend, IPoolElement {
   /** Names of pass-scope declarations, which stage-interface globals must not redeclare. */
   private readonly _globalNames = new Set<string>();
-  /** Names of function-local variables and parameters; varyings avoid them to prevent driver shadowing bugs (e.g. Maleoon 910). */
-  private readonly _localNames = new Set<string>();
+  /** Varying member names shadowed by function-local variables or parameters (avoids driver bugs such as Maleoon 910). */
+  private readonly _localVaryingConflicts = new Set<string>();
+  /** Reusable candidate set bounded by `coreInfo.io.varyingList` while scanning function symbols. */
+  private readonly _varyingCandidates = new Set<string>();
   /** Interface type and variable tokens whose source names GLSL ES rejects. */
   private readonly _escapedDeclarations = new Map<BaseToken, string>();
   private _vertexOutputNames?: Record<string, string>;
@@ -84,7 +86,8 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     this.context.reset();
     this.context.names.reset();
     this._globalNames.clear();
-    this._localNames.clear();
+    this._localVaryingConflicts.clear();
+    this._varyingCandidates.clear();
     this._escapedDeclarations.clear();
     this._vertexOutputNames = undefined;
     this.reset();
@@ -119,7 +122,8 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     this.context.reset();
     this.context.names.reset();
     this._globalNames.clear();
-    this._localNames.clear();
+    this._localVaryingConflicts.clear();
+    this._varyingCandidates.clear();
     this._escapedDeclarations.clear();
     this._vertexOutputNames = undefined;
     this.reset();
@@ -133,11 +137,20 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
       context.names.reserve(name);
       hasUnsafeIdentifier ||= isUnsafeGLSLIdentifier(name);
     }
-    shaderData.symbolTable.forEach((symbol) => this._globalNames.add(symbol.ident));
-    this._collectLocalNames(node);
 
     const outerGlobalMacroDeclarations = coreInfo.outerGlobalMacroDeclarations;
     const { io } = coreInfo;
+    const varyingCandidates = this._varyingCandidates;
+    for (const prop of io.varyingList) {
+      varyingCandidates.add(prop.ident.lexeme);
+    }
+    shaderData.symbolTable.forEach((symbol) => {
+      this._globalNames.add(symbol.ident);
+      if (varyingCandidates.size && symbol instanceof FnSymbol) {
+        this._collectLocalVaryingConflicts(symbol, varyingCandidates);
+      }
+    });
+    varyingCandidates.clear();
     context.attributeStructs.push(...io.attributeStructs);
     context.attributeList.push(...io.attributeList);
     context.varyingStructs.push(...io.varyingStructs);
@@ -240,7 +253,8 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
       context.onReferenceStructProps = undefined;
       this._fragmentVaryingProps.clear();
       this._globalNames.clear();
-      this._localNames.clear();
+      this._localVaryingConflicts.clear();
+      this._varyingCandidates.clear();
       this._escapedDeclarations.clear();
       this._vertexOutputNames = undefined;
       context.reset();
@@ -356,7 +370,9 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
       // generated varying globals (some mobile GLSL ES drivers such as Maleoon 910 reject local shadowing
       // of a global `out` varying with a different type).
       (!isOutput &&
-        (this._localNames.has(name) || context.attributeList.some(sameName) || context.mrtList.some(sameName)));
+        (this._localVaryingConflicts.has(name) ||
+          context.attributeList.some(sameName) ||
+          context.mrtList.some(sameName)));
     const key = `${isOutput ? "output" : "varying"}:${name}`;
     const generated = isUnsafeGLSLIdentifier(name)
       ? context.names.sourceName(key, name)
@@ -390,15 +406,48 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
       : name;
   }
 
-  private _collectLocalNames(node: TreeNode): void {
-    if (node instanceof ASTNode.ParameterDeclarator) {
-      if (node.ident) this._localNames.add(node.ident.lexeme);
-    } else if (node instanceof ASTNode.SingleDeclaration || node instanceof ASTNode.InitDeclaratorList) {
-      const ident = node.declarator?.identifier;
-      if (ident) this._localNames.add(ident.lexeme);
+  private _collectLocalVaryingConflicts(fn: FnSymbol, candidates: Set<string>): void {
+    for (const variable of fn.localVariables) {
+      const name = variable.ident;
+      if (candidates.has(name)) {
+        this._localVaryingConflicts.add(name);
+        candidates.delete(name);
+        if (!candidates.size) return;
+      }
+    }
+    const parameters = fn.astNode.protoType.parameterList;
+    if (!parameters) return;
+    for (const parameter of parameters) {
+      if (parameter.ident) {
+        const name = parameter.ident.lexeme;
+        if (candidates.has(name)) {
+          this._localVaryingConflicts.add(name);
+          candidates.delete(name);
+          if (!candidates.size) return;
+        }
+      } else if (parameter.astNode instanceof ASTNode.MacroParamBlock) {
+        this._collectMacroParamConflicts(parameter.astNode, candidates);
+        if (!candidates.size) return;
+      }
+    }
+  }
+
+  private _collectMacroParamConflicts(node: TreeNode, candidates: Set<string>): void {
+    if (node instanceof ASTNode.ParameterDeclaration) {
+      if (node.ident) {
+        const name = node.ident.lexeme;
+        if (candidates.has(name)) {
+          this._localVaryingConflicts.add(name);
+          candidates.delete(name);
+        }
+      }
+      return;
     }
     for (const child of node.children) {
-      if (child instanceof TreeNode) this._collectLocalNames(child);
+      if (child instanceof TreeNode) {
+        this._collectMacroParamConflicts(child, candidates);
+        if (!candidates.size) return;
+      }
     }
   }
 
