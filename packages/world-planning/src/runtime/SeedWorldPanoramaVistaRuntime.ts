@@ -1,6 +1,8 @@
 import {
   BoundingBox,
+  type Buffer,
   type Camera,
+  ContentRestorer,
   type Engine,
   type Entity,
   Material,
@@ -208,9 +210,52 @@ function buildFarHorizonCylinderMesh(
   mesh.setUVs(uvs);
   mesh.setIndices(indices);
   BoundingBox.fromPoints(positions, mesh.bounds);
+  mesh.uploadData(false);
+  const vertexBuffer = mesh.vertexBufferBindings[0]?.buffer;
+  const vertexBytes = vertexBuffer?.readable && vertexBuffer.data ? vertexBuffer.data.slice() : null;
+  const indexBuffer = (mesh as unknown as { _primitive: { indexBufferBinding?: { buffer: Buffer } } })._primitive
+    .indexBufferBinding?.buffer;
+  const indexBytes = indices.slice();
   mesh.uploadData(true);
+  if (vertexBuffer && vertexBytes) {
+    engine.resourceManager.addContentRestorer(new PanoramaBufferRestorer(vertexBuffer, vertexBytes));
+  }
+  if (indexBuffer) {
+    engine.resourceManager.addContentRestorer(new PanoramaBufferRestorer(indexBuffer, indexBytes));
+  }
   mesh.addSubMesh(0, indices.length, MeshTopology.Triangles);
   return mesh;
+}
+
+class PanoramaBufferRestorer extends ContentRestorer<Buffer> {
+  constructor(
+    buffer: Buffer,
+    private readonly _data: ArrayBufferView
+  ) {
+    super(buffer);
+  }
+
+  override restoreContent(): void {
+    if (!this.resource.destroyed && !this.resource.pendingDestroy) {
+      this.resource.setData(this._data);
+    }
+  }
+}
+
+class PanoramaTextureRestorer extends ContentRestorer<Texture2D> {
+  constructor(
+    texture: Texture2D,
+    private readonly _pixels: Uint8Array
+  ) {
+    super(texture);
+  }
+
+  override restoreContent(): void {
+    if (!this.resource.destroyed && !this.resource.pendingDestroy) {
+      this.resource.setPixelBuffer(this._pixels);
+      this.resource.generateMipmaps();
+    }
+  }
 }
 
 /** Resolved linear RGB colors from the accepted Seed World. */
@@ -416,6 +461,7 @@ export class SeedWorldPanoramaVistaRuntime {
     texture.filterMode = TextureFilterMode.Trilinear;
     texture.setPixelBuffer(pixels);
     texture.generateMipmaps();
+    engine.resourceManager.addContentRestorer(new PanoramaTextureRestorer(texture, pixels));
     return texture;
   }
 }

@@ -3,7 +3,9 @@ import {
   BoundingBox,
   BoundingFrustum,
   BoundingSphere,
+  type Buffer,
   Color,
+  ContentRestorer,
   Matrix,
   MeshRenderer,
   Quaternion,
@@ -881,6 +883,22 @@ function buildPlantSpatialCells(instances: readonly PlantLodInstanceRecord[]): P
  * Spatial Cell + Frustum + Distance-LOD controller shared across all procedural template plants.
  * Partitioned into 32m XZ cells with zero per-frame allocations and VP-matrix change gating.
  */
+class StaticTemplatePlantInstanceRestorer extends ContentRestorer<Buffer> {
+  constructor(
+    buffer: Buffer,
+    private readonly _staging: Float32Array,
+    private readonly _floatCount: number
+  ) {
+    super(buffer);
+  }
+
+  override restoreContent(): void {
+    if (!this.resource.destroyed && !this.resource.pendingDestroy && this._floatCount > 0) {
+      this.resource.setData(this._staging, 0, 0, this._floatCount);
+    }
+  }
+}
+
 class TemplatePlantCellLodController extends Script {
   private camera?: Camera;
   private instances: readonly PlantLodInstanceRecord[] = [];
@@ -921,6 +939,7 @@ class TemplatePlantCellLodController extends Script {
   refresh(force: boolean): void {
     const camera = this.camera;
     if (!camera || camera.destroyed || camera.entity.destroyed || this.tiers.length === 0) return;
+    if (camera.engine?._isDeviceLost || camera.engine?._hardwareRenderer?.isContextLost()) return;
 
     Matrix.multiply(camera.projectionMatrix, camera.viewMatrix, this.viewProjection);
     const vp = this.viewProjection.elements;
@@ -938,7 +957,19 @@ class TemplatePlantCellLodController extends Script {
           break;
         }
       }
-      if (!cameraChanged) return;
+      if (!cameraChanged) {
+        for (let t = 0; t < this.tiers.length; t++) {
+          const count = this.tierCounts[t];
+          if (count <= 0) continue;
+          const tierParts = this.tiers[t];
+          for (let p = 0; p < tierParts.length; p++) {
+            if (tierParts[p].view.instanceBuffer.isContentLost) {
+              uploadTreeAssemblyInstances(tierParts[p].view, count);
+            }
+          }
+        }
+        return;
+      }
     }
 
     if (frustumValid) {
@@ -1350,6 +1381,13 @@ export function mountTemplateProceduralPlants(
         const view = createTreeAssemblyInstancedMesh(root.engine, variantMesh, subset.length, bounds, name, storage);
         disposals.push(() => view.mesh.destroy());
         uploadTreeAssemblyInstances(view, subset.length);
+        root.engine.resourceManager.addContentRestorer(
+          new StaticTemplatePlantInstanceRestorer(
+            storage.instanceBuffer,
+            storage.staging,
+            subset.length * storage.recordFloats
+          )
+        );
         const renderer = owner.createChild(name).addComponent(MeshRenderer);
         renderer.mesh = view.mesh;
         renderer.setMaterial(material);
@@ -1560,6 +1598,13 @@ export function mountTemplateProceduralPlants(
       const view = createTreeAssemblyInstancedMesh(root.engine, part.mesh, positioned.length, bounds, name, storage);
       disposals.push(() => view.mesh.destroy());
       uploadTreeAssemblyInstances(view, positioned.length);
+      root.engine.resourceManager.addContentRestorer(
+        new StaticTemplatePlantInstanceRestorer(
+          storage.instanceBuffer,
+          storage.staging,
+          positioned.length * storage.recordFloats
+        )
+      );
       const renderer = owner.createChild(name).addComponent(MeshRenderer);
       renderer.mesh = view.mesh;
       renderer.setMaterial(materials[part.materialId]);

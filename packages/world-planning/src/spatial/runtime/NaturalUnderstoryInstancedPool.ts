@@ -1110,6 +1110,8 @@ export class NaturalUnderstoryInstancedPool implements RenderViewCullingSource {
    */
   update(maxDetailDistanceMetres: number, force = false, shadowCullDistanceMetres = 0): void {
     if (this.disposed) return;
+    const engine = this.poolRoot.engine;
+    if (engine?._isDeviceLost || engine?._hardwareRenderer?.isContextLost()) return;
     if (!this.poolRoot.isActiveInHierarchy && !force) return;
 
     const camera = this.camera;

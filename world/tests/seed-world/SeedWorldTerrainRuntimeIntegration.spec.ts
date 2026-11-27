@@ -32,6 +32,9 @@ const runtimeState = vi.hoisted(() => ({
 vi.mock("@galacean/engine", () => ({
   AssetType: { Buffer: "buffer", Material: "material", Texture: "texture", KTX2: "ktx2" },
   Camera: class Camera {},
+  ContentRestorer: class ContentRestorer<T> {
+    constructor(public resource: T) {}
+  },
   Color: class Color {
     constructor(
       readonly r: number,
@@ -287,7 +290,10 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
         setVector2: vi.fn()
       }
     };
-    const engine = { time: { elapsedTime: 0 }, resourceManager: { load: vi.fn(async () => material) } };
+    const engine = {
+      time: { elapsedTime: 0 },
+      resourceManager: { load: vi.fn(async () => material), addContentRestorer: vi.fn() }
+    };
     const camera = {
       shaderData: {},
       entity: {
@@ -424,6 +430,7 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
     const engine = {
       time: { elapsedTime: 1 },
       resourceManager: {
+        addContentRestorer: vi.fn(),
         load: vi.fn().mockImplementation((descriptor: { type: string }) => {
           if (descriptor.type === "material") return Promise.resolve(terrainMaterial);
           if (descriptor.type === "ktx2") return Promise.resolve({ width: 64 });

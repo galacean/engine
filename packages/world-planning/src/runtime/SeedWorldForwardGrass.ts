@@ -647,7 +647,7 @@ export class SeedWorldForwardGrass {
   }
 
   update(params: ForwardGrassUpdateParams): void {
-    if (this._destroyed) return;
+    if (this._destroyed || this._engine._isDeviceLost || this._engine._hardwareRenderer?.isContextLost()) return;
     if (!params.active) {
       for (let i = 0; i < this._rings.length; i++) this._rings[i]!.renderer.enabled = false;
       return;
@@ -752,9 +752,9 @@ export class SeedWorldForwardGrass {
         this._candidateTransform.set(transform);
         this._candidatePlanes.set(this._planes);
       }
-      // Leave generation dirty if an upload or feedback draw throws.
+      // Leave generation dirty if an upload or feedback draw throws or any active ring's program is not ready.
       this._tfDirty = true;
-      this._dispatchAllRings(params);
+      const allDispatched = this._dispatchAllRings(params);
       this._lastValues[0] = camX;
       this._lastValues[1] = camY;
       this._lastValues[2] = camZ;
@@ -768,7 +768,7 @@ export class SeedWorldForwardGrass {
       this._lastValues[12] = params.minScale;
       this._lastValues[13] = params.maxScale;
       this._lastUseEcoHeight = params.useEcologicalHeight;
-      this._tfDirty = false;
+      this._tfDirty = !allDispatched;
     }
 
     if (rotationChanged) this._lastValues.set(rotation, 3);
@@ -1605,7 +1605,7 @@ export class SeedWorldForwardGrass {
     }
   }
 
-  private _dispatchAllRings(params: ForwardGrassUpdateParams): void {
+  private _dispatchAllRings(params: ForwardGrassUpdateParams): boolean {
     const camX = this._cameraXZ[0]!,
       camZ = this._cameraXZ[1]!;
     const fields = params.samplerContext.fields;
@@ -1631,6 +1631,7 @@ export class SeedWorldForwardGrass {
     const fadeStart = Math.max(0, Math.min(params.lod1DistanceMetres, params.maximumDistanceMetres * 0.75));
     if (this._candidatesDirty) this._boundVisibleRings(bands, params);
     if (this._candidatesDirty || this._candidateBindings[0]?.buffer.isContentLost) this._prepareCandidateBuffer();
+    let allDispatched = true;
     for (let r = 0; r < this._rings.length; r++) {
       const ring = this._rings[r]!;
       ring.valid = false;
@@ -1702,6 +1703,7 @@ export class SeedWorldForwardGrass {
 
       if (!ring.simulator.beginUpdate(sd, EMPTY_INPUTS, this._candidateBindings, ring.candidateElements)) {
         ring.renderer.enabled = false;
+        allDispatched = false;
         continue;
       }
       try {
@@ -1744,5 +1746,6 @@ export class SeedWorldForwardGrass {
       }
       ring.valid = true;
     }
+    return allDispatched;
   }
 }

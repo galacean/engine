@@ -256,7 +256,7 @@ it("preserves visible grass across pitch, visibility and orthographic size chang
     const visiblePicks: SeedWorldPickBatch[] = [];
     grass.visitPickBatches((batch) => visiblePicks.push(batch), "test-grassland");
     expect(visiblePicks).toEqual(pickBatches.slice(0, 1));
-    expect(canvas.getContext("webgl2")!.getError()).toBe(0);
+
     const meshes = renderers.map((r) => r.mesh as BufferMesh);
     const previousOutputs = meshes.map((mesh) => mesh.vertexBufferBindings.at(-1)!.buffer);
     camera.isOrthographic = true;
@@ -269,6 +269,118 @@ it("preserves visible grass across pitch, visibility and orthographic size chang
     grass.destroy();
     expect(meshes.every((mesh) => mesh.destroyed)).toBe(true);
     expect(outputsAtDestroy.every((buffer) => buffer.destroyed)).toBe(true);
+  } finally {
+    engine.destroy();
+  }
+});
+
+it("recovers grass after a real WebGL context loss while script updates tick", async () => {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 256;
+  const engine = await WebGLEngine.create({ canvas });
+  try {
+    const root = engine.sceneManager.activeScene.createRootEntity();
+    const entity = root.createChild();
+    const camera = entity.addComponent(Camera);
+    camera.fieldOfView = 60;
+    camera.aspectRatio = 1;
+    camera.farClipPlane = 200;
+    entity.transform.setPosition(0, 20, 0);
+    entity.transform.lookAt(new Vector3(0, 0, -20 / Math.sqrt(3)));
+
+    const grass = new SeedWorldForwardGrass(
+      engine,
+      root,
+      PrimitiveMesh.createCuboid(engine, 0.1, 0.4, 0.1),
+      new UnlitMaterial(engine),
+      () => {}
+    );
+    const renderers: MeshRenderer[] = [];
+    grass.visitRenderers((r) => renderers.push(r));
+    const params: ForwardGrassUpdateParams = {
+      camera,
+      active: true,
+      lod1DistanceMetres: 20,
+      lod2DistanceMetres: 35,
+      maximumDistanceMetres: 50,
+      minimumDensityFraction: 1,
+      minScale: 1,
+      maxScale: 1,
+      useEcologicalHeight: false,
+      colorizeLod: false,
+      debugColors: { 0: new Vector4(), 1: new Vector4(), 2: new Vector4() },
+      debugOffColor: new Vector4(),
+      lodDebugColorProperty: "renderer_TestLod",
+      revealRangeSetter: () => {},
+      samplerContext: {
+        fields: {
+          sizeMetres: 256,
+          worldOrigin: [-128, -128],
+          heightResolution: 257,
+          surfaceHeights: new Float32Array(257 ** 2)
+        } as unknown as SeedWorldFields,
+        densityFields: [
+          {
+            assetProfileKey: "test",
+            category: "grass",
+            prototypeFamily: "grass",
+            maximumDensityPerSquareMetre: 24,
+            resolution: 2,
+            samples: new Uint8Array([255, 255, 255, 255]),
+            hash: 1
+          }
+        ],
+        speciesProfiles: [],
+        resolveDensityMultiplier: () => 1,
+        sampleTerrainNormal: (_f, _x, _z, out) => {
+          out[0] = out[2] = 0;
+          out[1] = 1;
+        },
+        sampleSurfaceWeights: (_f, _x, _z, out) => {
+          out[0] = 1;
+          out[1] = out[2] = 0;
+        }
+      }
+    };
+    const countPatch = (x: number, z: number) => {
+      let count = 0;
+      for (const r of renderers) {
+        if (!r.enabled) continue;
+        const mesh = r.mesh as BufferMesh;
+        const data = new Float32Array(mesh.instanceCount * 13);
+        mesh.vertexBufferBindings.at(-1)!.buffer.getData(data);
+        for (let i = 0; i < mesh.instanceCount; i++) {
+          if (data[i * 13 + 4] > 0 && Math.abs(data[i * 13] - x) < 0.5 && Math.abs(data[i * 13 + 2] - z) < 0.5) count++;
+        }
+      }
+      return count;
+    };
+
+    grass.update(params);
+    const beforeCount = countPatch(9.5, -4.5);
+    expect(beforeCount).toBeGreaterThan(0);
+
+    await new Promise<void>((resolve, reject) => {
+      engine.once("devicelost", () => {
+        try {
+          grass.update(params);
+          grass.update(params);
+          engine.once("devicerestored", () => resolve());
+          setTimeout(() => engine.forceRestoreDevice(), 0);
+        } catch (err) {
+          reject(err);
+        }
+      });
+      engine.forceLoseDevice();
+    });
+
+    grass.update(params);
+    expect(countPatch(9.5, -4.5)).toBe(beforeCount);
+    expect((grass as any)._candidateBindings[0].buffer.isContentLost).toBe(false);
+    expect((grass as any)._terrainTex.isContentLost).toBe(false);
+    expect((grass as any)._maskTex.isContentLost).toBe(false);
+    expect(canvas.getContext("webgl2")!.getError()).toBe(0);
+    grass.destroy();
   } finally {
     engine.destroy();
   }

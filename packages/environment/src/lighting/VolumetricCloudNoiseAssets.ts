@@ -1,5 +1,6 @@
 import {
   AssetType,
+  ContentRestorer,
   type Engine,
   Texture2D,
   Texture2DArray,
@@ -88,21 +89,7 @@ export function decodeTexture3DAsset(source: string): SerializedTexture3DData {
   return Object.freeze({ width, height, depth, mipCount, pixels });
 }
 
-function createDetailTexture(engine: Engine, source: SerializedTexture3DData): Texture2DArray {
-  const texture = new Texture2DArray(
-    engine,
-    source.width,
-    source.height,
-    source.depth,
-    TextureFormat.R8G8B8A8_UNorm,
-    true,
-    false
-  );
-  texture.name = "volumetric_cloud_detail";
-  texture.filterMode = TextureFilterMode.Bilinear;
-  texture.wrapModeU = TextureWrapMode.Repeat;
-  texture.wrapModeV = TextureWrapMode.Repeat;
-
+function uploadDetailTextureMips(texture: Texture2DArray, source: SerializedTexture3DData): number {
   let byteOffset = 0;
   for (let mipLevel = 0; mipLevel < source.mipCount; mipLevel++) {
     const width = Math.max(1, source.width >> mipLevel);
@@ -121,10 +108,45 @@ function createDetailTexture(engine: Engine, source: SerializedTexture3DData): T
     );
     byteOffset += byteLength;
   }
+  return byteOffset;
+}
+
+class VolumetricCloudDetailNoiseRestorer extends ContentRestorer<Texture2DArray> {
+  constructor(
+    texture: Texture2DArray,
+    private readonly _source: SerializedTexture3DData
+  ) {
+    super(texture);
+  }
+
+  override restoreContent(): void {
+    if (!this.resource.destroyed && !this.resource.pendingDestroy) {
+      uploadDetailTextureMips(this.resource, this._source);
+    }
+  }
+}
+
+function createDetailTexture(engine: Engine, source: SerializedTexture3DData): Texture2DArray {
+  const texture = new Texture2DArray(
+    engine,
+    source.width,
+    source.height,
+    source.depth,
+    TextureFormat.R8G8B8A8_UNorm,
+    true,
+    false
+  );
+  texture.name = "volumetric_cloud_detail";
+  texture.filterMode = TextureFilterMode.Bilinear;
+  texture.wrapModeU = TextureWrapMode.Repeat;
+  texture.wrapModeV = TextureWrapMode.Repeat;
+
+  const byteOffset = uploadDetailTextureMips(texture, source);
   if (byteOffset !== source.pixels.byteLength) {
     texture.destroy();
     throw new Error(`Cloud detail Texture3D mip chain consumed ${byteOffset} of ${source.pixels.byteLength} bytes.`);
   }
+  engine.resourceManager.addContentRestorer(new VolumetricCloudDetailNoiseRestorer(texture, source));
   return texture;
 }
 

@@ -194,7 +194,7 @@ export class Primitive extends GraphicsResource {
   }
 
   override _rebuild(): void {
-    this._engine._hardwareRenderer.createPlatformPrimitive(this);
+    this._platformPrimitive = this._engine._hardwareRenderer.createPlatformPrimitive(this);
     this._isContentLost = false;
   }
 

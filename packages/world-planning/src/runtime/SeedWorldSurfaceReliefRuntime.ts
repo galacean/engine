@@ -8,6 +8,7 @@ import {
   type PreparedTerrainUpdate
 } from "@galacean/engine-terrain/terrain/clipmap/TerrainPreparedUpdate";
 import {
+  ContentRestorer,
   type Engine,
   type ShaderData,
   Texture2D,
@@ -37,12 +38,28 @@ export interface SeedWorldSurfaceReliefTuning extends Partial<SeedWorldSurfaceRe
 
 const bindingOwner = new WeakMap<ShaderData, SeedWorldSurfaceReliefRuntime>();
 
+class SurfaceReliefMaskRestorer extends ContentRestorer<Texture2D> {
+  constructor(
+    texture: Texture2D,
+    private readonly _pixels: Uint8Array
+  ) {
+    super(texture);
+  }
+
+  override restoreContent(): void {
+    if (!this.resource.destroyed && !this.resource.pendingDestroy) {
+      this.resource.setPixelBuffer(this._pixels);
+    }
+  }
+}
+
 function createPackedMaskTexture(engine: Engine, resolution: number, pixels: Uint8Array): Texture2D {
   const texture = new Texture2D(engine, resolution, resolution, TextureFormat.R8G8B8_UNorm, false, false);
   try {
     texture.filterMode = TextureFilterMode.Bilinear;
     texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Clamp;
     texture.setPixelBuffer(pixels);
+    engine.resourceManager.addContentRestorer(new SurfaceReliefMaskRestorer(texture, pixels));
     return texture;
   } catch (error) {
     texture.destroy();

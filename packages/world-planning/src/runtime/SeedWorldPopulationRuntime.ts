@@ -73,6 +73,7 @@ import {
   Camera,
   ContainmentType,
   type Engine,
+  EngineEventType,
   Entity,
   type Material,
   Matrix,
@@ -981,6 +982,7 @@ export class SeedWorldPopulationRuntime {
   private _grassHeightOverride = true;
   private _grassDensityPerSquareMetre = SEED_WORLD_GRASS_DENSITY_PER_SQUARE_METRE;
   private _grassDensityMultiplier = 1;
+  private readonly _onDeviceRestored: () => void;
   private _grassHeightRangeCache?: {
     readonly layout: unknown;
     readonly scaleRange: unknown;
@@ -2701,11 +2703,14 @@ export class SeedWorldPopulationRuntime {
         ...(inspectionRange ? { activeCellRange: inspectionRange } : {})
       }
     );
+    this._onDeviceRestored = () => this._restoreLostBatchBuffers();
+    this._engine.on(EngineEventType.DeviceRestored, this._onDeviceRestored);
     this._forwardGrass = this._createForwardGrass();
     try {
       this.update(0);
       this._sparseRenderDirty = true;
     } catch (error) {
+      this._engine.off(EngineEventType.DeviceRestored, this._onDeviceRestored);
       this._forwardGrass?.destroy();
       this._forwardGrass = undefined;
       this._forwardGrassMaterial?.destroy();
@@ -3214,6 +3219,7 @@ export class SeedWorldPopulationRuntime {
    * @returns Nothing.
    */
   destroy(): void {
+    this._engine.off(EngineEventType.DeviceRestored, this._onDeviceRestored);
     this._grassRockAppearancePending.clear();
     this._rockAppearanceBatches.clear();
     this._grassRockAppearance = undefined;
@@ -3245,6 +3251,31 @@ export class SeedWorldPopulationRuntime {
     this._detailMaterials.clear();
     this.trees.destroy();
     this.details.destroy();
+  }
+
+  private _restoreLostBatchBuffers(): void {
+    if (this._destroyed) return;
+    const restoreBatch = (batch: DetailPopulationBatch): void => {
+      if (batch.destroyed) return;
+      const instanceBuffer = batch.resources.instanceBuffer;
+      if (instanceBuffer.isContentLost && batch.instanceCount > 0) {
+        instanceBuffer.setData(batch.transforms, 0, 0, batch.instanceCount * DETAIL_TRANSFORM_FLOATS);
+      }
+      if (batch.rockAppearanceBuffer?.isContentLost) {
+        this._bindGrassRockAppearance(batch);
+      }
+    };
+    const cells = this._detailCells.cells;
+    for (let i = 0; i < cells.length; i++) {
+      for (const batches of cells[i]!.resource.detailBatches.values()) {
+        for (let j = 0; j < batches.length; j++) restoreBatch(batches[j]!);
+      }
+    }
+    for (let i = 0; i < this._rockSurfaceGrassBatches.length; i++) {
+      restoreBatch(this._rockSurfaceGrassBatches[i]!);
+    }
+    this._generatedRockGrass?.visitBatches(restoreBatch);
+    this._sparseRenderDirty = true;
   }
 
   private _compileRockSurfaceTrees(

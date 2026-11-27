@@ -1,4 +1,11 @@
-import { Texture2D, TextureFormat, TextureFilterMode, TextureWrapMode, type Engine } from "@galacean/engine";
+import {
+  ContentRestorer,
+  Texture2D,
+  TextureFormat,
+  TextureFilterMode,
+  TextureWrapMode,
+  type Engine
+} from "@galacean/engine";
 import { loadTerrainCompilerBinary } from "@galacean/engine-terrain/terrain/loader/TerrainCompilerBinaryLoader";
 import {
   bakeSeedWorldSurfaceColorField,
@@ -53,6 +60,22 @@ export function resizePlanningSurfaceColorSamples(source: Uint8Array): Uint8Arra
  * @param seed Layout seed; never generates or replaces geometry.
  * @returns Caller-owned texture and Seed's unchanged material tuning.
  */
+class PlanningGrassColorTextureRestorer extends ContentRestorer<Texture2D> {
+  constructor(
+    texture: Texture2D,
+    private readonly _pixels: Uint8Array
+  ) {
+    super(texture);
+  }
+
+  override restoreContent(): void {
+    if (!this.resource.destroyed && !this.resource.pendingDestroy) {
+      this.resource.setPixelBuffer(this._pixels);
+      this.resource.generateMipmaps();
+    }
+  }
+}
+
 export async function createPlanningGrassColorField(
   engine: Engine,
   seed: number
@@ -64,5 +87,6 @@ export async function createPlanningGrassColorField(
   texture.filterMode = TextureFilterMode.Trilinear;
   texture.setPixelBuffer(pixels);
   texture.generateMipmaps();
+  engine.resourceManager.addContentRestorer(new PlanningGrassColorTextureRestorer(texture, pixels));
   return { texture, tuning: SEED_WORLD_GRASS_COLOR_FIELD_DEFAULTS };
 }

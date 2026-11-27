@@ -304,9 +304,10 @@ export class ShaderProgram implements IPlatformShaderProgram {
   /**
    * Destroy this shader program.
    */
-  destroy(): void {
-    const gl = this._gl;
-    this._glProgram && gl.deleteProgram(this._glProgram);
+  destroy(skipGLDelete = false): void {
+    if (!skipGLDelete && this._glProgram) {
+      this._gl.deleteProgram(this._glProgram);
+    }
     this._glProgram = null;
     this._fragmentSource = null;
     this._pendingCompilation = false;

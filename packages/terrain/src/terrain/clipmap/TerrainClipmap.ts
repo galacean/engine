@@ -936,9 +936,9 @@ function createGridMesh(
   }
 
   const mesh = new BufferMesh(engine, name);
-  mesh.setVertexBufferBinding(new Buffer(engine, BufferBindFlag.VertexBuffer, positions, BufferUsage.Static), 12);
+  mesh.setVertexBufferBinding(new Buffer(engine, BufferBindFlag.VertexBuffer, positions, BufferUsage.Static, true), 12);
   mesh.setIndexBufferBinding(
-    new Buffer(engine, BufferBindFlag.IndexBuffer, indices, BufferUsage.Static),
+    new Buffer(engine, BufferBindFlag.IndexBuffer, indices, BufferUsage.Static, true),
     IndexFormat.UInt32
   );
   mesh.setVertexElements([new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0)]);

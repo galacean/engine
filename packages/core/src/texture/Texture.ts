@@ -232,6 +232,8 @@ export abstract class Texture extends GraphicsResource {
     platformTexture.anisoLevel = this._anisoLevel;
     platformTexture.depthCompareFunction = this._depthCompareFunction;
     platformTexture.setUseDepthCompareMode(this._useDepthCompareMode);
+    // Rebuilding allocates empty GPU storage; keep content lost until a restorer or caller uploads pixels.
+    this._isContentLost = true;
   }
 
   /**

@@ -566,7 +566,17 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   ): void {
     let bufferWidth: number, bufferHeight: number;
     if (renderTarget) {
-      renderTarget._isContentLost = false;
+      if (!this.isContextLost()) {
+        renderTarget._isContentLost = false;
+        const colorTextures = renderTarget.colorTextures;
+        for (let i = 0, n = colorTextures.length; i < n; i++) {
+          colorTextures[i]._isContentLost = false;
+        }
+        const depthTexture = renderTarget.depthTexture;
+        if (depthTexture) {
+          depthTexture._isContentLost = false;
+        }
+      }
 
       const platformRenderTarget = renderTarget._platformRenderTarget as GLRenderTarget;
       platformRenderTarget.activeRenderTarget(mipLevel, faceIndex);

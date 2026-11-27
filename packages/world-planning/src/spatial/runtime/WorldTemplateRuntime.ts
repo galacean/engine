@@ -1392,7 +1392,7 @@ export class WorldTemplateRuntime {
     }
 
     const engine = sourceMesh.engine;
-    const windBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, windValues, BufferUsage.Static);
+    const windBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, windValues, BufferUsage.Static, true);
     const windMesh = new BufferMesh(engine, `${sourceMesh.name} · foliage wind`);
     try {
       sourceMesh.vertexBufferBindings.forEach((binding, index) => {

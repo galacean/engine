@@ -2,6 +2,7 @@ import {
   Buffer,
   BufferBindFlag,
   BufferUsage,
+  ContentRestorer,
   type Engine,
   MeshTopology,
   ModelMesh,
@@ -165,6 +166,21 @@ export function createProceduralPlantMeshes(
   return uploadProceduralPlantGeometry(engine, geometry, materialOptions);
 }
 
+class StaticPlantBufferRestorer extends ContentRestorer<Buffer> {
+  constructor(
+    buffer: Buffer,
+    private readonly _data: ArrayBufferView
+  ) {
+    super(buffer);
+  }
+
+  override restoreContent(): void {
+    if (!this.resource.destroyed && !this.resource.pendingDestroy) {
+      this.resource.setData(this._data);
+    }
+  }
+}
+
 /** Upload generated source meshes once for sharing across independent renderers. */
 export function uploadProceduralPlantGeometry(
   engine: Engine,
@@ -192,7 +208,20 @@ export function uploadProceduralPlantGeometry(
       mesh.addSubMesh(0, data.indices.length, MeshTopology.Triangles);
       mesh.bounds.min.set(...data.bounds[0]);
       mesh.bounds.max.set(...data.bounds[1]);
+      // Capture compact interleaved GPU bytes before uploadData(true) frees CPU Vector3 arrays.
+      mesh.uploadData(false);
+      const vertexBuffer = mesh.vertexBufferBindings[0]?.buffer;
+      const vertexBytes = vertexBuffer?.readable && vertexBuffer.data ? vertexBuffer.data.slice() : null;
+      const indexBuffer = (mesh as unknown as { _primitive: { indexBufferBinding?: { buffer: Buffer } } })._primitive
+        .indexBufferBinding?.buffer;
+      const indexBytes = data.indices.slice();
       mesh.uploadData(true);
+      if (vertexBuffer && vertexBytes) {
+        engine.resourceManager.addContentRestorer(new StaticPlantBufferRestorer(vertexBuffer, vertexBytes));
+      }
+      if (indexBuffer) {
+        engine.resourceManager.addContentRestorer(new StaticPlantBufferRestorer(indexBuffer, indexBytes));
+      }
       if (data.canopyOpticalDepths) {
         if (
           data.canopyOpticalDepths.length !== data.positions.length ||
@@ -205,7 +234,8 @@ export function uploadProceduralPlantGeometry(
             engine,
             BufferBindFlag.VertexBuffer,
             new Float32Array(data.canopyOpticalDepths),
-            BufferUsage.Static
+            BufferUsage.Static,
+            true
           ),
           4,
           binding
@@ -223,7 +253,7 @@ export function uploadProceduralPlantGeometry(
         });
         const binding = mesh.vertexBufferBindings.length;
         mesh.setVertexBufferBinding(
-          new Buffer(engine, BufferBindFlag.VertexBuffer, values, BufferUsage.Static),
+          new Buffer(engine, BufferBindFlag.VertexBuffer, values, BufferUsage.Static, true),
           44,
           binding
         );
@@ -245,7 +275,7 @@ export function uploadProceduralPlantGeometry(
           : new Float32Array((data.windFrames as readonly (readonly [number, number, number, number])[]).flat());
         const binding = mesh.vertexBufferBindings.length;
         mesh.setVertexBufferBinding(
-          new Buffer(engine, BufferBindFlag.VertexBuffer, values, BufferUsage.Static),
+          new Buffer(engine, BufferBindFlag.VertexBuffer, values, BufferUsage.Static, true),
           16,
           binding
         );

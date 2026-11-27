@@ -1,6 +1,7 @@
 import colorPatternUrl from "@galacean/engine-terrain/data/seed-world/public/textures/grass-color-detail.r8?url";
 import {
   Color,
+  ContentRestorer,
   type Engine,
   type MeshRenderer,
   type ShaderData,
@@ -116,6 +117,22 @@ export function loadSeedWorldSharedSurfacePattern(): Promise<Uint8Array> {
     }));
 }
 
+class SurfaceTextureRestorer extends ContentRestorer<Texture2D> {
+  constructor(
+    texture: Texture2D,
+    private readonly _samples: Uint8Array
+  ) {
+    super(texture);
+  }
+
+  override restoreContent(): void {
+    if (!this.resource.destroyed && !this.resource.pendingDestroy) {
+      this.resource.setPixelBuffer(this._samples);
+      this.resource.generateMipmaps();
+    }
+  }
+}
+
 function createSurfaceTexture(
   engine: Engine,
   resolution: number,
@@ -129,6 +146,7 @@ function createSurfaceTexture(
     texture.anisoLevel = 2;
     texture.setPixelBuffer(samples);
     texture.generateMipmaps();
+    engine.resourceManager.addContentRestorer(new SurfaceTextureRestorer(texture, samples));
     return texture;
   } catch (error) {
     texture.destroy();

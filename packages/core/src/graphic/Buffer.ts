@@ -206,7 +206,9 @@ export class Buffer extends GraphicsResource {
         this._data!.set(srcData, bufferByteOffset);
       }
     }
-    this._isContentLost = false;
+    if (!this._engine._isDeviceLost && !this._engine._hardwareRenderer.isContextLost()) {
+      this._isContentLost = false;
+    }
     this._dataUpdateManager.dispatch();
   }
 
@@ -259,12 +261,15 @@ export class Buffer extends GraphicsResource {
    * @internal
    */
   override _rebuild(): void {
+    const data = this._readable ? this._data : null;
     const platformBuffer = this._engine._hardwareRenderer.createPlatformBuffer(
       this._type,
       this._byteLength,
-      this._bufferUsage
+      this._bufferUsage,
+      data ?? undefined
     );
     this._platformBuffer = platformBuffer;
+    this._isContentLost = !data;
     this._engine._renderingStatistics._bufferMemory += this._byteLength;
   }
 
@@ -276,6 +281,7 @@ export class Buffer extends GraphicsResource {
     if (!this._engine._isDeviceLost) {
       this._engine._renderingStatistics._bufferMemory -= this._byteLength;
     }
+    this._data = null;
     this._platformBuffer?.destroy();
   }
 }

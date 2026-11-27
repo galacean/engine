@@ -12,6 +12,7 @@ import {
   BufferBindFlag,
   BufferUsage,
   Color,
+  ContentRestorer,
   type Engine,
   MeshTopology,
   ModelMesh,
@@ -6086,6 +6087,21 @@ function finalizeMesh(
   };
 }
 
+class StaticTreeBufferRestorer extends ContentRestorer<Buffer> {
+  constructor(
+    buffer: Buffer,
+    private readonly _data: ArrayBufferView
+  ) {
+    super(buffer);
+  }
+
+  override restoreContent(): void {
+    if (!this.resource.destroyed && !this.resource.pendingDestroy) {
+      this.resource.setData(this._data);
+    }
+  }
+}
+
 function uploadMesh(engine: Engine, name: string, data: ProceduralTreeMeshData): ModelMesh {
   const mesh = new ModelMesh(engine, name);
   mesh.setPositions(data.positions.map(([x, y, z]) => new Vector3(x, y, z)));
@@ -6108,7 +6124,20 @@ function uploadMesh(engine: Engine, name: string, data: ProceduralTreeMeshData):
   mesh.addSubMesh(0, data.indices.length, MeshTopology.Triangles);
   mesh.bounds.min.set(...data.bounds[0]);
   mesh.bounds.max.set(...data.bounds[1]);
+  // Capture compact interleaved GPU bytes before uploadData(true) frees CPU Vector3 arrays.
+  mesh.uploadData(false);
+  const vertexBuffer = mesh.vertexBufferBindings[0]?.buffer;
+  const vertexBytes = vertexBuffer?.readable && vertexBuffer.data ? vertexBuffer.data.slice() : null;
+  const indexBuffer = (mesh as unknown as { _primitive: { indexBufferBinding?: { buffer: Buffer } } })._primitive
+    .indexBufferBinding?.buffer;
+  const indexBytes = data.indices.slice();
   mesh.uploadData(true);
+  if (vertexBuffer && vertexBytes) {
+    engine.resourceManager.addContentRestorer(new StaticTreeBufferRestorer(vertexBuffer, vertexBytes));
+  }
+  if (indexBuffer) {
+    engine.resourceManager.addContentRestorer(new StaticTreeBufferRestorer(indexBuffer, indexBytes));
+  }
   if (data.treeVariationRoots || data.treeVariationData) {
     if (
       !data.treeVariationRoots ||
@@ -6129,7 +6158,7 @@ function uploadMesh(engine: Engine, name: string, data: ProceduralTreeMeshData):
     }
     const bindingIndex = mesh.vertexBufferBindings.length;
     mesh.setVertexBufferBinding(
-      new Buffer(engine, BufferBindFlag.VertexBuffer, variationData, BufferUsage.Static),
+      new Buffer(engine, BufferBindFlag.VertexBuffer, variationData, BufferUsage.Static, true),
       variationFloats * Float32Array.BYTES_PER_ELEMENT,
       bindingIndex
     );
@@ -6149,7 +6178,7 @@ function uploadMesh(engine: Engine, name: string, data: ProceduralTreeMeshData):
     data.treeVariationCenters.forEach((center, vertex) => centerData.set(center, vertex * 3));
     const bindingIndex = mesh.vertexBufferBindings.length;
     mesh.setVertexBufferBinding(
-      new Buffer(engine, BufferBindFlag.VertexBuffer, centerData, BufferUsage.Static),
+      new Buffer(engine, BufferBindFlag.VertexBuffer, centerData, BufferUsage.Static, true),
       3 * Float32Array.BYTES_PER_ELEMENT,
       bindingIndex
     );
@@ -6166,7 +6195,7 @@ function uploadMesh(engine: Engine, name: string, data: ProceduralTreeMeshData):
     });
     const binding = mesh.vertexBufferBindings.length;
     mesh.setVertexBufferBinding(
-      new Buffer(engine, BufferBindFlag.VertexBuffer, values, BufferUsage.Static),
+      new Buffer(engine, BufferBindFlag.VertexBuffer, values, BufferUsage.Static, true),
       24,
       binding
     );

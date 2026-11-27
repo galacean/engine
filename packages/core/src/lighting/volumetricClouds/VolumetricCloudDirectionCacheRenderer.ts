@@ -1,5 +1,6 @@
 import { Color, Vector3, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
+import { EngineEventType } from "../../EngineEventType";
 import { Blitter } from "../../RenderPipeline/Blitter";
 import { PipelineUtils } from "../../RenderPipeline/PipelineUtils";
 import { GLCapabilityType } from "../../base";
@@ -66,8 +67,18 @@ export class VolumetricCloudDirectionCacheRenderer {
   private _borrowedFrom: VolumetricCloudDirectionCacheRenderer | null = null;
   private _borrowedTarget: RenderTarget | null = null;
   private readonly _schedule = <VolumetricCloudDirectionCacheSchedule>{};
+  private readonly _onDeviceRestored: () => void;
 
-  constructor(private readonly _engine: Engine) {}
+  constructor(private readonly _engine: Engine) {
+    this._onDeviceRestored = () => {
+      if (this._destroyRequested) return;
+      this._displayValid = false;
+      this._sweepValid = false;
+      this._accumulatedSweepCount = 0;
+      this._invalidated = true;
+    };
+    _engine.on(EngineEventType.DeviceRestored, this._onDeviceRestored);
+  }
 
   get texture(): Texture2D | null {
     return this._displayTarget?.getColorTexture(0) as Texture2D | null;
@@ -129,6 +140,7 @@ export class VolumetricCloudDirectionCacheRenderer {
   }
 
   render(material: VolumetricCloudMaterial, preset: VolumetricCloudQualityPreset, allowMultiplePerFrame = false): void {
+    if (this._engine._isDeviceLost || this._engine._hardwareRenderer.isContextLost()) return;
     if (this._snapshotLeaseCount > 0 || this._endpointBorrower) {
       this._lastEngineFrame = this._engine.time.frameCount;
       this._publish(material);
@@ -226,6 +238,7 @@ export class VolumetricCloudDirectionCacheRenderer {
   destroy(): void {
     if (this._destroyRequested) return;
     this._destroyRequested = true;
+    this._engine.off(EngineEventType.DeviceRestored, this._onDeviceRestored);
     if (this._snapshotLeaseCount > 0 || this._endpointBorrower) return;
     this._destroyTargets();
   }

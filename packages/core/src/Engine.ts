@@ -669,8 +669,8 @@ export class Engine extends EventDispatcher {
   private _onDeviceRestored(): void {
     this._hardwareRenderer.resetState();
     this._lastRenderState = new RenderState();
-    // Clear shader program maps
-    Shader._clear(this);
+    // Clear shader program maps; skip gl.deleteProgram because prior-context handles are invalid after restore.
+    Shader._clear(this, true);
     this._shaderProgramMaps.length = 0;
 
     const { resourceManager } = this;

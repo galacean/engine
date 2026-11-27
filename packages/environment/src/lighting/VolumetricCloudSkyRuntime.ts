@@ -1,5 +1,6 @@
 import {
   type Camera,
+  ContentRestorer,
   type DayNightState,
   type DayNightStateConsumer,
   type Scene,
@@ -243,6 +244,10 @@ export class VolumetricCloudSkyRuntime implements DayNightStateConsumer {
     );
     this._solarTintStrength = this._environmentResponseProfile.solarTintStrength;
     this._weatherSeed = options.weatherSeed ?? 0;
+    const engine = scene.engine;
+    engine.resourceManager.addContentRestorer(
+      new VolumetricCloudTextureRestorer(weatherMap, () => this._weatherField.packBasis())
+    );
     this.setWindSpeed(this._windSpeed);
     material.name = options.materialName ?? "Shared Volumetric Cloud Sky";
     material.setScaleSettings(this._scaleSettings);
@@ -636,6 +641,21 @@ function createWeatherMap(
   return { texture, field };
 }
 
+class VolumetricCloudTextureRestorer extends ContentRestorer<Texture2D> {
+  constructor(
+    texture: Texture2D,
+    private readonly _buildPixels: () => Uint8Array
+  ) {
+    super(texture);
+  }
+
+  override restoreContent(): void {
+    if (!this.resource.destroyed && !this.resource.pendingDestroy) {
+      this.resource.setPixelBuffer(this._buildPixels());
+    }
+  }
+}
+
 function createShapeProfile(scene: Scene): Texture2D {
   const texture = new Texture2D(
     scene.engine,
@@ -649,7 +669,9 @@ function createShapeProfile(scene: Scene): Texture2D {
   texture.wrapModeU = TextureWrapMode.Clamp;
   texture.wrapModeV = TextureWrapMode.Clamp;
   texture.filterMode = TextureFilterMode.Bilinear;
-  texture.setPixelBuffer(new VolumetricCloudShapeProfile().pack());
+  const pixels = new VolumetricCloudShapeProfile().pack();
+  texture.setPixelBuffer(pixels);
+  scene.engine.resourceManager.addContentRestorer(new VolumetricCloudTextureRestorer(texture, () => pixels));
   return texture;
 }
 
@@ -667,6 +689,9 @@ function createBaseNoise(scene: Scene, noiseProfile: Readonly<VolumetricCloudNoi
   texture.wrapModeV = TextureWrapMode.Clamp;
   texture.filterMode = TextureFilterMode.Bilinear;
   texture.setPixelBuffer(buildVolumetricCloudNoiseAtlas(noiseProfile));
+  scene.engine.resourceManager.addContentRestorer(
+    new VolumetricCloudTextureRestorer(texture, () => buildVolumetricCloudNoiseAtlas(noiseProfile))
+  );
   return texture;
 }
 

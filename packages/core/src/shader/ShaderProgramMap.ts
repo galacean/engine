@@ -83,9 +83,9 @@ export class ShaderProgramMap {
     return `${key.length.toString(36)}:${(h1 >>> 0).toString(36)}:${(h2 >>> 0).toString(36)}:${(h3 >>> 0).toString(36)}:${(h4 >>> 0).toString(36)}`;
   }
 
-  destroy(): void {
+  destroy(skipGLDelete = false): void {
     // Several macro keys can reference one program. Destroy each owned GL resource once.
-    for (const program of this._ownedPrograms) program.destroy();
+    for (const program of this._ownedPrograms) program.destroy(skipGLDelete);
     this._ownedPrograms.clear();
     this._programsBySource.clear();
     this._cacheMap = Object.create(null);

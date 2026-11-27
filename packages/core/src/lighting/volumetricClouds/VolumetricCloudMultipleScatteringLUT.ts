@@ -1,4 +1,5 @@
 import { Engine } from "../../Engine";
+import { ContentRestorer } from "../../asset/ContentRestorer";
 import { GLCapabilityType } from "../../base";
 import { Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../../texture";
 import {
@@ -79,6 +80,7 @@ export function createVolumetricCloudMultipleScatteringTexture(
       halfValues[index * 4 + 3] = toHalf(1);
     }
     texture.setPixelBuffer(halfValues);
+    engine.resourceManager.addContentRestorer(new VolumetricCloudLutRestorer(texture, halfValues));
     return { texture, decodeScale: 1 };
   }
 
@@ -89,7 +91,23 @@ export function createVolumetricCloudMultipleScatteringTexture(
     encodedValues[index * 4 + 3] = 255;
   }
   texture.setPixelBuffer(encodedValues);
+  engine.resourceManager.addContentRestorer(new VolumetricCloudLutRestorer(texture, encodedValues));
   return { texture, decodeScale: encodingScale };
+}
+
+class VolumetricCloudLutRestorer extends ContentRestorer<Texture2D> {
+  constructor(
+    texture: Texture2D,
+    private readonly _pixels: Uint16Array | Uint8Array
+  ) {
+    super(texture);
+  }
+
+  override restoreContent(): void {
+    if (!this.resource.destroyed && !this.resource.pendingDestroy) {
+      this.resource.setPixelBuffer(this._pixels);
+    }
+  }
 }
 
 function dualHenyeyGreenstein(

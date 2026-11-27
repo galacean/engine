@@ -1,6 +1,7 @@
 import { Color, Matrix, Quaternion, type SphericalHarmonics3, Vector3 } from "@galacean/engine-math";
 import { Camera } from "../../Camera";
 import { Engine } from "../../Engine";
+import { EngineEventType } from "../../EngineEventType";
 import { Scene } from "../../Scene";
 import { CameraClearFlags } from "../../enums/CameraClearFlags";
 import { BackgroundMode } from "../../enums/BackgroundMode";
@@ -189,6 +190,7 @@ export class RealtimeIBLBaker {
   private _publishedRevision = 0;
   private _publishedBuffer = -1;
   private _destroyed = false;
+  private readonly _onDeviceRestored: () => void;
   private _transition: {
     capture: () => boolean | void;
     restore: () => void;
@@ -360,6 +362,34 @@ export class RealtimeIBLBaker {
       createRenderTarget(engine, resolution, outputTexture0),
       createRenderTarget(engine, resolution, outputTexture1)
     ];
+
+    this._onDeviceRestored = () => {
+      if (this._destroyed) return;
+      const hadWork = this._activeBake !== null || this._pendingSnapshot !== null || this._transition !== null;
+      if (this._transition) {
+        this.cancelTransition(new Error("IBL transition cancelled: graphics device restored."));
+      } else if (this._activeBake) {
+        this._releaseVolumetricCloudSnapshot(this._activeBake);
+        this._activeBake = null;
+      }
+      this._pendingSnapshot = null;
+      this._latestSignature = "";
+      this._gpuSphericalHarmonics.resetCurrent(this._sourceScene.ambientLight._getDiffuseSphericalHarmonicsData());
+      if (this._publishedRevision > 0 || hadWork) {
+        const bg = this._sourceScene.background;
+        const skyMat = bg.sky.material;
+        const canBake =
+          bg.mode === BackgroundMode.Sky &&
+          Boolean(bg.sky.mesh) &&
+          (skyMat instanceof SkyBoxMaterial
+            ? Boolean(skyMat.texture)
+            : skyMat instanceof SkyProceduralMaterial && Boolean(this._sourceScene.sun));
+        if (canBake) {
+          this.requestBake();
+        }
+      }
+    };
+    engine.on(EngineEventType.DeviceRestored, this._onDeviceRestored);
   }
 
   /** Queue the current procedural or static sky as the newest bake revision. */
@@ -382,6 +412,7 @@ export class RealtimeIBLBaker {
   /** Process exactly one frame in the generated bake schedule. */
   update(): void {
     this._assertAlive();
+    if (this._engine._isDeviceLost || this._engine._hardwareRenderer.isContextLost()) return;
     try {
       this._update();
     } catch (error) {
@@ -510,6 +541,7 @@ export class RealtimeIBLBaker {
     if (this._destroyed) {
       return;
     }
+    this._engine.off(EngineEventType.DeviceRestored, this._onDeviceRestored);
     this.cancelTransition();
     this._destroyed = true;
     const ambientLight = this._sourceScene.ambientLight;

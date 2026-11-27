@@ -58,7 +58,9 @@ export class TextureCube extends Texture {
     height?: number
   ): void {
     (this._platformTexture as IPlatformTextureCube).setPixelBuffer(face, colorBuffer, mipLevel, x, y, width, height);
-    this._isContentLost = false;
+    if (!this._engine._isDeviceLost && !this._engine._hardwareRenderer.isContextLost()) {
+      this._isContentLost = false;
+    }
   }
 
   /**
@@ -89,7 +91,9 @@ export class TextureCube extends Texture {
       x,
       y
     );
-    this._isContentLost = false;
+    if (!this._engine._isDeviceLost && !this._engine._hardwareRenderer.isContextLost()) {
+      this._isContentLost = false;
+    }
   }
 
   /**

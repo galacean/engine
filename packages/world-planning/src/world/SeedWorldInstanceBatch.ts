@@ -267,6 +267,11 @@ export function uploadChangedPopulationInstances(
     throw new RangeError("Seed World visible prefix exceeds its instance storage");
   }
   if (count === 0) return;
+  if (storage.instanceBuffer.isContentLost) {
+    storage.instanceBuffer.setData(storage.staging, 0, 0, activeFloatCount, SetDataOptions.Discard);
+    state.gpuInitializedRecordCount = count;
+    return;
+  }
   let dirtyFloatStart = state.dirtyFloatStart;
   let dirtyFloatEnd = state.dirtyFloatEnd;
   if (count > state.gpuInitializedRecordCount) {

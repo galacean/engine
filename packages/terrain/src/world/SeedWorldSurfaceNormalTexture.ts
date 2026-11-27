@@ -1,9 +1,31 @@
-import { Texture2D, TextureFormat, TextureFilterMode, TextureWrapMode, type Engine } from "@galacean/engine";
+import {
+  ContentRestorer,
+  Texture2D,
+  TextureFormat,
+  TextureFilterMode,
+  TextureWrapMode,
+  type Engine
+} from "@galacean/engine";
 import normalTileUrl from "../data/seed-world/public/textures/grass-surface-normal.rgb8?url";
 import { SURFACE_NORMAL_RESOLUTION } from "./SeedWorldSurfaceNormalBake";
 
 export const SEED_WORLD_SURFACE_NORMAL_RESOLUTION = SURFACE_NORMAL_RESOLUTION;
 let cachedPixels: Uint8Array | undefined;
+
+class SurfaceNormalTextureRestorer extends ContentRestorer<Texture2D> {
+  constructor(
+    texture: Texture2D,
+    private readonly _pixels: Uint8Array
+  ) {
+    super(texture);
+  }
+
+  override restoreContent(): void {
+    if (!this.resource.destroyed && !this.resource.pendingDestroy) {
+      this.resource.setPixelBuffer(this._pixels);
+    }
+  }
+}
 
 /** Loads the offline unmasked normal tile. The caller owns the returned GPU texture.
  * @param engine GPU resource owner.
@@ -29,6 +51,7 @@ export async function createSeedWorldSurfaceNormalTexture(engine: Engine, signal
     texture.filterMode = TextureFilterMode.Bilinear;
     texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Repeat;
     texture.setPixelBuffer(cachedPixels);
+    engine.resourceManager.addContentRestorer(new SurfaceNormalTextureRestorer(texture, cachedPixels));
     return texture;
   } catch (error) {
     texture.destroy();
