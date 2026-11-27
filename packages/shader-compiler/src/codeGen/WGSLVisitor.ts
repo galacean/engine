@@ -1828,7 +1828,11 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
       if (!elseStmt) return `  if (${cond}) ${thenBody}`;
       const elseUnwrapped = this._unwrapStatement(elseStmt);
       if (elseUnwrapped instanceof ASTNode.SelectionStatement) {
-        return `  if (${cond}) ${thenBody} else ${elseUnwrapped.codeGen(this).trimStart()}`;
+        const elseCode = elseUnwrapped.codeGen(this).trimStart();
+        if (elseCode.startsWith("if ")) {
+          return `  if (${cond}) ${thenBody} else ${elseCode}`;
+        }
+        return `  if (${cond}) ${thenBody} else {\n${elseCode}\n  }`;
       }
       return `  if (${cond}) ${thenBody} else ${this._ensureBracedStmt(elseStmt)}`;
     });
@@ -2247,7 +2251,34 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
       return this._emitUnary(n);
     }
 
-    // 7. Binary expressions
+    // 7a. Short-circuit logical binary expressions (`&&`, `||`)
+    // Isolate any statements hoisted while emitting the RHS (e.g. `++x`, `=`, `out`/`inout`
+    // calls, strong-CAS loops) so they execute ONLY when the LHS does not short-circuit.
+    if (
+      n.children.length === 3 &&
+      (n instanceof ASTNode.LogicalAndExpression || n instanceof ASTNode.LogicalOrExpression)
+    ) {
+      const op = (n.children[1] as BaseToken).lexeme;
+      const left = this._emitNode(n.children[0] as TreeNode);
+      const rightNode = n.children[2] as TreeNode;
+      const saved = this._hoistQueue;
+      this._hoistQueue = [];
+      const right = this._emitNode(rightNode);
+      const rightHoists = this._hoistQueue;
+      this._hoistQueue = saved;
+      if (rightHoists.length === 0) {
+        return this._emitBinaryOp(op, left, right, rightNode);
+      }
+      const tmp = this._freshTemp("gs_sc");
+      const guard = op === "&&" ? tmp : `!(${tmp})`;
+      this._hoistQueue.push(
+        `  var ${tmp}: bool = ${left.code};\n` +
+          `  if (${guard}) {\n${[...rightHoists, `    ${tmp} = ${right.code};`].join("\n")}\n  }`
+      );
+      return { code: tmp, type: WT_BOOL };
+    }
+
+    // 7b. Other binary expressions
     if (
       n.children.length === 3 &&
       (n instanceof ASTNode.MultiplicativeExpression ||
@@ -2258,9 +2289,7 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
         n instanceof ASTNode.AndExpression ||
         n instanceof ASTNode.ExclusiveOrExpression ||
         n instanceof ASTNode.InclusiveOrExpression ||
-        n instanceof ASTNode.LogicalAndExpression ||
-        n instanceof ASTNode.LogicalXorExpression ||
-        n instanceof ASTNode.LogicalOrExpression)
+        n instanceof ASTNode.LogicalXorExpression)
     ) {
       const op = (n.children[1] as BaseToken).lexeme;
       const left = this._emitNode(n.children[0] as TreeNode);
@@ -3445,12 +3474,26 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
       return { code: `atomicStore(${ptr}, ${this._coerceExpr(val, scalarType)})`, type: WT_VOID };
     }
     if (callee === "atomicCompSwap") {
+      // GLSL `atomicCompSwap` has strong-CAS semantics, whereas WGSL `atomicCompareExchangeWeak`
+      // may fail spuriously (`!exchanged && old_value == cmp`). Retry only on spurious failure.
       const cmp = this._emitNode(argNodes[1]);
       const val = this._emitNode(argNodes[2]);
-      return {
-        code: `atomicCompareExchangeWeak(${ptr}, ${this._coerceExpr(cmp, scalarType)}, ${this._coerceExpr(val, scalarType)}).old_value`,
-        type: scalarType
-      };
+      const oldTmp = this._freshTemp("gs_cas_old");
+      const cmpTmp = this._freshTemp("gs_cas_cmp");
+      const valTmp = this._freshTemp("gs_cas_val");
+      const resTmp = this._freshTemp("gs_cas_res");
+      const wgslScalar = this._wgslType(scalarType);
+      this._hoistQueue.push(
+        `  var ${oldTmp}: ${wgslScalar};\n` +
+          `  let ${cmpTmp}: ${wgslScalar} = ${this._coerceExpr(cmp, scalarType)};\n` +
+          `  let ${valTmp}: ${wgslScalar} = ${this._coerceExpr(val, scalarType)};\n` +
+          `  loop {\n` +
+          `    let ${resTmp} = atomicCompareExchangeWeak(${ptr}, ${cmpTmp}, ${valTmp});\n` +
+          `    ${oldTmp} = ${resTmp}.old_value;\n` +
+          `    if (${resTmp}.exchanged || ${oldTmp} != ${cmpTmp}) { break; }\n` +
+          `  }`
+      );
+      return { code: oldTmp, type: scalarType };
     }
     if (callee === "atomicCompareExchangeWeak") {
       const cmp = this._emitNode(argNodes[1]);
@@ -3642,8 +3685,9 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
     if (node instanceof ASTNode.PostfixExpression && node.children.length === 2) return true;
     if (node instanceof ASTNode.FunctionCallGeneric) {
       const callee = (node.children[0] as ASTNode.FunctionIdentifier).lexeme;
-      if (this._fnInfoByName.has(callee)) return true;
+      if (this._fnInfoByName.has(callee) || ATOMIC_BUILTINS.has(callee) || IMAGE_BUILTINS.has(callee)) return true;
     }
+    if (node instanceof ASTNode.MacroCallFunction) return true;
     for (const c of node.children) {
       if (c instanceof TreeNode && this._hasSideEffects(c)) return true;
     }

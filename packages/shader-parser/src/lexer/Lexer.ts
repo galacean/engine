@@ -1142,6 +1142,20 @@ export class Lexer extends BaseLexer {
     return token;
   }
 
+  private static readonly _IMAGE_TYPE_NAMES = new Set(["image2D", "iimage2D", "uimage2D"]);
+  private static readonly _CONTEXTUAL_QUALIFIERS = new Set([
+    "highp",
+    "mediump",
+    "lowp",
+    "const",
+    "readonly",
+    "writeonly",
+    "readwrite",
+    "coherent",
+    "volatile",
+    "restrict"
+  ]);
+
   /**
    * Contextual disambiguation for WebGPU-only keywords (`storage`, `readonly`, `writeonly`,
    * `readwrite`, `shared`) so existing GLSL/ShaderLab identifiers like `float storage = ...;`
@@ -1150,8 +1164,8 @@ export class Lexer extends BaseLexer {
   private _isContextualWebGPUKeyword(kt: Keyword): boolean {
     const src = this._source;
     const len = src.length;
-    const skipWs = (i: number): number => {
-      while (i < len) {
+    const skipWs = (start: number): number => {
+      for (let i = start; i < len; ) {
         const ch = src.charCodeAt(i);
         if (ch === 32 || ch === 9 || ch === 10 || ch === 13) {
           i++;
@@ -1160,63 +1174,85 @@ export class Lexer extends BaseLexer {
         if (ch === 47 && i + 1 < len) {
           const next = src.charCodeAt(i + 1);
           if (next === 47) {
-            i += 2;
-            while (i < len && src.charCodeAt(i) !== 10) i++;
+            const nl = src.indexOf("\n", i + 2);
+            i = nl === -1 ? len : nl + 1;
             continue;
           }
           if (next === 42) {
-            i += 2;
-            while (i + 1 < len && !(src.charCodeAt(i) === 42 && src.charCodeAt(i + 1) === 47)) i++;
-            i = Math.min(len, i + 2);
+            const close = src.indexOf("*/", i + 2);
+            i = close === -1 ? len : close + 2;
             continue;
           }
         }
-        break;
+        return i;
       }
-      return i;
+      return len;
     };
     const scanIdent = (i: number): { word: string; end: number } | undefined => {
       const start = skipWs(i);
       if (start >= len || !BaseLexer.isAlpha(src.charCodeAt(start))) return undefined;
       let end = start + 1;
-      while (end < len && BaseLexer.isAlnum(src.charCodeAt(end))) end++;
+      for (; end < len && BaseLexer.isAlnum(src.charCodeAt(end)); end++) {
+        // advance past identifier characters
+      }
       return { word: src.slice(start, end), end };
     };
 
-    const first = scanIdent(this._currentIndex);
-    if (!first) return false;
-
     if (kt === Keyword.STORAGE) {
-      const afterName = skipWs(first.end);
+      const blockName = scanIdent(this._currentIndex);
+      if (!blockName) return false;
+      const afterName = skipWs(blockName.end);
       return afterName < len && src.charCodeAt(afterName) === 123; // '{'
     }
-    if (kt === Keyword.READONLY) {
-      if (first.word === "storage") {
-        const blockName = scanIdent(first.end);
-        if (!blockName) return false;
-        const afterName = skipWs(blockName.end);
-        return afterName < len && src.charCodeAt(afterName) === 123; // '{'
+
+    if (kt === Keyword.READONLY || kt === Keyword.WRITEONLY || kt === Keyword.READWRITE) {
+      // Allow intervening qualifiers in any order (e.g. `writeonly highp image2D dst;`).
+      for (let pos = this._currentIndex, step = 0; step < 8; step++) {
+        const ident = scanIdent(pos);
+        if (!ident) return false;
+        if (Lexer._IMAGE_TYPE_NAMES.has(ident.word)) return true;
+        if (kt === Keyword.READONLY && ident.word === "storage") {
+          const blockName = scanIdent(ident.end);
+          if (!blockName) return false;
+          const afterName = skipWs(blockName.end);
+          return afterName < len && src.charCodeAt(afterName) === 123; // '{'
+        }
+        if (Lexer._CONTEXTUAL_QUALIFIERS.has(ident.word)) {
+          pos = ident.end;
+          continue;
+        }
+        return false;
       }
-      return first.word === "image2D" || first.word === "iimage2D" || first.word === "uimage2D";
+      return false;
     }
-    if (kt === Keyword.WRITEONLY || kt === Keyword.READWRITE) {
-      return first.word === "image2D" || first.word === "iimage2D" || first.word === "uimage2D";
-    }
+
     if (kt === Keyword.SHARED) {
-      // `shared <Type>[N] <Name>` or `shared <Type> <Name>`
-      let pos = skipWs(first.end);
+      // `shared [qualifiers...] <Type>[N] <Name>` or `shared [qualifiers...] <Type> <Name>`
+      let typeIdent: { word: string; end: number } | undefined;
+      for (let pos = this._currentIndex, step = 0; step < 8; step++) {
+        const ident = scanIdent(pos);
+        if (!ident) return false;
+        if (Lexer._CONTEXTUAL_QUALIFIERS.has(ident.word)) {
+          pos = ident.end;
+          continue;
+        }
+        typeIdent = ident;
+        break;
+      }
+      if (!typeIdent) return false;
+      let pos = skipWs(typeIdent.end);
       if (pos < len && src.charCodeAt(pos) === 91) {
         // '[' ... ']'
         let depth = 1;
-        pos++;
-        while (pos < len && depth > 0) {
-          const c = src.charCodeAt(pos++);
+        for (pos = pos + 1; pos < len && depth > 0; pos++) {
+          const c = src.charCodeAt(pos);
           if (c === 91) depth++;
           else if (c === 93) depth--;
         }
       }
       return scanIdent(pos) !== undefined;
     }
+
     return false;
   }
 

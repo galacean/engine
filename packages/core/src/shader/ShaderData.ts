@@ -559,7 +559,12 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
   setBuffer(property: ShaderProperty, value: Buffer | null): void;
 
   setBuffer(property: string | ShaderProperty, value: Buffer | null): void {
-    this._setPropertyValue(property, ShaderPropertyType.Buffer, value);
+    const lastValue = this._setPropertyValue(property, ShaderPropertyType.Buffer, value);
+    const refCount = this._refCount;
+    if (refCount > 0 && lastValue !== value) {
+      lastValue && lastValue._addReferCount(-refCount);
+      value && value._addReferCount(refCount);
+    }
   }
 
   /**
@@ -747,11 +752,9 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
       if (property != null) {
         if (typeof property === "number") {
           targetPropertyValueMap[k] = property;
-        } else if (property instanceof Texture) {
+        } else if (property instanceof Texture || property instanceof Buffer) {
           targetPropertyValueMap[k] = property;
           referCount > 0 && property._addReferCount(referCount);
-        } else if (property instanceof Buffer) {
-          targetPropertyValueMap[k] = property;
         } else if (property instanceof Array || property instanceof Float32Array || property instanceof Int32Array) {
           const cloned = property.slice();
           targetPropertyValueMap[k] = cloned;
@@ -851,7 +854,7 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
   }
 
   private _addTexturesReferCount(property: ShaderPropertyValueType, count: number): void {
-    if (property instanceof Texture) {
+    if (property instanceof Texture || property instanceof Buffer) {
       property._addReferCount(count);
     } else if (property instanceof Array) {
       for (let i = 0, n = property.length; i < n; i++) {

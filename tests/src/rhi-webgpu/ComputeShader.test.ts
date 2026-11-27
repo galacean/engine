@@ -4,12 +4,14 @@ import {
   BufferUsage,
   Camera,
   ComputeShader,
+  EngineEventType,
   Material,
   MeshRenderer,
   PrimitiveMesh,
   RenderTarget,
   Shader,
   ShaderLanguage,
+  ShaderMacroProcessor,
   Texture2D,
   TextureFormat,
   WebGPUEngine,
@@ -294,6 +296,11 @@ describe("ShaderLab ComputeShader & WebGPU-only Capabilities", () => {
           }`,
           engine
         );
+
+        const linked = cs._linkVariant();
+        // Verify `atomicCompSwap` lowers to a strong-CAS retry loop that only breaks on `exchanged || old != cmp`
+        expect(linked.compute).toContain("atomicCompareExchangeWeak");
+        expect(linked.compute).toMatch(/\.exchanged\s*\|\|\s*\w+\s*!=\s*\w+/);
 
         const init = new Uint32Array([0, 0, 42]);
         const statsBuf = new Buffer(engine, BufferBindFlag.StorageBuffer, init, BufferUsage.Dynamic);
@@ -946,7 +953,200 @@ describe("ShaderLab ComputeShader & WebGPU-only Capabilities", () => {
     }
   );
 
-  it("preserves backward compatibility for GLSL identifiers named storage, shared, readonly, writeonly, readwrite", () => {
+  it.skipIf(!navigator.gpu)(
+    "recovers ComputeShader execution after forceLoseDevice and forceRestoreDevice",
+    async () => {
+      const engine = await WebGPUEngine.create({ canvas: document.createElement("canvas") });
+      try {
+        const cs = ComputeShader.create(
+          `ComputeShader "Tests/DeviceRestore" {
+            WorkgroupSize = (1, 1, 1);
+            ComputeKernel = csMain;
+
+            storage OutBuf {
+              uint outVal;
+            };
+
+            void csMain() {
+              outVal = 7u;
+            }
+          }`,
+          engine
+        );
+
+        const bufBefore = new Buffer(engine, BufferBindFlag.StorageBuffer, 4, BufferUsage.Dynamic);
+        cs.shaderData.setBuffer("OutBuf", bufBefore);
+        cs.dispatch(1);
+        const beforeOut = new Uint32Array(1);
+        await bufBefore.getDataAsync(beforeOut);
+        expect(beforeOut[0]).toBe(7);
+
+        // Force device loss and restoration
+        const restored = new Promise<void>((resolve) => {
+          engine.once(EngineEventType.DeviceRestored, () => resolve());
+        });
+        engine.forceLoseDevice();
+        engine.forceRestoreDevice();
+        await restored;
+
+        const { device: restoredDevice } = engine._hardwareRenderer as WebGPUGraphicDevice;
+        restoredDevice.pushErrorScope("validation");
+
+        const bufAfter = new Buffer(engine, BufferBindFlag.StorageBuffer, 4, BufferUsage.Dynamic);
+        cs.shaderData.setBuffer("OutBuf", bufAfter);
+        cs.dispatch(1);
+        const afterOut = new Uint32Array(1);
+        await bufAfter.getDataAsync(afterOut);
+        expect(afterOut[0]).toBe(7);
+
+        cs.destroy();
+        bufBefore.destroy();
+        bufAfter.destroy();
+        expect(await restoredDevice.popErrorScope()).toBeNull();
+      } finally {
+        engine.destroy();
+      }
+    }
+  );
+
+  it.skipIf(!navigator.gpu)(
+    "retains storage buffers bound to active materials across resourceManager.gc() and updates ref-counts on replace and clone",
+    async () => {
+      const engine = await WebGPUEngine.create({ canvas: document.createElement("canvas") });
+      try {
+        const scene = engine.sceneManager.activeScene;
+        const root = scene.createRootEntity();
+
+        const shader = Shader.create(
+          `Shader "Tests/BufferRefCount" {
+            SubShader "Default" {
+              Pass "0" {
+                VertexShader = vert;
+                FragmentShader = frag;
+                readonly storage DataBuf { vec4 color; };
+                struct a2v { vec3 POSITION; };
+                void vert(a2v v) { gl_Position = vec4(v.POSITION, 1.0); }
+                void frag() { gl_FragColor = color; }
+              }
+            }
+          }`,
+          engine
+        );
+
+        const material = new Material(engine, shader);
+        const mesh = PrimitiveMesh.createPlane(engine, 1, 1);
+        const e1 = root.createChild("e1");
+        const r1 = e1.addComponent(MeshRenderer);
+        r1.mesh = mesh;
+        r1.setMaterial(material);
+        expect(material._getReferCount()).toBe(1);
+
+        const buf1 = new Buffer(engine, BufferBindFlag.StorageBuffer, 16, BufferUsage.Dynamic);
+        material.shaderData.setBuffer("DataBuf", buf1);
+        expect(buf1._getReferCount()).toBe(1);
+
+        // Active material's storage buffer must NOT be destroyed by GC
+        engine.resourceManager.gc();
+        expect(buf1.destroyed).toBe(false);
+
+        // Replacing the buffer drops ref-count on the old buffer and increments the new one
+        const buf2 = new Buffer(engine, BufferBindFlag.StorageBuffer, 16, BufferUsage.Dynamic);
+        material.shaderData.setBuffer("DataBuf", buf2);
+        expect(buf1._getReferCount()).toBe(0);
+        expect(buf2._getReferCount()).toBe(1);
+
+        // Cloning the material to another active renderer increments the shared buffer's ref-count
+        const cloned = material.clone();
+        const e2 = root.createChild("e2");
+        const r2 = e2.addComponent(MeshRenderer);
+        r2.mesh = mesh;
+        r2.setMaterial(cloned);
+        expect(buf2._getReferCount()).toBe(2);
+
+        // Clearing on the first material drops ref-count back to 1; GC destroys only unreferenced buf1
+        material.shaderData.setBuffer("DataBuf", null);
+        expect(buf2._getReferCount()).toBe(1);
+        engine.resourceManager.gc();
+        expect(buf1.destroyed).toBe(true);
+        expect(buf2.destroyed).toBe(false);
+
+        shader.destroy();
+      } finally {
+        engine.destroy();
+      }
+    }
+  );
+
+  it.skipIf(!navigator.gpu)(
+    "supports storage texture declarations with precision qualifiers before or after access qualifiers",
+    async () => {
+      const engine = await WebGPUEngine.create({ canvas: document.createElement("canvas") });
+      const { device } = engine._hardwareRenderer as WebGPUGraphicDevice;
+      device.pushErrorScope("validation");
+      try {
+        const cs = ComputeShader.create(
+          `ComputeShader "Tests/StorageTexPrecisionOrder" {
+            WorkgroupSize = (1, 1, 1);
+            ComputeKernel = csMain;
+
+            layout(r32float) writeonly highp image2D dstA;
+            layout(rgba8unorm) highp writeonly image2D dstB;
+            layout(r32float) readonly mediump image2D srcA;
+
+            void csMain() {
+              vec4 c = imageLoad(srcA, ivec2(0, 0));
+              imageStore(dstA, ivec2(0, 0), vec4(c.r, 0.0, 0.0, 1.0));
+              imageStore(dstB, ivec2(0, 0), vec4(c.r, 0.5, 0.25, 1.0));
+            }
+          }`,
+          engine
+        );
+        await assertCleanComputeWGSL(device, cs);
+
+        const srcTex = new Texture2D(engine, 1, 1, TextureFormat.R32_SFloat, false, false);
+        srcTex.setPixelBuffer(new Float32Array([0.75]));
+        const dstATex = new Texture2D(engine, 1, 1, TextureFormat.R32_SFloat, false, false);
+        const dstBTex = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false, false);
+        cs.shaderData.setTexture("srcA", srcTex);
+        cs.shaderData.setTexture("dstA", dstATex);
+        cs.shaderData.setTexture("dstB", dstBTex);
+        cs.dispatch(1, 1, 1);
+
+        const outB = new Uint8Array(4);
+        await dstBTex.getPixelBufferAsync(0, 0, 1, 1, outB);
+        expect(Math.abs(outB[0] - 191)).toBeLessThanOrEqual(1);
+        expect(Math.abs(outB[1] - 128)).toBeLessThanOrEqual(1);
+        expect(Math.abs(outB[2] - 64)).toBeLessThanOrEqual(1);
+        expect(outB[3]).toBe(255);
+
+        // Also verify `readwrite lowp image2D` compiles cleanly in Chrome Tint WGSL
+        const csRw = ComputeShader.create(
+          `ComputeShader "Tests/ReadWritePrecision" {
+            WorkgroupSize = (1, 1, 1);
+            ComputeKernel = csMain;
+            layout(r32float) readwrite lowp image2D rwImg;
+            void csMain() {
+              vec4 v = imageLoad(rwImg, ivec2(0, 0));
+              imageStore(rwImg, ivec2(0, 0), v + vec4(1.0));
+            }
+          }`,
+          engine
+        );
+        await assertCleanComputeWGSL(device, csRw);
+
+        csRw.destroy();
+        cs.destroy();
+        srcTex.destroy();
+        dstATex.destroy();
+        dstBTex.destroy();
+        expect(await device.popErrorScope()).toBeNull();
+      } finally {
+        engine.destroy();
+      }
+    }
+  );
+
+  it("compiles GLSL ES 3.00 identifiers named storage, shared, and readwrite in real Chrome WebGL2 (note: readonly/writeonly are GLSL ES 3.00 reserved words)", () => {
     const compiler = new ShaderCompiler();
     const source = `
       Shader "Tests/ContextualKeywords" {
@@ -959,10 +1159,8 @@ describe("ShaderLab ComputeShader & WebGPU-only Capabilities", () => {
             void frag() {
               float storage = 0.2;
               float shared = 0.3;
-              float readonly = 0.1;
-              float writeonly = 0.2;
-              float readwrite = 0.2;
-              gl_FragColor = vec4(storage + shared, readonly + writeonly, readwrite, 1.0);
+              float readwrite = 0.4;
+              gl_FragColor = vec4(storage, shared, readwrite, 1.0);
             }
           }
         }
@@ -972,5 +1170,26 @@ describe("ShaderLab ComputeShader & WebGPU-only Capabilities", () => {
     const pass = parsed.subShaders[0].passes[0];
     const gles = compiler._parseShaderPass(pass.contents, pass.vertexEntry, pass.fragmentEntry, ShaderLanguage.GLSLES300);
     expect(gles?.fragmentShaderInstructions?.length).toBeGreaterThan(0);
+
+    const glMacros = new Map<string, string>([
+      ["GRAPHICS_API_WEBGL2", ""],
+      ["GL_ES", "1"],
+      ["GL_FRAGMENT_PRECISION_HIGH", "1"],
+      ["__VERSION__", "300"]
+    ]);
+    const fsSrc =
+      "#version 300 es\nprecision highp float;\n" +
+      ShaderMacroProcessor.evaluate(gles!.fragmentShaderInstructions!, glMacros);
+
+    const canvas = document.createElement("canvas");
+    const gl = canvas.getContext("webgl2");
+    expect(gl).not.toBeNull();
+    const fs = gl!.createShader(gl!.FRAGMENT_SHADER)!;
+    gl!.shaderSource(fs, fsSrc);
+    gl!.compileShader(fs);
+    const ok = gl!.getShaderParameter(fs, gl!.COMPILE_STATUS);
+    const log = gl!.getShaderInfoLog(fs);
+    gl!.deleteShader(fs);
+    expect(ok, `Chrome WebGL2 compile failed: ${log}\n--- FS ---\n${fsSrc}`).toBe(true);
   });
 });

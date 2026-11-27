@@ -59,10 +59,11 @@ interface ComputeStorageTextureSlot {
 export class WebGPUComputeProgram implements IPlatformComputeProgram {
   private _destroyed = false;
   get isValid(): boolean {
-    return !this._destroyed;
+    return !this._destroyed && this._device === this._graphicDevice.device;
   }
 
   readonly reflection: IWebGPUComputeReflection;
+  private readonly _device: GPUDevice;
   private readonly _pipeline: GPUComputePipeline;
   private readonly _bindGroupLayout: GPUBindGroupLayout;
   private readonly _uniformBlocks: ComputeUniformBlockSlot[] = [];
@@ -77,6 +78,7 @@ export class WebGPUComputeProgram implements IPlatformComputeProgram {
   ) {
     this.reflection = program.reflection;
     const { device } = _graphicDevice;
+    this._device = device;
     const module = device.createShaderModule({ label: "Galacean compute", code: program.compute });
 
     const entries: GPUBindGroupLayoutEntry[] = [];

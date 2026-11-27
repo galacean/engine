@@ -240,7 +240,97 @@ describe.skipIf(!navigator.gpu)("ShaderLab dev/2.0 WGSL conformance", () => {
     expect(Array.from(px)).toEqual([255, 255, 255, 255]);
   });
 
-  it("executes all dev/2.0 sampler types, texture-arg helper passing, derivatives, and shadow comparison on GPU with pixel readback", async () => {
+  it("compiles all 9 dev/2.0 ShaderLab sampler types, texture builtins, derivatives, and builtin variables", async () => {
+    await validateWGSL(`
+      sampler2D u_tex2d;
+      sampler3D u_tex3d;
+      samplerCube u_cube;
+      sampler2DArray u_arr;
+      sampler2DShadow u_shadow2d;
+      samplerCubeShadow u_shadowCube;
+      sampler2DArrayShadow u_shadowArr;
+      isampler2D u_itex2d;
+      usampler2D u_utex2d;
+
+      struct a2v {
+        vec3 POSITION;
+        vec2 TEXCOORD_0;
+      };
+      struct v2f {
+        vec2 uv;
+        flat int inst;
+      };
+
+      v2f vert(a2v v) {
+        v2f o;
+        vec4 s = textureLod(u_tex2d, v.TEXCOORD_0, 0.0);
+        o.uv = v.TEXCOORD_0 + s.xy * 0.0;
+        o.inst = gl_VertexID + gl_InstanceID + gl_MaxVertexAttribs;
+        gl_PointSize = 2.0;
+        gl_Position = vec4(v.POSITION, 1.0);
+        return o;
+      }
+
+      void frag(v2f i) {
+        vec2 uv = i.uv;
+        vec4 c = vec4(0.0);
+
+        // 2D / 3D / Cube / Array sampling + bias + lod + grad + offset + proj
+        c += texture(u_tex2d, uv);
+        c += texture(u_tex2d, uv, 0.5);
+        c += texture2D(u_tex2d, uv);
+        c += textureLod(u_tex2d, uv, 1.0);
+        c += texture2DLodEXT(u_tex2d, uv, 1.0);
+        c += textureGrad(u_tex2d, uv, dFdx(uv), dFdy(uv));
+        c += textureOffset(u_tex2d, uv, ivec2(1, -1));
+        c += textureLodOffset(u_tex2d, uv, 0.0, ivec2(1, 0));
+        c += textureGradOffset(u_tex2d, uv, dFdx(uv), dFdy(uv), ivec2(0, 1));
+        c += textureProj(u_tex2d, vec3(uv, 1.0));
+        c += textureProj(u_tex2d, vec4(uv, 0.0, 1.0));
+        c += textureProjLod(u_tex2d, vec3(uv, 1.0), 0.0);
+        c += textureProjOffset(u_tex2d, vec3(uv, 1.0), ivec2(1, 0));
+        c += textureProjGrad(u_tex2d, vec3(uv, 1.0), dFdx(uv), dFdy(uv));
+
+        c += texture(u_tex3d, vec3(uv, 0.5));
+        c += textureLod(u_tex3d, vec3(uv, 0.5), 0.0);
+        c += texture(u_cube, normalize(vec3(uv, 1.0)));
+        c += textureCubeLodEXT(u_cube, normalize(vec3(uv, 1.0)), 0.0);
+        c += texture(u_arr, vec3(uv, 0.0));
+        c += textureLod(u_arr, vec3(uv, 0.0), 0.0);
+
+        // Shadow samplers (2D, Cube, 2DArray) including Grad / Offset / Proj
+        float sh = 0.0;
+        sh += texture(u_shadow2d, vec3(uv, 0.5));
+        sh += textureLod(u_shadow2d, vec3(uv, 0.5), 0.0);
+        sh += textureOffset(u_shadow2d, vec3(uv, 0.5), ivec2(1, 0));
+        sh += textureGrad(u_shadow2d, vec3(uv, 0.5), dFdx(uv), dFdy(uv));
+        sh += textureProj(u_shadow2d, vec4(uv, 0.5, 1.0));
+        sh += texture(u_shadowCube, vec4(normalize(vec3(uv, 1.0)), 0.5));
+        sh += textureGrad(u_shadowCube, vec4(normalize(vec3(uv, 1.0)), 0.5), vec3(0.01), vec3(0.01));
+        sh += texture(u_shadowArr, vec4(uv, 0.0, 0.5));
+
+        // Integer/unsigned textures & textureSize / texelFetch / texelFetchOffset
+        ivec2 sz2 = textureSize(u_tex2d, 0);
+        ivec3 sz3 = textureSize(u_tex3d, 0);
+        ivec2 szc = textureSize(u_cube, 0);
+        ivec3 sza = textureSize(u_arr, 0);
+        ivec2 szs = textureSize(u_shadow2d, 0);
+        ivec4 it = texelFetch(u_itex2d, ivec2(0), 0);
+        uvec4 ut = texelFetchOffset(u_utex2d, ivec2(0), 0, ivec2(1, 0));
+
+        // Derivatives & fragment builtins + discard
+        vec2 fw = fwidth(uv);
+        float meta = float(sz2.x + sz3.z + szc.x + sza.z + szs.x + it.x + int(ut.x) + i.inst + gl_MaxDrawBuffers);
+        if (gl_FragCoord.x < -1.0 && !gl_FrontFacing) {
+          discard;
+        }
+        gl_FragDepth = clamp(gl_PointCoord.x * 0.5, 0.0, 1.0);
+        gl_FragColor = c + vec4(sh, fw.x, fw.y, meta * 0.0);
+      }
+    `);
+  });
+
+  it("executes 2D, uint, and 2D-shadow samplers, texture-arg helper passing, and derivatives on GPU with pixel readback", async () => {
     const program = await validateWGSL(`
       sampler2D u_tex2d;
       sampler2DShadow u_shadow2d;
@@ -828,7 +918,55 @@ describe.skipIf(!navigator.gpu)("ShaderLab dev/2.0 WGSL conformance", () => {
       expect(px[3]).toBe(255);
     });
 
-    it("matches Naga constructors.wgsl, conversions.wgsl, and 10093-select-vector-condition on WebGL2 and WebGPU", async () => {
+    it("matches short-circuit && and || side-effect evaluation identically on WebGL2 and WebGPU", async () => {
+      // Short-circuited RHS (`false && ++counter`, `true || ++counter`, and `else if`) must NOT mutate `counter`.
+      const skippedPx = await assertDualRHIEqual(`
+        void vert() {
+          vec2 pos = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2)) * 2.0 - 1.0;
+          gl_Position = vec4(pos, 0.0, 1.0);
+        }
+        void frag() {
+          int counter = 0;
+          bool condFalse = gl_FragCoord.x < -10.0;
+          bool condTrue = gl_FragCoord.x >= 0.0;
+          bool a = condFalse && (++counter > 0);
+          bool b = condTrue || (++counter > 0);
+          if (condTrue) {
+            // taken
+          } else if (condFalse && (++counter > 0)) {
+            counter += 10;
+          }
+          float r = counter > 0 ? 1.0 : 0.0;
+          float g = (a || !b) ? 1.0 : 0.0;
+          gl_FragColor = vec4(r, g, 0.0, 1.0);
+        }
+      `);
+      expect(Array.from(skippedPx)).toEqual([0, 0, 0, 255]);
+
+      // Non-short-circuited RHS (`true && ++counter`, `false || ++counter`) MUST execute side effects on both backends.
+      const evalPx = await assertDualRHIEqual(`
+        void vert() {
+          vec2 pos = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2)) * 2.0 - 1.0;
+          gl_Position = vec4(pos, 0.0, 1.0);
+        }
+        void frag() {
+          int counter = 0;
+          bool condTrue = gl_FragCoord.x >= 0.0;
+          bool condFalse = gl_FragCoord.x < -10.0;
+          bool a = condTrue && (++counter > 0);
+          bool b = condFalse || (++counter > 1);
+          float r = (counter == 2) ? 1.0 : 0.0;
+          float g = (a && b) ? 1.0 : 0.0;
+          gl_FragColor = vec4(r, g, 0.0, 1.0);
+        }
+      `);
+      expect(Array.from(evalPx)).toEqual([255, 255, 0, 255]);
+    });
+
+    it("matches Naga constructors.wgsl, conversions.wgsl, 10093-select-vector-condition, and uniform-value flat integer varyings on WebGL2 and WebGPU", async () => {
+      // Note: WebGL2 defaults to last-vertex provoking while WebGPU uses first-vertex provoking for `flat`
+      // interpolation. This test writes the same `flat` value across all vertices to verify cross-backend
+      // integer varying compilation/linkage without assuming identical per-vertex provoking-vertex selection.
       const px = await assertDualRHIEqual(`
         struct Varyings {
           flat ivec4 a;

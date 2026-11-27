@@ -1,5 +1,6 @@
 import type { IComputeProgramSource, IWebGPUComputeProgram } from "@galacean/engine-design";
 import type { Engine } from "../Engine";
+import { EngineEventType } from "../EngineEventType";
 import type { IPlatformComputeProgram } from "../renderingHardwareInterface/IPlatformComputeProgram";
 import { ShaderData } from "./ShaderData";
 import { ShaderDataGroup } from "./enums/ShaderDataGroup";
@@ -77,6 +78,9 @@ export class ComputeShader {
   private readonly _engine: Engine;
   private readonly _kernels: Map<string, CompiledComputeKernel>;
   private readonly _defaultKernelName: string;
+  private readonly _onDeviceInvalidated = (): void => {
+    this._invalidateVariants();
+  };
   private _destroyed = false;
 
   /** Whether this compute shader has been destroyed. */
@@ -96,6 +100,8 @@ export class ComputeShader {
     this.kernelNames = Object.freeze(kernelNames);
     this._defaultKernelName = kernelNames[0];
     this.shaderData = new ShaderData(ShaderDataGroup.Material);
+    engine.on(EngineEventType.DeviceLost, this._onDeviceInvalidated);
+    engine.on(EngineEventType.DeviceRestored, this._onDeviceInvalidated);
   }
 
   /**
@@ -179,11 +185,17 @@ export class ComputeShader {
   destroy(): void {
     if (this._destroyed) return;
     this._destroyed = true;
+    this._engine.off(EngineEventType.DeviceLost, this._onDeviceInvalidated);
+    this._engine.off(EngineEventType.DeviceRestored, this._onDeviceInvalidated);
+    this._invalidateVariants();
+    this._kernels.clear();
+  }
+
+  private _invalidateVariants(): void {
     this._kernels.forEach((kernel) => {
       kernel.variants.forEach((program) => program.destroy());
       kernel.variants.clear();
     });
-    this._kernels.clear();
   }
 
   private _getOrCompileVariant(kernel: CompiledComputeKernel, data: ShaderData): IPlatformComputeProgram {
@@ -194,6 +206,11 @@ export class ComputeShader {
       key = parts.join("|");
     }
     let program = kernel.variants.get(key);
+    if (program && !program.isValid) {
+      program.destroy();
+      kernel.variants.delete(key);
+      program = undefined;
+    }
     if (!program) {
       const linked = this._compileWGSLVariant(kernel, data);
       program = this._engine._hardwareRenderer.createPlatformComputeProgram!(this._engine, linked);
