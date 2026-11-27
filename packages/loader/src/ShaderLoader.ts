@@ -4,6 +4,7 @@ import {
   Engine,
   LoadItem,
   Loader,
+  RHIBackend,
   ResourceManager,
   Shader,
   ShaderLanguage,
@@ -69,7 +70,7 @@ class ShaderLoader extends Loader<Shader> {
       );
       const shader = Shader._createFromSource(
         qualified,
-        engine?._hardwareRenderer.backend === "webgpu" ? ShaderLanguage.WGSL : ShaderLanguage.GLSLES300,
+        engine?._hardwareRenderer.backend === RHIBackend.WebGPU ? ShaderLanguage.WGSL : ShaderLanguage.GLSLES300,
         sourceFileForShader(url, resourceManager.baseUrl),
         engine?._shaderCompiler,
         builtins,

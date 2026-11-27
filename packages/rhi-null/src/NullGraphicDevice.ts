@@ -1,4 +1,4 @@
-import { GLCapabilityType, SetDataOptions } from "@galacean/engine";
+import { GLCapabilityType, RHIBackend, SetDataOptions } from "@galacean/engine";
 import type {
   IHardwareRenderer,
   IPlatformRenderTarget,
@@ -12,7 +12,7 @@ import { NullTexture2D, NullTexture2DArray, NullTextureCube } from "./NullTextur
 
 /** Graphics resource adapter that never opens a GPU context. */
 export class NullGraphicDevice implements IHardwareRenderer {
-  readonly backend = "null";
+  readonly backend = RHIBackend.Null;
   beginFrame(): void {}
   endFrame(): void {}
   applyRenderState(): void {}

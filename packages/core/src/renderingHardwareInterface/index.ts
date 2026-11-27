@@ -1,3 +1,4 @@
+export { RHIBackend } from "./RHIBackend";
 export { RHIMode } from "./RHIMode";
 export type { EngineGraphicsCapabilities } from "./EngineGraphicsCapabilities";
 export type { IHardwareRenderer } from "./IHardwareRenderer";

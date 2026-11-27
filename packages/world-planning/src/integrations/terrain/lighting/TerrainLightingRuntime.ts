@@ -17,6 +17,7 @@ import {
   DirectLight,
   Entity,
   FogMode,
+  RHIBackend,
   type ProbeVolume,
   type Quaternion,
   RealtimeIBLBaker,
@@ -735,7 +736,7 @@ export class TerrainLightingRuntime {
     });
     this._moonLightIntensityCurve = createConstantDayNightCurve(this._moonLighting.options.fullMoonIntensity);
     const gl =
-      scene.engine._hardwareRenderer.backend === "webgl2"
+      scene.engine._hardwareRenderer.backend === RHIBackend.WebGL2
         ? (scene.engine as unknown as WebGL2EngineInternals)._hardwareRenderer.gl
         : undefined;
     this._iblProfiler = new TerrainIBLProfiler(gl, { enabled: false });

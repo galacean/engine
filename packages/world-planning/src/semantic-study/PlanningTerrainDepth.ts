@@ -4,6 +4,7 @@ import {
   CameraClearFlags,
   Color,
   Layer,
+  RHIBackend,
   RenderTarget,
   Shader,
   Texture2D,
@@ -69,7 +70,7 @@ export class PlanningTerrainDepth {
     this.camera.setReplacementShader(this.shader);
   }
   capture(observer: Observer, width: number, height: number): Uint8Array {
-    if (this.engine.graphicsBackend === "webgpu") {
+    if (this.engine.graphicsBackend === RHIBackend.WebGPU) {
       throw new Error("WebGPU terrain depth readback is asynchronous. Use captureAsync or captureTerrainDepthAsync.");
     }
     const texture = this.render(observer, width, height);

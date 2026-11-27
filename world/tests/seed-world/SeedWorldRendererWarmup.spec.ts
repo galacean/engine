@@ -3,6 +3,7 @@ import {
   DepthTextureMode,
   Matrix,
   MeshRenderer,
+  RHIBackend,
   Renderer,
   RenderQueueType,
   ScreenSpaceReflectionQuality,
@@ -2578,7 +2579,7 @@ describe("renderer warmup scope", () => {
     const webgpuEngine = {
       _macroCollection: new ShaderMacroCollection(),
       _hardwareRenderer: {
-        backend: "webgpu",
+        backend: RHIBackend.WebGPU,
         supportsRendering: true,
         supportsCompute: true,
         supportsTransformFeedback: false,
@@ -2587,7 +2588,7 @@ describe("renderer warmup scope", () => {
     } as any;
     const webglNoExtEngine = {
       _hardwareRenderer: {
-        backend: "webgl2",
+        backend: RHIBackend.WebGL2,
         gl: { getExtension: () => null }
       }
     } as any;

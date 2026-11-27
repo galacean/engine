@@ -10,6 +10,7 @@ export class WebGPUMipmapGenerator {
   private readonly _vertexModule: GPUShaderModule;
   private readonly _fragmentModule: GPUShaderModule;
   private readonly _pipelines = new Map<GPUTextureFormat, GPURenderPipeline>();
+  private readonly _pending = new Map<GPUTextureFormat, Promise<void>>();
 
   private readonly _levels = new WeakMap<GPUTexture, { destination: GPUTextureView; source: GPUBindGroup }[]>();
 
@@ -118,23 +119,54 @@ export class WebGPUMipmapGenerator {
     }
   }
 
+  prewarm(formats: readonly GPUTextureFormat[]): Promise<void> {
+    const tasks: Promise<void>[] = [];
+    for (let i = 0; i < formats.length; i++) {
+      const format = formats[i]!;
+      if (this._pipelines.has(format)) continue;
+      let pending = this._pending.get(format);
+      if (!pending) {
+        pending = this._device
+          .createRenderPipelineAsync(this._descriptor(format))
+          .then(
+            (pipeline) => {
+              this._pipelines.set(format, pipeline);
+            },
+            () => {
+              // Ignore unsupported optional renderable formats on constrained adapters.
+            }
+          )
+          .finally(() => {
+            this._pending.delete(format);
+          });
+        this._pending.set(format, pending);
+      }
+      tasks.push(pending);
+    }
+    return Promise.all(tasks).then(() => {});
+  }
+
+  private _descriptor(format: GPUTextureFormat): GPURenderPipelineDescriptor {
+    return {
+      label: `Galacean mipmap ${format}`,
+      layout: this._pipelineLayout,
+      vertex: {
+        module: this._vertexModule,
+        entryPoint: "main"
+      },
+      fragment: {
+        module: this._fragmentModule,
+        entryPoint: "main",
+        targets: [{ format }]
+      },
+      primitive: { topology: "triangle-list" }
+    };
+  }
+
   private _getPipeline(format: GPUTextureFormat): GPURenderPipeline {
     let pipeline = this._pipelines.get(format);
     if (!pipeline) {
-      pipeline = this._device.createRenderPipeline({
-        label: `Galacean mipmap ${format}`,
-        layout: this._pipelineLayout,
-        vertex: {
-          module: this._vertexModule,
-          entryPoint: "main"
-        },
-        fragment: {
-          module: this._fragmentModule,
-          entryPoint: "main",
-          targets: [{ format }]
-        },
-        primitive: { topology: "triangle-list" }
-      });
+      pipeline = this._device.createRenderPipeline(this._descriptor(format));
       this._pipelines.set(format, pipeline);
     }
     return pipeline;

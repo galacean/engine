@@ -4,7 +4,7 @@ import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { VirtualCamera } from "../VirtualCamera";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
-import { RenderPassDescriptor, RenderPassLoadAction } from "../renderingHardwareInterface";
+import { RHIBackend, RenderPassDescriptor, RenderPassLoadAction } from "../renderingHardwareInterface";
 import { ColorWriteMask, Shader, ShaderProperty } from "../shader";
 import { ShaderTagKey } from "../shader/ShaderTagKey";
 import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
@@ -131,10 +131,10 @@ export class RenderContext {
     this.flipProjection =
       descriptor.faceIndex !== undefined
         ? descriptor.isFlipProjection
-        : descriptor.isFlipProjection && rhi.backend === "webgl2";
+        : descriptor.isFlipProjection && rhi.backend === RHIBackend.WebGL2;
 
     // WebGL gl.clear() is masked by current color/depth/stencil write masks; reset cached masks on core's RenderState before clearing.
-    if (rhi.backend === "webgl2") {
+    if (rhi.backend === RHIBackend.WebGL2) {
       const gl = (rhi as unknown as { gl?: WebGL2RenderingContext }).gl;
       if (gl) {
         const {

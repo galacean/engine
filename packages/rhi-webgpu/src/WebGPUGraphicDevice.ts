@@ -16,6 +16,7 @@ import {
   IPlatformTexture2DArray,
   IPlatformTextureCube,
   Primitive,
+  RHIBackend,
   RenderState,
   RenderStateElementKey,
   RenderTarget,
@@ -103,7 +104,7 @@ export class WebGPUDeviceUnavailableError extends Error {
  */
 export class WebGPUGraphicDevice implements IHardwareRenderer {
   /** Graphics backend implemented by this device. */
-  readonly backend = "webgpu" as const;
+  readonly backend = RHIBackend.WebGPU;
   /** Origin used when sampling WebGPU render-target textures. */
   readonly renderTargetOrigin = "upper-left" as const;
   readonly supportsRendering = true;
@@ -329,6 +330,17 @@ export class WebGPUGraphicDevice implements IHardwareRenderer {
           : undefined;
     this.capability = new WebGPUCapability(device);
     this._mipmapGenerator = new WebGPUMipmapGenerator(device);
+    const mipmapPrewarmFormats: GPUTextureFormat[] = [
+      "rgba8unorm",
+      "rgba8unorm-srgb",
+      "rg8unorm",
+      "r8unorm",
+      "rgba16float"
+    ];
+    if (device.features.has("rg11b10ufloat-renderable")) {
+      mipmapPrewarmFormats.push("rg11b10ufloat");
+    }
+    void this._mipmapGenerator.prewarm(mipmapPrewarmFormats);
     this._gpuTimingProfiler = new WebGPUTimingProfiler(
       device,
       adapter.features.has("timestamp-query"),

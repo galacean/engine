@@ -2,6 +2,7 @@ import { IShaderCompiler, IPrecompiledShader } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { IReferable } from "../asset/IReferable";
+import { RHIBackend } from "../renderingHardwareInterface";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPass } from "./ShaderPass";
@@ -94,7 +95,8 @@ export class Shader implements IReferable {
     if (!Array.isArray(shaderPassesOrSubShadersOrPlatformTarget)) {
       const engine = shaderPassesOrSubShadersOrPlatformTarget;
       if (!engine._shaderCompiler) throw new Error("This engine was created without a shader compiler.");
-      const target = engine._hardwareRenderer.backend === "webgpu" ? ShaderLanguage.WGSL : ShaderLanguage.GLSLES300;
+      const target =
+        engine._hardwareRenderer.backend === RHIBackend.WebGPU ? ShaderLanguage.WGSL : ShaderLanguage.GLSLES300;
       return Shader._createFromSource(
         nameOrShaderSource,
         target,

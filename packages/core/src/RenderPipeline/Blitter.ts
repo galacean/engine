@@ -1,7 +1,7 @@
 import { Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Material } from "../material";
-import { RenderPassDescriptor, RenderPassLoadAction } from "../renderingHardwareInterface";
+import { RHIBackend, RenderPassDescriptor, RenderPassLoadAction } from "../renderingHardwareInterface";
 import { ColorWriteMask, ShaderPass, ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
@@ -70,7 +70,7 @@ export class Blitter {
         ? colorLoadAction
         : RenderPassLoadAction.Load;
 
-    const flipProjection = !!destination && engine._hardwareRenderer.backend === "webgl2";
+    const flipProjection = !!destination && engine._hardwareRenderer.backend === RHIBackend.WebGL2;
     const passDescriptor = Blitter._passDescriptor.reset(destination, viewport, flipProjection, 0);
     passDescriptor.colorLoadAction = resolvedLoadAction;
     passDescriptor.label = pass.name;
@@ -116,7 +116,7 @@ export class Blitter {
     rendererShaderData.setVector4(
       Blitter._sourceScaleOffsetProperty,
       sourceScaleOffset ??
-        (blitMaterial === basicResources.blitScreenMaterial && rhi.backend === "webgl2"
+        (blitMaterial === basicResources.blitScreenMaterial && rhi.backend === RHIBackend.WebGL2
           ? Blitter._flippedScreenScaleOffset
           : Blitter._defaultScaleOffset)
     );

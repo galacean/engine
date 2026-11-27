@@ -1,4 +1,4 @@
-import type { Engine } from "@galacean/engine";
+import { RHIBackend, type Engine } from "@galacean/engine";
 import type { FarmingWorldPresentation } from "@galacean/engine-farming/farming/presentation/FarmingWorldPresentation";
 import {
   TerrainRenderSubmissionMonitor,
@@ -367,7 +367,7 @@ export class TerrainPerformancePanel {
     this._root.querySelector<HTMLButtonElement>("[data-action='hide']")!.addEventListener("click", this._hide);
     this._launcher.addEventListener("click", this._show);
 
-    if (engine.graphicsBackend === "webgpu") {
+    if (engine.graphicsBackend === RHIBackend.WebGPU) {
       this._apiName = "WebGPU · direct RHI draws";
       this._submissionMonitor = new WebGPURenderSubmissionMonitor(engine, SUBMISSION_SAMPLE_FRAME_COUNT);
     } else {

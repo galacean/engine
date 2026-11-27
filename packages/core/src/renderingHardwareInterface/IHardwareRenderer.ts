@@ -1,4 +1,4 @@
-import type { RHIMode } from "./RHIMode";
+import type { RHIBackend } from "./RHIBackend";
 import type { Color, Vector4 } from "@galacean/engine-math";
 import type { Canvas } from "../Canvas";
 import type { Engine } from "../Engine";
@@ -29,7 +29,7 @@ export interface IHardwareRenderer {
   storeExternalProjectionDepth?(source: RenderTarget, viewport: Vector4): void;
   readonly supportsCompute: boolean;
   readonly supportsTransformFeedback: boolean;
-  readonly backend: `${RHIMode.WebGL2 | RHIMode.WebGPU}` | "null";
+  readonly backend: RHIBackend;
   readonly maxUniformBlockSize: number;
   readonly maxUniformBufferBindings: number;
   readonly maxVertexUniformBlocks: number;

@@ -1,3 +1,5 @@
+import type { RHIBackend } from "@galacean/engine";
+
 /** The WebXR WebGPU binding is still an optional browser feature. Keep the GL adapter independently usable. */
 interface XRTexture {
   readonly width: number;
@@ -11,7 +13,7 @@ export interface XRProjectionTarget {
 }
 
 export interface XRProjectionDevice {
-  readonly backend: "webgpu";
+  readonly backend: RHIBackend.WebGPU;
   readonly device: object;
   readonly _options: { depth?: boolean; stencil?: boolean };
   setExternalProjectionTarget(target: XRProjectionTarget | null): void;

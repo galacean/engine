@@ -18,7 +18,7 @@ import { Material } from "../material";
 import type { BasicRenderPipeline } from "../RenderPipeline/BasicRenderPipeline";
 import { Blitter } from "../RenderPipeline/Blitter";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
-import { RenderPassDescriptor, RenderPassLoadAction } from "../renderingHardwareInterface";
+import { RHIBackend, RenderPassDescriptor, RenderPassLoadAction } from "../renderingHardwareInterface";
 import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
@@ -771,7 +771,7 @@ export class PostProcessUberPass extends PostProcessPass {
     const passDescriptor = this._passDescriptor.reset(
       targetRT,
       PipelineUtils.defaultViewport,
-      rhi.backend === "webgl2",
+      rhi.backend === RHIBackend.WebGL2,
       0
     );
     passDescriptor.colorLoadAction = clearTarget ? RenderPassLoadAction.Clear : RenderPassLoadAction.Load;

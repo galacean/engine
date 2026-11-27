@@ -14,6 +14,7 @@ import {
   Color,
   CompareFunction,
   DepthTextureMode,
+  RHIBackend,
   Renderer,
   ParticleRenderer,
   RenderTarget,
@@ -410,7 +411,7 @@ export class SeedWorldPicker {
     return this.frameCapture.request(
       (photo) => {
         const frame = this.captureIdentity(visit, resolveRef, photo, budget);
-        if (this.camera.engine._hardwareRenderer.backend !== "webgpu") return frame;
+        if (this.camera.engine._hardwareRenderer.backend !== RHIBackend.WebGPU) return frame;
         return frame.identities.prepareReadback(signal).then(
           () => frame,
           (error) => {

@@ -21,7 +21,12 @@ import {
   type SunLensFlareScreenState
 } from "../postProcess/effects/SunLensFlareEffect";
 import { VolumetricLightEffect, type VolumetricLightScreenState } from "../postProcess/effects/VolumetricLightEffect";
-import { RenderPassDescriptor, RenderPassLoadAction, RenderPassStoreAction } from "../renderingHardwareInterface";
+import {
+  RHIBackend,
+  RenderPassDescriptor,
+  RenderPassLoadAction,
+  RenderPassStoreAction
+} from "../renderingHardwareInterface";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { SubShader } from "../shader/SubShader";
@@ -404,7 +409,7 @@ export class BasicRenderPipeline {
 
     // Depth use camera's view and projection matrix
     this._cullingResults.setRenderUpdateFlagTrue(ContextRendererUpdateFlag.viewProjectionMatrix);
-    context.applyVirtualCamera(camera._virtualCamera, depthPassEnabled && rhi.backend === "webgl2");
+    context.applyVirtualCamera(camera._virtualCamera, depthPassEnabled && rhi.backend === RHIBackend.WebGL2);
     this._prepareRender(context);
     this._prepareCameraRenderViewCulling(context);
 
@@ -740,7 +745,7 @@ export class BasicRenderPipeline {
     // WebGL textures start at the bottom left. Cube capture uses the opposite winding
     // to match the face orientation used when sampling a cube on both backends.
     const needFlipProjection =
-      !!colorTarget && (rhi.backend === "webgl2") === (!!internalColorTarget || cubeFace == undefined);
+      !!colorTarget && (rhi.backend === RHIBackend.WebGL2) === (!!internalColorTarget || cubeFace == undefined);
     const keepColorFlag = !!internalColorTarget && (~finalClearFlags & CameraClearFlags.Color) !== 0;
     const hasInternalMSAA = !!internalColorTarget && internalColorTarget.antiAliasing > 1;
     const canDiscardInternalDepthStencil =

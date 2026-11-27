@@ -32,7 +32,7 @@ import { ShaderProgramMap } from "./shader/ShaderProgramMap";
 import { ShaderFactory } from "./shader/ShaderFactory";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureFormat } from "./texture";
-import type { IHardwareRenderer } from "./renderingHardwareInterface";
+import { RHIBackend, type IHardwareRenderer } from "./renderingHardwareInterface";
 import { UIUtils } from "./ui/UIUtils";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
@@ -647,7 +647,7 @@ export class Engine extends EventDispatcher {
 
     if (shaderCompiler) {
       shaderCompiler._setIncludeMap(ShaderFactory._getRuntimeIncludes(configuration.builtinShaderIncludes));
-      if (this._hardwareRenderer.backend !== "webgpu" || !Shader._shaderCompiler)
+      if (this._hardwareRenderer.backend !== RHIBackend.WebGPU || !Shader._shaderCompiler)
         Shader._shaderCompiler = shaderCompiler;
     }
 

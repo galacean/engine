@@ -1,4 +1,4 @@
-import { MeshTopology, type Engine } from "@galacean/engine";
+import { MeshTopology, RHIBackend, type Engine } from "@galacean/engine";
 
 interface DirectDrawCounts {
   draws: number;
@@ -20,7 +20,7 @@ const observations = new WeakMap<
 /** Count successful direct WebGPU RHI submissions while one or more product diagnostics are active. */
 export function observeWebGPUDraws(engine: Engine) {
   const rhi = engine._hardwareRenderer;
-  if (rhi?.backend !== "webgpu") return;
+  if (rhi?.backend !== RHIBackend.WebGPU) return;
   let observation = observations.get(rhi);
   if (!observation) {
     const previous = rhi.drawPrimitive;

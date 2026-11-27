@@ -1,10 +1,11 @@
-import type { Engine, RHIMode } from "@galacean/engine-core";
+import type { Engine, RHIBackend, RHIMode } from "@galacean/engine-core";
 import { planningPageUrl } from "./planning/spatial/PlanningPageUrl";
 import { replaceSeedWorldDocumentUrl } from "./SeedWorldDocumentUrl";
 import "./SeedWorldRenderHud.css";
 
 // The DOM exposes string option values. Keep the choices exhaustive without loading the engine on the template screen.
 const rhiLabels: Record<RHIMode, string> = { auto: "自动", webgl2: "WebGL2", webgpu: "WebGPU" };
+const backendLabels: Record<RHIBackend, string> = { webgl2: "WebGL2", webgpu: "WebGPU", null: "—" };
 
 export function mountSeedRenderHud(url: URL) {
   const debug = url.searchParams.get("debug") === "1";
@@ -81,7 +82,7 @@ export function mountSeedRenderHud(url: URL) {
     element,
     track(value: Engine) {
       engine = value;
-      active.textContent = value.graphicsBackend === "null" ? "—" : rhiLabels[value.graphicsBackend];
+      active.textContent = backendLabels[value.graphicsBackend];
       resetSample();
       timer ??= setInterval(sample, 500);
     },

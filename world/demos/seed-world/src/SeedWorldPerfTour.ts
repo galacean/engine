@@ -1,5 +1,5 @@
 import { observeWebGPUDraws } from "@galacean/engine-terrain/terrain/performance/WebGPUDrawCounters";
-import { Vector3, type Camera, type Engine } from "@galacean/engine";
+import { RHIBackend, Vector3, type Camera, type Engine } from "@galacean/engine";
 import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
 import type { PerfCumulativeCounters } from "./MobileFrameCapture";
 import type { AuditedShaderCompile, SeedWorldShaderAuditSnapshot } from "./SeedWorldShaderAudit";
@@ -900,7 +900,7 @@ export function createSeedWorldPerfTour(options: SeedWorldPerfTourOptions): Seed
     const rect = canvas.getBoundingClientRect();
     const report: SeedWorldPerfTourReport = {
       kind: "seed-world-perf-tour",
-      ...(engine.graphicsBackend === "webgpu" && {
+      ...(engine.graphicsBackend === RHIBackend.WebGPU && {
         drawScope: "webgpu-direct" as const,
         unmeasuredIndexedStrips: frames.reduce((sum, frame) => sum + (frame.unmeasuredIndexedStrips ?? 0), 0)
       }),

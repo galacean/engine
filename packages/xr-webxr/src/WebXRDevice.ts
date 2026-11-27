@@ -1,4 +1,4 @@
-import type { WebGLGraphicDevice } from "@galacean/engine";
+import { RHIBackend, type WebGLGraphicDevice } from "@galacean/engine";
 import { IXRDevice } from "@galacean/engine-design";
 import { XRFeatureType, XRSessionMode } from "@galacean/engine-xr";
 import { parseXRMode } from "./Util";
@@ -52,11 +52,11 @@ export class WebXRDevice implements IXRDevice {
     platformFeatures: WebXRFeature[]
   ): Promise<WebXRSession> {
     const rhi = graphicsDevice as WebGLGraphicDevice | XRProjectionDevice | null;
-    const gpu = rhi?.backend === "webgpu";
+    const gpu = rhi?.backend === RHIBackend.WebGPU;
     const Binding = getXRGPUBinding();
     if (gpu && !Binding)
       return Promise.reject(new Error("WebXR with WebGPU requires browser support for XRGPUBinding."));
-    if (!rhi || (!gpu && rhi.backend !== "webgl2"))
+    if (!rhi || (!gpu && rhi.backend !== RHIBackend.WebGL2))
       return Promise.reject(new Error("WebXR requires a WebGL2 or WebGPU graphics device."));
     const options: XRSessionInit = { requiredFeatures: gpu ? ["local", "webgpu"] : ["local"], optionalFeatures: [] };
     const featuresReady = new Promise<void[]>((resolve) => {
@@ -89,7 +89,7 @@ export class WebXRDevice implements IXRDevice {
     session: XRSession,
     Binding: ReturnType<typeof getXRGPUBinding>
   ): Promise<WebXRSession> {
-    if (rhi.backend === "webgpu") {
+    if (rhi.backend === RHIBackend.WebGPU) {
       const binding = new Binding!(session, rhi.device);
       const { depth, stencil } = rhi._options;
       const layer = binding.createProjectionLayer({

@@ -17,6 +17,7 @@ import {
   MeshRenderer,
   ParticleRenderer,
   type Primitive,
+  RHIBackend,
   Renderer,
   RenderQueueType,
   type RenderTarget,
@@ -33,7 +34,9 @@ import {
   ShadowType,
   type SubPrimitive,
   SunLensFlareEffect,
+  TextureFilterMode,
   TextureFormat,
+  TextureWrapMode,
   Vector3,
   VolumetricLightQuality
 } from "@galacean/engine";
@@ -433,7 +436,10 @@ interface WebGPUWarmupRegistry {
 const webgpuWarmupRegistries = new WeakMap<Engine, WebGPUWarmupRegistry>();
 
 function isWebGPUEngine(engine: Engine): boolean {
-  return (engine as unknown as { _hardwareRenderer?: { backend?: string } })._hardwareRenderer?.backend === "webgpu";
+  return (
+    (engine as unknown as { _hardwareRenderer?: { backend?: RHIBackend } })._hardwareRenderer?.backend ===
+    RHIBackend.WebGPU
+  );
 }
 
 function getOrCreateWebGPUWarmupRegistry(engine: Engine): WebGPUWarmupRegistry {
@@ -576,7 +582,9 @@ async function warmupSeedWorldShaderVariantsWebGPU(
           needDepthTexture: boolean,
           mipMap: boolean,
           isSRGB: boolean,
-          msaaSamples: number
+          msaaSamples: number,
+          wrapMode: TextureWrapMode,
+          filterMode: TextureFilterMode
         ) => RenderTarget;
         freeRenderTarget: (rt: RenderTarget) => void;
       };
@@ -589,6 +597,8 @@ async function warmupSeedWorldShaderVariantsWebGPU(
   let shadowRT: RenderTarget | null | undefined;
   let depthOnlyRT: RenderTarget | null | undefined;
   let ldrNoDepthRT: RenderTarget | null | undefined;
+  let rgba16fNoDepthRT: RenderTarget | null | undefined;
+  let rg16fNoDepthRT: RenderTarget | null | undefined;
   const forwardTargetsByCamera = new WeakMap<Camera, RenderTarget | null>();
   const hdrNoDepthTargetsByCamera = new WeakMap<Camera, RenderTarget | null>();
 
@@ -597,7 +607,8 @@ async function warmupSeedWorldShaderVariantsWebGPU(
     depthFormat: TextureFormat | null,
     needDepthTexture: boolean,
     isSRGB: boolean,
-    msaaSamples: number
+    msaaSamples: number,
+    filterMode: TextureFilterMode = TextureFilterMode.Point
   ): RenderTarget | null => {
     if (!rtPool) return null;
     try {
@@ -609,7 +620,9 @@ async function warmupSeedWorldShaderVariantsWebGPU(
         needDepthTexture,
         false,
         isSRGB,
-        msaaSamples
+        msaaSamples,
+        TextureWrapMode.Clamp,
+        filterMode
       );
       allocatedTargets.push(rt);
       return rt;
@@ -632,40 +645,50 @@ async function warmupSeedWorldShaderVariantsWebGPU(
     }
     if (target.stage === "ShadowCaster") {
       if (shadowRT === undefined) {
-        shadowRT = allocateTempRT(null, TextureFormat.Depth16, true, false, 1);
+        shadowRT = allocateTempRT(null, TextureFormat.Depth16, true, false, 1, TextureFilterMode.Bilinear);
       }
       return shadowRT ? [shadowRT] : [];
     }
-    if (target.stage === "DepthOnly") {
+    if (target.stage === "DepthOnly" || target.stage === "SSRContributionDepth") {
       if (depthOnlyRT === undefined) {
-        depthOnlyRT = allocateTempRT(null, TextureFormat.Depth24, true, false, 1);
+        depthOnlyRT = allocateTempRT(null, TextureFormat.Depth24, true, false, 1, TextureFilterMode.Point);
       }
       return depthOnlyRT ? [depthOnlyRT] : [];
     }
-    if (target.stage === "SSRReceiver" || target.stage === "SSRContributionDepth") {
+    if (target.stage === "SSRReceiver") {
       return [];
     }
     const isBlitOrPost = target.stage === "Forward" && target.renderer === undefined && target.renderToTexture === true;
     if (isBlitOrPost) {
       const rts: (RenderTarget | null)[] = [];
-      if (!hdrNoDepthTargetsByCamera.has(target.camera)) {
-        const fmt = cam._getInternalColorTextureFormat?.() ?? TextureFormat.R8G8B8A8_UNorm;
-        const isSRGB = !(cam._isInternalFormatHDR?.() ?? false);
-        hdrNoDepthTargetsByCamera.set(target.camera, allocateTempRT(fmt, null, false, isSRGB, 1));
+      if (target.camera) {
+        if (!hdrNoDepthTargetsByCamera.has(target.camera)) {
+          const fmt = cam._getInternalColorTextureFormat?.() ?? TextureFormat.R8G8B8A8_UNorm;
+          const isSRGB = !(cam._isInternalFormatHDR?.() ?? false);
+          hdrNoDepthTargetsByCamera.set(target.camera, allocateTempRT(fmt, null, false, isSRGB, 1));
+        }
+        const hdrRt = hdrNoDepthTargetsByCamera.get(target.camera);
+        if (hdrRt) rts.push(hdrRt);
       }
-      const hdrRt = hdrNoDepthTargetsByCamera.get(target.camera);
-      if (hdrRt) rts.push(hdrRt);
+      if (rgba16fNoDepthRT === undefined) {
+        rgba16fNoDepthRT = allocateTempRT(TextureFormat.R16G16B16A16_SFloat, null, false, false, 1);
+      }
+      if (rgba16fNoDepthRT && !rts.includes(rgba16fNoDepthRT)) rts.push(rgba16fNoDepthRT);
+      if (rg16fNoDepthRT === undefined) {
+        rg16fNoDepthRT = allocateTempRT(TextureFormat.R16G16_SFloat, null, false, false, 1);
+      }
+      if (rg16fNoDepthRT && !rts.includes(rg16fNoDepthRT)) rts.push(rg16fNoDepthRT);
       if (ldrNoDepthRT === undefined) {
         ldrNoDepthRT = allocateTempRT(TextureFormat.R8G8B8A8_UNorm, null, false, false, 1);
       }
-      if (ldrNoDepthRT && ldrNoDepthRT !== hdrRt) rts.push(ldrNoDepthRT);
+      if (ldrNoDepthRT && !rts.includes(ldrNoDepthRT)) rts.push(ldrNoDepthRT);
       return rts;
     }
     // Forward / Sky / Particle renderers targeting the camera's internal color target (or swapchain).
-    if (cam.renderTarget) {
+    if (cam?.renderTarget) {
       return [cam.renderTarget];
     }
-    if (cam._isIndependentCanvasEnabled?.()) {
+    if (target.camera && cam?._isIndependentCanvasEnabled?.()) {
       if (!forwardTargetsByCamera.has(target.camera)) {
         const msaa = Math.min(cam.msaaSamples ?? 1, maxAntiAliasing);
         let rt: RenderTarget | null = null;
@@ -760,14 +783,33 @@ async function warmupSeedWorldShaderVariantsWebGPU(
               }
             )._platformProgram;
             if (platform?.prewarm && target.primitive && target.subPrimitives?.length) {
-              const state = (
-                pass as unknown as {
-                  _renderState?: {
-                    _resolve?: (eng: Engine, map: unknown, matData?: ShaderData) => unknown;
-                  };
-                  _renderStateDataMap?: unknown;
+              const passStateHost = pass as unknown as {
+                _renderState?: {
+                  _resolve?: (eng: Engine, map: unknown, matData?: ShaderData) => unknown;
+                };
+                _renderStateDataMap?: unknown;
+              };
+              const renderContext = (engine as unknown as { _renderContext?: { shadowDepthBias?: boolean } })
+                ._renderContext;
+              const isShadowStage = target.stage === "ShadowCaster";
+              const prevShadowDepthBias = renderContext?.shadowDepthBias;
+              let state: unknown;
+              try {
+                if (isShadowStage && renderContext) {
+                  renderContext.shadowDepthBias = true;
                 }
-              )._renderState?._resolve?.(engine, pass._renderStateDataMap, target.material?.shaderData);
+                state = target.material?.shaderData
+                  ? passStateHost._renderState?._resolve?.(
+                      engine,
+                      passStateHost._renderStateDataMap,
+                      target.material.shaderData
+                    )
+                  : passStateHost._renderState;
+              } finally {
+                if (isShadowStage && renderContext) {
+                  renderContext.shadowDepthBias = prevShadowDepthBias;
+                }
+              }
               if (state) {
                 const renderTargets = getTargetsForStage(target);
                 const seenTopologies = new Set<number>();
@@ -1344,7 +1386,7 @@ function collectSeedWorldRendererVariantsInternal(
       };
     }
   )._hardwareRenderer;
-  const isWebGPU = runtimeHardware?.backend === "webgpu";
+  const isWebGPU = runtimeHardware?.backend === RHIBackend.WebGPU;
   const supportsRendering = runtimeHardware?.supportsRendering !== false;
   const supportsTransformFeedback = runtimeHardware?.supportsTransformFeedback ?? !isWebGPU;
   const webgpuRegistry = isWebGPU ? getOrCreateWebGPUWarmupRegistry(engine) : undefined;

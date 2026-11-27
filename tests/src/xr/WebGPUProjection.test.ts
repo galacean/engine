@@ -4,6 +4,7 @@ import {
   Matrix,
   MeshRenderer,
   PrimitiveMesh,
+  RHIBackend,
   UnlitMaterial,
   WebGPUEngine,
   WebGPUGraphicDevice
@@ -15,7 +16,7 @@ import { expect, it, vi } from "vitest";
 it("reports missing XRGPUBinding before requesting a WebGPU session", async () => {
   vi.stubGlobal("XRGPUBinding", undefined);
   try {
-    const backend = { backend: "webgpu" as const, device: {}, _options: {}, setExternalProjectionTarget() {} };
+    const backend = { backend: RHIBackend.WebGPU, device: {}, _options: {}, setExternalProjectionTarget() {} };
     await expect(new WebXRDevice().requestSession(backend, XRSessionMode.VR, [])).rejects.toThrow("XRGPUBinding");
   } finally {
     vi.unstubAllGlobals();
@@ -37,7 +38,7 @@ it("ends an acquired session and preserves the projection error if cleanup also 
       }
     }
   );
-  const device = { backend: "webgpu", device: {}, _options: {} };
+  const device = { backend: RHIBackend.WebGPU, device: {}, _options: {} };
   return expect(new WebXRDevice().requestSession(device, XRSessionMode.VR, []))
     .rejects.toBe(failure)
     .then(() => expect(end).toHaveBeenCalledOnce())

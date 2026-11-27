@@ -12,6 +12,7 @@ import {
   ContentRestorer,
   Engine,
   Material,
+  RHIBackend,
   Texture,
   Texture2D,
   Texture2DArray,
@@ -177,7 +178,7 @@ export interface TerrainAlphamapAtlasPatch {
 }
 
 function maxArrayTextureLayers(device: Engine["_hardwareRenderer"]): number {
-  if (device.backend === "webgpu") return (device as WebGPUGraphicDevice).device.limits.maxTextureArrayLayers;
+  if (device.backend === RHIBackend.WebGPU) return (device as WebGPUGraphicDevice).device.limits.maxTextureArrayLayers;
   const gl = (device as WebGLGraphicDevice).gl;
   return gl.getParameter(gl.MAX_ARRAY_TEXTURE_LAYERS);
 }

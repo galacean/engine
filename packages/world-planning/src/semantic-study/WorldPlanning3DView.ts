@@ -7,6 +7,7 @@ import {
   PBRMaterial,
   PrimitiveMesh,
   Ray,
+  RHIBackend,
   RHIMode,
   RenderFace,
   Script,
@@ -190,7 +191,7 @@ export class WorldPlanning3DView {
     this.engine = engine;
     this.canvas.dataset.rhi = this.engine.graphicsBackend;
     this.canvas.dataset.renderer =
-      this.engine.graphicsBackend === "webgpu" ? "galacean-webgpu-depth" : "galacean-webgl-depth";
+      this.engine.graphicsBackend === RHIBackend.WebGPU ? "galacean-webgpu-depth" : "galacean-webgl-depth";
     const scene = this.engine.sceneManager.activeScene!;
     scene.background.solidColor.set(...planningColor(PLANNING_OBJECT_CSS.ocean), 1);
 

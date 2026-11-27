@@ -1,5 +1,5 @@
 import { expect, it, vi } from "vitest";
-import { type Engine, type Material } from "@galacean/engine";
+import { RHIBackend, type Engine, type Material } from "@galacean/engine";
 import { createTerrainClipmapMaterialBinding } from "@galacean/engine-terrain/terrain/clipmap/TerrainClipmapMaterial";
 import {
   packTerrainHeightAtlas,
@@ -98,7 +98,7 @@ function fixture(sources = [source()], withAlpha = false) {
   const material = { name: "test", clone: () => ({ shaderData, destroy() {} }) } as unknown as Material;
   const engine = {
     _hardwareRenderer: {
-      backend: "webgl2",
+      backend: RHIBackend.WebGL2,
       capability: { maxTextureSize: 1024 },
       gl: { MAX_ARRAY_TEXTURE_LAYERS: 0x88ff, getParameter: () => 1024 }
     },

@@ -22,6 +22,7 @@ import {
   Logger,
   Platform,
   Primitive,
+  RHIBackend,
   RenderPassDescriptor,
   RenderPassLoadAction,
   RenderPassStoreAction,
@@ -92,7 +93,7 @@ interface UniformBufferRanges {
  * WebGL graphic device, using WebGL2.0.
  */
 export class WebGLGraphicDevice implements IHardwareRenderer {
-  readonly backend = "webgl2";
+  readonly backend = RHIBackend.WebGL2;
   beginFrame(): void {}
   endFrame(): void {}
 

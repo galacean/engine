@@ -19,7 +19,7 @@ import { ShaderPart } from "./ShaderPart";
 import { ShaderProgramMap } from "./ShaderProgramMap";
 import type { ShaderTextureOptions } from "./ShaderTextureLayout";
 import { ShaderProgram } from "./ShaderProgram";
-import type { IPlatformShaderSource } from "../renderingHardwareInterface";
+import { RHIBackend, type IPlatformShaderSource } from "../renderingHardwareInterface";
 import type { Primitive } from "../graphic/Primitive";
 import type { Mesh } from "../graphic/Mesh";
 import type { MeshRenderer } from "../mesh/MeshRenderer";
@@ -244,7 +244,7 @@ export class ShaderPass extends ShaderPart {
     const cacheOnly = primitiveOrCache === true;
     let shaderProgramMap = engine._getShaderProgramMap(this._shaderPassId, this._shaderProgramMaps);
     if (feedbackVaryings) shaderProgramMap = shaderProgramMap.specialize("feedback");
-    if (primitive && engine._hardwareRenderer.backend === "webgpu") {
+    if (primitive && engine._hardwareRenderer.backend === RHIBackend.WebGPU) {
       shaderProgramMap = shaderProgramMap.specialize(primitive._getShaderInputs().key);
     }
     let shaderProgram = shaderProgramMap.get(macroCollection);
@@ -405,10 +405,10 @@ export class ShaderPass extends ShaderPart {
     }
     const isGPUInstance = macroCollection.isEnable(InstanceBuffer.gpuInstanceMacro);
     const device = engine._hardwareRenderer;
-    const vertexInputTypes = device.backend === "webgpu" ? primitive?._getShaderInputs().types : undefined;
+    const vertexInputTypes = device.backend === RHIBackend.WebGPU ? primitive?._getShaderInputs().types : undefined;
     const baked = this._wgsl;
     const canUseBaked =
-      device.backend === "webgpu" &&
+      device.backend === RHIBackend.WebGPU &&
       !!baked &&
       !isGPUInstance &&
       !feedbackVaryings?.length &&
@@ -420,7 +420,7 @@ export class ShaderPass extends ShaderPart {
       return this._createBakedProgram(engine, baked!);
     }
     const map = engine._getShaderProgramMap(this._shaderPassId, this._shaderProgramMaps);
-    if (device.backend === "webgpu") {
+    if (device.backend === RHIBackend.WebGPU) {
       return this._compileWebGPUProgram(
         engine,
         macroCollection,
@@ -646,7 +646,7 @@ export class ShaderPass extends ShaderPart {
     ShaderMacro._getMacrosElements(macroCollection, shaderMacroList);
     shaderMacroList.push(
       ShaderMacro.getByName(
-        engine._hardwareRenderer.backend === "webgpu" ? "GRAPHICS_API_WEBGPU" : "GRAPHICS_API_WEBGL2"
+        engine._hardwareRenderer.backend === RHIBackend.WebGPU ? "GRAPHICS_API_WEBGPU" : "GRAPHICS_API_WEBGL2"
       )
     );
     shaderMacroList.push(ShaderMacro.getByName("HAS_TEX_LOD"));
@@ -665,7 +665,7 @@ export class ShaderPass extends ShaderPart {
     macroMap.set("__VERSION__", "300");
 
     const plan = this._uniformPlan;
-    const webgpu = engine._hardwareRenderer.backend === "webgpu";
+    const webgpu = engine._hardwareRenderer.backend === RHIBackend.WebGPU;
     const normalize = webgpu && !plan && engine._webGPUShaderCompiler?.normalizeRawStage;
     const vertexInstructions = normalize ? normalize(this._vertexShaderInstructions) : this._vertexShaderInstructions;
     const fragment =
@@ -721,7 +721,7 @@ export class ShaderPass extends ShaderPart {
       }
     } else if (
       isGPUInstance &&
-      engine._hardwareRenderer.backend === "webgpu" &&
+      engine._hardwareRenderer.backend === RHIBackend.WebGPU &&
       engine._webGPUShaderCompiler?.recoverLegacyInstancing
     ) {
       // Keep the realtime IBL output buffer as an external block while recovering historical fields.

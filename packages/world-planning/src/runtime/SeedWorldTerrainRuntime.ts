@@ -33,6 +33,7 @@ import {
 } from "./SeedWorldGrassTerrainSurface.ts";
 import {
   AssetType,
+  RHIBackend,
   Camera,
   Color,
   type Engine,
@@ -567,7 +568,7 @@ export class SeedWorldTerrainRuntime {
             : undefined;
         const layers = buildLayerSources(fields, surfaceIntent, soilTexture, surface);
         const resources = { terrainMaterial, surfacePair, soilTexture, microNormal, surface, layers };
-        if (engine._hardwareRenderer.backend !== "webgpu") return resources;
+        if (engine._hardwareRenderer.backend !== RHIBackend.WebGPU) return resources;
         // Layer packing resamples on the CPU; read each source texture once before constructing the clipmap.
         const inputs = new Set<Texture2D>();
         for (const region of layers) {

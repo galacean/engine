@@ -1,4 +1,4 @@
-import type { Engine } from "@galacean/engine";
+import { RHIBackend, type Engine } from "@galacean/engine";
 import { simplifySpirvNoise } from "./SimplifySpirvNoise";
 import { flattenShaderSource, optimizeStorageReads } from "./OptimizeStorageReads";
 
@@ -21,7 +21,7 @@ interface Layout {
   size: number;
   fields?: Array<Field & { offset: number }>;
 }
-export function engineShaderSource(source: string, backend: Engine["graphicsBackend"] = "webgl2") {
+export function engineShaderSource(source: string, backend: Engine["graphicsBackend"] = RHIBackend.WebGL2) {
   source = simplifySpirvNoise(source);
   source = optimizeStorageReads(source);
   // EngineResidentScene publishes the ordinary column-vector camera transform
@@ -159,7 +159,7 @@ export function engineShaderSource(source: string, backend: Engine["graphicsBack
   }
   source = source.slice(0, start) + readers.join("\n") + "\n" + source.slice(start);
   source = source.replace("void main(){", `void main(){${initializers.join("")}`);
-  if (backend === "webgpu") source = normalizeRecoveredAggregates(source);
+  if (backend === RHIBackend.WebGPU) source = normalizeRecoveredAggregates(source);
   return { source: flattenShaderSource(dormerUniform + source.replace(/^#version 300 es\s*/, "")), blocks };
 }
 

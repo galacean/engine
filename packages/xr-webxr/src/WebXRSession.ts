@@ -1,4 +1,4 @@
-import type { WebGLGraphicDevice } from "@galacean/engine";
+import { RHIBackend, type WebGLGraphicDevice } from "@galacean/engine";
 import { IXRInputEvent, IXRSession } from "@galacean/engine-design";
 import { XRInputEventType, XRTargetRayMode, XRTrackedInputDevice } from "@galacean/engine-xr";
 import { getInputSource } from "./Util";
@@ -133,7 +133,7 @@ export class WebXRSession implements IXRSession {
 
   onUpdate(): void {
     const { _rhi: rhi, _platformLayer: layer } = this;
-    if (rhi.backend === "webgl2" && "framebuffer" in layer)
+    if (rhi.backend === RHIBackend.WebGL2 && "framebuffer" in layer)
       rhi.setExternalFramebuffer(layer.framebuffer, layer.framebufferWidth, layer.framebufferHeight);
   }
 
@@ -151,7 +151,7 @@ export class WebXRSession implements IXRSession {
   }
 
   beginView(eye: XREye): boolean {
-    if (this._rhi.backend === "webgl2") return true;
+    if (this._rhi.backend === RHIBackend.WebGL2) return true;
     const target = this._targets[eye];
     if (!target) return false;
     this._rhi.setExternalProjectionTarget(target);
@@ -159,7 +159,7 @@ export class WebXRSession implements IXRSession {
   }
 
   endView(): void {
-    if (this._rhi.backend === "webgpu") this._rhi.setExternalProjectionTarget(null);
+    if (this._rhi.backend === RHIBackend.WebGPU) this._rhi.setExternalProjectionTarget(null);
   }
 
   start(): void {}
@@ -215,7 +215,7 @@ export class WebXRSession implements IXRSession {
   }
 
   private _clearMainFrameBuffer(): void {
-    if (this._rhi.backend === "webgl2") this._rhi.setExternalFramebuffer(null, 0, 0);
+    if (this._rhi.backend === RHIBackend.WebGL2) this._rhi.setExternalFramebuffer(null, 0, 0);
     else {
       this.endView();
       this._targets.left = this._targets.right = this._targets.none = undefined;

@@ -15,7 +15,12 @@ import { PipelineStage } from "../../RenderPipeline/enums/PipelineStage";
 import type { RenderQueue } from "../../RenderPipeline/RenderQueue";
 import { CameraClearFlags } from "../../enums/CameraClearFlags";
 import { Material } from "../../material/Material";
-import { IHardwareRenderer, RenderPassLoadAction, RenderPassStoreAction } from "../../renderingHardwareInterface";
+import {
+  IHardwareRenderer,
+  RHIBackend,
+  RenderPassLoadAction,
+  RenderPassStoreAction
+} from "../../renderingHardwareInterface";
 import { CompareFunction, Shader, ShaderData, ShaderMacro, ShaderProperty } from "../../shader";
 import { ShaderMacroCollection } from "../../shader/ShaderMacroCollection";
 import { RenderStateElementKey } from "../../shader/enums/RenderStateElementKey";
@@ -770,7 +775,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
 
     try {
       // Ensure offscreen projection convention matches DepthOnly/SSRReceiver/Forward-to-RT.
-      const flipOffscreen = rhi.backend === "webgl2";
+      const flipOffscreen = rhi.backend === RHIBackend.WebGL2;
       cullingResults.setRenderUpdateFlagTrue(ContextRendererUpdateFlag.ProjectionMatrix);
       context.applyVirtualCamera(camera._virtualCamera, flipOffscreen);
 
@@ -2338,7 +2343,7 @@ export class ScreenSpaceReflectionPass extends PipelinePass {
     }
 
     // WebGPU scissors index rows from the top of the render target.
-    const scissorY = this.engine._hardwareRenderer.backend === "webgpu" ? traceH - y1 : y0;
+    const scissorY = this.engine._hardwareRenderer.backend === RHIBackend.WebGPU ? traceH - y1 : y0;
     this._receiverScissor.set(x0, scissorY, x1 - x0, y1 - y0);
     return true;
   }

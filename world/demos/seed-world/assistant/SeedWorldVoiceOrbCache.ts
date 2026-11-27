@@ -3,6 +3,7 @@ import {
   Engine,
   Material,
   Matrix,
+  RHIBackend,
   RenderPassDescriptor,
   RenderPassLoadAction,
   RenderTarget,
@@ -335,7 +336,7 @@ export class SeedWorldVoiceOrbCache {
       const passDescriptor = this._passDescriptor.reset(
         this._renderTarget,
         DEFAULT_VIEWPORT,
-        rhi.backend === "webgl2",
+        rhi.backend === RHIBackend.WebGL2,
         0
       );
       passDescriptor.colorLoadAction = RenderPassLoadAction.DontCare;

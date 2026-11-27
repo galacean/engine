@@ -7,7 +7,7 @@ import { ContextRendererUpdateFlag, RenderContext } from "../RenderPipeline/Rend
 import { RenderQueue } from "../RenderPipeline/RenderQueue";
 import { PipelineStage } from "../RenderPipeline/index";
 import { DirectLight } from "../lighting";
-import { RenderPassLoadAction, RenderPassStoreAction } from "../renderingHardwareInterface";
+import { RHIBackend, RenderPassLoadAction, RenderPassStoreAction } from "../renderingHardwareInterface";
 import { ShaderProperty } from "../shader";
 import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { TextureFilterMode } from "../texture";
@@ -509,6 +509,6 @@ export class CascadedShadowCasterPass extends PipelinePass {
     opaqueQueue.rendererUpdateFlag |= ContextRendererUpdateFlag.viewProjectionMatrix;
     alphaTestQueue.rendererUpdateFlag |= ContextRendererUpdateFlag.viewProjectionMatrix;
 
-    context.applyVirtualCamera(virtualCamera, this.engine._hardwareRenderer.backend === "webgl2");
+    context.applyVirtualCamera(virtualCamera, this.engine._hardwareRenderer.backend === RHIBackend.WebGL2);
   }
 }

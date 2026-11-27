@@ -5,7 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { DisorderedArray } from "@galacean/engine-core";
+import { DisorderedArray, RHIBackend } from "@galacean/engine-core";
 import { sha256Portable } from "@galacean/engine-building/building/runtime/Sha256.js";
 import {
   attachMobileFrameCapture,
@@ -194,7 +194,7 @@ describe("Seed World perf capture accuracy & first-principles invariants", () =>
 
   it("counts successful instanced WebGPU primitives and reports indexed strips separately", () => {
     const original = vi.fn();
-    const rhi = { backend: "webgpu", drawPrimitive: original };
+    const rhi = { backend: RHIBackend.WebGPU, drawPrimitive: original };
     const engine = { _hardwareRenderer: rhi } as any;
     const counts = observeWebGPUDraws(engine)!;
     const panel = new WebGPURenderSubmissionMonitor(engine, 2);

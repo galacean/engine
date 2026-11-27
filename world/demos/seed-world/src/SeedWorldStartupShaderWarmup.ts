@@ -84,6 +84,11 @@ export interface SeedWorldStartupShaderWarmupDeps {
    * or deferred to post-ready idle warmup on synchronous (`parallel=false`) mobile GPUs. */
   readonly deferredBackgroundMaterials?: SeedWorldRendererWarmupOptions["additionalBackgroundMaterials"];
   /**
+   * When false, compile the full variant set (primary + secondary + offscreen) before startup warmup resolves
+   * instead of deferring offscreen/secondary variants to post-ready background warmup. Defaults to `!agentTraceEnabled`.
+   */
+  readonly deferSecondary?: boolean;
+  /**
    * When true (production startup), defer preparing offscreen secondary handles (distant animal
    * species GLBs, unmaterialized vegetation species, offscreen inactive roots, assistant HUD) and
    * collecting `allVariants` until `collectDeferredVariants()` is invoked after first-screen reveal.
@@ -239,7 +244,7 @@ export async function runSeedWorldStartupShaderWarmup(
   let ssrVerifyReceiverDepth = false;
   let shaderWarmup: SeedWorldShaderWarmupReport;
   const agentTraceEnabled = deps.pageUrl.searchParams.get("agentTrace") === "1";
-  const deferSecondary = !agentTraceEnabled;
+  const deferSecondary = deps.deferSecondary ?? !agentTraceEnabled;
   const deferSecondaryPrep = deferSecondary && Boolean(deps.deferSecondaryCollection);
   const parallelCompile = ops.hasParallelShaderCompile(deps.engine);
   const precompileCoreMasonry =
