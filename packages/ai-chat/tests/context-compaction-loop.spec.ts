@@ -280,7 +280,7 @@ it("applies telemetry-adaptive session compaction budgets and steps up only on a
   });
   request.mockResolvedValueOnce(final());
   const session500 = new AIChatSession({ agent: createTestAgentLoop({ tools: [], definition }) });
-  await session500.run("500k task", { model: "dsv41flash" });
+  await session500.run("500k task");
   expect(request.mock.calls[0][0].contextCompaction).toEqual({ version: 2, protectedPrefixLength: 3 });
   expect(request.mock.calls[1][0].contextCompaction).toEqual({
     version: 2,

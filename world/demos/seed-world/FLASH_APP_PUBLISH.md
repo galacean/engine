@@ -141,9 +141,11 @@ node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
 每个应用只有在 **OSS 上传、数据库注册、Artifact 版本更新、Entry URL** 四部分全部成功后才算完成：
 
 1. **6 个 Entry URL 核验**：逐一打开汇总表中的 6 个 Entry URL，确认页面已注入本次 `window.artifactId` / `window.artifactVersion`，免弹窗直接进入对应模板 3D 世界，局内无跨模板切换入口，AI Chat 可用。
-2. **新申请 5 个 ID 的线上能力与 ASAP 路由放行**：
+2. **新申请 5 个 ID 的线上能力与 ASAP 专用流式 Action 核验**：
    - 编排器自动登记新 `artifactId` 并创建 `world_save` 表；
-   - 5 个新 `artifactId` 需开放 `AI_STREAM_CHAT` 能力声明，且必须加入 `asap-service` 配置 `common_config.mini_app_ai_chat_model_mapping_enabled_artifact_ids`（目前该白名单只含 `original` 的 `flashapp-a3c0e021cb8cadb0`），否则 `model: "dsv41flash"` 不会路由到 `aisearch_dsv41flash`（核对 Agent Trace `debug.modelName` 与服务端 digest）。
+   - 确认线上壳提供 `window.lingguang.ai.seedWorldStream` 和 `seedWorldStop`；
+   - 目标 ASAP 通过专用 action 选模，接收顶层工具声明、多轮消息和图片；
+   - 核对实际 Agent Trace 的 `debug.modelRoute=seed_world_action` 和 `debug.modelName=aisearch_dsv41flash`。
 3. **共享存档与权限策略核验**：对 5 个新应用验证克隆新实例获得 `MANAGER` 且表为空、原实例访客（`USER`）允许读存档并拒绝写入。
 4. **灵光侧正式上架**：PUGC 更新后，在灵光侧为需要更新分享链接的应用重新执行正式发布 / 上架，并确认分享页内层 `meta[name="flash-app-html-url"]` 与主 JS hash 已切到本次 Entry。
 
@@ -158,3 +160,4 @@ node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
 | 完成登记失败，输出 `--resume-release <id>` | 产物已部署，登记结果待确认 | 用输出的命令重放本机发布回执。该命令只完成原预留版本的登记 |
 | `Artifact type differs from the ASAP registry` | 发布类型与线上记录不一致 | 核对该应用的登记类型和 `flash-apps.json` 后重试 |
 | `ASAP registry does not match` 或 `check ASAP registry access` | 发布机无法访问目标登记库，或 PUGC HTTP 服务与登记库指向不同环境 | 在发布机运行 `--verify-registry`，核对连接和服务环境后再发布 |
+| Trace 路由异常或无工具调用 | 目标环境的专用 action 或 SDK 尚未就绪 | 核对壳方法、请求工具声明与 ASAP Trace 的 `modelRoute`、`modelName` |

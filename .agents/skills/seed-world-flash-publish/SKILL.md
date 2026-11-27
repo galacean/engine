@@ -126,6 +126,6 @@ node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
 
 并明确提醒用户完成线上侧验收：
 1. **6 个 Entry URL 逐一核验**：确认注入本次 `window.artifactId` / `window.artifactVersion`，免弹窗直达各自模板 3D 世界，局内无跨模板切换按钮，AI Chat 正常。
-2. **新申请 5 个 ID 的白名单与能力声明**：新 `artifactId` 与 `world_save` 表均由脚本自动生成/登记，无需人工去平台申请 ID；但 `asap-service` 的 `dsv41flash -> aisearch_dsv41flash` 路由目前受 `common_config.mini_app_ai_chat_model_mapping_enabled_artifact_ids` 白名单门控（当前仅包含 `original` 的 `flashapp-a3c0e021cb8cadb0`），因此**必须将新生成的 5 个 `artifactId` 补进该白名单配置**并确认已开放 `AI_STREAM_CHAT` 能力声明（核对 Agent Trace `debug.modelName` 及服务端 digest）。
+2. **专用流式 Action 与壳能力验收**：新 `artifactId` 与 `world_save` 表均由脚本自动生成/登记，无需人工去平台申请 ID；在目标环境的闪应用壳中打开游戏，确认游戏实际加载的 SDK 同时提供 `window.lingguang.ai.seedWorldStream` 和 `window.lingguang.ai.seedWorldStop`。开启 Agent Trace，发送一条消息并等待回复，核对该请求的 ASAP 回包中 `debug.modelRoute` 为 `seed_world_action`、`debug.modelName` 为 `aisearch_dsv41flash`；再发一条消息并在请求进行中点击停止，确认本轮停止且不会追加迟到的回复。
 3. **共享世界存档策略验收**：对 5 个新应用核对 `world_save` 表已就绪、克隆实例获得新 `MANAGER` 且表为空、原实例访客（`USER`）允许读存档并拒绝写入。
 4. **灵光侧正式上架 / 分享链接更新**：为需要更新对外分享链接的应用重新执行正式发布 / 上架，确认分享页内层 `meta[name="flash-app-html-url"]` 与主 JS hash 已切到本次 Entry。

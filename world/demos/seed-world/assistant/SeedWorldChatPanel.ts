@@ -66,7 +66,6 @@ import { createSeedWorldAgentDefinition } from "../agent-adapter/SeedWorldAgentD
 import type { SeedWorldAgentApplication } from "../agent-adapter/SeedWorldAgentApplication.ts";
 import { createSeedWorldTools } from "../agent-adapter/SeedWorldToolCatalog.ts";
 import { createSeedWorldImageResources } from "./SeedWorldImageResources.ts";
-import { SEED_WORLD_MODEL } from "./SeedWorldModel.ts";
 import {
   createSeedWorldAgentDebug,
   type SeedWorldAgentDebugApi,
@@ -349,6 +348,7 @@ export function mountSeedWorldChatPanel(options: SeedWorldChatPanelOptions): See
   });
   let controller: SeedWorldVoiceHudController | undefined;
   const debug = createSeedWorldAgentDebug(traceStore, {
+    captureProbeSnapshot: signal => options.application.requireViewSnapshots().snapshot(signal),
     setContextCompactionBudget: budget => {
       if (!controller) throw new Error("Seed World AI is not ready");
       controller.setContextCompactionBudget(budget);
@@ -738,7 +738,6 @@ export class SeedWorldVoiceHudController implements SeedWorldChatPanel {
       this._clearResultTimer();
       const completion = this._activity.submit(task, {
         ...(this._contextCompactionBudget ? { contextCompaction: this._contextCompactionBudget } : {}),
-        model: SEED_WORLD_MODEL,
         context: { user_selection_at_submission: null,
           viewer_at_submission: viewer as unknown as AgentValue },
         debugMode: this._traceStore.enabled,

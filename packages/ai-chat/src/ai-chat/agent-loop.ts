@@ -139,7 +139,7 @@ export class AgentLoop {
   readonly #listeners = new Set<AgentEventListener>();
   readonly #outputFiles = new AgentArtifacts();
   readonly #fileObservations = new Map<string, string>();
-  readonly #modelInputLimits = new Map<string, number>();
+  #modelInputLimit?: number;
   #activeTaskId: string | null = null;
   #controller: AbortController | null = null;
 
@@ -148,7 +148,7 @@ export class AgentLoop {
     this.#scriptChecker.dispose?.();
     this.#outputFiles.clear();
     this.#fileObservations.clear();
-    this.#modelInputLimits.clear();
+    this.#modelInputLimit = undefined;
   }
 
   constructor(options: AgentLoopOptions) {
@@ -237,8 +237,6 @@ export class AgentLoop {
     const userInput = input.trim();
     const inputSource = options.inputSource ?? "text";
     if (!userInput) throw new Error("Agent task input cannot be empty");
-    const model = options.model?.trim();
-    if (options.model !== undefined && !model) throw new Error("ASAP model cannot be empty");
     if (this.running) throw new AgentBusyError();
 
     const contextCompaction = createContextCompactionRequest(options.contextCompaction);
@@ -478,7 +476,6 @@ export class AgentLoop {
             compactionState,
             systemPrompt,
             tools: modelTools,
-            model,
             debugMode: Boolean(options.debugMode),
             signal: controller.signal
           });
@@ -1184,7 +1181,6 @@ export class AgentLoop {
     compactionState: { skipUntilActiveLength: number; compactionsInTask: number };
     systemPrompt: string;
     tools: AgentModelToolDefinition[];
-    model?: string;
     debugMode: boolean;
     signal: AbortSignal;
   }): Promise<ModelTurnResult> {
@@ -1256,8 +1252,7 @@ export class AgentLoop {
         throwIfAborted(input.signal);
         requestStarted = true;
         const shouldSendCompaction = input.transcript.activeLength >= input.compactionState.skipUntilActiveLength;
-        const modelKey = input.model ?? "<default>";
-        const observedInputLimit = this.#modelInputLimits.get(modelKey);
+        const observedInputLimit = this.#modelInputLimit;
         const maxServerTrigger = observedInputLimit !== undefined ? Math.floor(observedInputLimit * 0.8) : undefined;
         const maxServerTarget = observedInputLimit !== undefined ? Math.floor(observedInputLimit * 0.5) : undefined;
         let effectiveTriggerTokens = input.contextCompaction.triggerTokens;
@@ -1300,7 +1295,6 @@ export class AgentLoop {
                 }
               }
             : {}),
-          model: input.model,
           tools: input.tools,
           toolChoice: "auto",
           debugMode: input.debugMode,
@@ -1311,7 +1305,7 @@ export class AgentLoop {
           Number.isSafeInteger(result.telemetry.inputLimitTokens) &&
           result.telemetry.inputLimitTokens > 0
         ) {
-          this.#modelInputLimits.set(modelKey, result.telemetry.inputLimitTokens);
+          this.#modelInputLimit = result.telemetry.inputLimitTokens;
         }
       } catch (error) {
         const requestError = normalizeError(error) as Error & Partial<AsapModelError>;

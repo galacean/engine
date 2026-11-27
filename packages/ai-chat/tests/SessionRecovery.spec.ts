@@ -14,8 +14,8 @@ it.each(["success", "failure", "disconnect", "cancel"])("retains recovery throug
   let started!: () => void;
   const ready = new Promise<void>(resolve => { started = resolve; });
   const send = vi.fn(async (request: any) => {
-    const nonce = request.responseFormat.params.streamResponseNonce;
-    const line = JSON.stringify({ type: "lingguang_ai_chat_recovery", version: 1, nonce, event: observation }) + "\n";
+    const nonce = request.streamResponseNonce;
+    const line = JSON.stringify({ type: "lingguang_seed_world_stream_recovery", version: 1, nonce, event: observation }) + "\n";
     request.onEvent({ type: "text_delta", delta: line, text: line });
     request.onEvent({ type: "text_delta", delta: "", text: line });
     started();
@@ -27,9 +27,9 @@ it.each(["success", "failure", "disconnect", "cancel"])("retains recovery throug
     const result = outcome === "failure"
       ? { content: "", toolCalls: [], error: { code: "MODEL_GENERATION_FAILED", message: "provider failed" } }
       : { content: "done", toolCalls: [], finishReason: "stop" };
-    return { content: line + JSON.stringify({ type: "lingguang_ai_chat_stream_result_bridge", version: 1, nonce, result }) };
+    return { content: line + JSON.stringify({ type: "lingguang_seed_world_stream_result", version: 1, nonce, result }) };
   });
-  vi.stubGlobal("window", { location: { hostname: "example.com" }, lingguang: { ai: { streamChat: send } } });
+  vi.stubGlobal("window", { location: { hostname: "example.com" }, lingguang: { ai: { seedWorldStop: vi.fn(), seedWorldStream: send } } });
   const agent = createTestAgentLoop({ tools: [], definition: {
     toolNames: [], scriptApi: { catalog: "API", entries: [], modules: [] }
   } });

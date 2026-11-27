@@ -152,11 +152,11 @@ it("preserves server observations through the existing SDK envelope", async () =
     location: { hostname: "example.com" },
     lingguang: {
       ai: {
-        streamChat: async (request: any) => ({
+        seedWorldStop: vi.fn(), seedWorldStream: async (request: any) => ({
           content: JSON.stringify({
-            type: "lingguang_ai_chat_stream_result_bridge",
+            type: "lingguang_seed_world_stream_result",
             version: 1,
-            nonce: request.responseFormat.params.streamResponseNonce,
+            nonce: request.streamResponseNonce,
             result: { content: "done", finishReason: "stop", telemetry }
           })
         })

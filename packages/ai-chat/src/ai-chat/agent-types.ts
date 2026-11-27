@@ -476,8 +476,6 @@ export type AgentRunOptions = {
   attachments?: readonly AgentViewObservation[];
   /** Application reference data captured once per task; never interpreted as instructions. */
   context?: AgentValue;
-  /** Optional ASAP model route alias. Applications may pin this to one model. */
-  model?: string;
   debugMode?: boolean;
   /** Identifies whether user input is authored text or a potentially noisy ASR transcript. */
   inputSource?: AgentInputSource;

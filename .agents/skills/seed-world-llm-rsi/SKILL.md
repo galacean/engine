@@ -27,7 +27,7 @@ description: >-
 2. **静态图谱审计（纯离线）**：
    - 运行 `static-audit.spec.ts`（通过 `STATIC_AUDIT_OUT_PATH` 指定输出路径），校验 5 条红线：不可达文档为 `0`、注册工具 100% 入 `API_INDEX`/链接、`editor.*` 链路不漏 `native/api.d.ts`、大依赖不静默丢弃、无新陈旧术语回流。
 3. **分层无头基准压测（串行）**：
-   - 始终串行打本地 `127.0.0.1:8082`，强制校验 `BENCH_EXPECTED_MODEL`（默认 `DeepSeek-V4.1-Flash`），开启 `BENCH_SKIP_EXISTING=1` 断点续跑，按 `BENCH_SUITE` 或 `BENCH_CASES` 选档：
+   - 始终串行打本地 `127.0.0.1:8082`，校验每轮实际模型为 `aisearch_dsv41flash`，开启 `BENCH_SKIP_EXISTING=1` 断点续跑，按 `BENCH_SUITE` 或 `BENCH_CASES` 选档：
      - **冒烟 / 快速 A/B**：`BENCH_SUITE=smoke`（核心 13 题，~10 分钟）或 `BENCH_CASES=01,03`
      - **单领域切片**：`BENCH_SUITE=domain:water` / `domain:farming` / `domain:assets` 等（~3–5 分钟）
      - **原子 CRUD 矩阵**：`BENCH_SUITE=crud`（62 题：`01–18, 25–68`，覆盖全 12 系统所有非视觉公开接口与子分支）

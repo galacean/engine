@@ -1,6 +1,5 @@
 import { mountSeedWorldDemo } from "../../SeedWorldDemo.ts";
 import { loadPlanningWorldSource } from "../../src/planning/spatial/runtime/PlanningWorldSource.ts";
-import { SEED_WORLD_MODEL } from "../../assistant/SeedWorldModel.ts";
 import { SceneVisualIntentController } from "./SceneVisualIntentController.ts";
 import { createSceneGenerationSession } from "./SceneVisualIntentGeneration.ts";
 import { mountSceneVisualIntentPage } from "./SceneVisualIntentPage.ts";
@@ -23,7 +22,6 @@ const controller = new SceneVisualIntentController(async () => {
     controller.markSceneReady();
   }, () => window.innerWidth / window.innerHeight);
 }, {
-  model: SEED_WORLD_MODEL,
   debugMode: true,
   ...(local ? { localAsapOrigin: "http://127.0.0.1:8082", modelTimeoutMs: 60_000 } : {})
 }, event => {

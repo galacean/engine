@@ -434,12 +434,10 @@ describe("AgentLoop final AgentScriptCalling contract", () => {
       if (event.type === "script_trace") traces.push(event.trace);
     });
     const result = await loop.run("把我传宋过去", {
-      model: "test-model-route",
       debugMode: true
     });
 
     expect(teleport).toHaveBeenCalledOnce();
-    expect(mockedRequest.mock.calls.every(([request]) => request.model === "test-model-route")).toBe(true);
     expect(systemPromptAt(0)).not.toContain("teleport(input?: unknown)");
     expect(systemPromptAt(0)).not.toContain("set_weather(input?: unknown)");
     expect(systemPromptAt(1)).not.toContain("teleport(input?: unknown)");
