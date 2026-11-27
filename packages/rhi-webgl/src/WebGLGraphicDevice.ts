@@ -1,4 +1,5 @@
 import {
+  Buffer,
   BufferBindFlag,
   BufferUsage,
   CameraClearFlags,
@@ -1123,6 +1124,90 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     if (invalidateStencil) {
       gl.invalidateFramebuffer(glTarget, this._fboStencilAttachment);
     }
+  }
+
+  /** Copy tightly packed, native-format texels into mip zero of an uncompressed color texture, in row order. */
+  copyBufferToTexture(source: Buffer, target: Texture2D, texelCount: number): void {
+    if (
+      source.destroyed ||
+      target.destroyed ||
+      source.engine._hardwareRenderer !== this ||
+      target.engine._hardwareRenderer !== this
+    ) {
+      throw new Error("Both resources must belong to this WebGL device and be alive.");
+    }
+    const gl = this._gl;
+    const detail = GLTexture._getFormatDetail(target.format, target.isSRGBColorSpace, gl);
+    const { baseFormat, dataType } = detail;
+    if (
+      detail.isCompressed ||
+      baseFormat === undefined ||
+      dataType === undefined ||
+      baseFormat === gl.DEPTH_COMPONENT ||
+      baseFormat === gl.DEPTH_STENCIL
+    ) {
+      throw new Error("copyBufferToTexture requires an uncompressed color texture.");
+    }
+    const bytesPerTexel = this._bytesPerTexel(baseFormat, dataType);
+    const width = target.width;
+    const byteLength = texelCount * bytesPerTexel;
+    if (
+      !Number.isSafeInteger(texelCount) ||
+      texelCount < 0 ||
+      texelCount > width * target.height ||
+      byteLength > source.byteLength
+    ) {
+      throw new RangeError("The copy exceeds the source buffer or destination texture.");
+    }
+    if (texelCount === 0) return;
+    const glBuffer = (source._platformBuffer as GLBuffer)._glBuffer;
+    const glTexture = (target._platformTexture as GLTexture2D)._glTexture;
+    const rows = Math.floor(texelCount / width);
+    const tail = texelCount % width;
+    const prevPbo = gl.getParameter(gl.PIXEL_UNPACK_BUFFER_BINDING);
+    const prevTex = gl.getParameter(gl.TEXTURE_BINDING_2D);
+    const prevAlign = gl.getParameter(gl.UNPACK_ALIGNMENT);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.bindTexture(gl.TEXTURE_2D, glTexture);
+    gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, glBuffer);
+    if (rows > 0) {
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, width, rows, baseFormat, dataType, 0);
+    }
+    if (tail > 0) {
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, rows, tail, 1, baseFormat, dataType, rows * width * bytesPerTexel);
+    }
+    gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, prevPbo);
+    gl.bindTexture(gl.TEXTURE_2D, prevTex);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, prevAlign);
+    target._isContentLost = false;
+  }
+
+  private _bytesPerTexel(baseFormat: GLenum, dataType: GLenum): number {
+    const gl = this._gl;
+    switch (dataType) {
+      case gl.UNSIGNED_SHORT_4_4_4_4:
+      case gl.UNSIGNED_SHORT_5_5_5_1:
+      case gl.UNSIGNED_SHORT_5_6_5:
+        return 2;
+      case gl.UNSIGNED_INT_10F_11F_11F_REV:
+      case gl.UNSIGNED_INT_2_10_10_10_REV:
+        return 4;
+    }
+    const channels =
+      baseFormat === gl.RED || baseFormat === gl.RED_INTEGER
+        ? 1
+        : baseFormat === gl.RG || baseFormat === gl.RG_INTEGER
+          ? 2
+          : baseFormat === gl.RGB || baseFormat === gl.RGB_INTEGER
+            ? 3
+            : 4;
+    const componentBytes =
+      dataType === gl.FLOAT || dataType === gl.UNSIGNED_INT || dataType === gl.INT
+        ? 4
+        : dataType === gl.HALF_FLOAT || dataType === gl.UNSIGNED_SHORT || dataType === gl.SHORT
+          ? 2
+          : 1;
+    return channels * componentBytes;
   }
 
   private _onContextCreationError(event: WebGLContextEvent) {

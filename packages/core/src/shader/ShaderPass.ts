@@ -237,7 +237,7 @@ export class ShaderPass extends ShaderPart {
     renderer?: ShaderData,
     material?: ShaderData,
     element?: ShaderData,
-    camera = engine._renderContext.camera
+    camera = engine._renderContext?.camera
   ): ShaderProgram {
     const feedbackVaryings = Array.isArray(feedbackRequest) ? feedbackRequest : this._feedbackVaryings;
     const primitive = typeof primitiveOrCache === "boolean" ? undefined : primitiveOrCache;

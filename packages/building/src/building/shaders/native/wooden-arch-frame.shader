@@ -343,7 +343,7 @@ vs_WoodenArchFrameInstanceData_natural es_h1=vs_read_material_data_nani_instance
 
 void vs_main(){vs_original_main();}
 
-      BuildingVaryings vert() {
+      BuildingVaryings vert(BuildingAttributes _gs_attr_in) {
         vs_main();
         BuildingVaryings _gs_vout;
         _gs_vout.v0 = vs_out_v0;

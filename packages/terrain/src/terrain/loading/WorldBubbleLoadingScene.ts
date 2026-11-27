@@ -409,7 +409,15 @@ export class WorldBubbleLoadingScene {
       sceneManager.addScene(this._scene);
     }
     this._worldUnderlay = worldScene;
-    this._camera.clearFlags = CameraClearFlags.None;
+    this._syncClearFlags();
+  }
+
+  private _syncClearFlags(): void {
+    const underlay = this._worldUnderlay as (Scene & { readonly _activeCameras?: readonly Camera[] }) | undefined;
+    const underlayHasActiveCamera = Boolean(
+      underlay?.isActive && underlay._activeCameras?.some((cam) => cam.enabled && !cam.destroyed)
+    );
+    this._camera.clearFlags = underlayHasActiveCamera ? CameraClearFlags.None : CameraClearFlags.All;
   }
 
   /** Restores standalone clearing if a candidate World Scene rolls back before publication. */
@@ -476,7 +484,9 @@ export class WorldBubbleLoadingScene {
 
   /** @internal Called by the Scene-owned Script. */
   updateFrame(deltaTime: number): void {
-    if (this._state === "destroyed" || (!this._motionEnabled && this._state === "loading")) return;
+    if (this._state === "destroyed") return;
+    this._syncClearFlags();
+    if (!this._motionEnabled && this._state === "loading") return;
     const elapsed = Math.max(0, Math.min(deltaTime, 0.1));
     this._time += elapsed;
 

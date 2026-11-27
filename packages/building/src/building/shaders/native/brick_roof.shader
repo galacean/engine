@@ -537,7 +537,7 @@ vs_InstancedWallData_natural es_h1=vs_read_material_data_instanced_wall_data_1(i
 
 void vs_main(){vs_read_uniform_MaterialData_natural();vs_read_uniform_ViewConstants_natural();vs_read_uniform_FrameConstants_natural();vs_original_main();}
 
-      BuildingVaryings vert() {
+      BuildingVaryings vert(BuildingAttributes _gs_attr_in) {
         vs_main();
         BuildingVaryings _gs_vout;
         _gs_vout.v0 = vs_out_v0;

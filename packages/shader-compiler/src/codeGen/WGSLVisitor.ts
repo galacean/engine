@@ -1407,6 +1407,7 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
   private _flushPendingStructs(out: ICodeSegment[]): void {
     for (const sm of this.context._referencedGlobalSymbols) {
       if (!(sm.astNode instanceof ASTNode.StructSpecifier)) continue;
+      if (this.context.getStructRole([sm.astNode])) continue;
       if (this._structCodeSegments.has(sm.astNode) || sm.isInMacroBranch) continue;
       this._currentDeclaration = sm.astNode;
       const codeGenResult = sm.astNode.codeGen(this);
@@ -4093,6 +4094,9 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
     for (const sm of context._referencedGlobalSymbols) {
       if (sm.astNode instanceof ASTNode.VariableDeclaration && (sm.astNode.uniformBlock || sm.astNode.storageBlock))
         continue;
+      // Stage interface structs (Attributes/Varyings/MRT) must be emitted by `_getCustomStruct`
+      // after all reachable functions have registered their referenced interface properties.
+      if (sm.astNode instanceof ASTNode.StructSpecifier && context.getStructRole([sm.astNode])) continue;
       this._currentDeclaration = sm.astNode;
       const codeGenResult = sm.astNode!.codeGen(this);
       this._currentDeclaration = undefined;

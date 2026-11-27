@@ -356,7 +356,7 @@ vs_RoofShingle_natural es_h1=vs_read_material_data_nani_instance_data_1(int(es_h
 
 void vs_main(){vs_original_main();vs_out_instanceRecord0=gs_attr.instanceWords0;vs_out_instanceRecord1=gs_attr.instanceWords1;vs_out_instanceRecord2=gs_attr.instanceWords2;vs_out_instanceRecord3=gs_attr.instanceWords3;if(gs_attr.instanceVisible==0u)gl_Position=vec4(2.0,2.0,2.0,1.0);}
 
-      BuildingVaryings vert() {
+      BuildingVaryings vert(BuildingAttributes _gs_attr_in) {
         vs_main();
         BuildingVaryings _gs_vout;
         _gs_vout.instanceRecord0 = vs_out_instanceRecord0;

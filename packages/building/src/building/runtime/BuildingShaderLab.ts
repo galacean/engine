@@ -552,11 +552,12 @@ export function buildingGLSLToShaderLab(
     sections.push(`      mat${m.cols} ${m.localFs} = mat${m.cols}(0.0);`);
   }
 
-  // Vertex stage body + entry (BuildingAttributes read via global `gs_attr`; BuildingVaryings returned as local `_gs_vout`)
+  // Vertex stage body + entry (declaring BuildingAttributes parameter classifies it as Attribute IO so global `gs_attr` is auto-populated)
   sections.push("      // --- Vertex Stage ---");
   sections.push(vsBody);
   sections.push("");
-  const vertSig = varyingFields.length ? "BuildingVaryings vert()" : "void vert()";
+  const vertParam = sortedAttrs.length ? "BuildingAttributes _gs_attr_in" : "";
+  const vertSig = varyingFields.length ? `BuildingVaryings vert(${vertParam})` : `void vert(${vertParam})`;
   sections.push(`      ${vertSig} {`);
   sections.push("        vs_main();");
   if (varyingFields.length) {

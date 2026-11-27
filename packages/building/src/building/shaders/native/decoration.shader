@@ -116,7 +116,7 @@ void vs_original_main(){
 }
 void vs_main(){vs_original_main();}
 
-      BuildingVaryings vert() {
+      BuildingVaryings vert(BuildingAttributes _gs_attr_in) {
         vs_main();
         BuildingVaryings _gs_vout;
         _gs_vout.masonryPickIndex = vs_out_masonryPickIndex;

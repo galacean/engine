@@ -20,7 +20,7 @@ import {
   RHIBackend,
   Renderer,
   RenderQueueType,
-  type RenderTarget,
+  RenderTarget,
   ScreenSpaceReflectionQuality,
   type ScreenSpaceReflectionSettings,
   SkinnedMeshRenderer,
@@ -34,6 +34,7 @@ import {
   ShadowType,
   type SubPrimitive,
   SunLensFlareEffect,
+  Texture2D,
   TextureFilterMode,
   TextureFormat,
   TextureWrapMode,
@@ -596,6 +597,8 @@ async function warmupSeedWorldShaderVariantsWebGPU(
   let ldrNoDepthRT: RenderTarget | null | undefined;
   let rgba16fNoDepthRT: RenderTarget | null | undefined;
   let rg16fNoDepthRT: RenderTarget | null | undefined;
+  let cloudDirectionCacheRT: RenderTarget | null | undefined;
+  const createdTempTargets: RenderTarget[] = [];
   const forwardTargetsByCamera = new WeakMap<Camera, RenderTarget | null>();
   const hdrNoDepthTargetsByCamera = new WeakMap<Camera, RenderTarget | null>();
 
@@ -628,7 +631,7 @@ async function warmupSeedWorldShaderVariantsWebGPU(
     }
   };
 
-  const getTargetsForStage = (target: WebGPUWarmupTarget): readonly (RenderTarget | null)[] => {
+  const getTargetsForStage = (target: WebGPUWarmupTarget, shaderName?: string): readonly (RenderTarget | null)[] => {
     const cam = target.camera as unknown as {
       renderTarget?: RenderTarget | null;
       msaaSamples?: number;
@@ -658,6 +661,19 @@ async function warmupSeedWorldShaderVariantsWebGPU(
     const isBlitOrPost = target.stage === "Forward" && target.renderer === undefined && target.renderToTexture === true;
     if (isBlitOrPost) {
       const rts: (RenderTarget | null)[] = [];
+      if (shaderName && /VolumetricCloud|DirectionCache/i.test(shaderName)) {
+        if (cloudDirectionCacheRT === undefined) {
+          try {
+            const colorTex = new Texture2D(engine, 4, 4, TextureFormat.R16G16B16A16_SFloat, false, false);
+            const metaTex = new Texture2D(engine, 4, 4, TextureFormat.R8_UNorm, false, false);
+            cloudDirectionCacheRT = new RenderTarget(engine, 4, 4, [colorTex, metaTex], null, 1);
+            createdTempTargets.push(cloudDirectionCacheRT);
+          } catch {
+            cloudDirectionCacheRT = null;
+          }
+        }
+        if (cloudDirectionCacheRT) rts.push(cloudDirectionCacheRT);
+      }
       if (target.camera) {
         if (!hdrNoDepthTargetsByCamera.has(target.camera)) {
           const fmt = cam._getInternalColorTextureFormat?.() ?? TextureFormat.R8G8B8A8_UNorm;
@@ -808,7 +824,7 @@ async function warmupSeedWorldShaderVariantsWebGPU(
                 }
               }
               if (state) {
-                const renderTargets = getTargetsForStage(target);
+                const renderTargets = getTargetsForStage(target, entry.shader);
                 const seenTopologies = new Set<number>();
                 for (let si = 0; si < target.subPrimitives.length; si++) {
                   const sub = target.subPrimitives[si]!;
@@ -871,6 +887,14 @@ async function warmupSeedWorldShaderVariantsWebGPU(
       for (let i = 0; i < allocatedTargets.length; i++) {
         rtPool.freeRenderTarget(allocatedTargets[i]!);
       }
+    }
+    for (let i = 0; i < createdTempTargets.length; i++) {
+      const rt = createdTempTargets[i]!;
+      const count = rt.colorTextureCount ?? 0;
+      for (let ci = 0; ci < count; ci++) {
+        rt.getColorTexture(ci)?.destroy(true);
+      }
+      rt.destroy(true);
     }
   }
 
@@ -1307,9 +1331,23 @@ function collectSeedWorldRendererVariantsInternal(
     (camera.shaderData as unknown as RuntimeShaderData)._macroCollection,
     cameraMacros
   );
+  const runtimeHardware = (
+    engine as unknown as {
+      _hardwareRenderer?: {
+        backend?: string;
+        supportsRendering?: boolean;
+        supportsTransformFeedback?: boolean;
+        canIUse?: (cap: GLCapabilityType) => boolean;
+        capability?: { maxDrawBuffers?: number };
+      };
+    }
+  )._hardwareRenderer;
+  const isWebGPU = runtimeHardware?.backend === RHIBackend.WebGPU;
   const buildingLights = options.buildingPointLights;
+  // On WebGPU async PSO prewarming runs in parallel off-main-thread during loading, so warm the full
+  // decoration light budget [1..4] to eliminate t=2.4s wall-lantern activation hitches in villages.
   const additionalPointLightCounts =
-    options.additionalPointLightCounts ?? (buildingLights?.hasLights ? [1] : undefined);
+    options.additionalPointLightCounts ?? (buildingLights?.hasLights ? (isWebGPU ? [1, 2, 3, 4] : [1]) : undefined);
   const lightManager = scene._lightManager;
   const rawCapacity =
     ((lightManager as unknown as { _pointData?: { color: Float32Array } })?._pointData?.color.length ?? 0) / 3;
@@ -1387,18 +1425,6 @@ function collectSeedWorldRendererVariantsInternal(
   }
   // Snow follows the camera, which is a separate scene root from the generated world.
   renderers.push(...(options.particleWindRenderers ?? []));
-  const runtimeHardware = (
-    engine as unknown as {
-      _hardwareRenderer?: {
-        backend?: string;
-        supportsRendering?: boolean;
-        supportsTransformFeedback?: boolean;
-        canIUse?: (cap: GLCapabilityType) => boolean;
-        capability?: { maxDrawBuffers?: number };
-      };
-    }
-  )._hardwareRenderer;
-  const isWebGPU = runtimeHardware?.backend === RHIBackend.WebGPU;
   const supportsRendering = runtimeHardware?.supportsRendering !== false;
   const supportsTransformFeedback = runtimeHardware?.supportsTransformFeedback ?? !isWebGPU;
   const webgpuRegistry = isWebGPU ? getOrCreateWebGPUWarmupRegistry(engine) : undefined;
@@ -2079,7 +2105,10 @@ function collectSeedWorldRendererVariantsInternal(
           const steadyCastShadows =
             passCastShadows ||
             (material.shader.name === "Masonry/GlobalProxy" &&
-              Boolean(extraMaterials?.some((m) => m.shader.name === "Masonry/GlobalProxyShadowOnly")));
+              Boolean(extraMaterials?.some((m) => m.shader.name === "Masonry/GlobalProxyShadowOnly"))) ||
+            (!forcedCameraOnlyRenderers.has(sourceRenderer) &&
+              Boolean(scene.castShadows) &&
+              material.shader.name.startsWith("Masonry/"));
           const steadyKey = `${material.shader.name}/${steadyCastShadows}/${contributionKey}?${shaderMacroCollectionKey(steadyMacros)}`;
           if (!collectedShaderMacroSets.has(steadyKey)) {
             collectedShaderMacroSets.add(steadyKey);
@@ -2098,6 +2127,28 @@ function collectSeedWorldRendererVariantsInternal(
             );
           }
           appendPointLightVariants(material.shader, steadyMacros);
+          if (material.shader.name === "Masonry/GlobalProxy" && steadyCastShadows) {
+            const shadowCompanion = Shader.find("Masonry/GlobalProxyShadowOnly");
+            if (shadowCompanion && !shadowCompanion.destroyed) {
+              const shadowCompanionKey = `${shadowCompanion.name}/${steadyCastShadows}/${contributionKey}?${shaderMacroCollectionKey(steadyMacros)}`;
+              if (!collectedShaderMacroSets.has(shadowCompanionKey)) {
+                collectedShaderMacroSets.add(shadowCompanionKey);
+                appendShaderVariants(
+                  shadowCompanion,
+                  steadyMacros,
+                  variants,
+                  steadyCastShadows,
+                  renderToTexture,
+                  material,
+                  supportsRendering,
+                  false,
+                  ssrContext,
+                  false,
+                  rendererBaseTarget ? { ...rendererBaseTarget, material } : undefined
+                );
+              }
+            }
+          }
         }
         // BuildingGlobalProxy swaps between Masonry/GlobalProxy and Masonry/GlobalProxyShadowOnly
         // when cells transition between LOD2 and LOD1/LOD0; precompile both directions symmetrically.

@@ -1794,6 +1794,8 @@ export class SeedWorldForwardGrass {
 
       if (this._useCompute) {
         const groupCount = count / CANDIDATE_CELLS_PER_GROUP;
+        sd.setFloatArray("u_GrassParams", v);
+        sd.setFloatArray("u_Frustum", this._frustumUniforms);
         sd.setInt("u_GroupOffset", ring.candidateGroups.byteOffset / 4);
         sd.setBuffer("CandidateGroupsBuf", this._candidateBindings[0]!.buffer);
         sd.setBuffer("OutGrassTransformsBuf", ring.computeBinding!.buffer);
