@@ -1916,6 +1916,12 @@ describe("animal presentation preparation", () => {
     expect(demoSource).toContain('!file.virtualPath.startsWith("Shader/Water/ocean-")');
     expect(demoSource).toContain("registerSeedWorldWaterStartupShaders({ includeOcean: templateUsesOcean })");
     expect(demoSource).not.toContain("SeedWorldWaterShaderAotProfiles");
+    // Ensure waterTask awaits reusable oceanWaterAotTask before water.prepare() whenever a plan uses non-continuous land
+    // (covering both startup island restore and runtime landMode/document switches).
+    expect(demoSource).toMatch(
+      /if\s*\(\s*plan\.parameters\.landMode\s*!==\s*"continuous"\s*\)\s*\{\s*await\s+loadOceanWaterAotShaders\(\);/u
+    );
+    expect(demoSource).toContain("oceanWaterAotTask = undefined;");
 
     const { registerSeedWorldWaterStartupShaders } = await import(
       "@galacean/engine-water/world/SeedWorldWaterStartupShaders"

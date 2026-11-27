@@ -603,6 +603,178 @@ describe("seed-world-template-bundles", () => {
     }
   });
 
+  it("ignores stale in-flight project text bundle settlement after release and never clobbers a newer mount", async () => {
+    const baseFetch = vi.fn(async () => new Response("network", { status: 200 }));
+    const savedGlobalFetch = globalThis.fetch;
+    globalThis.fetch = baseFetch as unknown as typeof globalThis.fetch;
+    try {
+      let resolveStale!: (res: Response) => void;
+      const staleTask = loadSeedWorldProjectTextBundle({
+        url: "./seed-world-project-text-bundle-stale.json",
+        moduleBaseUrl: "https://example.test/assets/chunk.js",
+        distRootUrl: "https://example.test/",
+        maxRetries: 0,
+        fetchImpl: () =>
+          new Promise<Response>((resolve) => {
+            resolveStale = resolve;
+          })
+      });
+
+      // Dispose/release before the in-flight request completes
+      releaseSeedWorldProjectTextBundle();
+
+      // Late resolution of stale request must NOT resurrect fetch() interception
+      resolveStale(
+        new Response(JSON.stringify({ "packages/terrain/src/data/seed-world/project.json": '{"stale":true}' }), {
+          status: 200
+        })
+      );
+      expect(await staleTask).toBeUndefined();
+      expect(globalThis.fetch).toBe(baseFetch);
+
+      // Stale rejection after release must NOT clear a newer mount's cached promise
+      let rejectStale!: (err: Error) => void;
+      const staleErrTask = loadSeedWorldProjectTextBundle({
+        url: "./seed-world-project-text-bundle-err.json",
+        moduleBaseUrl: "https://example.test/assets/chunk.js",
+        distRootUrl: "https://example.test/",
+        maxRetries: 0,
+        fetchImpl: () =>
+          new Promise<Response>((_resolve, reject) => {
+            rejectStale = reject;
+          })
+      });
+      releaseSeedWorldProjectTextBundle();
+
+      let resolveFresh!: (res: Response) => void;
+      const freshFetch = vi.fn(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolveFresh = resolve;
+          })
+      );
+      const freshTask = loadSeedWorldProjectTextBundle({
+        url: "./seed-world-project-text-bundle-fresh.json",
+        moduleBaseUrl: "https://example.test/assets/chunk.js",
+        distRootUrl: "https://example.test/",
+        maxRetries: 0,
+        fetchImpl: freshFetch
+      });
+
+      rejectStale(new Error("stale network reset"));
+      expect(await staleErrTask).toBeUndefined();
+
+      // Calling loadSeedWorldProjectTextBundle again reuses freshTask (not cleared by stale rejection)
+      expect(
+        loadSeedWorldProjectTextBundle({
+          url: "./seed-world-project-text-bundle-fresh.json",
+          moduleBaseUrl: "https://example.test/assets/chunk.js",
+          distRootUrl: "https://example.test/",
+          maxRetries: 0,
+          fetchImpl: freshFetch
+        })
+      ).toBe(freshTask);
+      expect(freshFetch).toHaveBeenCalledTimes(1);
+
+      resolveFresh(
+        new Response(JSON.stringify({ "packages/terrain/src/data/seed-world/project.json": '{"fresh":true}' }), {
+          status: 200
+        })
+      );
+      const freshMap = await freshTask;
+      expect(freshMap?.get("https://example.test/packages/terrain/src/data/seed-world/project.json")).toBe(
+        '{"fresh":true}'
+      );
+      expect(globalThis.fetch).not.toBe(baseFetch);
+
+      releaseSeedWorldProjectTextBundle();
+      expect(globalThis.fetch).toBe(baseFetch);
+    } finally {
+      releaseSeedWorldCommonBinaryBundle();
+      releaseSeedWorldProjectTextBundle();
+      globalThis.fetch = savedGlobalFetch;
+    }
+  });
+
+  it("retries transient project text bundle failures with bounded backoff and clears cache when retries exhaust", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const delays: number[] = [];
+    let attempt = 0;
+    const map = await loadSeedWorldProjectTextBundle({
+      url: "./seed-world-project-text-bundle-retry.json",
+      moduleBaseUrl: "https://example.test/assets/chunk.js",
+      distRootUrl: "https://example.test/",
+      maxRetries: 2,
+      retryDelayMs: 100,
+      delayImpl: async (ms) => {
+        delays.push(ms);
+      },
+      fetchImpl: async () => {
+        attempt++;
+        if (attempt === 1) return new Response("bad gateway", { status: 502 });
+        if (attempt === 2) throw new Error("transient reset");
+        return new Response(JSON.stringify({ "packages/terrain/src/data/seed-world/project.json": '{"ok":true}' }), {
+          status: 200
+        });
+      }
+    });
+    expect(attempt).toBe(3);
+    expect(delays).toEqual([100, 200]);
+    expect(map?.get("https://example.test/packages/terrain/src/data/seed-world/project.json")).toBe('{"ok":true}');
+    expect(warnSpy).not.toHaveBeenCalled();
+
+    releaseSeedWorldProjectTextBundle();
+    delays.length = 0;
+    let failCalls = 0;
+    const failed = await loadSeedWorldProjectTextBundle({
+      url: "./seed-world-project-text-bundle-fail.json",
+      moduleBaseUrl: "https://example.test/assets/chunk.js",
+      distRootUrl: "https://example.test/",
+      maxRetries: 2,
+      retryDelayMs: 50,
+      delayImpl: async (ms) => {
+        delays.push(ms);
+      },
+      fetchImpl: async () => {
+        failCalls++;
+        return new Response("unavailable", { status: 503 });
+      }
+    });
+    expect(failCalls).toBe(3);
+    expect(delays).toEqual([50, 100]);
+    expect(failed).toBeUndefined();
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+
+    // Exhausted failure clears cached promise so a subsequent mount/call can retry
+    let recoveryCalls = 0;
+    const recovered = await loadSeedWorldProjectTextBundle({
+      url: "./seed-world-project-text-bundle-fail.json",
+      moduleBaseUrl: "https://example.test/assets/chunk.js",
+      distRootUrl: "https://example.test/",
+      maxRetries: 0,
+      fetchImpl: async () => {
+        recoveryCalls++;
+        return new Response(JSON.stringify({ "packages/terrain/src/data/seed-world/project.json": '{"recovered":1}' }), {
+          status: 200
+        });
+      }
+    });
+    expect(recoveryCalls).toBe(1);
+    expect(recovered?.get("https://example.test/packages/terrain/src/data/seed-world/project.json")).toBe(
+      '{"recovered":1}'
+    );
+  });
+
+  it("releases the project text bundle symmetrically inside SeedWorldDemo dispose()", () => {
+    const demoSource = fs.readFileSync(
+      path.resolve(__dirname, "../../demos/seed-world/SeedWorldDemo.ts"),
+      "utf8"
+    );
+    expect(demoSource).toMatch(
+      /releaseSeedWorldCommonBinaryBundle\(\);\s*releaseSeedWorldProjectTextBundle\(\);/u
+    );
+  });
+
   it("caches resolved loadPlantJSON views per live JSONAsset and auto-invalidates on resource replacement or error", async () => {
     const assetV1 = { data: { version: "v1", assets: [] } };
     const assetV2 = { data: { version: "v2-replaced", assets: [] } };
