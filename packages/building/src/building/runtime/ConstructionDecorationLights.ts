@@ -195,10 +195,10 @@ export class ConstructionDecorationLights {
       for (let slot = 0; slot < this.emitters.length; slot++) {
         const light = this.emitters[slot],
           index = (light as PointLight & { _lightIndex: number })._lightIndex;
-        // The extra wall-light lobe also runs for slots beyond the engine light cap.
+        if (!light.enabled || index < 0) continue;
         const local =
           (light.cullingMask & WorldLayer.Building) !== 0 && this.colors[slot * 4 + 3] > Math.fround(0.0001);
-        if (light.enabled && index >= 0 && index < count) {
+        if (index < count) {
           owned |= 1 << index;
           if (local) legacy |= 1 << index;
         } else if (local) fallback |= 1 << slot;

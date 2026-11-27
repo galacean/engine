@@ -1435,7 +1435,7 @@ describe("Building system optimization invariants", () => {
       expect(slots).toHaveLength(4);
       expect(slots.every((slot) => slot.cullingMask === WorldLayer.Building && !slot.enabled)).toBe(true);
 
-      const render = (count: number, ownedMask: number, legacyMask = ownedMask) => {
+      const render = (count: number, ownedMask: number, legacyMask = ownedMask, fallbackMask = 0) => {
         manager._updateShaderData(data);
         camera.entity.getComponent(Script)!.onBeginRender(camera);
         const macros: ShaderMacro[] = [];
@@ -1444,7 +1444,7 @@ describe("Building system optimization invariants", () => {
         expect(packedCount?.value).toBe(count ? String(count) : undefined);
         expect(data.getInt("scene_MasonryPointMask")).toBe(ownedMask);
         expect(data.getInt("scene_MasonryLegacyMask")).toBe(legacyMask);
-        expect(data.getInt("scene_MasonryFallbackMask")).toBe(0);
+        expect(data.getInt("scene_MasonryFallbackMask")).toBe(fallbackMask);
       };
 
       pool.update([], camera, 1, true);
@@ -1453,6 +1453,20 @@ describe("Building system optimization invariants", () => {
       render(0, 0);
       pool.update(lights.slice(0, 1), camera, 1);
       render(1, 1);
+
+      // Disabling a still-bright slot must clear all wall lighting without another pool update.
+      slots[0].enabled = false;
+      render(0, 0);
+      const otherLights = Array.from({ length: 10 }, () => scene.createRootEntity().addComponent(PointLight));
+      slots[0].enabled = true;
+      render(10, 0, 0, 1); // Registered after the ten uploaded lights.
+      slots[0].entity.isActive = false;
+      render(10, 0);
+      slots[0].entity.isActive = true;
+      render(10, 0, 0, 1);
+      for (const light of otherLights) light.entity.destroy();
+      render(1, 1);
+
       slots[0].cullingMask = Layer.Layer0;
       render(1, 1, 0);
       slots[0].cullingMask = WorldLayer.Building;
