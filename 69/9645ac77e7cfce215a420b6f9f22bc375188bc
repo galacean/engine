@@ -1,0 +1,320 @@
+.agents/skills/seed-world-flash-publish/SKILL.md
+  h_171a11afaf879a 3,6,8,11-30,33-37,39,41,44-49,52,54-55,57-64,68,71,74-76,78-80,82,84,86-115,118,123-125,128-131
+.agents/skills/seed-world-llm-rsi/SKILL.md
+  h_171a11afaf879a 30
+.agents/skills/seed-world-llm-rsi/references/harness-and-pitfalls.md
+  h_171a11afaf879a 12,14
+.agents/skills/seed-world-llm-rsi/references/metrics-and-audit.md
+  h_171a11afaf879a 29
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/asap-8082-transport.ts
+  h_171a11afaf879a 18,21,189,201
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/benchmark-cases.ts
+  h_171a11afaf879a 207-212,219
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/run-benchmark.spec.ts
+  h_171a11afaf879a 1,7,11-18,28,105-109,134-135,210,219
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/seed-world-headless-fixture.ts
+  h_171a11afaf879a 2070
+.agents/skills/seed-world-local-debug/SKILL.md
+  h_171a11afaf879a 3,8,11-19,26,28,31-33,39,44
+.agents/skills/seed-world-local-debug/agents/openai.yaml
+  h_171a11afaf879a 3-4
+.agents/skills/seed-world-local-debug/references/prepare.md
+  h_171a11afaf879a 5,13,15,31,79-85,87,89-90,92-98,100-106
+.agents/skills/seed-world-local-debug/references/start.md
+  h_171a11afaf879a 5,10,12,15,17,21-23,26-31,49-62,71,73,76-78,80-81,86,88,92-95,98,105,134-136
+.agents/skills/seed-world-local-debug/scripts/preview.py
+  h_171a11afaf879a 48-49,54,72-75,81,84-87,91,98-100,102-103,107-108
+.agents/skills/seed-world-local-debug/scripts/serve-shell.mjs
+  h_171a11afaf879a 1-7,9-35,37-85
+packages/ai-chat/src/ai-chat/README.md
+  h_171a11afaf879a 176,434,436-438,446,448,502,633,635
+packages/ai-chat/src/ai-chat/agent-loop.ts
+  h_171a11afaf879a 142,151,1191,1256,1309,1374,1376-1378,1443-1446,1448-1452,1455
+packages/ai-chat/src/ai-chat/ai-chat-session.ts
+  h_171a11afaf879a 120-121,155
+packages/ai-chat/src/ai-chat/ai-chat.ts
+  h_171a11afaf879a 206,271-272
+packages/ai-chat/src/ai-chat/asap-chat.ts
+  h_171a11afaf879a 31,73,75-77,79-81,83-85,95-97,106,127-129,134,147,154-159,166-170,186,192-197,203-209,211-215,217-225,233-234,237,284,295-296,298-301,303,309-310,336,395-403,405,416,447-448,453,455-456,459,481-486,498-502,507,510,679,681
+packages/ai-chat/src/ai-chat/asr.ts
+  h_171a11afaf879a 1,28,117,180,185,188-190,575,577,579,583,593,597,606-609
+packages/ai-chat/src/ai-chat/session-data.ts
+  h_171a11afaf879a 78
+packages/ai-chat/tests/AIChatInbox.spec.ts
+  h_171a11afaf879a 84,203,205,207-217,297,303,388,392,395,398-400
+packages/ai-chat/tests/SessionRecovery.spec.ts
+  h_171a11afaf879a 17-18,30,32
+packages/ai-chat/tests/asr-native.spec.ts
+  h_171a11afaf879a 1-72
+packages/ai-chat/tests/context-compaction-loop.spec.ts
+  h_171a11afaf879a 58-59,72,285
+packages/ai-chat/tests/context-compaction-transport.spec.ts
+  h_171a11afaf879a 1,8,13,23,33,35,41-42,46-47,50,54-55,58
+packages/ai-chat/tests/context-metrics.spec.ts
+  h_171a11afaf879a 155,157,159
+packages/ai-chat/tests/model-retry-transport.spec.ts
+  h_171a11afaf879a 1,7-8,12,18,21-22,31,34,51-52,63,82,84,108-139,141,156-159,178,191-192,203,215,238-239,241,253-453
+packages/ai-chat/tests/reasoning-continuation.spec.ts
+  h_171a11afaf879a 1,16,19,31,35,41,43,69,78,84,86-87,89-90,94
+packages/ai-chat/tests/seed-world-response.ts
+  h_171a11afaf879a 1-6
+packages/animals/src/gameplay/animal/AnimalLod.ts
+  h_171a11afaf879a 4-56
+packages/animals/src/gameplay/animal/AnimalPopulation.ts
+  h_171a11afaf879a 3,47-48,162
+packages/animals/src/gameplay/animal/ConfiguredAnimal.ts
+  h_171a11afaf879a 167-171,241-244,781-784,965-999,1009-1014,1092-1150,1737-1739,1802-1803,1815-1817,1819,1831-1865,2004,2011-2012,3165
+packages/animals/src/gameplay/animal/GroundAnimalCrowd.ts
+  h_171a11afaf879a 733-742,750,766-767,791,794
+packages/animals/src/gameplay/animal/GroundAnimalRecovery.ts
+  h_171a11afaf879a 12-13,34-38,42-43,48-49,57,66-67,94-95,118-121,127,134-148,161-202,205-206
+packages/animals/src/gameplay/animal/index.ts
+  h_171a11afaf879a 17-23
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  h_171a11afaf879a 1440-1441,1652,1657,1671,1677,1683-1686,1754,1809
+packages/building/src/building/runtime/BuildingDistanceView.ts
+  h_171a11afaf879a 1,326
+packages/building/src/building/runtime/BuildingFarProxy.ts
+  h_171a11afaf879a 1,1120
+packages/building/src/building/runtime/BuildingGlobalProxy.ts
+  h_171a11afaf879a 1,523
+packages/building/src/building/runtime/ConstructionDecorationLightPolicy.ts
+  h_171a11afaf879a 4-5,77,130,157,201-204
+packages/building/src/building/runtime/ConstructionDecorationLights.ts
+  h_171a11afaf879a 12,15,65,74-75,151-153,157,198-201
+packages/building/src/building/runtime/EngineResidentScene.ts
+  h_171a11afaf879a 1,437
+packages/building/tests/BuildingOptimization.spec.ts
+  h_171a11afaf879a 9,11,15-16,26-27,440-443,964,1299,1416-1421,1424-1448,1450-1494
+packages/core/src/Renderer.ts
+  h_171a11afaf879a 339-342
+packages/project/package.json
+  h_171a11afaf879a 50
+packages/project/src/rendering/WorldLayer.ts
+  h_171a11afaf879a 1-11
+packages/project/src/rendering/shaders/SeedWorldLiquidGlass.shader
+  h_171a11afaf879a 284-289
+packages/project/tests/WorldLayer.spec.ts
+  h_171a11afaf879a 1-13
+packages/terrain/src/data/seed-world/public/Shader/Billboard.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/shaders/shared/Lighting.glsl
+  h_171a11afaf879a 21-44,87-89,92,103
+packages/terrain/src/shaders/vegetation/VegetationEvaluation.glsl
+  h_171a11afaf879a 232-233
+packages/vegetation/README.md
+  h_171a11afaf879a 5-6
+packages/water/src/water/native/WaterSystem.ts
+  h_171a11afaf879a 1,4,1160-1161
+packages/water/src/water/runtime/heightfield/HeightfieldWaterRuntimeController.ts
+  h_171a11afaf879a 318,332-337
+packages/water/src/water/runtime/ocean/FiniteOceanSurfaceGeometry.ts
+  h_171a11afaf879a 1,8,22
+packages/water/src/water/runtime/scene/WaterSceneRuntimeHost.ts
+  h_171a11afaf879a 1-2,409
+packages/water/src/world/SeedWorldWaterStartupShaders.ts
+  h_171a11afaf879a 3-15,17
+packages/world-planning/src/integrations/terrain/lighting/TerrainProbeVolumeAuthoring.ts
+  h_171a11afaf879a 1,5,173
+packages/world-planning/src/integrations/terrain/project/TerrainWaterRuntime.ts
+  h_171a11afaf879a 1-2,353,358
+packages/world-planning/src/integrations/terrain/rock-formation/Navigation.ts
+  h_171a11afaf879a 1,19
+packages/world-planning/src/runtime/SeedWorldWaterRuntime.ts
+  h_171a11afaf879a 1,3,161,168
+packages/world-planning/src/semantic-study/PlanningTerrainDepth.ts
+  h_171a11afaf879a 1,7,20
+packages/world-planning/src/semantic-study/PlanningWaterView.ts
+  h_171a11afaf879a 1,3,60-61
+packages/world-planning/src/spatial/AnimalPopulationComponent.ts
+  h_171a11afaf879a 12-15,21,142-169,245-264,325-326,341,460-479
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  h_171a11afaf879a 3-6,67-68,500-504,542-546,669-673,1560-1564,1855-1870
+packages/world-planning/src/spatial/director/DirectorSemanticView.ts
+  h_171a11afaf879a 1,9,125,230
+packages/world-planning/src/spatial/runtime/PlanningPlayerState.ts
+  h_171a11afaf879a 14-17,55-56,67-71
+packages/world-planning/src/spatial/runtime/PlanningWaterRuntime.ts
+  h_171a11afaf879a 1,8,186,193
+packages/world-planning/src/spatial/world-templates/LowPolyValley.ts
+  h_171a11afaf879a 948-952
+packages/world-planning/src/world/SeedWorldPhotoGraphics.ts
+  h_171a11afaf879a 1,23,47
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_171a11afaf879a 161-163,1310-1317,1321-1323,1328-1329,1333,1339-1346,2010,2023
+packages/world-planning/tests/NativeBuildingLifetime.spec.ts
+  h_171a11afaf879a 105,111,128,134,137,146,163,165-166,168,170-173,176,178-193
+world/README.md
+  h_171a11afaf879a 55,72
+world/demos.json
+  h_171a11afaf879a 118-148
+world/demos/seed-world/FLASH_APP_PUBLISH.md
+  h_171a11afaf879a 1,3,5,7,9,11-18,20-21,23,25,28-33,36,39-45,48,50-53,55,58,61-62,64,66,68,73,76,78,84,86-88,90,93-94,97-130,133-137,139,141,143-150,152,156-163
+world/demos/seed-world/README.md
+  h_171a11afaf879a 7,21-22,122,209-210,213
+world/demos/seed-world/SeedWorldDemo.ts
+  h_171a11afaf879a 90-91,100-104,260,322,698,714,719,758-761,811,1017-1019,1039-1081,1092,1096-1101,1103,1105,1108,1114-1118,1141-1148,1362,1842-1843,2832-2834,2888,3592-3617
+world/demos/seed-world/SeedWorldPlayerSave.ts
+  h_171a11afaf879a 4-5,33
+world/demos/seed-world/SeedWorldProject.ts
+  h_171a11afaf879a 3,14,17,21,28,129-130,135,147,159-162,164-225,227-253,255-279,281-282,284-289
+world/demos/seed-world/SeedWorldProjectFormats.ts
+  h_171a11afaf879a 1,7,9,13-102,152
+world/demos/seed-world/agent-adapter/SeedWorldAgentApplication.ts
+  h_171a11afaf879a 76,209
+world/demos/seed-world/assistant/SeedWorldActionProbe.ts
+  h_171a11afaf879a 1-60
+world/demos/seed-world/assistant/SeedWorldAgentDebug.ts
+  h_171a11afaf879a 1,22,28,47,86-90,110-115
+world/demos/seed-world/assistant/SeedWorldChatPanel.ts
+  h_171a11afaf879a 82,84-88,126-127,356,398,407,874-878,1281,1283,1647-1648,1655-1657,1671-1675,1680,1690-1691,1701-1705,1709-1713,1718-1719,1726-1729,1744-1761,1789,2103,2224-2229,2243,2261-2263,2265-2267,2283,2476-2477,2488-2491,2493-2526,2539,2550-2551,2638,2641,2688,2701
+world/demos/seed-world/assistant/SeedWorldModel.ts
+  h_171a11afaf879a 1-2
+world/demos/seed-world/assistant/SeedWorldVoiceHudShaders.ts
+  h_171a11afaf879a 11-22,35,37,42-248,253,257-258
+world/demos/seed-world/assistant/shaders/SeedWorldVoiceOrb.shader
+  h_171a11afaf879a 1-2,7-13,17,24-26,28-30,32,38-40,44,46,48,52-54,56,58,64,70-72,77,82-86,90-134,138-149,151-160,166-167,169,174-175,179-181,186,188-197,202-203,210-298,301-318,320-332,334-371,373-374,394-395,397,399,404-406,411,418,420-425
+world/demos/seed-world/base.js
+  h_171a11afaf879a 3-13,16-19
+world/demos/seed-world/dev/scene-visual-intent/README.md
+  h_171a11afaf879a 59
+world/demos/seed-world/dev/scene-visual-intent/SceneVisualIntentTransport.ts
+  h_171a11afaf879a 1-7,23-24,26-28,30,52-63,66-98
+world/demos/seed-world/emerald-forest.html
+  h_171a11afaf879a 1-13
+world/demos/seed-world/flash-app-cdn-manifest.json
+  h_171a11afaf879a 3-8,69-74,267-272,279-284,333-344,381-386,417-422,453-458,465-470,477-482,501-506,651-656,711-716,753-764,813-830,837-842,921-932,993-998,1029-1034,1047-1052,1077-1082,1089-1094,1113-1118,1125-1130,1149-1154,1233-1238,1299-1304,1437-1442,1449-1460,1467-1472,1509-1514,1557-1562,1587-1592,1605-1610,1713-1718,1767-1772,1803-1814,1923-1928,1935-1952,1959-1964,2115-2120,2187-2192,2235-2240,2361-2366,2385-2390,2427-2432,2517-2522,2559-2564,2577-2588,2679-2684,2775-2780,2799-2804,2877-2882,2895-2900,2967-2978
+world/demos/seed-world/flash-apps.json
+  h_171a11afaf879a 1-47
+world/demos/seed-world/index.html
+  h_171a11afaf879a 6-7
+world/demos/seed-world/low-poly.html
+  h_171a11afaf879a 1-13
+world/demos/seed-world/main.ts
+  h_171a11afaf879a 2,4-5,18,24,65-70,73,75,87,127
+world/demos/seed-world/oil-paint.html
+  h_171a11afaf879a 1-13
+world/demos/seed-world/sakura-pearl.html
+  h_171a11afaf879a 1-13
+world/demos/seed-world/src/SeedWorldCameraButton.ts
+  h_171a11afaf879a 127,135,139,163,171-172,183-185,193-194
+world/demos/seed-world/src/SeedWorldCommonBinaryBundle.ts
+  h_171a11afaf879a 4,35-36,41,47-54,73-81,87,93-94,104,130-150,153,295-299,301-303,307,309-326,335-359,528-529
+world/demos/seed-world/src/SeedWorldPhotoWorkspace.ts
+  h_171a11afaf879a 761-774,776-777,780-781,786-787,822
+world/demos/seed-world/src/SeedWorldProjectTextBundle.ts
+  h_171a11afaf879a 1-5,8-9,12-29,33-36,38-42,46-107,111-112,114,119-125
+world/demos/seed-world/src/SeedWorldStartupShaderWarmup.ts
+  h_171a11afaf879a 17,319,355,379,401,607
+world/demos/seed-world/src/planning/semantic-study/WorldLayoutEditor.ts
+  h_171a11afaf879a 1,32
+world/demos/seed-world/src/planning/spatial/FlashAppTemplateBinding.ts
+  h_171a11afaf879a 1-29
+world/demos/seed-world/src/planning/spatial/PlanningDocumentCodec.ts
+  h_171a11afaf879a 7-8
+world/demos/seed-world/src/planning/spatial/PlanningStartupTemplate.ts
+  h_171a11afaf879a 7,9-10,12,14-15,17-22,24-26
+world/demos/seed-world/src/planning/spatial/SpatialEditor.ts
+  h_171a11afaf879a 11,13,28,121-123,547,635-636,640-648
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime.ts
+  h_171a11afaf879a 16-19,44-50,145,212,263-274,283,1128-1137,1140,1213,1228,1444,2095-2126,2159-2165
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectSource.ts
+  h_171a11afaf879a 1,68,161,168-169,172,264-268,447-469,477,480
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectStorage.ts
+  h_171a11afaf879a 5,9,13,20,40-46,54-55,120-121,123,146-149
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWorldSource.ts
+  h_171a11afaf879a 18-19,47-49
+world/demos/seed-world/storage/SeedWorldStorageHost.ts
+  h_171a11afaf879a 3-4,17-56,61,96
+world/demos/seed-world/storage/SharedWorldStorage.ts
+  h_171a11afaf879a 54,191,238-240,242,609,644-654,660
+world/demos/seed-world/storage/local-world-db.mjs
+  h_171a11afaf879a 13,16,18-22,27,32-53,140-141,151-154
+world/demos/seed-world/tests/SeedWorldActionProbe.test.ts
+  h_171a11afaf879a 1-38
+world/demos/seed-world/titan-wasteland.html
+  h_171a11afaf879a 1-13
+world/migration/files.json
+  h_171a11afaf879a 1581
+world/package.json
+  h_171a11afaf879a 20
+world/scripts/acceptance/shared-world-storage.mjs
+  h_171a11afaf879a 89,91-93,98,101-102,104-110,121-126,207,218-219,234-239,249-261,267,281-299,332-341
+world/scripts/build-seed-world-flash-app.mjs
+  h_171a11afaf879a 2-4,9-13,20-21,38-39,44-59,61-63,65,67,71-81,83-90,100-103,121,129-134,138,142-148,156-161,164,169-170,181-183,217,220,229-234,259-261,273,297,307,317-322
+world/scripts/deploy-seed-world-flash-app.mjs
+  h_171a11afaf879a 2-4,8,10-21,23-26,28,30-36,38-47,49-54,56-70
+world/scripts/flash-app-variants.mjs
+  h_171a11afaf879a 1-200
+world/scripts/publish-seed-world-flash-apps.mjs
+  h_171a11afaf879a 1-17,19,24,29-37,39,41-62,64-115,117-119,121-248,251-277,280-284,287-305,307,309-321,325-336,339-343,346-383,386-406,409-418,420-422,425-460,462,464-465,467-487,489-500,502-524,526-528,532-546,549-569,571-607,610,613-614,617-619,621-622,624-625,629-638,642-652,654,657-669,673-700,703-716,720-725,727-745,747-764,766-773,775-797,799-835,837-972
+world/scripts/seed-world-flash-registry.py
+  h_171a11afaf879a 1-140
+world/scripts/seed-world-template-bundles.mjs
+  h_171a11afaf879a 41-42,76-99,101-104,125,179,183-187,192-197,226,247-248,264-266,302,317,332,341,344,352,355-357,360-371,397-401,404
+world/scripts/sync-flash-app-cdn-assets.py
+  h_171a11afaf879a 279
+world/tests/seed-world-browser/MarkupButton.test.ts
+  h_171a11afaf879a 7,9,17,25,27,35-36,38,43,47
+world/tests/seed-world-browser/SeedWorldPerfRegressions.test.ts
+  h_171a11afaf879a 7,9,13,20-24,554-570,584,586,589,626-627,653
+world/tests/seed-world-browser/TreeCanopyShadow.test.ts
+  h_171a11afaf879a 1-101
+world/tests/seed-world-browser/VoiceHudGlass.test.ts
+  h_171a11afaf879a 117,120
+world/tests/seed-world-storage/SharedWorldStorage.spec.ts
+  h_171a11afaf879a 146-169,1083,1086-1105,1325
+world/tests/seed-world/AIChatSession.spec.ts
+  h_171a11afaf879a 246-247,268,270,275,284,286-289,291-292,319,342
+world/tests/seed-world/AnimalPathfindingPerfInvariants.spec.ts
+  h_171a11afaf879a 2-9,13,18,423-711
+world/tests/seed-world/HeightfieldWaterVisibility.spec.ts
+  h_171a11afaf879a 1-59
+world/tests/seed-world/PlanningProjectInputs.spec.ts
+  h_171a11afaf879a 9,11,47-65
+world/tests/seed-world/PlanningStartupTemplate.spec.ts
+  h_171a11afaf879a 20,22-29,32,34
+world/tests/seed-world/PlanningStorage.spec.ts
+  h_171a11afaf879a 161
+world/tests/seed-world/SceneVisualIntentTransport.spec.ts
+  h_171a11afaf879a 1-49
+world/tests/seed-world/SeedWorldAgentDebug.spec.ts
+  h_171a11afaf879a 1-34,36-82,84-190,192-194,196-217,219-220,222-225,227-240,242-243,245-307,309-310
+world/tests/seed-world/SeedWorldFlashApps.spec.ts
+  h_171a11afaf879a 1-783
+world/tests/seed-world/SeedWorldPlayerState.spec.ts
+  h_171a11afaf879a 285-313
+world/tests/seed-world/SeedWorldRendererWarmup.spec.ts
+  h_171a11afaf879a 4,7,462-469,484-496,502-506,519-522,525-528,2338-2340
+world/tests/seed-world/SeedWorldStartupShaderWarmup.spec.ts
+  h_171a11afaf879a 4,25-26,168,204,209,230,254,276,312,525,543,1240,1327,1916-1948
+world/tests/seed-world/SeedWorldTemplateBundles.spec.ts
+  h_171a11afaf879a 13,15,23,31-34,40,91-108,158,165-166,181,185-186,189-191,194-213,226-231,233-241,244,247,251,261,310,360,363-372,376,379-381,525-777
+world/tests/seed-world/SeedWorldVoiceHudController.spec.ts
+  h_171a11afaf879a 12,297-317,619-621,709,737,916,1009,1019,1043,1055
+world/tests/seed-world/editor/seed-world-edit.spec.ts
+  h_171a11afaf879a 2-3,8-34
+world/tests/seed-world/editor/seed-world-project.spec.ts
+  h_171a11afaf879a 13,140-176
+world/vite.config.mjs
+  h_171a11afaf879a 15,17,53-57,147-150,211-217,295-302,305,308,313-324,327,338,340-341,349,359-364,494-534
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "699645ac77e7cfce215a420b6f9f22bc375188bc",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
