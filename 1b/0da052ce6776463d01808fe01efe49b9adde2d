@@ -1,0 +1,59 @@
+packages/world-planning/tests/NativeBuildingLifetime.spec.ts
+  s_c72f930c19d1f3::t_176acc74936c49 105,111,128,134,146,163,169,173,180-184
+world/demos/seed-world/SeedWorldDemo.ts
+  s_c72f930c19d1f3::t_176acc74936c49 2863
+world/demos/seed-world/src/SeedWorldStartupShaderWarmup.ts
+  s_c72f930c19d1f3::t_176acc74936c49 17,314,350,365,375,397,603
+packages/building/src/building/runtime/ConstructionDecorationLightPolicy.ts
+  s_c72f930c19d1f3::t_919a13ce74b804 130,157,201-202
+  s_c72f930c19d1f3::t_176acc74936c49 4-5,77
+  s_c72f930c19d1f3::t_fb87495673631b 203-204
+world/tests/seed-world/SeedWorldStartupShaderWarmup.spec.ts
+  s_c72f930c19d1f3::t_176acc74936c49 165,206,227,251,273,309,539,1236,1323
+packages/building/tests/BuildingOptimization.spec.ts
+  s_c72f930c19d1f3::t_b6a7e33418a782 1419-1421
+  s_c72f930c19d1f3::t_d7a69b4ac2641f 11,15-16,26,1416-1418,1424-1435,1437,1439-1445,1447-1448,1450-1455,1459-1480
+  s_c72f930c19d1f3::t_c1cc900c291410 9,1438,1446,1456-1458
+  s_c72f930c19d1f3::t_65ebf4d1ef30c2 440-443,964,1299
+  s_c72f930c19d1f3::t_8d91cc2ae2e131 27,1436
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  s_c72f930c19d1f3::t_919a13ce74b804 1441-1442
+  s_c72f930c19d1f3::t_176acc74936c49 48,1659,1673,1679,1685-1699,1701,1769,1824
+packages/building/src/building/runtime/ConstructionDecorationLights.ts
+  s_c72f930c19d1f3::t_176acc74936c49 15,65
+  s_c72f930c19d1f3::t_919a13ce74b804 74,151-153,157
+  s_c72f930c19d1f3::t_c1cc900c291410 198-200
+  s_c72f930c19d1f3::t_8d91cc2ae2e131 12,75
+packages/building/src/building/runtime/BuildingRenderLayer.ts
+  s_c72f930c19d1f3::t_8d91cc2ae2e131 1-4
+packages/building/src/building/runtime/ConstructionSceneLighting.glsl
+  s_c72f930c19d1f3::t_8d91cc2ae2e131 88,262
+packages/building/src/building/runtime/EngineResidentScene.ts
+  s_c72f930c19d1f3::t_8d91cc2ae2e131 1,447
+packages/building/tests/ConstructionSceneLightingCompiler.spec.ts
+  s_c72f930c19d1f3::t_8d91cc2ae2e131 10
+packages/building/src/building/runtime/BuildingGlobalProxy.ts
+  s_c72f930c19d1f3::t_8d91cc2ae2e131 1,523
+packages/building/src/building/runtime/ConstructionSceneLighting.ts
+  s_c72f930c19d1f3::t_8d91cc2ae2e131 7-8
+packages/building/src/building/runtime/BuildingFarProxy.ts
+  s_c72f930c19d1f3::t_8d91cc2ae2e131 1,1120
+packages/building/src/building/runtime/BuildingDistanceView.ts
+  s_c72f930c19d1f3::t_8d91cc2ae2e131 1,326
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1b0da052ce6776463d01808fe01efe49b9adde2d",
+  "prompts": {},
+  "sessions": {
+    "s_c72f930c19d1f3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21604-5ead-7042-b751-c18d1813c1a0",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

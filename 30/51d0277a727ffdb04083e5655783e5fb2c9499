@@ -1,0 +1,18 @@
+world/demos/seed-world/assistant/SeedWorldChatPanel.ts
+  h_171a11afaf879a 84-85,87-88,2103,2225-2229,2494-2508,2512-2519,2526,2551
+world/demos/seed-world/assistant/SeedWorldVoiceHudShaders.ts
+  h_171a11afaf879a 11-21,37,44-249
+world/demos/seed-world/assistant/shaders/SeedWorldVoiceOrb.shader
+  h_171a11afaf879a 32-47,90-99,102-106,109-111,113,116-135,137-149,151-160,165-167,169-170,174-181,188-375,378-380,382,388-390,393-398,404-406,409-416
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3051d0277a727ffdb04083e5655783e5fb2c9499",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

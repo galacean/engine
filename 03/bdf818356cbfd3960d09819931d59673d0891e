@@ -1,0 +1,26 @@
+packages/ai-chat/src/ai-chat/agent-loop.ts
+  s_a61a893a3e253a::t_a76854a80620a2 1191,1374,1376-1378,1443-1446,1448-1452,1455
+packages/ai-chat/tests/context-compaction-loop.spec.ts
+  s_a61a893a3e253a::t_4c9a711443fd32 58-59,72
+packages/ai-chat/tests/model-retry-transport.spec.ts
+  s_a61a893a3e253a::t_4c9a711443fd32 108-139
+packages/ai-chat/src/ai-chat/asap-chat.ts
+  s_a61a893a3e253a::t_a76854a80620a2 31,481-484,486,498-500,510
+  s_a61a893a3e253a::t_3c1a8ad28c16fd 485,501-502,507
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "03bdf818356cbfd3960d09819931d59673d0891e",
+  "prompts": {},
+  "sessions": {
+    "s_a61a893a3e253a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20875-19df-7c71-be76-42bd2313456c",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

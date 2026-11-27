@@ -1,0 +1,48 @@
+packages/core/src/animation/animationCurve/AnimationVector4Curve.ts
+  s_efa23a7d23a13c::t_d43f1c601b952e 29-30
+packages/core/src/animation/animationCurve/AnimationCurve.ts
+  s_efa23a7d23a13c::t_cb91aa5f58fe9c 87,125,380-384
+  s_efa23a7d23a13c::t_c23dd50c8a8871 9-10,30-31,88,97-107,158,163,165,352,424-426,482-489,515,526-527,535,554-567
+  s_efa23a7d23a13c::t_3b79f1e878d8d6 568
+packages/core/src/animation/animationCurve/AnimationVector2Curve.ts
+  s_efa23a7d23a13c::t_d43f1c601b952e 24-25
+packages/core/src/animation/animationCurve/AnimationQuaternionCurve.ts
+  s_efa23a7d23a13c::t_d43f1c601b952e 156-157
+tests/src/core/AnimationCurve.test.ts
+  s_efa23a7d23a13c::t_34007c3fb88433 55,57-119
+  s_efa23a7d23a13c::t_701832c8ba9ae5 120-126
+  s_efa23a7d23a13c::t_2ffa1452c02059 56
+packages/core/src/animation/animationCurve/AnimationColorCurve.ts
+  s_efa23a7d23a13c::t_d43f1c601b952e 29-30
+packages/core/src/animation/animationCurve/AnimationFloatArrayCurve.ts
+  s_efa23a7d23a13c::t_7687f378756e33 160-165
+  s_efa23a7d23a13c::t_d43f1c601b952e 168
+packages/core/src/animation/internal/AnimationCurvePack.ts
+  s_efa23a7d23a13c::t_7687f378756e33 125-130
+  s_efa23a7d23a13c::t_d43f1c601b952e 27-29,35-38,114-116,120-123,131-132,134-135
+packages/galacean/tests/EntityLookupTypes.test.ts
+  s_efa23a7d23a13c::t_8988a4505793da 45
+  s_efa23a7d23a13c::t_701832c8ba9ae5 44,46,55
+packages/core/src/animation/animationCurve/AnimationRectCurve.ts
+  s_efa23a7d23a13c::t_d43f1c601b952e 60
+packages/core/src/animation/animationCurve/AnimationArrayCurve.ts
+  s_efa23a7d23a13c::t_d43f1c601b952e 142-143
+packages/core/src/animation/animationCurve/AnimationVector3Curve.ts
+  s_efa23a7d23a13c::t_d43f1c601b952e 24-25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e6f3aa9e7e8e2583e08171778e7d7c612e295439",
+  "prompts": {},
+  "sessions": {
+    "s_efa23a7d23a13c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20c53-701f-7062-877c-b0660a93771b",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

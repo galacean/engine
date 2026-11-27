@@ -1,0 +1,78 @@
+packages/core/src/Engine.ts
+  h_a3c79ce84ffdc2 672-673
+packages/core/src/graphic/Buffer.ts
+  h_a3c79ce84ffdc2 209-211,264,268-269,272,284
+packages/core/src/graphic/Primitive.ts
+  h_a3c79ce84ffdc2 197
+packages/core/src/lighting/environment/RealtimeIBLBaker.ts
+  h_a3c79ce84ffdc2 4,193,365-392,415,544
+packages/core/src/lighting/volumetricClouds/VolumetricCloudDirectionCacheRenderer.ts
+  h_a3c79ce84ffdc2 3,70,72-81,143,241
+packages/core/src/lighting/volumetricClouds/VolumetricCloudMultipleScatteringLUT.ts
+  h_a3c79ce84ffdc2 2,83,94,98-112
+packages/core/src/shader/Shader.ts
+  h_a3c79ce84ffdc2 211,224
+packages/core/src/shader/ShaderProgram.ts
+  h_a3c79ce84ffdc2 307-310
+packages/core/src/shader/ShaderProgramMap.ts
+  h_a3c79ce84ffdc2 86,88
+packages/core/src/texture/Texture.ts
+  h_a3c79ce84ffdc2 235-236
+packages/core/src/texture/Texture2D.ts
+  h_a3c79ce84ffdc2 65-67,88-90
+packages/core/src/texture/Texture2DArray.ts
+  h_a3c79ce84ffdc2 85-87,118-120
+packages/core/src/texture/TextureCube.ts
+  h_a3c79ce84ffdc2 61-63,94-96
+packages/environment/src/lighting/VolumetricCloudNoiseAssets.ts
+  h_a3c79ce84ffdc2 3,92,111-144,149
+packages/environment/src/lighting/VolumetricCloudSkyRuntime.ts
+  h_a3c79ce84ffdc2 3,247-250,644-658,672-674,692-694
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_a3c79ce84ffdc2 569-579
+packages/terrain/src/terrain/clipmap/TerrainClipmap.ts
+  h_a3c79ce84ffdc2 939,941
+packages/terrain/src/world/SeedWorldSurfaceNormalTexture.ts
+  h_a3c79ce84ffdc2 1-8,15-29,54
+packages/vegetation/src/asset-assembly/ProceduralPlantMeshes.ts
+  h_a3c79ce84ffdc2 5,169-183,211-217,219-224,237-238,256,278
+packages/vegetation/src/asset-assembly/ProceduralTreeGenerator.ts
+  h_a3c79ce84ffdc2 15,6090-6104,6127-6133,6135-6140,6161,6181,6198
+packages/vegetation/src/world/SeedWorldGrassColorFieldUniforms.ts
+  h_a3c79ce84ffdc2 4,120-135,149
+packages/world-planning/src/runtime/SeedWorldForwardGrass.ts
+  h_a3c79ce84ffdc2 650,755,757,771,1608,1634,1706,1749
+packages/world-planning/src/runtime/SeedWorldPanoramaVistaRuntime.ts
+  h_a3c79ce84ffdc2 3,5,213-218,220-225,230-260,464
+packages/world-planning/src/runtime/SeedWorldPopulationRuntime.ts
+  h_a3c79ce84ffdc2 76,985,2706-2707,2713,3222,3256-3280
+packages/world-planning/src/runtime/SeedWorldSurfaceReliefRuntime.ts
+  h_a3c79ce84ffdc2 11,41-55,62
+packages/world-planning/src/spatial/runtime/NaturalUnderstoryInstancedPool.ts
+  h_a3c79ce84ffdc2 1113-1114
+packages/world-planning/src/spatial/runtime/PlanningTerrainAppearance.ts
+  h_a3c79ce84ffdc2 1-8,63-78,90
+packages/world-planning/src/spatial/runtime/TemplateProceduralPlants.ts
+  h_a3c79ce84ffdc2 6,8,886-901,942,960-972,1384-1390,1601-1607
+packages/world-planning/src/spatial/runtime/WorldTemplateRuntime.ts
+  h_a3c79ce84ffdc2 1395
+packages/world-planning/src/world/SeedWorldInstanceBatch.ts
+  h_a3c79ce84ffdc2 270-274
+tests/src/core/DeviceLost.test.ts
+  h_a3c79ce84ffdc2 5-7,10,14,94-174
+world/tests/seed-world-browser/ForwardGrass.test.ts
+  h_a3c79ce84ffdc2 259,276-387
+world/tests/seed-world/SeedWorldTerrainRuntimeIntegration.spec.ts
+  h_a3c79ce84ffdc2 35-37,293-296,433
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c728d6aa76172b8f00af56dad971c8fa33f877ed",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

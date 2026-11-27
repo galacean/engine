@@ -1,0 +1,60 @@
+packages/world-planning/src/world/SeedWorldPhotoGraphics.ts
+  s_c72f930c19d1f3::t_1ec9e70a941388 1,23,47
+packages/water/src/water/runtime/scene/WaterSceneRuntimeHost.ts
+  s_c72f930c19d1f3::t_1ec9e70a941388 1-2,409
+packages/world-planning/src/integrations/terrain/rock-formation/Navigation.ts
+  s_c72f930c19d1f3::t_1ec9e70a941388 1,19
+packages/building/src/building/runtime/ConstructionDecorationLights.ts
+  s_c72f930c19d1f3::t_1ec9e70a941388 12,75,200
+packages/project/package.json
+  s_c72f930c19d1f3::t_1ec9e70a941388 50
+packages/project/src/rendering/WorldLayer.ts
+  s_c72f930c19d1f3::t_1ec9e70a941388 1-11
+packages/building/src/building/runtime/BuildingDistanceView.ts
+  s_c72f930c19d1f3::t_1ec9e70a941388 1,326
+packages/building/tests/BuildingOptimization.spec.ts
+  s_c72f930c19d1f3::t_1ec9e70a941388 27,442,964,1299,1436,1458
+packages/building/src/building/runtime/BuildingGlobalProxy.ts
+  s_c72f930c19d1f3::t_1ec9e70a941388 1,523
+packages/world-planning/src/semantic-study/PlanningTerrainDepth.ts
+  s_c72f930c19d1f3::t_1ec9e70a941388 1,7,19
+packages/water/src/water/native/WaterSystem.ts
+  s_c72f930c19d1f3::t_1ec9e70a941388 1,4,1160-1161
+packages/world-planning/src/runtime/SeedWorldWaterRuntime.ts
+  s_c72f930c19d1f3::t_1ec9e70a941388 1,3,161,168
+packages/world-planning/src/spatial/director/DirectorSemanticView.ts
+  s_c72f930c19d1f3::t_1ec9e70a941388 1,9,141,238
+packages/building/src/building/runtime/BuildingFarProxy.ts
+  s_c72f930c19d1f3::t_1ec9e70a941388 1,1120
+packages/project/tests/WorldLayer.spec.ts
+  s_c72f930c19d1f3::t_7e363164e06927 1,7
+  s_c72f930c19d1f3::t_1ec9e70a941388 2-6,8-13
+packages/water/src/water/runtime/ocean/FiniteOceanSurfaceGeometry.ts
+  s_c72f930c19d1f3::t_1ec9e70a941388 1,8,22
+packages/building/src/building/runtime/EngineResidentScene.ts
+  s_c72f930c19d1f3::t_1ec9e70a941388 1,447
+packages/world-planning/src/integrations/terrain/lighting/TerrainProbeVolumeAuthoring.ts
+  s_c72f930c19d1f3::t_1ec9e70a941388 1,5,173
+packages/world-planning/src/semantic-study/PlanningWaterView.ts
+  s_c72f930c19d1f3::t_1ec9e70a941388 1,3,60-61
+packages/world-planning/src/integrations/terrain/project/TerrainWaterRuntime.ts
+  s_c72f930c19d1f3::t_1ec9e70a941388 1-2,353,358
+packages/world-planning/src/spatial/runtime/PlanningWaterRuntime.ts
+  s_c72f930c19d1f3::t_1ec9e70a941388 1,8,186,193
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d6beab7cde7cc882927e96f43aa72013e412349b",
+  "prompts": {},
+  "sessions": {
+    "s_c72f930c19d1f3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21604-5ead-7042-b751-c18d1813c1a0",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
