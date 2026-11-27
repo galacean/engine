@@ -38,7 +38,8 @@ export const SEED_WORLD_TEMPLATE_IDS = Object.freeze([
   "sakura-pearl",
   "emerald-forest",
   "low-poly",
-  "titan-wasteland"
+  "titan-wasteland",
+  "oil-paint"
 ]);
 
 /** Already-compressed or binary media extensions consolidated into uncompressed per-template SWB1 shards. */
@@ -72,9 +73,35 @@ export function isSeedWorldCommonRockLodAsset(fileName) {
   return normalized.startsWith(ROCK_FORMATION_LOD_PREFIX) && path.extname(normalized).toLowerCase() === ".glb";
 }
 
-const LUSH_ALL_TREE_STRUCTURE_JSONS = new Set([
+/**
+ * Building kit media textures (`packages/building/**`, 18 KTX2s, ~5.61 MiB raw) packed into a dedicated
+ * uncompressed `seed-world-building-tex-bundle` loaded in parallel with `seed-world-building-bin-bundle`
+ * so building-bearing templates share one cached CDN pack instead of duplicating 5.61 MiB x 4 across template shards.
+ */
+export function isSeedWorldBuildingTextureAsset(fileName) {
+  const normalized = stripPugcWasmSuffix(fileName);
+  const ext = path.extname(normalized).toLowerCase();
+  return normalized.startsWith("packages/building/") && TEMPLATE_MEDIA_BUNDLE_EXTENSIONS.has(ext);
+}
+
+const EXCLUDED_COMMON_BIN_WATER_SHADER_PATTERN =
+  /^packages\/water\/src\/water\/native\/assets\/Water\/Shaders\/(?:lake|river|ocean)\.shader$/u;
+
+/**
+ * Legacy editable raw water `.shader` sources (`lake/river/ocean.shader`, ~399 KiB raw) are superseded at
+ * runtime by AOT `.shaderc` profiles; keep them on CDN for lazy editor access instead of packing into startup common-bin.
+ */
+export function isSeedWorldExcludedCommonBinShader(fileName) {
+  const normalized = fileName.split(path.sep).join("/");
+  return EXCLUDED_COMMON_BIN_WATER_SHADER_PATTERN.test(normalized);
+}
+
+const LUSH_TREE_STRUCTURE_JSONS = new Set([
   `${VEGETATION_PROCEDURAL_TREES_PREFIX}meadow-sm_birchtree_01-structure.json`,
-  `${VEGETATION_PROCEDURAL_TREES_PREFIX}meadow-sm_birchtree_02-structure.json`,
+  `${VEGETATION_PROCEDURAL_TREES_PREFIX}meadow-sm_birchtree_02-structure.json`
+]);
+// Birch bushes (`SM_BirchBush_03/04`) are used by lush templates AND `titan-wasteland` desert shrub habitat.
+const BIRCHBUSH_STRUCTURE_JSONS = new Set([
   `${VEGETATION_PROCEDURAL_TREES_PREFIX}meadow-sm_birchbush_03-structure.json`,
   `${VEGETATION_PROCEDURAL_TREES_PREFIX}meadow-sm_birchbush_04-structure.json`
 ]);
@@ -95,6 +122,7 @@ const LOW_POLY_MEADOW_BLOCKS_PATTERN = /^meadow-blocks-/u;
 const SAKURA_ASSET_PATTERN = /^(?:pink-tree-|sakura-petal-)/u;
 const EMERALD_ASSET_PATTERN = /^forest-/u;
 const DESERT_ASSET_PATTERN = /^(?:dead-tree-bark-|oasis-butterflies-)/u;
+const OIL_PAINT_ASSET_PATTERN = /^oil-paint-water-swirl-/u;
 
 // Legacy retired `packages/terrain/src/data/seed-world/public/Texture/` hashes (small-stones.mat, birch-bark.mat,
 // broadleaf-branches.mat) — 0% pre-reveal hits across all 5 templates.
@@ -148,14 +176,24 @@ const VEG_PROC_SHARED_FILES = new Set([
   "meadow-flowers_02-part-05-256.png"
 ]);
 
-// Procedural vegetation PNGs actively loaded pre-reveal ONLY by lush templates (original, sakura-pearl, emerald-forest).
+// Procedural vegetation PNGs actively loaded pre-reveal ONLY by lush templates (original, sakura-pearl, emerald-forest, oil-paint).
 const VEG_PROC_LUSH_FILES = new Set([
   "highlands-fir-3-bark-albedo.png",
   "highlands-fir-3-bark-normal.png",
-  "highlands-bush-2-leaves.png",
+  "highlands-bush-2-leaves.png"
+]);
+
+// Birch bark/leaf PNGs loaded pre-reveal by lush templates AND `titan-wasteland` (`SM_BirchBush_03/04` + `desert-shrub`).
+const VEG_PROC_BIRCH_FILES = new Set([
   "meadow-birch-bark-256.png",
   "meadow-birchtree_leaf_01_summer-part-01-256.png"
 ]);
+
+// TemplateProceduralPlants `grassBlade` texture loaded pre-reveal by `low-poly` (`meadow-flower`) and `titan-wasteland` (`dry-grass`/`plume-grass`/`pastel-flower`).
+const VEG_PROC_TEMPLATE_GRASS_FILES = new Set(["meadow-grass_02_summer-part-01-256.png"]);
+
+// TemplateProceduralPlants `plumeSpray` texture loaded pre-reveal by `titan-wasteland` (`plume-grass`).
+const VEG_PROC_DESERT_PLUME_FILES = new Set(["meadow-flowers_03-part-01-256.png"]);
 
 /**
  * Classifies a built dist asset path (POSIX-normalized) into a template media category.
@@ -185,6 +223,7 @@ export function classifySeedWorldTemplateMediaAsset(fileName) {
     if (SAKURA_ASSET_PATTERN.test(base)) return "tpl_sakura";
     if (EMERALD_ASSET_PATTERN.test(base)) return "tpl_emerald";
     if (DESERT_ASSET_PATTERN.test(base)) return "tpl_desert";
+    if (OIL_PAINT_ASSET_PATTERN.test(base)) return "tpl_oil_paint";
     return null;
   }
 
@@ -205,7 +244,8 @@ export function classifySeedWorldTemplateMediaAsset(fileName) {
   }
 
   if (normalized.startsWith("packages/building/")) {
-    return "building_tex";
+    // Packed into dedicated uncompressed `seed-world-building-tex-bundle` loaded with `building-bin-bundle` (0 dup across templates).
+    return "exclude_building_tex";
   }
 
   if (normalized.startsWith("packages/water/")) {
@@ -221,6 +261,9 @@ export function classifySeedWorldTemplateMediaAsset(fileName) {
     const rel = normalized.slice(VEGETATION_PROCEDURAL_TREES_PREFIX.length);
     if (VEG_PROC_SHARED_FILES.has(rel)) return "veg_proc_shared";
     if (VEG_PROC_LUSH_FILES.has(rel)) return "veg_proc_lush";
+    if (VEG_PROC_BIRCH_FILES.has(rel)) return "veg_proc_birch";
+    if (VEG_PROC_TEMPLATE_GRASS_FILES.has(rel)) return "veg_proc_template_grass";
+    if (VEG_PROC_DESERT_PLUME_FILES.has(rel)) return "veg_proc_desert_plume";
     return "exclude_unused";
   }
 
@@ -256,10 +299,10 @@ const TEMPLATE_CATEGORY_SETS = Object.freeze({
     "terrain_lush_props",
     "veg_proc_shared",
     "veg_proc_lush",
+    "veg_proc_birch",
     "water_pond",
     "water_river",
     "water_ocean",
-    "building_tex",
     "bridges",
     "farming_soil_core"
   ]),
@@ -271,10 +314,10 @@ const TEMPLATE_CATEGORY_SETS = Object.freeze({
     "terrain_lush_props",
     "veg_proc_shared",
     "veg_proc_lush",
+    "veg_proc_birch",
     "water_pond",
     "water_river",
     "water_ocean",
-    "building_tex",
     "farming_soil_core",
     "tpl_sakura"
   ]),
@@ -286,8 +329,8 @@ const TEMPLATE_CATEGORY_SETS = Object.freeze({
     "terrain_lush_props",
     "veg_proc_shared",
     "veg_proc_lush",
+    "veg_proc_birch",
     "water_ocean",
-    "building_tex",
     "farming_soil_core",
     "tpl_emerald"
   ]),
@@ -295,8 +338,10 @@ const TEMPLATE_CATEGORY_SETS = Object.freeze({
     "core_env",
     "core_terrain_shared",
     "core_terrain_world_template",
+    // Retained until `AssetAssemblySourceLibrary` / `SeedWorldTerrainRuntime` stop eagerly loading lotus/mushroom sources on non-lush templates.
     "terrain_lush_props",
     "veg_proc_shared",
+    "veg_proc_template_grass",
     "water_pond",
     "low_poly_extra"
   ]),
@@ -304,10 +349,26 @@ const TEMPLATE_CATEGORY_SETS = Object.freeze({
     "core_env",
     "core_terrain_shared",
     "core_terrain_world_template",
+    // Retained until `AssetAssemblySourceLibrary` / `SeedWorldTerrainRuntime` stop eagerly loading lotus/mushroom sources on non-lush templates.
     "terrain_lush_props",
     "veg_proc_shared",
+    "veg_proc_birch",
+    "veg_proc_template_grass",
+    "veg_proc_desert_plume",
     "water_pond",
     "tpl_desert"
+  ]),
+  "oil-paint": new Set([
+    "core_env",
+    "core_terrain_shared",
+    "core_terrain_lush",
+    "core_terrain_world_template",
+    "terrain_lush_props",
+    "veg_proc_shared",
+    "veg_proc_lush",
+    "veg_proc_birch",
+    "water_pond",
+    "tpl_oil_paint"
   ])
 });
 
@@ -333,11 +394,14 @@ export function templatesForSeedWorldJsonAsset(fileName) {
   if (CORE_TEMPLATE_JSON_FILES.has(normalized)) {
     return [...SEED_WORLD_TEMPLATE_IDS];
   }
-  if (LUSH_ALL_TREE_STRUCTURE_JSONS.has(normalized)) {
-    return ["original", "sakura-pearl", "emerald-forest"];
+  if (LUSH_TREE_STRUCTURE_JSONS.has(normalized)) {
+    return ["original", "sakura-pearl", "emerald-forest", "oil-paint"];
+  }
+  if (BIRCHBUSH_STRUCTURE_JSONS.has(normalized)) {
+    return ["original", "sakura-pearl", "emerald-forest", "titan-wasteland", "oil-paint"];
   }
   if (normalized === BIRCHTREE_07_STRUCTURE_JSON) {
-    return ["original", "sakura-pearl"];
+    return ["original", "sakura-pearl", "oil-paint"];
   }
   return [];
 }

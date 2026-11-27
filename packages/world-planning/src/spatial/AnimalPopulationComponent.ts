@@ -9,11 +9,16 @@ import {
   DEFAULT_ANIMAL_INTERACTION,
   animalInteractionConfig
 } from "@galacean/engine-animals/gameplay/animal/AnimalInteraction";
+import {
+  DEFAULT_ANIMAL_ANIMATION_LOD,
+  animalAnimationLodConfig
+} from "@galacean/engine-animals/gameplay/animal/AnimalLod";
 import type { AnimalPopulationConfig } from "@galacean/engine-animals/gameplay/animal/AnimalPopulation";
 import type { PlanningComponentDefinition } from "./PlanningComponents";
 import type { PlanningDocument } from "./PlanningDocument";
 import type { PlanningSystemDeclaration } from "./PlanningSystemDeclaration";
 import { ComponentRegistry, resolveComponent, type SpatialField } from "./SpatialDocument";
+import { templateAnimalAnimationLod } from "./WorldTemplateArtDirection";
 
 /** Lightweight registration metadata; inspecting configuration never imports GLBs or animation runtimes. */
 export const SEED_ANIMAL_TYPES = animalTypes.map((type) => ({ ...type, canEat: type.canEat === true }));
@@ -135,6 +140,34 @@ export const ANIMAL_POPULATION_COMPONENT: PlanningComponentDefinition = {
       ...(key === "minimumCropMaturity" ? { max: 1 } : {})
     })),
     {
+      key: "animationLod.enabled",
+      label: "启用骨骼动画屏幕占比 LOD",
+      type: "boolean",
+      default: DEFAULT_ANIMAL_ANIMATION_LOD.enabled,
+      combine: "override"
+    },
+    ...(
+      [
+        ["lod0Height", "动画 LOD0 屏高阈值", DEFAULT_ANIMAL_ANIMATION_LOD.screenRelativeTransitionHeights[0], "比例"],
+        ["lod1Height", "动画 LOD1 屏高阈值", DEFAULT_ANIMAL_ANIMATION_LOD.screenRelativeTransitionHeights[1], "比例"],
+        ["lod2Height", "动画 LOD2 屏高阈值", DEFAULT_ANIMAL_ANIMATION_LOD.screenRelativeTransitionHeights[2], "比例"]
+      ] as const
+    ).map(([key, label, value, unit]) => ({
+      ...number(`animationLod.${key}`, label, value, "动物投射高度占视口高度的比例阈值，需严格递减。", unit),
+      max: 1
+    })),
+    ...(
+      [
+        ["lod0Hz", "动画 LOD0 帧率", DEFAULT_ANIMAL_ANIMATION_LOD.ratesHz[0], "Hz"],
+        ["lod1Hz", "动画 LOD1 帧率", DEFAULT_ANIMAL_ANIMATION_LOD.ratesHz[1], "Hz"],
+        ["lod2Hz", "动画 LOD2 帧率", DEFAULT_ANIMAL_ANIMATION_LOD.ratesHz[2], "Hz"],
+        ["farHz", "动画远距帧率", DEFAULT_ANIMAL_ANIMATION_LOD.ratesHz[3], "Hz"]
+      ] as const
+    ).map(([key, label, value, unit]) => ({
+      ...number(`animationLod.${key}`, label, value, "对应 LOD 档位的目标骨骼更新频率，位移仍保持 30Hz。", unit),
+      max: 60
+    })),
+    {
       ...count("minimumEatingAnimals", "可进食动物最少数量", 2, "只"),
       description: "在物种数量及各物种数量范围内优先选择具有真实进食动画的模型；条件不足时保留可实现数量，0 关闭偏好。"
     },
@@ -209,6 +242,26 @@ export const ANIMAL_POPULATION_COMPONENT: PlanningComponentDefinition = {
           .map((key) => [key, values[`interaction.${key}`]])
       )
     );
+    const hasAnimLod = Object.keys(values).some((key) => key.startsWith("animationLod."));
+    if (hasAnimLod) {
+      animalAnimationLodConfig({
+        enabled:
+          values["animationLod.enabled"] !== undefined
+            ? Boolean(values["animationLod.enabled"])
+            : DEFAULT_ANIMAL_ANIMATION_LOD.enabled,
+        screenRelativeTransitionHeights: [
+          Number(values["animationLod.lod0Height"] ?? DEFAULT_ANIMAL_ANIMATION_LOD.screenRelativeTransitionHeights[0]),
+          Number(values["animationLod.lod1Height"] ?? DEFAULT_ANIMAL_ANIMATION_LOD.screenRelativeTransitionHeights[1]),
+          Number(values["animationLod.lod2Height"] ?? DEFAULT_ANIMAL_ANIMATION_LOD.screenRelativeTransitionHeights[2])
+        ],
+        ratesHz: [
+          Number(values["animationLod.lod0Hz"] ?? DEFAULT_ANIMAL_ANIMATION_LOD.ratesHz[0]),
+          Number(values["animationLod.lod1Hz"] ?? DEFAULT_ANIMAL_ANIMATION_LOD.ratesHz[1]),
+          Number(values["animationLod.lod2Hz"] ?? DEFAULT_ANIMAL_ANIMATION_LOD.ratesHz[2]),
+          Number(values["animationLod.farHz"] ?? DEFAULT_ANIMAL_ANIMATION_LOD.ratesHz[3])
+        ]
+      });
+    }
     if (
       values.minimumEatingAnimals !== undefined &&
       (!Number.isSafeInteger(values.minimumEatingAnimals) || Number(values.minimumEatingAnimals) < 0)
@@ -269,7 +322,8 @@ export function readAnimalPopulationSettings(document: PlanningDocument) {
 
 /** Select species without replacement, then counts, body variants and independent appearance streams. */
 export function readAnimalPopulationConfig(document: PlanningDocument): AnimalPopulationConfig {
-  const { values } = readAnimalPopulationSettings(document);
+  const { values, sources } = readAnimalPopulationSettings(document);
+  const hasExplicit = (key: string) => (sources[key]?.length ?? 0) > 0;
   const seed = Number(document.entities.world.components.world?.values.seed ?? document.passthrough.parameters.seed);
   const sample = (key: string) => {
     let hash = seed | 0;
@@ -284,6 +338,7 @@ export function readAnimalPopulationConfig(document: PlanningDocument): AnimalPo
   const birdTotal = integer("birdCount", "bird-count");
   const templateId = document.entities.world.components.worldTemplate?.values.id;
   const wildlife = templateAnimalPopulation(templateId);
+  const templateAnimLod = templateAnimalAnimationLod(typeof templateId === "string" ? templateId : undefined);
   const models = wildlife?.models;
   const eligible = models ? SEED_ANIMAL_TYPES.filter((type) => models.has(type.typeId)) : SEED_ANIMAL_TYPES;
   const speciesPool = models
@@ -402,6 +457,26 @@ export function readAnimalPopulationConfig(document: PlanningDocument): AnimalPo
     interaction: animalInteractionConfig(
       Object.fromEntries(Object.keys(DEFAULT_ANIMAL_INTERACTION).map((key) => [key, values[`interaction.${key}`]]))
     ),
+    animationLod: animalAnimationLodConfig({
+      enabled: hasExplicit("animationLod.enabled") ? Boolean(values["animationLod.enabled"]) : templateAnimLod.enabled,
+      screenRelativeTransitionHeights: [
+        hasExplicit("animationLod.lod0Height")
+          ? Number(values["animationLod.lod0Height"])
+          : templateAnimLod.screenRelativeTransitionHeights[0],
+        hasExplicit("animationLod.lod1Height")
+          ? Number(values["animationLod.lod1Height"])
+          : templateAnimLod.screenRelativeTransitionHeights[1],
+        hasExplicit("animationLod.lod2Height")
+          ? Number(values["animationLod.lod2Height"])
+          : templateAnimLod.screenRelativeTransitionHeights[2]
+      ],
+      ratesHz: [
+        hasExplicit("animationLod.lod0Hz") ? Number(values["animationLod.lod0Hz"]) : templateAnimLod.ratesHz[0],
+        hasExplicit("animationLod.lod1Hz") ? Number(values["animationLod.lod1Hz"]) : templateAnimLod.ratesHz[1],
+        hasExplicit("animationLod.lod2Hz") ? Number(values["animationLod.lod2Hz"]) : templateAnimLod.ratesHz[2],
+        hasExplicit("animationLod.farHz") ? Number(values["animationLod.farHz"]) : templateAnimLod.ratesHz[3]
+      ]
+    }),
     spawnRadius: width * Math.SQRT2,
     roamRadius: width * Math.SQRT2,
     homeRadius: Number(values.homeRadius) || wildlife?.homeRadius,

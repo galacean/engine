@@ -276,7 +276,7 @@ def main() -> int:
     args = parser.parse_args()
 
     if not args.dist_dir.is_dir():
-        print(f"Dist directory not found: {args.dist_dir}. Build the Flash App in the release worktree before syncing CDN assets.", file=sys.stderr)
+        print(f"Dist directory not found: {args.dist_dir}. Run `pnpm --dir world build:seed-world-flash-app` first.", file=sys.stderr)
         return 1
 
     manifest = {"version": 1, "bySha256": {}}

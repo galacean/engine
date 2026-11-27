@@ -72,7 +72,6 @@ BENCH_OUT_DIR="$OUT_DIR/before-traces" \
 BENCH_SUMMARY_PATH="$OUT_DIR/before-summary.json" \
 BENCH_SKIP_EXISTING=1 \
 BENCH_COOLDOWN_MS=1500 \
-BENCH_EXPECTED_MODEL="DeepSeek-V4.1-Flash" \
   pnpm exec vitest run --config world/tests/seed-world/vitest.config.mjs \
   world/tests/seed-world/llm-benchmark/run-benchmark.spec.ts
 ```

@@ -4,7 +4,7 @@
 
 ## 入口与开发
 
-启动页和规划页顶部的「风格选择」提供原始 Seed World、樱雪仙境、萤光巨木森林、Low Poly 和幻兽荒原。选定风格与 Seed 后「应用」经 Session 整体载入作者配方，再由「生成 3D」交付当前规划；不会在进入 3D 时偷偷换一份布局。同一风格与 Seed 可重复生成；「随机 Seed」生成新变体。
+Seed World 以 6 个独立单模板 Demo 提供服务（原始 Seed World、樱雪仙境、萤光巨木森林、Low Poly、幻兽荒原、秋林油画），分别位于 `world/demos/seed-world/{index,sakura-pearl,emerald-forest,low-poly,titan-wasteland,oil-paint}.html`，每个入口直接进入对应世界；规划器内仍可在「全局规划」中编辑 Seed 与布局参数，再由「生成 3D」交付当前规划。
 
 2026-11-05 用户明确授权按原图为各模板配置光照，取代此前所有风格保留光照的限制。主题配方分别设置 lighting／postProcess。更换 Seed 保留之后的手动照明编辑。原始 Seed World 入口仍保留工程照明。草地、裸地道路、树叶、树干、花瓣与岩石分别设置固有色；天空散射、天顶／地平线渐变、月光和雾另按原图配置，不从材质主题色推导。显式 surfacePalette 同时解除原版道路色场对地面颜色的覆盖；空组件和 reset 保留原生色场。原生夜间月光散射与白天天空渐变是不同通道，均通过可序列化的 lighting 参数进入日照 owner。
 
@@ -18,8 +18,8 @@
 
 | URL / 文档 | 用途 |
 | --- | --- |
-| `/world/demos/seed-world/index.html` | 在选择页选定主题与 Seed 后进入全屏 3D |
-| 同地址加 `?debug=1` | 选择主题后进入空间规划器，点击「生成 3D」进入场景 |
+| `/world/demos/seed-world/{index,sakura-pearl,emerald-forest,low-poly,titan-wasteland,oil-paint}.html` | 6 个独立单模板入口，直接进入对应全屏 3D 世界 |
+| 同地址加 `?debug=1` | 进入空间规划器，点击「生成 3D」进入场景 |
 | 普通入口加 `buildingApiDebug=1` | 正式 V2 建筑 list/query/apply 调试；真实修改并保存当前 Seed，仅用于测试工程，不调用 LLM |
 | [空间框架](../../../packages/world-planning/src/spatial/README.md)、[规划约束](../../../packages/world-planning/src/spatial/CONSTRAINT_POLICY.md) | 数据契约、参数作用域、规则与素材接入 |
 | [配置目录](../../../packages/world-planning/src/planning-data/README.md)、[框架审计](../../../packages/world-planning/src/spatial/FRAMEWORK_AUDIT.md) | 配置入口、范围与未完成项 |
@@ -119,7 +119,7 @@ MANAGER 首次打开空表时从模板创建，后续打开按存档恢复 seed�
 分享访客读取相同存档，界面隐藏改造入口，初始化、浏览和退出均不写共享表。
 世界页通过 `window.lingguang.db` 的 `role`、`query` 和 `execute` 访问存档。
 `base.js` 在页面启动时复用已有的 `window.lingguang.db`；缺少该接口时挂载 IndexedDB 适配器，角色为 MANAGER。调试页和正式发布页使用同一规则。
-每个浏览器来源按应用 ID 隔离存档，没有应用 ID 的独立预览使用本来源的默认世界。首次打开匹配 seed 的旧本地工程时会读取已有存档。LLM 调试仍由 ASAP 桥接处理。相机浏览位置保存在设备上。
+浏览器存档按来源、应用 ID 和入口模板隔离。首次打开没有存档的新库时，会检查同一应用旧库中的同模板存档。没有应用 ID 的独立预览可读取同模板的旧默认世界。规划器「打开工程」只接受当前入口模板导出的工程。LLM 调试仍由 ASAP 桥接处理。相机浏览位置保存在设备上。
 
 存档中的 `project.json` 保留统一的 `virtualPath`。已发布的原始素材使用 HTTP(S) 地址，新增或覆盖文件使用 `lingguang://world/files/…`。
 保存只写变更的文件、文档和版本索引；工程清单变化时才重写 `project.json`。
@@ -206,11 +206,11 @@ Agent 的 `snapshot()` 与用户拍照共用 `SeedWorldViewSnapshots`：同一�
 
 ## LLM 流式传输
 
-AI Chat 通过线上 `window.lingguang.ai.streamChat` 和本地 Wrapper 的 `FlashApp.remoteStreamSkill` 调用 ASAP。
-图片观察继续序列化为 `image_url` 消息；原生 Tool 字段通过版本化 `responseFormat` 请求信封传输，完整终态结果由匹配本次随机标识的结果信封恢复。
+AI Chat 通过线上 SDK 的 `seedWorldStream` 或本地 Wrapper 的 `FlashApp.remoteStreamSkill` 调用同一个 `lingguang.ai.seedWorldStream` action。
+图片使用 `image_url` 消息，工具声明放在请求顶层，最终结果按该轮的 nonce 匹配。
 本地流事件按请求标识隔离；取消或传输超时后移除监听，迟到消息不能进入新任务。
 应用独立结束取消等待，即使现有壳不响应 `AbortSignal`；这不保证供应商立即停止计算或计费。
-每轮模型请求预算为 120 秒，前端传输预算为 130 秒；线上能力声明需要允许 `AI_STREAM_CHAT`，ASAP 必须支持对应流式信封。
+每轮模型请求预算为 120 秒，前端传输预算为 130 秒；壳需要提供 `seedWorldStream` 和 `seedWorldStop`。
 真实本地 Wrapper 联调与线上原生壳验收分别记录，不用替身测试代替真实链路验收。
 
 ## AI Chat 任务交互（2026-10-26）

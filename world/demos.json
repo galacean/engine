@@ -115,7 +115,37 @@
   },
   {
     "entry": "demos/seed-world/index.html",
-    "title": "Seed World",
+    "title": "Seed World AIChat",
+    "mode": "static",
+    "owner": "world-planning（Seed World 业务）"
+  },
+  {
+    "entry": "demos/seed-world/sakura-pearl.html",
+    "title": "Seed World · 樱雪仙境",
+    "mode": "static",
+    "owner": "world-planning（Seed World 业务）"
+  },
+  {
+    "entry": "demos/seed-world/emerald-forest.html",
+    "title": "Seed World · 萤光巨木森林",
+    "mode": "static",
+    "owner": "world-planning（Seed World 业务）"
+  },
+  {
+    "entry": "demos/seed-world/low-poly.html",
+    "title": "Seed World · Low Poly",
+    "mode": "static",
+    "owner": "world-planning（Seed World 业务）"
+  },
+  {
+    "entry": "demos/seed-world/titan-wasteland.html",
+    "title": "Seed World · 幻兽荒原",
+    "mode": "static",
+    "owner": "world-planning（Seed World 业务）"
+  },
+  {
+    "entry": "demos/seed-world/oil-paint.html",
+    "title": "Seed World · 秋林油画",
     "mode": "static",
     "owner": "world-planning（Seed World 业务）"
   },

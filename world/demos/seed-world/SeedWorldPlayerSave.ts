@@ -1,6 +1,8 @@
 import type { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
 import { SEED_WORLD_EDITOR_PATH } from "./SeedWorldProjectFormats.ts";
 import { seedWorldPlayerStateKey } from "@galacean/engine-world-planning/world/SeedWorldPlayerState";
+import { planningPlayerWorldId } from "@galacean/engine-world-planning/spatial/runtime/PlanningPlayerState";
+import { resolveAppTemplate } from "./src/planning/spatial/FlashAppTemplateBinding.ts";
 
 /** Clear both startup camera sources without deleting world authoring or gameplay state. */
 export async function clearSeedWorldPlayerSave(
@@ -28,5 +30,5 @@ export async function clearSeedWorldPlayerSave(
   });
   await project.flush();
   // Only clear the fallback camera source after the project checkpoint succeeds.
-  storage.removeItem(seedWorldPlayerStateKey(String(seed)));
+  storage.removeItem(seedWorldPlayerStateKey(planningPlayerWorldId(seed, resolveAppTemplate())));
 }

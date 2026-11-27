@@ -6,10 +6,14 @@ import {
   Camera,
   CullMode,
   Entity,
+  Layer,
   MeshRenderer,
+  PointLight,
   Scene,
   Script,
   Shader,
+  ShaderData,
+  ShaderDataGroup,
   ShaderFactory,
   ShaderLanguage,
   ShaderMacro,
@@ -19,6 +23,8 @@ import {
   type Engine,
   type Material
 } from "@galacean/engine";
+import { LightManager } from "../../core/src/lighting/LightManager";
+import { WorldLayer } from "@galacean/engine-project/rendering/WorldLayer";
 import { EffectiveSurface } from "../src/building/core/geometry";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { constructionAssets } from "./fixtures/constructionAssets";
@@ -431,6 +437,10 @@ describe("Building system optimization invariants", () => {
 
       // Two decorations batched into 1 draw + 1 plaster draw = 2 draws (instead of 3 unbatched).
       expect(picks).toHaveLength(2);
+      // The detailed, shadow and standalone far draws are separate children of this view.
+      expect(
+        view.root.getComponentsIncludeChildren(MeshRenderer, []).every((r) => r.entity.layer === WorldLayer.Building)
+      ).toBe(true);
       const decBatch = picks.find((b) => b.count === 2)!;
       expect(decBatch).toBeDefined();
       expect(decBatch.resolve(0)).toBe(buildingPartKey("dec-1"));
@@ -951,7 +961,7 @@ describe("Building system optimization invariants", () => {
       const renderers: MeshRenderer[] = [];
       proxy.root.getComponentsIncludeChildren(MeshRenderer, renderers);
       const boxRenderer = renderers.find((r) => r.entity.name.startsWith("GlobalProxyBoxes_"))!;
-      expect(boxRenderer).toBeDefined();
+      expect(boxRenderer.entity.layer).toBe(WorldLayer.Building);
       const boxMat = boxRenderer.getMaterial()!;
 
       const cullProp = ShaderProperty.getByName("rasterStateCullMode");
@@ -1286,6 +1296,7 @@ describe("Building system optimization invariants", () => {
       const baseline = flagCount();
       for (let i = 0; i < 4; i++) {
         const resident = new EngineResidentScene(engine, parent);
+        expect(resident.root.layer).toBe(WorldLayer.Building);
         (resident as unknown as { bindCamera(c: Camera): void }).bindCamera(fakeCamera);
         resident.destroy();
       }
@@ -1402,27 +1413,85 @@ describe("Building system optimization invariants", () => {
       pool.dispose();
     });
 
-    it("keeps ConstructionDecorationLights pool active with zero-energy slots when keepPoolActive is true", () => {
-      const engine = createMockEngine();
-      const scene = Object.assign(createMockScene(engine), {
-        _lightManager: { _attachPointLight() {}, _detachPointLight() {} },
-        _shaderData: { setFloatArray() {}, setInt() {}, getMacros() {} }
+    it("registers only emitting slots and publishes their packed scene indices", () => {
+      const manager = new LightManager();
+      const data = new ShaderData(ShaderDataGroup.Scene);
+      const scene = Object.assign(createMockScene(createMockEngine()), {
+        _lightManager: manager,
+        _shaderData: data
       }) as unknown as Scene;
       activeScenes.push(scene);
-      const camEntity = scene.createRootEntity("Cam");
-      const fakeCamera = { entity: camEntity } as unknown as Camera;
-      const host = scene.createRootEntity("Host");
-      const pool = new ConstructionDecorationLights(host, 4);
+      const camera = { entity: scene.createRootEntity("Cam") } as Camera;
+      const pool = new ConstructionDecorationLights(scene.createRootEntity("Host"));
+      const lights = Array.from({ length: 6 }, (_, i) => ({
+        id: String(i),
+        ownerId: "house-" + i,
+        position: [i, 0, 0] as [number, number, number],
+        color: [1, 0.8, 0.5] as [number, number, number],
+        intensity: 1,
+        range: 3.5
+      }));
+      const slots = pool.root.getComponentsIncludeChildren(PointLight, []);
+      expect(slots).toHaveLength(4);
+      expect(slots.every((slot) => slot.cullingMask === WorldLayer.Building && !slot.enabled)).toBe(true);
 
-      pool.update([], fakeCamera, 1 / 60, true);
-      expect(pool.root.isActive).toBe(true);
-      expect(pool.metrics.active).toBe(0);
-      expect(pool.metrics.allocated).toBe(4);
+      const render = (count: number, ownedMask: number, legacyMask = ownedMask, fallbackMask = 0) => {
+        manager._updateShaderData(data);
+        camera.entity.getComponent(Script)!.onBeginRender(camera);
+        const macros: ShaderMacro[] = [];
+        data.getMacros(macros);
+        const packedCount = macros.find((macro) => macro.name === "SCENE_POINT_LIGHT_COUNT");
+        expect(packedCount?.value).toBe(count ? String(count) : undefined);
+        expect(data.getInt("scene_MasonryPointMask")).toBe(ownedMask);
+        expect(data.getInt("scene_MasonryLegacyMask")).toBe(legacyMask);
+        expect(data.getInt("scene_MasonryFallbackMask")).toBe(fallbackMask);
+      };
 
-      // Turning keepPoolActive off with no active descriptors deactivates the pool immediately.
-      pool.update([], fakeCamera, 1 / 60, false);
-      expect(pool.root.isActive).toBe(false);
+      pool.update([], camera, 1, true);
+      render(0, 0);
+      pool.update(lights.slice(0, 1), camera, 0);
+      render(0, 0);
+      pool.update(lights.slice(0, 1), camera, 1);
+      render(1, 1);
 
+      // Disabling a still-bright slot must clear all wall lighting without another pool update.
+      slots[0].enabled = false;
+      render(0, 0);
+      const otherLights = Array.from({ length: 10 }, () => scene.createRootEntity().addComponent(PointLight));
+      slots[0].enabled = true;
+      render(10, 0, 0, 1); // Registered after the ten uploaded lights.
+      slots[0].entity.isActive = false;
+      render(10, 0);
+      slots[0].entity.isActive = true;
+      render(10, 0, 0, 1);
+      for (const light of otherLights) light.entity.destroy();
+      render(1, 1);
+
+      slots[0].cullingMask = Layer.Layer0;
+      render(1, 1, 0);
+      slots[0].cullingMask = WorldLayer.Building;
+      const external = scene.createRootEntity("External").addComponent(PointLight);
+      for (const count of [2, 3, 4, 6]) {
+        pool.update(lights.slice(0, count), camera, 1);
+        const active = Math.min(count, 4);
+        expect(pool.metrics.active).toBe(active);
+        render(active + 1, ((1 << (active + 1)) - 1) & ~2);
+      }
+      // Removing slot zero moves the last registered emitter into its old scene index.
+      pool.update(lights.slice(1, 4), camera, 1);
+      render(4, 0b1101);
+      external.enabled = false;
+      render(3, 0b111);
+
+      lights[1].color = [0, 0, 0];
+      lights[2].intensity = 0;
+      pool.update(lights.slice(1, 4), camera, 1);
+      render(1, 1);
+      camera.entity.transform.setPosition(100, 0, 0);
+      pool.update(lights, camera, 0.1);
+      render(1, 1); // Still visibly fading.
+      pool.update(lights, camera, 1);
+      render(0, 0);
       pool.dispose();
     });
 

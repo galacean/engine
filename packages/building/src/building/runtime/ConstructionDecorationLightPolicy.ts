@@ -1,6 +1,8 @@
 import { constructionLanternColors } from "./ConstructionLanternShader";
 import { DecorationMaterial } from "./ConstructionDecorationMaterial";
 import type { ConstructionDecorationPart } from "./ConstructionDecorations";
+export const DEFAULT_DECORATION_LIGHT_BUDGET = 4;
+
 export interface ConstructionDecorationLight {
   id: string;
   ownerId: string;
@@ -72,7 +74,7 @@ export class ConstructionDecorationLightPolicy {
   private readonly _compareCandidates = (a: LightCandidate, b: LightCandidate): number =>
     a.d * (this._resident.has(a.l.id) ? 0.8 : 1) - b.d * (this._resident.has(b.l.id) ? 0.8 : 1) ||
     a.l.id.localeCompare(b.l.id);
-  constructor(budget = 4, enterDistance = 28, exitDistance = 34, fadeSeconds = 0.35) {
+  constructor(budget = DEFAULT_DECORATION_LIGHT_BUDGET, enterDistance = 28, exitDistance = 34, fadeSeconds = 0.35) {
     this.budget = budget;
     this.enterDistance = enterDistance;
     this.exitDistance = exitDistance;
@@ -125,7 +127,7 @@ export class ConstructionDecorationLightPolicy {
     let count = 0;
     for (let i = 0, n = lights.length; i < n; i++) {
       const l = lights[i];
-      if (l.intensity <= 0) continue;
+      if (!emitsLight(l)) continue;
       const limit2 = resident.has(l.id) ? exitLimit2 : enterLimit2;
       const dx = l.position[0] - cx,
         dy = l.position[1] - cy,
@@ -152,7 +154,7 @@ export class ConstructionDecorationLightPolicy {
       if (!slot.descriptor) continue;
       const latest = byId.get(slot.descriptor.id);
       // Explicit deletion/off is immediate; residency changes alone fade out.
-      if (!latest || latest.intensity === 0) {
+      if (!latest || !emitsLight(latest)) {
         slot.descriptor = null;
         slot.weight = 0;
         continue;
@@ -194,6 +196,10 @@ export class ConstructionDecorationLightPolicy {
 interface LightCandidate {
   l: ConstructionDecorationLight;
   d: number;
+}
+
+function emitsLight(light: ConstructionDecorationLight): boolean {
+  return light.intensity > 0 && (light.color[0] > 0 || light.color[1] > 0 || light.color[2] > 0);
 }
 
 function isValidLight(l: ConstructionDecorationLight): boolean {

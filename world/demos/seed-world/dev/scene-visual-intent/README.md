@@ -56,7 +56,7 @@ Runtime 就绪后由宿主报告画面已交付，不声称视觉匹配通过。
 
 ## 本地与验证
 
-沿用 `SEED_WORLD_MODEL`，本地显式连接既有 ASAP `http://127.0.0.1:8082`，模型单轮预算 60 秒，HTTP 截止时间 65 秒。显式地址仅接受 loopback 页面和 loopback HTTP(S) origin，直接用于本次请求，不读取、安装或替换全局 CandyJar。未配置本地地址时，沿用共享 transport 原有的原生/Wrapper 通道和 25 秒模型、30 秒通道预算。
+场景生成使用 Seed World 专用 action，由 ASAP 选模。独立本地页面通过 loopback ASAP 的 `/api/message` 接收流式结果，模型预算为 60 秒。壳内调用复用 Engine 的专用传输。
 
 调试选项和 HTTP 实现仅由本 Demo 导入，普通 Seed World 的 AgentLoop、协议、结果裁剪、重复检测和回复长度限制保持既有行为。共享模块只额外导出既有的 4 KiB 预算常量供原生参数工具引用，常量值和执行行为不变。本入口发送文本、原生能力与作者计划事实，不发送截图，不使用参考模板或视觉反馈循环。
 

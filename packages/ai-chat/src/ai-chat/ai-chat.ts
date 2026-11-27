@@ -23,7 +23,6 @@ export type AIChatOptions = {
 };
 
 type ChatDebugTrace = {
-  model: string;
   previousRecordCount: number;
   steps: AgentStepRecord[];
   failedAttempts?: AgentModelAttempt[];
@@ -204,7 +203,7 @@ function renderDebugTrace(container: HTMLElement, displayContent: string, trace:
   rawHeader.textContent = "AgentLoop 轨迹";
   const routeNote = document.createElement("p");
   routeNote.className = "debug-route-note";
-  routeNote.textContent = `请求 ASAP 模型：${trace.model} · 携带历史记录：${trace.previousRecordCount} 条`;
+  routeNote.textContent = `携带历史记录：${trace.previousRecordCount} 条`;
   rawSection.append(rawHeader, routeNote);
 
   for (const step of trace.steps) {
@@ -269,7 +268,8 @@ function renderDebugTrace(container: HTMLElement, displayContent: string, trace:
 function appendAttempt(container: HTMLElement, attempt: AgentModelAttempt): void {
   const label = document.createElement("p");
   label.className = "debug-route-note";
-  const model = attempt.debug?.modelName ? ` · ${attempt.debug.modelName}` : "";
+  const modelName = attempt.telemetry?.modelName ?? attempt.debug?.modelName;
+  const model = modelName ? ` · ${modelName}` : "";
   label.textContent = `请求 ${attempt.attempt}${model}${attempt.error ? ` · ${attempt.error}` : ""}`;
   const raw = document.createElement("pre");
   raw.textContent = attempt.rawContent || "（ASAP 未返回正文）";

@@ -18,6 +18,30 @@ struct TerrainProjectLightingResult {
   #define TERRAIN_PROJECT_PREPARE_ALBEDO(viewDirection, albedoColor, shadowAttenuation) albedoColor
 #endif
 
+#if (defined(RENDERER_PROCEDURAL_TREE_GPU_LEAF_FRAME) || defined(RENDERER_PROCEDURAL_PLANT_CANOPY_OCCLUSION)) && defined(MATERIAL_PROCEDURAL_TREE_CANOPY_OCCLUSION)
+  #define TERRAIN_PROJECT_HAS_CANOPY_VISIBILITY
+  float terrainProjectCanopyDirectVisibility(vec3 positionWS, float ambientOcclusion, float shadowAttenuation) {
+    float canopyVisibility = clamp(ambientOcclusion, 0.0, 1.0);
+    #ifdef NEED_CALCULATE_SHADOWS
+      float weight = getShadowFade(positionWS);
+      #if SCENE_SHADOW_CASCADED_COUNT > 1
+        // Coarse tree casters lose leaf-scale detail. Introduce the bake over the outer
+        // 15% of the nearest split sphere, and retain deeper shadows from other casters.
+        vec4 nearSplit = scene_ShadowSplitSpheres[0];
+        vec3 fromCenter = positionWS - nearSplit.xyz;
+        float remainingRadiusSq = nearSplit.w - dot(fromCenter, fromCenter);
+        float shellWidthSq = max(nearSplit.w * (1.0 - 0.85 * 0.85), 0.00001);
+        weight = max(weight, 1.0 - smoothstep(0.0, shellWidthSq, remainingRadiusSq));
+        return min(shadowAttenuation, mix(1.0, canopyVisibility, weight));
+      #else
+        return shadowAttenuation * mix(1.0, canopyVisibility, weight);
+      #endif
+    #else
+      return canopyVisibility;
+    #endif
+  }
+#endif
+
 vec3 terrainProjectEvaluateSpecularIBL(SurfaceData surfaceData, BSDFData bsdfData, vec3 radiance) {
   float specularAO = evaluateSpecularOcclusion(surfaceData.dotNV, bsdfData.diffuseAO, bsdfData.roughness);
   return specularAO * radiance *
@@ -60,21 +84,12 @@ TerrainProjectLightingResult evaluateTerrainProjectLightingWithShadow(Varyings v
   initBSDFData(surfaceData, bsdfData);
 
   float directShadowAttenuation = result.shadowAttenuation;
-  #if (defined(RENDERER_PROCEDURAL_TREE_GPU_LEAF_FRAME) || defined(RENDERER_PROCEDURAL_PLANT_CANOPY_OCCLUSION)) && defined(MATERIAL_PROCEDURAL_TREE_CANOPY_OCCLUSION)
-    // Shadow maps own resolved near-field visibility. As their engine-authored fade
-    // reaches one, the main directional light transfers to the generator's conserved
-    // canopy proxy instead of letting distant crowns become uniformly sunlit.
-    float canopyDirectFallbackWeight = 1.0;
-    #ifdef NEED_CALCULATE_SHADOWS
-      canopyDirectFallbackWeight = getShadowFade(varyings.positionWS);
-    #endif
-    float canopyDirectVisibility = mix(
-      1.0,
-      clamp(surfaceData.ambientOcclusion, 0.0, 1.0),
-      canopyDirectFallbackWeight
+  #ifdef TERRAIN_PROJECT_HAS_CANOPY_VISIBILITY
+    float canopyDirectVisibility = terrainProjectCanopyDirectVisibility(
+      varyings.positionWS, surfaceData.ambientOcclusion, directShadowAttenuation
     );
     #ifdef NEED_CALCULATE_SHADOWS
-      directShadowAttenuation *= canopyDirectVisibility;
+      directShadowAttenuation = canopyDirectVisibility;
     #endif
   #endif
   evaluateDirectRadiance(
@@ -85,8 +100,7 @@ TerrainProjectLightingResult evaluateTerrainProjectLightingWithShadow(Varyings v
     result.directDiffuse,
     result.directSpecular
   );
-  #if (defined(RENDERER_PROCEDURAL_TREE_GPU_LEAF_FRAME) || defined(RENDERER_PROCEDURAL_PLANT_CANOPY_OCCLUSION)) && \
-    defined(MATERIAL_PROCEDURAL_TREE_CANOPY_OCCLUSION) && !defined(NEED_CALCULATE_SHADOWS)
+  #if defined(TERRAIN_PROJECT_HAS_CANOPY_VISIBILITY) && !defined(NEED_CALCULATE_SHADOWS)
     result.directDiffuse *= canopyDirectVisibility;
     result.directSpecular *= canopyDirectVisibility;
   #endif

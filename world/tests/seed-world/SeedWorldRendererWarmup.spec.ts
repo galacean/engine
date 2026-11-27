@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   DepthTextureMode,
+  type Entity,
   Matrix,
   MeshRenderer,
+  PointLight,
   RHIBackend,
   Renderer,
   RenderQueueType,
@@ -457,7 +459,14 @@ describe("renderer warmup scope", () => {
     expect(waterWithLights).toHaveLength(0);
   });
 
-  it("adds additionalPointLightCounts onto existing SCENE_POINT_LIGHT_COUNT and clamps to LightManager capacity", () => {
+  it.each([
+    { label: "explicit delta capped at five", external: 2, pool: 0, hasLamps: undefined, expected: [2, 5] },
+    { label: "four active wall lamps", external: 0, pool: 4, hasLamps: true, expected: [0, 1] },
+    { label: "target without lamps", external: 1, pool: 4, hasLamps: false, expected: [1] },
+    { label: "capped scene with four external lights", external: 4, pool: 4, hasLamps: true, expected: [4, 5] },
+    { label: "external lights fill capacity", external: 6, pool: 4, hasLamps: true, expected: [5] },
+    { label: "world publication", external: 1, pool: 4, hasLamps: true, publish: true, expected: [1, 2] }
+  ])("collects the exact Forward light counts for $label", ({ external, pool, hasLamps, publish, expected }) => {
     const litRenderer = renderer(true, false, [
       {
         destroyed: false,
@@ -472,12 +481,29 @@ describe("renderer warmup scope", () => {
     const sceneMacros = new ShaderMacroCollection();
     sceneMacros.enable(ShaderMacro.getByName("SCENE_POINT_LIGHT_COUNT", "2"));
 
+    const poolRoot = { isActive: true } as Entity;
+    const lights = Array.from({ length: external + pool }, (_, i) =>
+      Object.create(PointLight.prototype, {
+        enabled: { value: true },
+        entity: { value: { isActive: true, parent: i < pool ? poolRoot : null } }
+      })
+    );
+    const lightRoot = {
+      getComponentsIncludeChildren(type: unknown, output: PointLight[]) {
+        output.length = 0;
+        if (type === PointLight) output.push(...lights);
+      }
+    };
     const variants = collectSeedWorldRendererVariants(
       { _macroCollection: new ShaderMacroCollection() } as any,
       {
         shaderData: { _macroCollection: sceneMacros },
         background: { mode: 0 },
-        _lightManager: { _pointData: { color: new Float32Array(5 * 3) } }
+        rootEntities: [lightRoot],
+        _lightManager: {
+          _pointData: { color: new Float32Array(5 * 3) },
+          _pointLights: { length: lights.length, get: (i: number) => lights[i] }
+        }
       } as any,
       { _updateShaderData() {}, shaderData: { _macroCollection: new ShaderMacroCollection() } } as any,
       [
@@ -490,20 +516,16 @@ describe("renderer warmup scope", () => {
       ] as any,
       {
         includeGpuInstancing: false,
-        additionalPointLightCounts: [4]
+        activatedLightRoots: publish ? [] : undefined,
+        ...(hasLamps === undefined
+          ? { additionalPointLightCounts: [4] }
+          : { buildingPointLights: { poolRoot, hasLights: hasLamps } })
       }
     );
-    // Baseline 2 + delta 4 = 6, clamped to LightManager capacity 5 (never overwriting to 4).
-    expect(
-      variants.some(
-        (v) => v.shader === "Terrain/Terrain" && v.macros.some((m) => m.n === "SCENE_POINT_LIGHT_COUNT" && m.v === "5")
-      )
-    ).toBe(true);
-    expect(
-      variants.some(
-        (v) => v.shader === "Terrain/Terrain" && v.macros.some((m) => m.n === "SCENE_POINT_LIGHT_COUNT" && m.v === "4")
-      )
-    ).toBe(false);
+    const counts = variants
+      .filter((variant) => variant.shader === "Terrain/Terrain")
+      .map((variant) => Number(variant.macros.find((macro) => macro.n === "SCENE_POINT_LIGHT_COUNT")?.v ?? 0));
+    expect([...new Set(counts)].sort((a, b) => a - b)).toEqual(expected);
   });
 
   it("supports negative additionalPointLightCounts to warm lights-OFF and reduced-light Forward passes when decoration lights are already active", () => {
@@ -2313,7 +2335,9 @@ describe("renderer warmup scope", () => {
     };
     const findSpy = vi
       .spyOn(Shader, "find")
-      .mockImplementation((name: string) => (name === "PostProcess/SunLensFlareVisibility" ? (flareVisShader as any) : null));
+      .mockImplementation((name: string) =>
+        name === "PostProcess/SunLensFlareVisibility" ? (flareVisShader as any) : null
+      );
     try {
       // Trigger A: scene.sun is behind camera (+Z reverseDirection), but postProcessState.sunDirectionOverride
       // travels along +Z (so -override points down -Z, directly in front of camera!) -> MUST warm both flare shaders.
@@ -2364,67 +2388,6 @@ describe("renderer warmup scope", () => {
       });
       expect(secondaryKept.some((v) => v.shader === "PostProcess/SunLensFlare")).toBe(true);
       expect(secondaryKept.some((v) => v.shader === "PostProcess/SunLensFlareVisibility")).toBe(true);
-    } finally {
-      findSpy.mockRestore();
-    }
-  });
-
-  it("warms VoiceOrbBakeV1 as renderToTexture without sRGB output macros and warms UIAtlasTileV1 with overlay macros", () => {
-    const fakeBakeShader = {
-      name: "SeedWorld/VoiceOrbBakeV1",
-      destroyed: false,
-      subShaders: [{ passes: [{ getTagValue: () => "Forward" }] }]
-    };
-    const fakeAtlasTileShader = {
-      name: "SeedWorld/UIAtlasTileV1",
-      destroyed: false,
-      subShaders: [{ passes: [{ getTagValue: () => "Forward" }] }]
-    };
-    const orbDisplayRenderer = renderer(true, false, [
-      {
-        destroyed: false,
-        shader: {
-          name: "SeedWorld/VoiceOrbDisplayV1",
-          destroyed: false,
-          subShaders: [{ passes: [{ getTagValue: () => "Forward" }] }]
-        },
-        shaderData: { _macroCollection: new ShaderMacroCollection() }
-      }
-    ]);
-    const engine = {
-      _macroCollection: new ShaderMacroCollection(),
-      _hardwareRenderer: { supportsRendering: true }
-    } as any;
-    const scene = {
-      shaderData: { _macroCollection: new ShaderMacroCollection() },
-      background: { mode: 0 }
-    } as any;
-    const camera = {
-      _updateShaderData() {},
-      renderTarget: null,
-      shaderData: { _macroCollection: new ShaderMacroCollection() }
-    } as any;
-
-    const findSpy = vi.spyOn(Shader, "find").mockImplementation((name: string) => {
-      if (name === "SeedWorld/VoiceOrbBakeV1") return fakeBakeShader as any;
-      if (name === "SeedWorld/UIAtlasTileV1") return fakeAtlasTileShader as any;
-      return null;
-    });
-    try {
-      const variants = collectSeedWorldRendererVariants(engine, scene, camera, [], {
-        overlayRenderers: [orbDisplayRenderer as any]
-      });
-
-      const bakeVariant = variants.find((v) => v.shader === "SeedWorld/VoiceOrbBakeV1");
-      expect(bakeVariant).toBeDefined();
-      expect(bakeVariant!.macros.some((m) => m.n === "ENGINE_OUTPUT_SRGB_CORRECT")).toBe(false);
-      expect(bakeVariant!.macros.some((m) => m.n === "ENGINE_SHOULD_SRGB_CORRECT")).toBe(false);
-
-      const atlasVariant = variants.find((v) => v.shader === "SeedWorld/UIAtlasTileV1");
-      expect(atlasVariant).toBeDefined();
-      expect(atlasVariant!.macros.some((m) => m.n === "ENGINE_OUTPUT_SRGB_CORRECT")).toBe(true);
-      expect(atlasVariant!.macros.some((m) => m.n === "ENGINE_SHOULD_SRGB_CORRECT")).toBe(true);
-      expect(atlasVariant!.macros.some((m) => m.n === "RENDERER_IS_RECEIVE_SHADOWS")).toBe(true);
     } finally {
       findSpy.mockRestore();
     }

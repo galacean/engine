@@ -2,22 +2,22 @@ import type { RuntimeProjectSession } from "@galacean/engine-runtime-editor/proj
 import { exportPlanningAuthoring, exportPlanningRecipe, type PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
 import { createSeedPlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningInitialization";
 import { planningSeed } from "@galacean/engine-world-planning/spatial/PlanningLayoutScope";
-import { parsePlanningDocument } from "../PlanningDocumentCodec.ts";
+import { parsePlanningDocument, PLANNING_PROJECT_PATH } from "../PlanningDocumentCodec.ts";
 import { exportPlanningScene } from "../PlanningSceneAsset.ts";
 import { RuntimeProjectEdit, type RuntimeAssetFormat } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
-import { planningSourceDocument, retainPlanningWaterSource, writePlanningProjectSource } from "./PlanningProjectSource.ts";
+import { planningSourceDocument, retainPlanningWaterSource, templateLakeSourceToLoad, writePlanningProjectSource } from "./PlanningProjectSource.ts";
 import { clearPlanningWaterSource, initializePlanningWater, initializePlanningOcean, installPlanningWaterDefaults, loadPlanningWaterDefaults, waterInitialization, waterInitializationPath } from "./PlanningWaterInitialization.ts";
 import type { SemanticResult } from "@galacean/engine-world-planning/semantic-study/WorldPlanningContract";
 
-export const PLANNING_PROJECT_PATH = "World/Planning.json";
+export { PLANNING_PROJECT_PATH };
 export const PLANNING_PROJECT_TYPE = "SeedWorldPlanning";
 
 /** Project asset is the sole source of persisted planning state. */
 export class PlanningProjectStorage {
   constructor(
     private readonly project: Pick<RuntimeProjectSession, "projectPackage" | "publish"> &
-      Partial<Pick<RuntimeProjectSession, "update" | "publicationRevision" | "id">>,
+      Partial<Pick<RuntimeProjectSession, "update" | "publicationRevision" | "id" | "fileProvider">>,
     private readonly formats: ReadonlyMap<string, RuntimeAssetFormat> = new Map()
   ) {}
 
@@ -37,6 +37,13 @@ export class PlanningProjectStorage {
     return ["lake", "river", "ocean"].every((kind) => existingFiles.has(`Water/Materials/${kind}.mat`));
   }
 
+  private prepareWaterAssets(document: PlanningDocument, installDefaults: boolean, plan?: SemanticResult["plan"]) {
+    const source = templateLakeSourceToLoad(this.project.projectPackage, document, plan);
+    const material = source ? this.project.fileProvider?.().prepare?.(source) : undefined;
+    const defaults = installDefaults ? loadPlanningWaterDefaults() : undefined;
+    return material ? Promise.all([material, defaults]).then(([, files]) => files) : defaults;
+  }
+
   /** New Source authoring baseline is ready before the first Engine Scene load. */
   async initialize(
     document: PlanningDocument,
@@ -44,7 +51,8 @@ export class PlanningProjectStorage {
     waterResetRequest?: string,
     { userEdit = false }: { userEdit?: boolean } = {}
   ): Promise<PlanningDocument> {
-    const defaults = this.hasCoreWaterDefaults ? undefined : await loadPlanningWaterDefaults();
+    const waterAssets = this.prepareWaterAssets(document, !this.hasCoreWaterDefaults, result.plan);
+    const defaults = waterAssets && await waterAssets;
     const build = (pack: RuntimeProjectSession["projectPackage"]) => {
       const draft = new RuntimeProjectEdit(pack, new Map([...nativeAssetFormats(() => ({})), ...this.formats]));
       const request = waterResetRequest ?? this.pendingWaterReset;
@@ -109,9 +117,10 @@ export class PlanningProjectStorage {
       JSON.parse(initialPack.documents[initialMarker]).version === 2 &&
       !replacePlanning;
     const candidateDoc = replacePlanning ? document : planningSourceDocument(initialPack) ?? document;
-    const defaults = !skipInitial && needsWaterDefaults(initialPack, candidateDoc)
-      ? await loadPlanningWaterDefaults()
+    const waterAssets = !skipInitial
+      ? this.prepareWaterAssets(candidateDoc, needsWaterDefaults(initialPack, candidateDoc))
       : undefined;
+    const defaults = waterAssets && await waterAssets;
     const build = (pack: RuntimeProjectSession["projectPackage"]) => {
       const marker = `${pack.project.scene}.planning-source.json`;
       if (pack.documents?.[marker] !== undefined) {
@@ -134,10 +143,10 @@ export class PlanningProjectStorage {
 
   async save(document: PlanningDocument, transactionId?: string, resetWater = false): Promise<void> {
     const pack = this.project.projectPackage;
-    const defaults =
-      (resetWater || Boolean(planningSourceDocument(pack))) && needsWaterDefaults(pack, document, resetWater)
-        ? await loadPlanningWaterDefaults()
-        : undefined;
+    const waterAssets = resetWater || planningSourceDocument(pack)
+      ? this.prepareWaterAssets(document, needsWaterDefaults(pack, document, resetWater))
+      : undefined;
+    const defaults = waterAssets && await waterAssets;
     const authoring = JSON.stringify(exportPlanningAuthoring(document));
     const build = (pack: RuntimeProjectSession["projectPackage"]) => {
       if (resetWater || planningSourceDocument(pack)) {

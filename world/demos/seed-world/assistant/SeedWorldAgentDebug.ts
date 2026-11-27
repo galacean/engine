@@ -1,3 +1,4 @@
+import { startSeedWorldActionProbe } from "./SeedWorldActionProbe.ts";
 import {
   type AgentTraceRecord,
   type AgentTraceSnapshot,
@@ -18,11 +19,13 @@ const PANEL_PREVIEW_CHARACTERS = 120_000;
 const BUTTON_FEEDBACK_MILLISECONDS = 1_600;
 
 export interface SeedWorldAgentDebugApi {
+  startActionProbe(): ReturnType<typeof startSeedWorldActionProbe>;
   /** In-memory diagnostic override for subsequent submissions; undefined restores server defaults. */
   setContextCompactionBudget(budget: ContextCompactionBudget | undefined): void;
   readonly enabled: boolean;
   readonly traceCount: number;
   enable(): void;
+  openPanel(): void;
   disable(): void;
   clear(): void;
   getCurrentTrace(): AgentTraceSnapshot | undefined;
@@ -41,6 +44,7 @@ export interface SeedWorldAgentDebugController extends SeedWorldAgentDebugApi {
 }
 
 export interface SeedWorldAgentDebugOptions {
+  captureProbeSnapshot?(signal: AbortSignal): Promise<unknown>;
   setContextCompactionBudget?(budget: ContextCompactionBudget | undefined): void;
   runCommand?(instruction: string): Promise<boolean> | boolean;
   getAsrTailTuning?(): SeedWorldAsrTailTuning;
@@ -79,6 +83,11 @@ class SeedWorldAgentDebugSurface implements SeedWorldAgentDebugController {
     if (store.enabled) this._mount();
   }
 
+  startActionProbe(): ReturnType<typeof startSeedWorldActionProbe> {
+    if (!this._options.captureProbeSnapshot) throw new Error("Snapshot is unavailable");
+    return startSeedWorldActionProbe(this._options.captureProbeSnapshot);
+  }
+
   get enabled(): boolean {
     return this._store.enabled;
   }
@@ -95,6 +104,12 @@ class SeedWorldAgentDebugSurface implements SeedWorldAgentDebugController {
   enable(): void {
     this._store.setEnabled(true);
     this._mount();
+    this._refresh();
+  }
+
+  openPanel(): void {
+    this.enable();
+    if (this._panel) this._panel.style.display = "flex";
     this._refresh();
   }
 

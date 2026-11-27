@@ -10,16 +10,44 @@ const update = "update world_save set payload = ? where id = ?";
 const compareAndSet = update + " and payload = ?";
 const remove = "delete from world_save where generation = ?";
 
-function openDatabase(name) {
+function openDatabase(name, create = true) {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(name, 1);
+    let missing = false;
     request.onupgradeneeded = () => {
+      if (!create) {
+        missing = true;
+        request.transaction.abort();
+        return;
+      }
       const rows = request.result.createObjectStore("world_save", { keyPath: "id" });
       rows.createIndex("generation", "generation");
       rows.createIndex("parts", ["generation", "part_no"]);
     };
-    request.onerror = () => reject(request.error);
+    request.onerror = () => missing ? resolve(undefined) : reject(request.error);
     request.onsuccess = () => resolve(request.result);
+  });
+}
+
+/**
+ * @template T
+ * @param {IDBDatabase} db
+ * @param {IDBTransactionMode} mode
+ * @param {(rows: IDBObjectStore, done: (data: T) => void) => void} operation
+ * @returns {Promise<T>}
+ */
+function transact(db, mode, operation) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("world_save", mode);
+    let result;
+    tx.oncomplete = () => resolve(result);
+    tx.onabort = () => reject(tx.error || new Error("Local world transaction aborted"));
+    try {
+      operation(tx.objectStore("world_save"), value => { result = value; });
+    } catch (error) {
+      tx.abort();
+      reject(error);
+    }
   });
 }
 
@@ -109,9 +137,8 @@ function execute(rows, sql, binds, done) {
   }
 }
 
-export function createLocalWorldDb(artifactId) {
-  // Keep unnamed previews independent of published IDs, including an ID named "preview".
-  const name = "lingguang-world-save:" + JSON.stringify(artifactId || null);
+export function createLocalWorldDb(name, { create = true } = {}) {
+  const databaseName = "lingguang-world-save:" + JSON.stringify(name);
   /** @template T
    * @param {IDBTransactionMode} mode
    * @param {(rows: IDBObjectStore, sql: string, binds: Array<string | number>, done: (data: T) => void) => void} operation
@@ -121,22 +148,10 @@ export function createLocalWorldDb(artifactId) {
   async function run(mode, operation, input, emptyData) {
     let db;
     try {
-      db = await openDatabase(name);
-      /** @type {Promise<T>} */
-      const completed = new Promise((resolve, reject) => {
-        const tx = db.transaction("world_save", mode);
-        let result;
-        tx.oncomplete = () => resolve(result);
-        tx.onabort = () => reject(tx.error || new Error("Local world transaction aborted"));
-        try {
-          const sql = input.sql.trim().replace(/;$/, "").replace(/\s+/g, " ").toLowerCase();
-          operation(tx.objectStore("world_save"), sql, input.binds, value => { result = value; });
-        } catch (error) {
-          tx.abort();
-          reject(error);
-        }
-      });
-      return { success: true, data: await completed };
+      db = await openDatabase(databaseName, create);
+      if (!db) return { success: true, data: emptyData };
+      const sql = input.sql.trim().replace(/;$/, "").replace(/\s+/g, " ").toLowerCase();
+      return { success: true, data: await transact(db, mode, (rows, done) => operation(rows, sql, input.binds, done)) };
     } catch (error) {
       return { success: false, data: emptyData, message: String(error?.message || error) };
     } finally {

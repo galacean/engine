@@ -158,7 +158,7 @@ it("keeps the explicit debug page mode and diagnostic trace params while removin
       "http://localhost/editor?bootTrace=1&perfTour=1&debug=1&panel=1&template=original&document=old&seed=1&version=2",
       8
     )
-  ).toBe("http://localhost/editor?seed=8&debug=1&panel=1&template=original&bootTrace=1&perfTour=1");
+  ).toBe("http://localhost/editor?seed=8&debug=1&panel=1&bootTrace=1&perfTour=1");
 });
 
 it("stores planning data only in the project without browser-storage fallback", async () => {

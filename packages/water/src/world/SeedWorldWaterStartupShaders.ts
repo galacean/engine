@@ -1,9 +1,20 @@
 import { SEED_WORLD_WATER_SHADER_AOT_PROFILE_DEFINITIONS } from "./SeedWorldWaterShaderAotProfiles";
 
-/** Registers every finite production Water Shader before the World runtime or any Water body exists. */
-export function registerSeedWorldWaterStartupShaders(): readonly string[] {
+export interface RegisterSeedWorldWaterStartupShadersOptions {
+  /** Whether to register ocean AOT profiles (`ocean-near-detailed`, `ocean-far-graded`). Defaults to true. */
+  readonly includeOcean?: boolean;
+}
+
+/** Registers finite production Water Shaders before the World runtime or any Water body exists. */
+export function registerSeedWorldWaterStartupShaders(
+  options: RegisterSeedWorldWaterStartupShadersOptions = {}
+): readonly string[] {
+  const includeOcean = options.includeOcean !== false;
+  const profiles = includeOcean
+    ? SEED_WORLD_WATER_SHADER_AOT_PROFILE_DEFINITIONS
+    : SEED_WORLD_WATER_SHADER_AOT_PROFILE_DEFINITIONS.filter((profile) => !profile.id.startsWith("ocean-"));
   return Object.freeze(
-    SEED_WORLD_WATER_SHADER_AOT_PROFILE_DEFINITIONS.map((profile) => {
+    profiles.map((profile) => {
       const shader = profile.resolveShader();
       if (shader.name !== profile.shaderName) {
         throw new Error(

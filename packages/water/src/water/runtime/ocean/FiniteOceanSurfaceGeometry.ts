@@ -1,10 +1,11 @@
+import { WorldLayer } from "@galacean/engine-project/rendering/WorldLayer";
 import { registerWaterMeshContentRestorer } from "../resources/WaterMeshContentRestorer";
 /** Finite Ocean authority rendered through one camera-relative near grid and one graded far-field ring mesh. */
 import {
   Buffer,
   type Engine,
   type Entity,
-  Layer,
+  type Layer,
   type Material,
   MeshRenderer,
   ModelMesh,
@@ -18,7 +19,7 @@ import type { OceanNearshoreStaticAtlas } from "../../compiler/ocean/OceanNearsh
 import type { WaterCameraVisibilityProvider, WaterTerrainOcclusionProvider } from "../body/WaterBackendRegistry";
 import { applyWaterSurfaceRendererContract } from "../surface/WaterSurfaceRendererContract";
 
-export const FINITE_OCEAN_SURFACE_LAYER = Layer.Layer30;
+export const FINITE_OCEAN_SURFACE_LAYER = WorldLayer.Water;
 
 export type FiniteOceanPresentationPath = "detailed" | "far-only";
 type OceanGeometryRegion = "near" | "far" | "far-only-fill";

@@ -158,12 +158,9 @@ export interface SeedWorldRendererWarmupOptions extends SeedWorldShaderWarmupOpt
   readonly additionalInstancedRenderers?: readonly Renderer[];
   /** Alternate materials swapped onto specific renderers at runtime (e.g. shadow-only proxy materials). */
   readonly additionalRendererMaterials?: ReadonlyMap<Renderer, readonly Material[]>;
-  /**
-   * Signed `SCENE_POINT_LIGHT_COUNT` deltas to precompile on Forward passes relative to the
-   * scene's baseline point light count (e.g. `[4]` when a lazy 4-slot decoration light pool is
-   * inactive, or `[-4]` when it is already active in-village so lights-OFF variants stay warm),
-   * clamped to `[0, LightManager capacity]`.
-   */
+  /** Prewarm zero building lights, plus one if the target world has lamps. The live pool is excluded from the baseline. */
+  readonly buildingPointLights?: { readonly poolRoot?: Entity; readonly hasLights: boolean };
+  /** Additional Forward-pass light counts relative to the scene baseline, clamped to the engine capacity. */
   readonly additionalPointLightCounts?: readonly number[];
   /** Exact production emitters whose wind module can be enabled by weather changes. */
   readonly particleWindRenderers?: readonly ParticleRenderer[];
@@ -1310,28 +1307,43 @@ function collectSeedWorldRendererVariantsInternal(
     (camera.shaderData as unknown as RuntimeShaderData)._macroCollection,
     cameraMacros
   );
-  // Active cameras can retain transient Forward SSR macros from the previous frame; strip them so warmup
-  // never leaks stale SSR variants onto non-SSR passes or SSR-disabled collections.
+  const buildingLights = options.buildingPointLights;
+  const additionalPointLightCounts =
+    options.additionalPointLightCounts ?? (buildingLights?.hasLights ? [1] : undefined);
+  const lightManager = scene._lightManager;
+  const rawCapacity =
+    ((lightManager as unknown as { _pointData?: { color: Float32Array } })?._pointData?.color.length ?? 0) / 3;
+  const pointLightCapacity = Number.isInteger(rawCapacity) && rawCapacity > 0 ? rawCapacity : Infinity;
+  // Strip the previous frame's transient Forward SSR macros and any point count we are about to project.
   const activeCameraMacros: ShaderMacro[] = [];
   (ShaderMacro as unknown as RuntimeShaderMacroConstructor)._getMacrosElements(cameraMacros, activeCameraMacros);
   for (const macro of activeCameraMacros) {
-    if (SSR_ALL_FORWARD_MACROS.has(macro.name)) cameraMacros.disable(macro);
+    if (SSR_ALL_FORWARD_MACROS.has(macro.name) || (buildingLights && macro.name === "SCENE_POINT_LIGHT_COUNT")) {
+      cameraMacros.disable(macro);
+    }
   }
 
   if (options.activatedLightRoots) {
     const lightMacroNames = new Set(["SCENE_POINT_LIGHT_COUNT", "SCENE_SPOT_LIGHT_COUNT", "SCENE_DIRECT_LIGHT_COUNT"]);
-    const currentMacros: ShaderMacro[] = [];
-    (ShaderMacro as unknown as RuntimeShaderMacroConstructor)._getMacrosElements(cameraMacros, currentMacros);
-    for (const macro of currentMacros) if (lightMacroNames.has(macro.name)) cameraMacros.disable(macro);
+    for (const macro of activeCameraMacros) if (lightMacroNames.has(macro.name)) cameraMacros.disable(macro);
+    const retiredRoots = options.retiredLightRoots ?? [];
     for (const macro of collectSeedWorldPublicationLightMacros(
       scene,
       options.activatedLightRoots,
-      options.retiredLightRoots ?? []
+      buildingLights?.poolRoot ? [...retiredRoots, buildingLights.poolRoot] : retiredRoots
     )) {
       cameraMacros.enable(
         macro.v === undefined ? ShaderMacro.getByName(macro.n) : ShaderMacro.getByName(macro.n, macro.v)
       );
     }
+  } else if (buildingLights) {
+    // A previous frame's macro may be stale or already capped. Count the registered non-building lights directly.
+    const registered = lightManager._pointLights;
+    let externalCount = 0;
+    for (let i = 0; i < registered.length && externalCount < pointLightCapacity; i++) {
+      if (!buildingLights.poolRoot || registered.get(i).entity.parent !== buildingLights.poolRoot) externalCount++;
+    }
+    if (externalCount > 0) cameraMacros.enable(ShaderMacro.getByName("SCENE_POINT_LIGHT_COUNT", String(externalCount)));
   }
 
   const renderers: Renderer[] = [];
@@ -1995,14 +2007,10 @@ function collectSeedWorldRendererVariantsInternal(
           (sourceRenderer.castShadows || material.shader.name === "Masonry/GlobalProxyShadowOnly");
         const macroSetKey = `${material.shader.name}/${passCastShadows}/${frustumShadowOnly ? "shadow" : "full"}/${contributionKey}?${shaderMacroCollectionKey(compileMacros)}`;
         const appendPointLightVariants = (targetShader: Shader, sourceMacros: ShaderMacroCollection): void => {
-          if (!options.additionalPointLightCounts?.length || !shaderConsumesPointLights(targetShader.name)) return;
+          if (!additionalPointLightCounts?.length || !shaderConsumesPointLights(targetShader.name)) return;
           // Startup entrance only runs under the scene's initial light state; steady-state gets alternate point-light counts.
           if (sourceMacros.isEnable(MASONRY_ENTRANCE_MACRO) || sourceMacros.isEnable(GLOBAL_PROXY_ENTRANCE_MACRO))
             return;
-          const manager = (scene as unknown as { _lightManager?: { _pointData?: { color: Float32Array } } })
-            ._lightManager;
-          const rawCapacity = (manager?._pointData?.color.length ?? 0) / 3;
-          const pointLightCapacity = Number.isInteger(rawCapacity) && rawCapacity > 0 ? rawCapacity : Infinity;
           const basePointMacros: ShaderMacro[] = [];
           (ShaderMacro as unknown as RuntimeShaderMacroConstructor)._getMacrosElements(sourceMacros, basePointMacros);
           let existingPointLightCount = 0;
@@ -2012,7 +2020,7 @@ function collectSeedWorldRendererVariantsInternal(
               break;
             }
           }
-          for (const delta of options.additionalPointLightCounts) {
+          for (const delta of additionalPointLightCounts) {
             if (!Number.isInteger(delta) || delta === 0) continue;
             const targetPointLightCount = Math.max(0, Math.min(existingPointLightCount + delta, pointLightCapacity));
             if (targetPointLightCount === existingPointLightCount) continue;

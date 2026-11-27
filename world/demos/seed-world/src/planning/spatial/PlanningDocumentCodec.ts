@@ -4,6 +4,8 @@ import { planningSeed, switchPlanningLayoutScope } from "@galacean/engine-world-
 import { applySpatialCommands } from "@galacean/engine-world-planning/spatial/SpatialDocument";
 import { appendPreservedDiagParams, capturePreservedDiagParams } from "./PlanningPageUrl.ts";
 
+export const PLANNING_PROJECT_PATH = "World/Planning.json";
+
 /** Parse project authoring data without reading or writing browser storage. */
 export function parsePlanningDocument(raw: string, seed: number): PlanningDocument {
   const parsed = JSON.parse(raw) as PlanningDocument;

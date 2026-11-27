@@ -1,11 +1,21 @@
 import { describe, expect, it, vi } from "vitest";
+import { Renderer } from "@galacean/engine-core";
+import { animalAnimationLodConfig, animalAnimationLodStride } from "@galacean/engine-animals/gameplay/animal/AnimalLod";
+import { readAnimalPopulationConfig } from "@galacean/engine-world-planning/spatial/AnimalPopulationComponent";
+import {
+  ORIGINAL_WORLD_ANIMAL_ANIMATION_LOD,
+  templateAnimalAnimationLod,
+  WORLD_TEMPLATE_ART
+} from "@galacean/engine-world-planning/spatial/WorldTemplateArtDirection";
 import { LakeBoundaryQueryIndex } from "@galacean/engine-water/water/compiler/lake/LakeBoundaryQueryIndex";
 import { PlanningNavigationSurface } from "@galacean/engine-world-planning/spatial/runtime/PlanningNavigationSurface";
 import { PlanningAnimalHabitat } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHabitat";
+import { PlanningAnimalRuntime } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime";
 import { AnimalSystem } from "@galacean/engine-animals/gameplay/animal/AnimalSystem";
 import { ConfiguredAnimal } from "@galacean/engine-animals/gameplay/animal/ConfiguredAnimal";
 import { AnimalBlendClock } from "@galacean/engine-animals/gameplay/animal/AnimalBlendClock";
 import { AnimalMotionPlayback } from "@galacean/engine-animals/gameplay/animal/AnimalMotionPlayback";
+import { GroundAnimalRecovery } from "@galacean/engine-animals/gameplay/animal/GroundAnimalRecovery";
 import { PlanningWaterRuntime } from "@galacean/engine-world-planning/spatial/runtime/PlanningWaterRuntime";
 
 vi.mock("@galacean/engine-world-planning/semantic-study/PlanningWhiteboxes", () => ({ planningWhiteboxes: () => [] }));
@@ -409,5 +419,294 @@ describe("animal pathfinding performance invariants", () => {
     expect(water.hasWaterInBounds(5, 5, 10, 10)).toBe(true);
     expect(bodiesGetterCalls).toBe(2);
     expect(runtimeInterfacesCalls).toBe(2);
+  });
+
+  it("culls newly enabled off-screen renderers after their first unrendered frame (matching ParticleSystemManager)", () => {
+    const engine = { time: { frameCount: 10 }, _frameInProcess: false };
+    const renderer: any = Object.create(Renderer.prototype);
+    renderer._engine = engine;
+    renderer._renderFrameCount = undefined;
+    renderer._overrideUpdate = false;
+    renderer._scene = { _componentsManager: { addRenderer: () => {}, addOnUpdateRenderers: () => {} } };
+    Object.defineProperty(renderer, "engine", { get: () => engine });
+    Object.defineProperty(renderer, "scene", { get: () => renderer._scene });
+
+    // Enabled between frames (frame 10): stays visible for frame 11's update before first culling pass.
+    renderer._onEnableInScene();
+    engine.time.frameCount = 11;
+    engine._frameInProcess = true;
+    expect(renderer.isCulled).toBe(false);
+
+    // Frame 11 finishes without rendering this renderer -> culled on frame 12 update.
+    engine.time.frameCount = 12;
+    expect(renderer.isCulled).toBe(true);
+
+    // Once rendered on frame 12 -> unculled during frame 13 update.
+    renderer._renderFrameCount = 12;
+    engine.time.frameCount = 13;
+    expect(renderer.isCulled).toBe(false);
+
+    // Re-enabling mid-frame resets _renderFrameCount to frameCount - 1 so it gets one visible frame.
+    engine.time.frameCount = 50;
+    engine._frameInProcess = true;
+    renderer._onEnableInScene();
+    expect(renderer.isCulled).toBe(false);
+    engine.time.frameCount = 51;
+    expect(renderer.isCulled).toBe(true);
+  });
+
+  it("validates configurable global/template animation LOD thresholds and ratesHz", () => {
+    const defaults = animalAnimationLodConfig();
+    expect(animalAnimationLodStride(0, defaults)).toBe(1);
+    expect(animalAnimationLodStride(1, defaults)).toBe(2);
+    expect(animalAnimationLodStride(2, defaults)).toBe(3);
+    expect(animalAnimationLodStride(null, defaults)).toBe(4);
+
+    const custom = animalAnimationLodConfig({
+      screenRelativeTransitionHeights: [0.2, 0.1, 0.04],
+      ratesHz: [30, 15, 6, 5]
+    });
+    expect(animalAnimationLodStride(2, custom, 30)).toBe(5);
+    expect(animalAnimationLodStride(null, custom, 30)).toBe(6);
+
+    const disabled = animalAnimationLodConfig({ enabled: false });
+    expect(animalAnimationLodStride(null, disabled, 30)).toBe(1);
+
+    expect(() => animalAnimationLodConfig({ screenRelativeTransitionHeights: [0.05, 0.1, 0.02] })).toThrow();
+    expect(() => animalAnimationLodConfig({ ratesHz: [30, 0, 10, 5] })).toThrow();
+
+    const makeDoc = (animalValues: Record<string, unknown>) =>
+      ({
+        version: 1,
+        entities: {
+          world: {
+            id: "world",
+            name: "world",
+            components: {
+              world: { values: { seed: 42 } },
+              animals: { values: animalValues }
+            }
+          }
+        },
+        passthrough: { parameters: { seed: 42 } }
+      }) as any;
+    const defaultPop = readAnimalPopulationConfig(makeDoc({}));
+    expect(defaultPop.animationLod).toEqual({
+      enabled: true,
+      screenRelativeTransitionHeights: [0.12, 0.06, 0.03],
+      ratesHz: [30, 15, 10, 7.5]
+    });
+    const customPop = readAnimalPopulationConfig(
+      makeDoc({
+        "animationLod.lod0Height": 0.18,
+        "animationLod.farHz": 5
+      })
+    );
+    expect(customPop.animationLod).toEqual({
+      enabled: true,
+      screenRelativeTransitionHeights: [0.18, 0.06, 0.03],
+      ratesHz: [30, 15, 10, 5]
+    });
+
+    // All 6 templates (5 authored + original) explicitly define animation LOD config.
+    const expectedLod = {
+      enabled: true,
+      screenRelativeTransitionHeights: [0.12, 0.06, 0.03],
+      ratesHz: [30, 15, 10, 7.5]
+    };
+    expect(ORIGINAL_WORLD_ANIMAL_ANIMATION_LOD).toEqual(expectedLod);
+    expect(templateAnimalAnimationLod("")).toEqual(expectedLod);
+    for (const id of ["low-poly", "sakura-pearl", "emerald-forest", "titan-wasteland", "oil-paint"]) {
+      expect(WORLD_TEMPLATE_ART[id].animalAnimationLod).toEqual(expectedLod);
+      expect(templateAnimalAnimationLod(id)).toEqual(expectedLod);
+    }
+  });
+
+  it("skips off-screen Animator.update and decimates distant Animation LOD ticks while keeping 30Hz motion", () => {
+    const engine = { time: { frameCount: 10 } };
+    const pose = { sampled: false, finished: false };
+    const activeState = { name: "walk", pose };
+    const playback = new AnimalMotionPlayback();
+    playback.start(2.0, 1.5, "distance", 1);
+    const blendClock = new AnimalBlendClock();
+    blendClock.start(0);
+    const updateSpy = vi.fn();
+    const playSpy = vi.fn();
+    let culled = false;
+    const animal: any = Object.create(ConfiguredAnimal.prototype);
+    Object.assign(animal, {
+      active: true,
+      disposed: false,
+      system: { deferringPose: false, markPendingPoseFlush: () => {} },
+      root: { isActiveInHierarchy: true, engine },
+      config: {
+        bounds: { min: [-0.5, 0, -0.5], max: [0.5, 1, 0.5] },
+        animations: [{ id: "walk", clip: "walk", speed: 1.5 }]
+      },
+      clip: 0,
+      scale: 1,
+      movementMedium: "ground",
+      slopePitch: 0,
+      clipStartedFrame: -1,
+      activeState,
+      activeStateInstance: { speed: 1 },
+      verifiedAnimatedState: activeState,
+      playback,
+      blendClock,
+      nativeTransition: { duration: 0 },
+      pendingAnimatorSeconds: 0,
+      pendingGroundPlacement: false,
+      poseDesyncedWhileCulled: false,
+      animationLodStride: 1,
+      animationLodPhase: 0,
+      animationLodTicks: 0,
+      renderers: [
+        {
+          get isCulled() {
+            return culled;
+          }
+        }
+      ],
+      animator: {
+        speed: 1,
+        findAnimatorState: () => ({ speed: 1 }),
+        _isPoseCulled: () => culled,
+        play: (...args: unknown[]) => playSpy(...args),
+        update: (dt: number) => {
+          pose.sampled = true;
+          updateSpy(dt);
+        }
+      },
+      readPose: () => true,
+      correctRootMotion: () => {}
+    });
+    Object.defineProperty(animal, "duration", { get: () => 2.0 });
+    const walking = { x: 0, z: 0, heading: 0, speed: 1.5, angularSpeed: 0 };
+
+    // 1. Animation LOD stride=3 evaluates Animator.update once every 3 ticks while keeping full motion fraction=1.
+    animal.setAnimationLod(3, 0);
+    expect(animal.prepareAnimation(1 / 30, walking)).toBe(1);
+    expect(animal.prepareAnimation(1 / 30, walking)).toBe(1);
+    expect(updateSpy).toHaveBeenCalledTimes(0);
+    expect(animal.prepareAnimation(1 / 30, walking)).toBe(1);
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(updateSpy.mock.calls[0][0]).toBeCloseTo(3 / 30, 5);
+
+    // 2. Off-screen culling skips Animator.update completely and resyncs O(1) via play()+update(0) on re-entry.
+    updateSpy.mockClear();
+    playSpy.mockClear();
+    animal.setAnimationLod(1, 0);
+    culled = true;
+    expect(animal.prepareAnimation(1 / 30, walking)).toBe(1);
+    expect(animal.prepareAnimation(1 / 30, walking)).toBe(1);
+    expect(updateSpy).not.toHaveBeenCalled();
+
+    culled = false;
+    expect(animal.prepareAnimation(1 / 30, walking)).toBe(1);
+    expect(playSpy).toHaveBeenCalledTimes(1);
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(updateSpy.mock.calls[0][0]).toBe(0);
+  });
+
+  it("ignores animals enclosing the camera ray origin in shoo() so they cannot hijack distant clicks", () => {
+    const nearNotify = vi.fn(() => true);
+    const farNotify = vi.fn(() => true);
+    const runtime: any = Object.create(PlanningAnimalRuntime.prototype);
+    Object.assign(runtime, {
+      requestId: 0,
+      interaction: { clickDistance: 160, approachCooldown: 5 },
+      interactions: {},
+      population: {
+        system: { time: 10 },
+        active: new Set([
+          {
+            animal: {
+              visible: true,
+              bounds: [
+                [-1, -1, -1],
+                [1, 1, 1]
+              ],
+              behavior: { notify: nearNotify }
+            }
+          },
+          {
+            animal: {
+              visible: true,
+              bounds: [
+                [-1, -1, 19],
+                [1, 1, 21]
+              ],
+              behavior: { notify: farNotify }
+            }
+          }
+        ])
+      }
+    });
+    const ok = runtime.shoo({ origin: { x: 0, y: 0, z: 0 }, direction: { x: 0, y: 0, z: 1 } });
+    expect(ok).toBe(true);
+    expect(nearNotify).not.toHaveBeenCalled();
+    expect(farNotify).toHaveBeenCalledTimes(1);
+  });
+
+  it("pivots out of a narrow pocket with only a rear exit instead of deadlocking, while rejecting sealed cages", () => {
+    const recovery = new GroundAnimalRecovery();
+    // Bear facing +X (90 deg); only rear -X (270 deg) corridor is traversable.
+    const canTraversePocket = (a: { x: number; z: number }, b: { x: number; z: number }) =>
+      a.x <= 0.05 && b.x <= 0.05 && Math.abs(a.z) <= 0.4 && Math.abs(b.z) <= 0.4;
+    const motion = { x: 0, z: 0, heading: Math.PI / 2, speed: 0, angularSpeed: 0 };
+    const proposed = { ...motion };
+    const targetHeading = -Math.PI / 2; // 270 deg (-X)
+    let sawPivot = false;
+    for (let step = 0; step < 80; step++) {
+      expect(recovery.advance(motion, proposed, 1.8, 3.0, 1 / 15, canTraversePocket, targetHeading)).toBe(true);
+      if (recovery.pivoting) sawPivot = true;
+      Object.assign(motion, proposed);
+      if (!recovery.recovering) break;
+    }
+    expect(sawPivot).toBe(true);
+    expect(recovery.recovering).toBe(false);
+    // Heading now points straight down the -X exit (sin ~ -1, cos ~ 0)
+    expect(Math.sin(motion.heading)).toBeLessThan(-0.95);
+
+    // In a 100% sealed cage (no open direction), recovery must reject instead of spinning.
+    const sealed = new GroundAnimalRecovery();
+    const canTraverseSealed = (a: { x: number; z: number }, b: { x: number; z: number }) =>
+      Math.hypot(a.x, a.z) < 0.05 && Math.hypot(b.x, b.z) < 0.05;
+    const m2 = { x: 0, z: 0, heading: 0, speed: 0, angularSpeed: 0 };
+    expect(sealed.advance(m2, { ...m2 }, 1.8, 3.0, 1 / 15, canTraverseSealed, Math.PI)).toBe(false);
+  });
+
+  it("validates a 40m ground corridor in short-horizon mode in < 40 steps instead of full-route simulation", () => {
+    const canTraverse = vi.fn(() => true);
+    const animal: any = Object.create(ConfiguredAnimal.prototype);
+    Object.assign(animal, {
+      options: {
+        shortHorizonGroundValidation: true,
+        ground: {
+          staticRouteQuery: () => ({ canTraverse, obstruction: () => undefined }),
+          heightAt: () => 0
+        }
+      },
+      config: { bounds: { min: [-0.5, 0, -1], max: [0.5, 1.5, 1] } },
+      scale: 1,
+      speedMultiplier: 1,
+      baseRadius: 0.8,
+      motion: { x: 0, z: 0, heading: Math.PI / 3, speed: 0, angularSpeed: 0 },
+      root: { transform: { position: { y: 0 } } },
+      system: { time: 1 },
+      groundSteering: { maxAngularSpeed: 0.5, turnSpeedRatio: 0.5, arrivalRadius: 0.2 },
+      airSteering: { maxAngularSpeed: 0.8, turnSpeedRatio: 0.65, arrivalRadius: 0.3 },
+      canOccupy: () => true
+    });
+    const task = animal.createRouteTask([0, 40], 1.5, "ground");
+    let steps = 0;
+    let res = task.next();
+    while (!res.done && steps < 200) {
+      steps++;
+      res = task.next();
+    }
+    expect(res.done).toBe(true);
+    expect(Boolean(res.value)).toBe(true);
+    expect(steps).toBeLessThan(40);
   });
 });

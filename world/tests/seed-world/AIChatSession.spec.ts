@@ -243,8 +243,8 @@ describe("AIChatSession", () => {
       .mockResolvedValueOnce(final("第一条河流已生成"))
       .mockResolvedValueOnce(final("知道了，你指的是 river-1"));
 
-    await session.run("生成一条河流", { model: "agent" });
-    await session.run("在它旁边种树", { model: "agent" });
+    await session.run("生成一条河流");
+    await session.run("在它旁边种树");
 
     expect(session.historyRecordCount).toBe(2);
     const turn2Prompt = promptAt(3);
@@ -265,14 +265,14 @@ describe("AIChatSession", () => {
       .mockResolvedValueOnce(final("已将时间调整到晚上八点"))
       .mockResolvedValueOnce(final("已继续"));
 
-    await session.run("完善八点", { model: "agent", inputSource: "voice" });
+    await session.run("完善八点", { inputSource: "voice" });
     expect(promptAt(0)).toContain('"inputSource":"voice"');
-    await session.run("继续", { model: "agent" });
+    await session.run("继续");
     expect(promptAt(1)).toContain("完善八点");
     expect(promptAt(1)).toContain("已将时间调整到晚上八点");
   });
 
-  it("clears the five-record memory when the ASAP route changes", async () => {
+  it("preserves conversation history when a legacy caller passes different model values", async () => {
     const session = new AIChatSession({
       agent: createTestAgentLoop({
         tools: [],
@@ -281,13 +281,15 @@ describe("AIChatSession", () => {
     });
     mockedRequest
       .mockResolvedValueOnce(final("第一轮完成"))
-      .mockResolvedValueOnce(final("新模型回复"));
+      .mockResolvedValueOnce(final("第二轮完成"));
 
-    await session.run("第一轮秘密", { model: "model-a" });
-    await session.run("切换模型后提问", { model: "model-b" });
+    const first = { model: "model-a", debugMode: true };
+    const second = { model: "model-b", debugMode: true };
+    await session.run("第一轮秘密", first);
+    await session.run("继续提问", second);
 
-    expect(session.historyRecordCount).toBe(1);
-    expect(promptAt(1)).not.toContain("第一轮秘密");
+    expect(session.historyRecordCount).toBe(2);
+    expect(promptAt(1)).toContain("第一轮秘密");
   });
 
   it("stores a failed task as a compact result without partial script data", async () => {
@@ -314,7 +316,7 @@ describe("AIChatSession", () => {
       .mockRejectedValueOnce(new Error("HTTP 500"))
       .mockResolvedValueOnce(final("已读取失败结果"));
 
-    await expect(session.run("生成后继续", { model: "agent" })).rejects.toThrow("HTTP 500");
+    await expect(session.run("生成后继续")).rejects.toThrow("HTTP 500");
     const failureHistory = JSON.stringify(history.snapshot());
     expect(failureHistory).toContain('"status":"failed"');
     expect(failureHistory).toContain("处理过程中遇到了问题");
@@ -337,7 +339,7 @@ describe("AIChatSession", () => {
       signal.addEventListener("abort", () => reject(new DOMException("cancelled", "AbortError")), { once: true });
     }));
 
-    const running = session.run("等待中的任务", { model: "agent" });
+    const running = session.run("等待中的任务");
     await vi.waitFor(() => expect(mockedRequest).toHaveBeenCalledOnce());
     session.cancel();
     await expect(running).rejects.toThrow("Agent task cancelled");

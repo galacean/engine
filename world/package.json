@@ -17,8 +17,7 @@
     "export:seed-shaders": "node scripts/export-webgpu-shaders.mjs",
     "prepare:engine": "pnpm --filter @galacean/engine-shader-compiler build && pnpm --filter @galacean/engine-shader precompile",
     "build:all": "WORLD_DEMO=all vite build --config vite.config.mjs",
-    "build:seed-world-flash-app": "node scripts/build-seed-world-flash-app.mjs",
-    "build:seed-world-flash-source": "node scripts/build-seed-world-flash-source.mjs"
+    "build:seed-world-flash-app": "node scripts/build-seed-world-flash-app.mjs"
   },
   "dependencies": {
     "@galacean/engine": "workspace:*",

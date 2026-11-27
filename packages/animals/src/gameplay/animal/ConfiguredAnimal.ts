@@ -164,6 +164,11 @@ export interface ConfiguredAnimalOptions {
   resolveMaterial?: (source: Material) => Material;
   /** Optional non-outlined companion material for distant instances once outline fades to zero. */
   resolvePlainMaterial?: (source: Material) => Material;
+  /**
+   * Use Unity NavMeshAgent-style global corridor + exact local short-horizon kinematic validation
+   * on ground routes (validates exact departure turn + 2s local horizon instead of 6000 substeps).
+   */
+  shortHorizonGroundValidation?: boolean;
 }
 
 /** One destination owns its admission, world revalidation and completion across gait clips. */
@@ -233,6 +238,10 @@ export class ConfiguredAnimal implements AnimalAgent {
   private outlineEnabled = true;
   private shadowsEnabled = false;
   private rendered = true;
+  private poseDesyncedWhileCulled = false;
+  private animationLodStride = 1;
+  private animationLodPhase = 0;
+  private animationLodTicks = 0;
   scale: number;
   private crowdBody?: GroundAnimalBody;
   private readonly baseRadius: number;
@@ -769,7 +778,10 @@ export class ConfiguredAnimal implements AnimalAgent {
       this.surfaceBlocked = !supported;
       const translationAllowed = fraction > 0 && supported;
       const turningAllowed =
-        translationAllowed && (this.proposedMotion.x !== this.motion.x || this.proposedMotion.z !== this.motion.z);
+        translationAllowed &&
+        (this.groundRecovery.pivoting ||
+          this.proposedMotion.x !== this.motion.x ||
+          this.proposedMotion.z !== this.motion.z);
       if (translationAllowed) {
         this.motion.x += (this.proposedMotion.x - this.motion.x) * fraction;
         this.motion.z += (this.proposedMotion.z - this.motion.z) * fraction;
@@ -950,6 +962,41 @@ export class ConfiguredAnimal implements AnimalAgent {
     );
   }
 
+  /** Configure distance-based skeletal animation update stride (1 = 30Hz, 2 = 15Hz, 3 = 10Hz). */
+  setAnimationLod(stride: number, phase = 0): void {
+    const next = stride >= 1 ? Math.floor(stride) : 1;
+    if (this.animationLodStride === next && this.animationLodPhase === phase) return;
+    this.animationLodStride = next;
+    this.animationLodPhase = phase;
+    if (next === 1 && this.pendingAnimatorSeconds > 0 && !this.system.deferringPose) {
+      this.flushPose();
+    }
+  }
+
+  private isRenderCulled(): boolean {
+    const renderers = this.renderers;
+    if (renderers && renderers.length > 0) {
+      for (let i = 0, len = renderers.length; i < len; i++) {
+        if (!renderers[i].isCulled) return false;
+      }
+      return true;
+    }
+    return this.animator._isPoseCulled();
+  }
+
+  private resyncCulledPose(): boolean {
+    this.poseDesyncedWhileCulled = false;
+    const binding = this.config.animations[this.clip];
+    const sourceEnd = binding?.range?.[1] ?? this.duration;
+    if (!(sourceEnd > 0)) return false;
+    const clamped = Math.max(0, Math.min(this.playback.elapsed, this.duration - 0.0001));
+    this.animator.play(this.activeState.name, 0, clamped / sourceEnd);
+    this.animator.update(0);
+    this.correctRootMotion();
+    if (this.activeState?.pose.finished) this.playback.elapsed = this.duration;
+    return true;
+  }
+
   /** Flush any deferred bone-pose evaluation accumulated across 1/60s simulation substeps. */
   flushPose(): void {
     if (this.pendingGroundPlacement && this.active && !this.disposed) {
@@ -959,6 +1006,12 @@ export class ConfiguredAnimal implements AnimalAgent {
     if (dt <= 0) return;
     this.pendingAnimatorSeconds = 0;
     if (!this.active || !this.animator || this.disposed) return;
+    const culled = this.isRenderCulled();
+    if (culled && this.blendClock.remaining <= 0 && (this.root.engine?.time?.frameCount ?? 0) > 2) {
+      this.poseDesyncedWhileCulled = true;
+      return;
+    }
+    if (this.poseDesyncedWhileCulled && this.resyncCulledPose()) return;
     this.animator.update(dt);
     this.correctRootMotion();
     if (this.activeState?.pose.finished) this.playback.elapsed = this.duration;
@@ -1036,25 +1089,66 @@ export class ConfiguredAnimal implements AnimalAgent {
         this.system.markPendingPoseFlush(this);
         this.sampledGait = fraction > 0;
       } else {
-        const totalAnimatorDelta = this.pendingAnimatorSeconds + animatorDelta;
-        this.pendingAnimatorSeconds = 0;
-        const culled = this.animator._isPoseCulled();
-        // Sample before the crowd commits any translation. A requested clock interval is not
-        // proof of motion: rejected transitions, finished clips and paused animators can hold a pose.
-        if (!culled && fraction > 0) this.readPose(false);
-        poseState.sampled = false;
-        if (this.blendClock.remaining > 0) {
-          // A partial terminal stride consumes only its matching simulation interval.
-          this.nativeTransition.duration = this.blendClock.advance(
-            animationSeconds / (this.playback.rate * nativeRate),
-            animationSeconds
-          );
+        if (!this.system.deferringPose) this.animationLodTicks++;
+        const culled = this.isRenderCulled();
+        const alreadyVerified = this.verifiedAnimatedState === this.activeState;
+        const canSkipOffscreen =
+          culled && this.blendClock.remaining <= 0 && (this.root.engine?.time?.frameCount ?? 0) > 2;
+        if (canSkipOffscreen) {
+          // Off-screen frustum culling: skip Animator.update completely while all renderers are culled;
+          // logical playback.elapsed stays exact and resyncs in O(1) when re-entering view.
+          this.pendingAnimatorSeconds = 0;
+          this.poseDesyncedWhileCulled = true;
+          this.sampledGait = fraction > 0 && !poseState.finished;
+          if (poseState.finished) this.playback.elapsed = this.duration;
+        } else if (
+          !culled &&
+          !this.poseDesyncedWhileCulled &&
+          this.animationLodStride > 1 &&
+          this.blendClock.remaining <= 0 &&
+          (fraction === 0 || alreadyVerified) &&
+          this.playback.elapsed < this.duration &&
+          !this.anchor &&
+          (this.animationLodTicks + this.animationLodPhase) % this.animationLodStride !== 0
+        ) {
+          // Distance-based skeletal Animation LOD: accumulate delta and skip intermediate Animator.update ticks
+          // while locomotion, heading, and ground placement keep advancing smoothly at 30Hz.
+          this.pendingAnimatorSeconds += animatorDelta;
+          this.sampledGait = fraction > 0;
+        } else {
+          const totalAnimatorDelta = this.pendingAnimatorSeconds + animatorDelta;
+          this.pendingAnimatorSeconds = 0;
+          if (this.poseDesyncedWhileCulled) {
+            poseState.sampled = false;
+            if (this.resyncCulledPose()) {
+              if (this.blendClock.remaining > 0) {
+                this.nativeTransition.duration = this.blendClock.advance(
+                  animationSeconds / (this.playback.rate * nativeRate),
+                  animationSeconds
+                );
+              }
+              this.sampledGait = fraction > 0 && !poseState.finished;
+              if (this.sampledGait) this.verifiedAnimatedState = this.activeState;
+              return this.sampledGait ? fraction : 0;
+            }
+          }
+          // Sample before the crowd commits any translation. A requested clock interval is not
+          // proof of motion: rejected transitions, finished clips and paused animators can hold a pose.
+          if (!culled && fraction > 0) this.readPose(false);
+          poseState.sampled = false;
+          if (this.blendClock.remaining > 0) {
+            // A partial terminal stride consumes only its matching simulation interval.
+            this.nativeTransition.duration = this.blendClock.advance(
+              animationSeconds / (this.playback.rate * nativeRate),
+              animationSeconds
+            );
+          }
+          this.animator.update(totalAnimatorDelta);
+          this.correctRootMotion();
+          this.sampledGait = fraction > 0 && poseState.sampled && (culled ? !poseState.finished : this.readPose(true));
+          if (this.sampledGait) this.verifiedAnimatedState = this.activeState;
+          if (poseState.finished) this.playback.elapsed = this.duration;
         }
-        this.animator.update(totalAnimatorDelta);
-        this.correctRootMotion();
-        this.sampledGait = fraction > 0 && poseState.sampled && (culled ? !poseState.finished : this.readPose(true));
-        if (this.sampledGait) this.verifiedAnimatedState = this.activeState;
-        if (poseState.finished) this.playback.elapsed = this.duration;
       }
     } else if (this.pendingAnimatorSeconds > 0 && !this.system.deferringPose) {
       this.flushPose();
@@ -1640,7 +1734,9 @@ export class ConfiguredAnimal implements AnimalAgent {
     const maxMergedSteps = baseStrideDistance > 1e-4 ? Math.max(1, Math.floor(1.5 / baseStrideDistance)) : 1;
     const airFrom = medium === "air" ? (this.scratchAirFrom ??= { x: 0, y: 0, z: 0 }) : undefined;
     const airTo = medium === "air" ? (this.scratchAirTo ??= { x: 0, y: 0, z: 0 }) : undefined;
-    const maxIterations = Math.min(6000, budget);
+    const shortHorizon = this.options.shortHorizonGroundValidation === true && medium === "ground" && !arrivalMedium;
+    const maxIterations = Math.min(shortHorizon ? 180 : 6000, budget);
+    let validatedSeconds = 0;
     for (let i = 0; i < maxIterations; i++) {
       yield;
       const nextCursor = advanceAnimalRouteTarget(motion, points, cursor, passRadius);
@@ -1703,7 +1799,8 @@ export class ConfiguredAnimal implements AnimalAgent {
         this.previewQuery = query;
         let recovered: boolean;
         try {
-          recovered = recovery.advance(motion, proposed, speed, length, baseDt, canTraverseRecovery);
+          const targetHeading = distSq > 1e-8 ? Math.atan2(dx, dz) : undefined;
+          recovered = recovery.advance(motion, proposed, speed, length, baseDt, canTraverseRecovery, targetHeading);
         } finally {
           this.previewQuery = undefined;
         }
@@ -1715,8 +1812,11 @@ export class ConfiguredAnimal implements AnimalAgent {
       if (stepCount > 1) {
         i += stepCount - 1;
         // Preserve per-substep cooperative budget accounting without repeating geometry queries.
-        for (let k = 1; k < stepCount; k++) yield;
+        if (!shortHorizon) {
+          for (let k = 1; k < stepCount; k++) yield;
+        }
       }
+      validatedSeconds += stepDt;
       copyMotionState(motion, proposed);
       // A clear waypoint chord does not guarantee a clear slow-turning arc.
       // Validate the actual planned curve against the same decision-time footprints.
@@ -1728,6 +1828,41 @@ export class ConfiguredAnimal implements AnimalAgent {
           : this.canTraverseRouteStep(query, fromX, fromZ, motion.x, motion.z))
       )
         return false;
+      if (shortHorizon && !arrived && !recovery.recovering) {
+        const remDx = targetPoint[0] - motion.x;
+        const remDz = targetPoint[1] - motion.z;
+        const remDist = Math.hypot(remDx, remDz);
+        const remErr =
+          remDist > 1e-4
+            ? Math.atan2(
+                Math.sin(Math.atan2(remDx, remDz) - motion.heading),
+                Math.cos(Math.atan2(remDx, remDz) - motion.heading)
+              )
+            : 0;
+        const alignedDirect =
+          cursor === points.length - 1 &&
+          Math.abs(remErr) < 0.05 &&
+          Math.abs(motion.angularSpeed) < 0.03 &&
+          this.canTraverseRouteStep(query, motion.x, motion.z, target[0], target[1]);
+        const localHorizonClear =
+          validatedSeconds >= 2.0 &&
+          (motion.speed > speed * 0.25 || Math.abs(remErr) < 0.15) &&
+          this.canTraverseRouteStep(query, motion.x, motion.z, targetPoint[0], targetPoint[1]);
+        if (alignedDirect || localHorizonClear) {
+          return {
+            points,
+            cursor: 0,
+            passRadius,
+            speed: nominalSpeed,
+            medium,
+            scale: this.scale,
+            multiplier: this.speedMultiplier,
+            arrivalMedium,
+            preparedAt: this.system.time,
+            from: initial
+          };
+        }
+      }
       if (medium === "air" && ground.canTraverseAir) {
         let wanted = ground.heightAt(motion.x, motion.z, "air") ?? y;
         if (!steering.continuous && arrivalMedium) {
@@ -1866,13 +2001,15 @@ export class ConfiguredAnimal implements AnimalAgent {
       return true;
     copyMotionState(this.groundCheckpoint, proposed);
     const canTraverseRecovery = (this.recoveryCanTranslate ??= (from, to) => this.canTranslate(to, from));
+    const targetHeading = Math.hypot(dx, dz) > 1e-4 ? Math.atan2(dx, dz) : undefined;
     const recovered = this.groundRecovery.advance(
       this.motion,
       proposed,
       this.velocity * this.scale * this.speedMultiplier,
       length,
       seconds,
-      canTraverseRecovery
+      canTraverseRecovery,
+      targetHeading
     );
     if (!recovered && supported) copyMotionState(proposed, this.groundCheckpoint);
     return recovered || supported;
@@ -3025,6 +3162,7 @@ export class ConfiguredAnimal implements AnimalAgent {
     if (!this.config.animations[index]) throw new Error("Unknown configured animation");
     this.flushPose();
     this.verifiedAnimatedState = undefined;
+    this.poseDesyncedWhileCulled = false;
     const previous = this.clip;
     // A tree-selected repeat at the natural end continues an authored stride.
     // Blending from its held endpoint flattens the next stride (especially a

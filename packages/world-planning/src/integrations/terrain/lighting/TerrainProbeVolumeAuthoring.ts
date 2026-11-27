@@ -1,7 +1,8 @@
+import { WorldLayer } from "@galacean/engine-project/rendering/WorldLayer";
 import {
   Camera,
   Entity,
-  Layer,
+  type Layer,
   ProbeBrickCellCount,
   ProbeBrickProbeCountPerDimension,
   ProbeVolume,
@@ -169,7 +170,7 @@ export class TerrainProbeVolumeAuthoring {
         ...this.layout.bakeOptions,
         lightingScenario: scenario,
         camera: this._camera,
-        cullingMask: (this._camera.cullingMask & ~Layer.Layer30) as Layer,
+        cullingMask: (this._camera.cullingMask & ~WorldLayer.Water) as Layer,
         nearClipPlane: 0.05,
         farClipPlane: 100,
         onProgress: (progress) => this._onProgress(scenario, progress)

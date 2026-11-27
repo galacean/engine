@@ -1,4 +1,4 @@
-import type { WorldSelection } from "../../../storage/SharedWorldStorage";
+import type { SeedWorldSaveSelection } from "../../../storage/SeedWorldStorageHost";
 import type { PlanningSession } from "@galacean/engine-world-planning/spatial/PlanningSession";
 import type { PlanningWorldHandoff } from "../spatial/runtime/PlanningWorldSource.ts";
 import { poiForElement } from "@galacean/engine-world-planning/semantic-study/PoiContents";
@@ -29,7 +29,7 @@ const GLOBALS: readonly { key: GlobalKey; label: string; group: string; min?: nu
 /** Actions owned by the application outside the planning preview. */
 export interface WorldPlanningOptions {
   onEngineReady?: (engine: import("@galacean/engine").Engine) => void;
-  storageSelection?: WorldSelection;
+  storageSelection?: SeedWorldSaveSelection;
   /** Generate from the published layout captured by the editor. */
   onGenerate3D?: (handoff: PlanningWorldHandoff) => void | Promise<void>;
 }

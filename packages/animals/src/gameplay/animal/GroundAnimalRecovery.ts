@@ -9,6 +9,8 @@ type Traversable = (from: Readonly<GroundAnimalMotion>, to: Readonly<GroundAnima
 export class GroundAnimalRecovery {
   private direction = 0;
   private startHeading = 0;
+  private targetTurn = Math.PI / 2;
+  private _pivoting = false;
   private radius = 0;
   private anchorX = NaN;
   private anchorZ = NaN;
@@ -29,14 +31,22 @@ export class GroundAnimalRecovery {
     return this.direction !== 0;
   }
 
+  /** Whether recovery is currently executing a narrow-pocket in-place pivot turn. */
+  get pivoting(): boolean {
+    return this._pivoting && this.direction !== 0;
+  }
+
   /** Release recovery progress and retry budgets for a new goal or explicit relocation. */
   reset(): void {
     this.direction = this.failedCount = 0;
+    this._pivoting = false;
+    this.targetTurn = Math.PI / 2;
     this.anchorX = this.anchorZ = this.completedOriginX = this.completedOriginZ = NaN;
   }
 
   /**
-   * Replace a blocked movement proposal with a bounded forward turn.
+   * Replace a blocked movement proposal with a bounded forward turn, falling back to a smooth
+   * narrow-pocket in-place pivot only when both forward arcs are blocked and an open exit exists.
    * Call only while forward travel is blocked or recovery remains active.
    * @param current Actual committed motion; rejected or partial proposals do not consume progress.
    * @param proposed Reused output; a rejected recovery leaves it at the current pose.
@@ -44,6 +54,7 @@ export class GroundAnimalRecovery {
    * @param bodyLength World-space animal length in metres.
    * @param seconds Positive simulation step in seconds.
    * @param canTraverse Terrain and occupancy check for each swept segment.
+   * @param targetHeading Optional desired goal heading in radians to guide narrow-pocket pivot exit selection.
    * @returns Whether a supported proposal was produced, including one stopped step upon completion.
    */
   advance(
@@ -52,7 +63,8 @@ export class GroundAnimalRecovery {
     speed: number,
     bodyLength: number,
     seconds: number,
-    canTraverse: Traversable
+    canTraverse: Traversable,
+    targetHeading?: number
   ): boolean {
     const preferred = Math.sign(proposed.heading - current.heading) || 1;
     copyMotion(proposed, current);
@@ -79,6 +91,8 @@ export class GroundAnimalRecovery {
         if (!cleared) return false;
       }
       this.failedCount = 0;
+      this._pivoting = false;
+      this.targetTurn = Math.PI / 2;
       this.anchorX = current.x;
       this.anchorZ = current.z;
       this.radius = Math.max(0.1, bodyLength * 0.75);
@@ -101,17 +115,36 @@ export class GroundAnimalRecovery {
           break;
         }
       }
+      if (!this.direction && this.tryPocketPivot(current, bodyLength, canTraverse, preferred, targetHeading)) {
+        // Narrow pocket: forward arcs are blocked, but an open exit heading exists; pivot smoothly to face it.
+        this.failedCount = 0;
+      }
       if (!this.direction) return false;
       this.startX = current.x;
       this.startZ = current.z;
       this.failedCount = 0;
     }
-    const remaining = Math.PI / 2 - (current.heading - this.startHeading) * this.direction;
+    const remaining = this.targetTurn - (current.heading - this.startHeading) * this.direction;
     if (remaining <= 1e-7) {
       this.completedOriginX = this.startX;
       this.completedOriginZ = this.startZ;
       this.finish(current);
       return true;
+    }
+    if (this._pivoting) {
+      const pivotAngularSpeed = Math.min(1.1, Math.max(0.55, (speed * 0.65) / Math.max(0.4, bodyLength * 0.5)));
+      const turn = Math.min(remaining, pivotAngularSpeed * seconds);
+      proposed.x = current.x;
+      proposed.z = current.z;
+      proposed.heading = current.heading + this.direction * turn;
+      proposed.speed = 0;
+      proposed.angularSpeed = (this.direction * turn) / seconds;
+      if (canTraverse(current, proposed)) return true;
+      this.rememberFailure(current, proposed);
+      copyMotion(proposed, current);
+      proposed.speed = proposed.angularSpeed = 0;
+      this.finish(current);
+      return false;
     }
     const turn = Math.min(remaining, Math.min((speed * 0.45) / this.radius, 0.3) * seconds);
     this.step(current, proposed, this.direction * turn);
@@ -125,8 +158,52 @@ export class GroundAnimalRecovery {
     return false;
   }
 
+  private tryPocketPivot(
+    current: Readonly<GroundAnimalMotion>,
+    bodyLength: number,
+    canTraverse: Traversable,
+    preferred: number,
+    targetHeading?: number
+  ): boolean {
+    if (!canTraverse(current, current)) return false;
+    const probeDist = Math.max(0.35, Math.min(0.8, bodyLength * 0.25));
+    const desired = targetHeading !== undefined && Number.isFinite(targetHeading) ? targetHeading : undefined;
+    let bestHeading = NaN;
+    let bestScore = Infinity;
+    const testHeading = (h: number): void => {
+      const fromCur = Math.abs(Math.atan2(Math.sin(h - current.heading), Math.cos(h - current.heading)));
+      if (fromCur < 0.26) return; // forward was already blocked
+      copyMotion(this.probe, current);
+      this.probe.x = current.x + Math.sin(h) * probeDist;
+      this.probe.z = current.z + Math.cos(h) * probeDist;
+      this.probe.heading = h;
+      if (!canTraverse(current, this.probe)) return;
+      const score =
+        desired !== undefined ? Math.abs(Math.atan2(Math.sin(h - desired), Math.cos(h - desired))) : fromCur;
+      if (score < bestScore) {
+        bestScore = score;
+        bestHeading = h;
+      }
+    };
+    if (desired !== undefined) testHeading(desired);
+    for (let k = 0; k < 12; k++) {
+      testHeading(current.heading + (k * Math.PI) / 6);
+    }
+    if (!Number.isFinite(bestHeading)) return false;
+    const delta = Math.atan2(Math.sin(bestHeading - current.heading), Math.cos(bestHeading - current.heading));
+    if (Math.abs(delta) < 0.05) return false;
+    this._pivoting = true;
+    this.radius = 0;
+    this.direction = Math.sign(delta) || preferred;
+    this.targetTurn = Math.abs(delta);
+    this.startHeading = current.heading;
+    return true;
+  }
+
   private finish(current: Readonly<GroundAnimalMotion>): void {
     this.direction = 0;
+    this._pivoting = false;
+    this.targetTurn = Math.PI / 2;
     this.anchorX = current.x;
     this.anchorZ = current.z;
   }

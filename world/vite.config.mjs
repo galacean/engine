@@ -12,7 +12,9 @@ import {
   SEED_WORLD_TEMPLATE_IDS,
   buildGzippedSwb1Pack,
   buildUncompressedSwb1Pack,
+  isSeedWorldBuildingTextureAsset,
   isSeedWorldCommonRockLodAsset,
+  isSeedWorldExcludedCommonBinShader,
   previewCacheControlForPath,
   shardTemplateBundleEntries,
   templatesForSeedWorldJsonAsset,
@@ -48,7 +50,11 @@ const entries =
     ? JSON.parse(fs.readFileSync(path.join(world, "demos.json"), "utf8"))
         .filter((item) => item.mode === "static")
         .map((item) => path.join(world, item.entry))
-    : [entry];
+    : !flashApp && demo === "seed-world"
+      ? SEED_WORLD_TEMPLATE_IDS.map((id) =>
+          path.join(world, "demos/seed-world", id === "original" ? "index.html" : `${id}.html`)
+        )
+      : [entry];
 const outDir = process.env.WORLD_OUT_DIR
   ? path.resolve(process.env.WORLD_OUT_DIR)
   : path.join(world, "dist", flashApp ? "seed-world-flash-app" : demo);
@@ -138,6 +144,10 @@ const FLASH_APP_CDN_LARGE_JSON_EXCLUDED_BASENAMES = new Set([
   "plant-project-production-catalog.json",
   "plant-species.json"
 ]);
+const UNUSED_FLASH_APP_PLANT_SPECIES =
+  "packages/vegetation/src/asset-assembly/generated/procedural-trees/plant-species.json";
+const PROJECT_PLANT_SPECIES =
+  "packages/vegetation/src/asset-assembly/generated/procedural-trees/plant-project-plant-species.json";
 
 function isFlashAppCdnLargeJson(fileName, size) {
   return (
@@ -197,6 +207,13 @@ function seedWorldAssetBundles({ offloadCdn = false } = {}) {
           if (entry && typeof entry.url === "string" && entry.url.startsWith("https://") && entry.size === size) {
             cdnUrlByFileName.set(fileName, entry.url);
           }
+        }
+        // In Flash App builds, Seed World always loads `plant-project-plant-species.json` via the runtime project
+        // (`useProjectPlantResources`), so the 497 KiB standalone gallery `plant-species.json` is never fetched.
+        // Alias its dead JS `new URL(...)` reference to the CDN-hosted project species JSON and drop the local copy.
+        const projectPlantSpeciesCdnUrl = cdnUrlByFileName.get(PROJECT_PLANT_SPECIES);
+        if (projectPlantSpeciesCdnUrl && bundle[UNUSED_FLASH_APP_PLANT_SPECIES]) {
+          cdnUrlByFileName.set(UNUSED_FLASH_APP_PLANT_SPECIES, projectPlantSpeciesCdnUrl);
         }
 
         // 2. Rewrite references inside emitted JSON/material/prefab/scene manifests to CDN URLs.
@@ -275,20 +292,39 @@ function seedWorldAssetBundles({ offloadCdn = false } = {}) {
         }
       }
 
-      // 2.5 Emit split gzipped SWB1 binary bundles (.mesh/.shaderc/.tex/.shader + shared rock LOD1/2 .glb) BEFORE
-      // deleting CDN-offloaded files from dist, keyed by each entry's final runtime URL (CDN URL when offloaded,
-      // else dist-relative path). Including rock LOD1/2 GLBs (~264 KB gz) in common-bin lets `rockFormations.prepare`
-      // launch alongside `raster.run` before template SWB1 finishes with zero duplicate HTTP fetches.
+      // 2.5 Emit split SWB1 binary bundles BEFORE deleting CDN-offloaded files from dist, keyed by each entry's final
+      // runtime URL (CDN URL when offloaded, else dist-relative path):
+      // - `seed-world-common-bin-bundle` (gzipped): shared core `.mesh/.shaderc/.tex/.shader` + shared rock LOD1/2 `.glb`
+      //   (excluding unused raw editor water `.shader` text files).
+      // - `seed-world-building-bin-bundle` (gzipped): `packages/building/` `.mesh/.shaderc/.tex/.shader`.
+      // - `seed-world-building-tex-bundle` (uncompressed): deduplicated `packages/building/` KTX2 textures (5.61 MiB),
+      //   loaded in parallel with `building-bin-bundle` only on building-bearing templates instead of duplicated in 4
+      //   template shards.
       const commonBinEntries = [];
       const buildingBinEntries = [];
+      const buildingTexEntries = [];
       const seenCommonBinKeys = new Set();
       const seenBuildingBinKeys = new Set();
+      const seenBuildingTexKeys = new Set();
       for (const fileName of Object.keys(bundle).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))) {
         const item = bundle[fileName];
         if (!item || item.type !== "asset") continue;
         const ext = path.extname(fileName).toLowerCase();
+        const isBuildingTex = isSeedWorldBuildingTextureAsset(fileName);
+        if (isBuildingTex) {
+          const buf = typeof item.source === "string" ? Buffer.from(item.source, "utf8") : Buffer.from(item.source);
+          if (buf.length > 0) {
+            const key = cdnUrlByFileName.get(fileName) ?? fileName;
+            if (!seenBuildingTexKeys.has(key)) {
+              seenBuildingTexKeys.add(key);
+              buildingTexEntries.push({ key, buf });
+            }
+          }
+          continue;
+        }
         const isCommonRockLod = isSeedWorldCommonRockLodAsset(fileName);
         if (!FLASH_APP_COMMON_BIN_BUNDLE_EXTENSIONS.has(ext) && !isCommonRockLod) continue;
+        if (!isCommonRockLod && isSeedWorldExcludedCommonBinShader(fileName)) continue;
         const buf = typeof item.source === "string" ? Buffer.from(item.source, "utf8") : Buffer.from(item.source);
         if (buf.length === 0) continue;
         const key = cdnUrlByFileName.get(fileName) ?? fileName;
@@ -299,23 +335,10 @@ function seedWorldAssetBundles({ offloadCdn = false } = {}) {
         seen.add(key);
         targetList.push({ key, buf });
       }
-      const emitSwb1Bundle = (entries, namePrefix, placeholder) => {
+      const emitSwb1Bundle = (entries, namePrefix, placeholder, { compress = true } = {}) => {
         if (entries.length === 0) return;
-        const index = [];
-        let offset = 0;
-        for (const entry of entries) {
-          index.push([entry.key, offset, entry.buf.length]);
-          offset += entry.buf.length;
-        }
-        const headerBytes = Buffer.from(JSON.stringify(index), "utf8");
-        const prefix = Buffer.alloc(8);
-        prefix.write("SWB1", 0, 4, "ascii");
-        prefix.writeUInt32LE(headerBytes.length, 4);
-        const rawPack = Buffer.concat([prefix, headerBytes, ...entries.map((e) => e.buf)]);
-        const gzPack = zlib.gzipSync(rawPack, { level: 9 });
-        // Normalize RFC 1952 OS byte (offset 9) to 0xff (unknown) for cross-platform bit-identical builds.
-        if (gzPack.length >= 10) gzPack[9] = 0xff;
-        const { sha256, size } = sha256Buffer(gzPack);
+        const payload = compress ? buildGzippedSwb1Pack(entries) : buildUncompressedSwb1Pack(entries);
+        const { sha256, size } = sha256Buffer(payload);
         const bundleFileName = `assets/${namePrefix}-${sha256.slice(0, 8)}.bin`;
         const cdnEntry = cdnBySha256[sha256];
         const runtimeUrl =
@@ -323,7 +346,7 @@ function seedWorldAssetBundles({ offloadCdn = false } = {}) {
             ? cdnEntry.url
             : `./${namePrefix}-${sha256.slice(0, 8)}.bin`;
         if (runtimeUrl.startsWith("./")) {
-          this.emitFile({ type: "asset", fileName: bundleFileName, source: gzPack });
+          this.emitFile({ type: "asset", fileName: bundleFileName, source: payload });
         }
         for (const item of Object.values(bundle)) {
           if (item.type === "chunk" && item.code.includes(placeholder)) {
@@ -333,6 +356,12 @@ function seedWorldAssetBundles({ offloadCdn = false } = {}) {
       };
       emitSwb1Bundle(commonBinEntries, "seed-world-common-bin-bundle", "__SEED_WORLD_COMMON_BIN_BUNDLE_URL__");
       emitSwb1Bundle(buildingBinEntries, "seed-world-building-bin-bundle", "__SEED_WORLD_BUILDING_BIN_BUNDLE_URL__");
+      emitSwb1Bundle(
+        buildingTexEntries,
+        "seed-world-building-tex-bundle",
+        "__SEED_WORLD_BUILDING_TEX_BUNDLE_URL__",
+        { compress: false }
+      );
 
       // 2.6 Emit per-template SWB1 bundles BEFORE deleting CDN-offloaded leaf copies:
       // - Gzipped per-template JSON SWB1 shard (`seed-world-tpl-<id>-json-bundle-<hash>.bin`) for >128 KiB
@@ -460,6 +489,47 @@ function seedWorldAssetBundles({ offloadCdn = false } = {}) {
         for (const item of Object.values(bundle)) {
           if (item.type === "chunk" && item.code.includes("__SEED_WORLD_PROJECT_TEXT_BUNDLE_URL__")) {
             item.code = item.code.replaceAll("__SEED_WORLD_PROJECT_TEXT_BUNDLE_URL__", runtimeUrl);
+          }
+        }
+        if (offloadCdn) {
+          // Classic Workers run in an isolated global scope without the main-thread fetch() interceptor.
+          // Preserve any text-bundle file directly referenced via `new URL(<rel>, ...)` inside an emitted Worker asset
+          // (e.g., `IntegratedWorldLightingProfile.json` and `SeedWorldLightingProfile.json` in `WorldPlanning.worker`).
+          const workerReferencedFiles = new Set();
+          for (const [assetName, item] of Object.entries(bundle)) {
+            if (item.type !== "asset" || !assetName.endsWith(".js")) continue;
+            const source = typeof item.source === "string" ? item.source : Buffer.from(item.source).toString("utf8");
+            const baseDir = path.posix.dirname(assetName);
+            for (const match of source.matchAll(
+              /new URL\(\s*(["'])([^"']+)\1\s*,\s*(?:import\.meta\.url|self\.location\.href|\(self\.__FLASH_APP_WORKER_BASE_URL__\|\|self\.location\.href\))\s*\)/gu
+            )) {
+              const rel = match[2];
+              if (/^(?:[a-z]+:|\/|#)/i.test(rel)) continue;
+              const [rawPath] = rel.split(/[?#]/);
+              if (!rawPath || rawPath === "." || rawPath === ".." || rawPath.endsWith("/")) continue;
+              workerReferencedFiles.add(path.posix.normalize(path.posix.join(baseDir, rawPath)));
+            }
+          }
+          const prunedFiles = Object.keys(sortedBundle).filter((fileName) => !workerReferencedFiles.has(fileName));
+          const manifestPath = process.env.WORLD_FLASH_APP_TEXT_BUNDLE_MANIFEST;
+          if (manifestPath) {
+            fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
+            fs.writeFileSync(
+              manifestPath,
+              JSON.stringify({
+                textBundleUrl: runtimeUrl,
+                prunedFiles,
+                projectJson: sortedBundle["packages/terrain/src/data/seed-world/project.json"],
+                productionCatalogJson: sortedBundle["packages/terrain/src/data/seed-world/public/production-catalog.json"]
+              }),
+              "utf8"
+            );
+          }
+          // Every non-worker text entry is served from `seed-world-project-text-bundle-*.json` via both
+          // `ResourceManager.setPrefetchedTextAssets` and the persistent main-thread `fetch()` interceptor,
+          // so omit the redundant ~296 loose text files from Flash App dist.
+          for (const fileName of prunedFiles) {
+            delete bundle[fileName];
           }
         }
       }

@@ -1,3 +1,4 @@
+import { WorldLayer } from "@galacean/engine-project/rendering/WorldLayer";
 import {
   AntiAliasing,
   BackgroundMode,
@@ -5,7 +6,7 @@ import {
   Camera,
   CameraClearFlags,
   Color,
-  Layer,
+  type Layer,
   Material,
   PostProcessPass,
   PostProcessPassEvent,
@@ -121,7 +122,7 @@ export class DirectorSemanticView {
       const role = category === null ? 0 : this.roles[part.id] === "green" ? 2 : this.roles[part.id] === "blue" ? 1 : 0;
       this.hasTarget ||= role === 2;
       if (!this.originalLayers.has(entity)) this.originalLayers.set(entity, entity.layer);
-      entity.layer = this.active && role === 2 ? Layer.Layer28 : this.originalLayers.get(entity)!;
+      entity.layer = this.active && role === 2 ? WorldLayer.DirectorTarget : this.originalLayers.get(entity)!;
       material.shaderData.setVector4(
         "material_DirectorIdentity",
         new Vector4((id % 256) / 255, Math.floor(id / 256) / 255, (category ?? 0) / 255, role / 255)
@@ -226,7 +227,7 @@ export class DirectorSemanticView {
         aux.shaderData.setFloat("camera_DirectorTargetOnly", 0);
         aux.render();
         // Rendering even the empty target clears the previous route's projection.
-        aux.cullingMask = Layer.Layer28 & this.camera.cullingMask;
+        aux.cullingMask = WorldLayer.DirectorTarget & this.camera.cullingMask;
         aux.renderTarget = this.target!;
         aux.shaderData.setFloat("camera_DirectorTargetOnly", 1);
         aux.render();

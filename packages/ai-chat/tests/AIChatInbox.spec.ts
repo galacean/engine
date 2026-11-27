@@ -81,7 +81,7 @@ it("consumes default steering at the next step without starting another turn", a
   const first = Promise.withResolvers<AsapChatResult>();
   request.mockReturnValueOnce(first.promise).mockResolvedValueOnce(final("revised"));
   const { session, events } = setup();
-  const original = session.run("plant trees", { model: "one" });
+  const original = session.run("plant trees");
   await vi.waitFor(() => expect(request).toHaveBeenCalledOnce());
   const inputContext = { selected: "tree-A" };
   const supplement = session.run("leave the view open", { context: inputContext });
@@ -200,16 +200,21 @@ it("stop during task_started prevents even the first model request", async () =>
   expect(session.canContinue).toBe(true);
 });
 
-it("rejects a route change in next-step input but accepts it for next-turn", async () => {
+it("accepts steering from legacy callers with different model options", async () => {
   const first = Promise.withResolvers<AsapChatResult>();
-  request.mockReturnValueOnce(first.promise).mockResolvedValueOnce(final());
+  request.mockReturnValueOnce(first.promise).mockResolvedValueOnce(final("revised"));
   const { session } = setup();
-  const running = session.run("trees", { model: "one" });
-  await expect(session.run("different", { model: "two" })).rejects.toThrow("Cannot change model");
-  const queued = session.run("different", { model: "two" }, "next-turn");
-  first.resolve(final());
-  await Promise.all([running, queued]);
-  expect(request.mock.calls[1][0].model).toBe("two");
+  const legacyA = { debugMode: true, model: "one" };
+  const legacyB = { debugMode: true, model: "two" };
+  const running = session.run("trees", legacyA);
+  await vi.waitFor(() => expect(request).toHaveBeenCalledOnce());
+  const steering = session.run("add flowers", legacyB);
+  first.resolve(final("initial"));
+  const [a, b] = await Promise.all([running, steering]);
+  expect(a.taskId).toBe(b.taskId);
+  expect(b.finalMessage).toBe("revised");
+  expect(context(1).inputs).toContainEqual(expect.objectContaining({ text: "add flowers" }));
+  for (const [payload] of request.mock.calls) expect(payload).not.toHaveProperty("model");
 });
 
 it("retains accepted supplements and prior turn trajectory in the next turn's session transcript", async () => {
@@ -289,13 +294,13 @@ it("serializes continue requested while stop is still settling", async () => {
 it("starts a fresh turn on new input after stop without resuming the stopped task", async () => {
   request.mockImplementationOnce(waitForAbort).mockResolvedValueOnce(final("new answer"));
   const { session, events } = setup();
-  const running = session.run("old task", { model: "one" });
+  const running = session.run("old task");
   const rejection = expect(running).rejects.toThrow("cancelled");
   await vi.waitFor(() => expect(request).toHaveBeenCalledOnce());
   await session.stop();
   await rejection;
   expect(session.canContinue).toBe(true);
-  const result = await session.run("new task", { model: "two" });
+  const result = await session.run("new task");
   expect(result.input).toBe("new task");
   expect(context(1).instruction).toBe("new task");
   expect(events.filter(e => e.type === "task_started").at(-1)).not.toHaveProperty("continuedFrom", expect.any(String));
@@ -315,7 +320,6 @@ it("waits for cancellation settlement, drops old steering, and preserves explici
   const queued = session.run("queued task", {}, "next-turn");
   const stopping = session.stop();
   const fresh = session.run("fresh task");
-  expect(() => session.submit("different route", { model: "other" })).toThrow("Cannot change model");
   expect(request).toHaveBeenCalledOnce();
   expect(session.state).toBe("stopping");
   oldResponse.resolve(final("too late"));
@@ -381,23 +385,20 @@ it("does not deliver an obsolete snapshot after an observer changes the state", 
   expect(source.release).toHaveBeenCalledOnce();
 });
 
-it("uses the newly queued input's route for reentrant steering after a previous task completed", async () => {
+it("attaches reentrant steering to the next task after a previous task completed", async () => {
   const { session } = setup();
   request.mockResolvedValue(final());
   await session.run("prior");
-  const mismatch = vi.fn();
+  let steering: ReturnType<typeof session.submit> | undefined;
   session.subscribe(event => {
     if (event.type === "input_queued" && event.input.text === "new task") {
-      try { session.submit("wrong route", { model: "different" }); }
-      catch (error) { mismatch(error); }
+      steering = session.submit("steer");
     }
   });
-  await session.run("new task", { model: "owner" });
-  expect(mismatch).toHaveBeenCalledOnce();
-  expect(String(mismatch.mock.calls[0][0])).toContain("Cannot change model");
-  expect(request).toHaveBeenCalledTimes(2); session.dispose();
+  const result = await session.run("new task");
+  expect((await steering?.completion)?.taskId).toBe(result.taskId);
+  session.dispose();
 });
-
 
 it("acknowledges continue before execution settles and preserves the original input identity", async () => {
   const later = Promise.withResolvers<AsapChatResult>();

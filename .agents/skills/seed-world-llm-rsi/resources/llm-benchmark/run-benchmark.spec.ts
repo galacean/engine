@@ -1,13 +1,21 @@
+import { SEED_WORLD_MODEL } from "../../../demos/seed-world/assistant/SeedWorldModel.ts";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { expect, it } from "vitest";
 import { createHeadlessSeedWorldFixture, type TurnExecutionRecord } from "./seed-world-headless-fixture.ts";
-import { BENCHMARK_CASES, extractCaseTelemetry, selectBenchmarkCases, type CaseMetrics } from "./benchmark-cases.ts";
+import { BENCHMARK_CASES, extractCaseTelemetry, selectBenchmarkCases, verifiedModelTurns, type CaseMetrics } from "./benchmark-cases.ts";
 
 const DEFAULT_OUT_DIR = path.join(os.tmpdir(), "seed-world-llm-bench", "traces");
 const DEFAULT_SUMMARY_PATH = path.join(os.tmpdir(), "seed-world-llm-bench", "summary.json");
-const EXPECTED_MODEL = process.env.BENCH_EXPECTED_MODEL?.trim() || "DeepSeek-V4.1-Flash";
+function readVerifiedMetrics(tracePath: string, turnCount: number): CaseMetrics | undefined {
+  if (!fs.existsSync(tracePath)) return undefined;
+  const { metrics, turns } = JSON.parse(fs.readFileSync(tracePath, "utf8")) as {
+    metrics?: CaseMetrics;
+    turns?: TurnExecutionRecord[];
+  };
+  return metrics?.modelVerified && turns && verifiedModelTurns(turns, turnCount) ? metrics : undefined;
+}
 
 function selectCases() {
   return selectBenchmarkCases(process.env.BENCH_SUITE, process.env.BENCH_CASES);
@@ -17,7 +25,7 @@ const TRANSIENT_TRANSPORT_ERROR_RE =
   /AI chat request deadline exceeded|ASAP AI 通道超时|APIConnectionError|APITimeoutError|ConnectTimeout|Connection error|STREAM_INCOMPLETE/i;
 
 function shouldRetryCaseAttempt(fatalSetupError: string | undefined, turnRecords: readonly TurnExecutionRecord[]): boolean {
-  if (EXPECTED_MODEL !== "*" && turnRecords.some((t) => t.modelsSeen.some((m) => m !== EXPECTED_MODEL))) {
+  if (turnRecords.some((t) => t.modelsSeen.some((m) => m !== SEED_WORLD_MODEL))) {
     return false;
   }
   if (fatalSetupError && TRANSIENT_TRANSPORT_ERROR_RE.test(fatalSetupError)) {
@@ -94,11 +102,11 @@ it(
       const def = cases[index]!;
       const tracePath = path.join(outDir, `${def.id}.json`);
 
-      if (skipExisting && fs.existsSync(tracePath)) {
-        const cached = JSON.parse(fs.readFileSync(tracePath, "utf8")) as { metrics?: CaseMetrics };
-        if (cached.metrics) {
-          console.log(`[bench] skipping existing ${def.id} (completed=${cached.metrics.taskCompleted})`);
-          allMetrics.push(cached.metrics);
+      if (skipExisting) {
+        const cached = readVerifiedMetrics(tracePath, def.turns.length);
+        if (cached) {
+          console.log(`[bench] skipping existing ${def.id} (completed=${cached.taskCompleted})`);
+          allMetrics.push(cached);
           continue;
         }
       }
@@ -123,10 +131,8 @@ it(
             const inputSource = def.turnInputSources?.[t] ?? "text";
             const rec = await fixture.runTurn(def.turns[t]!, t, { inputSource });
             turnRecords.push(rec);
-            if (EXPECTED_MODEL !== "*") {
-              for (const modelName of rec.modelsSeen) {
-                expect(modelName, `Unexpected model route in ${def.id}`).toBe(EXPECTED_MODEL);
-              }
+            for (const modelName of rec.modelsSeen) {
+              expect(modelName, `Unexpected model route in ${def.id}`).toBe(SEED_WORLD_MODEL);
             }
           }
         } catch (err) {
@@ -201,10 +207,7 @@ it(
             const existing = allMetrics.find((m) => m.caseId === def.id);
             if (existing) return existing;
             const tracePath = path.join(outDir, `${def.id}.json`);
-            if (fs.existsSync(tracePath)) {
-              return (JSON.parse(fs.readFileSync(tracePath, "utf8")) as { metrics: CaseMetrics }).metrics;
-            }
-            return undefined;
+            return readVerifiedMetrics(tracePath, def.turns.length);
           }).filter((m): m is CaseMetrics => Boolean(m));
 
     const summary = summarizeResults(summaryMetrics);
@@ -213,7 +216,7 @@ it(
       `[bench] summary written to ${summaryPath}: ${summary.passedCases}/${summary.totalCases} passed, firstSkillHitRate=${summary.firstSkillHitRate}, avgOverhead=${summary.avgOverheadRatio}`
     );
 
-    // Every case must have verified routing to DeepSeek-V4.1-Flash
+    // Every case must have verified routing to the expected model
     for (const m of allMetrics) {
       expect(m.modelVerified, `${m.caseId} modelVerified`).toBe(true);
     }

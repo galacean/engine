@@ -4,18 +4,24 @@ import {
   Camera,
   Color,
   DirectLight,
+  Material,
   MeshRenderer,
+  Shader,
   Sprite,
   Texture2D,
   TextureFormat,
+  Vector4,
   WebGLEngine,
   type GLTFResource,
   type PBRMaterial
 } from "@galacean/engine";
 import { CanvasRenderMode, Image, Text, UICanvas, UITransform } from "@galacean/engine-ui";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { SeedWorldLiquidGlassUiMaterial } from "../../demos/seed-world/assistant/SeedWorldVoiceHudShaders";
-import { SeedWorldVoiceOrbCache } from "../../demos/seed-world/assistant/SeedWorldVoiceOrbCache";
+import {
+  SEED_WORLD_VOICE_ORB_SHADER_NAME,
+  SeedWorldLiquidGlassUiMaterial,
+  seedWorldVoiceOrbShaderSource
+} from "../../demos/seed-world/assistant/SeedWorldVoiceHudShaders";
 import { RuntimeProjectSession } from "../../../packages/runtime-editor/src/project/runtime-project-session";
 import { mountProjectSaveControl } from "../../../packages/runtime-editor/src/project/project-save-control";
 import { ConfiguredAnimal } from "../../../packages/animals/src/gameplay/animal/ConfiguredAnimal";
@@ -545,7 +551,23 @@ it("animates VoiceOrb and LiquidGlass scaling via GPU vertex uniforms with zero 
   orbGlass.setOpacity(1);
   orbGlass.setLayout(80, 80, 40);
 
-  const orbCache = new SeedWorldVoiceOrbCache(engine, camera);
+  const orbShader = Shader.find(SEED_WORLD_VOICE_ORB_SHADER_NAME) ?? Shader.create(seedWorldVoiceOrbShaderSource);
+  const orbMat = new Material(engine, orbShader);
+  orbMat.shaderData.setFloat("material_Time", 0);
+  orbMat.shaderData.setFloat("material_Listening", 0);
+  orbMat.shaderData.setFloat("material_OrbScaleExpandPixels", 0);
+  orbMat.shaderData.setVector4("material_OrbCyan", new Vector4(24 / 255, 244 / 255, 1, 1));
+  orbMat.shaderData.setVector4("material_OrbAzure", new Vector4(85 / 255, 126 / 255, 1, 1));
+  orbMat.shaderData.setVector4("material_OrbViolet", new Vector4(141 / 255, 98 / 255, 1, 1));
+  orbMat.shaderData.setVector4("material_OrbOrchid", new Vector4(230 / 255, 98 / 255, 1, 1));
+  orbMat.shaderData.setVector4("material_OrbRose", new Vector4(1, 110 / 255, 224 / 255, 1));
+  orbMat.shaderData.setVector4("material_OrbCore", new Vector4(1, 1, 1, 1));
+  orbMat.shaderData.setVector4("material_OrbMotion", new Vector4(0.87, 1.58, 0.19, 0.88));
+  orbMat.shaderData.setVector4("material_OrbRibbon", new Vector4(1.02, 0.39, 1.45, 1.38));
+  orbMat.shaderData.setVector4("material_OrbDisp", new Vector4(0.032, 0.04, 0.4, 0));
+  orbMat.shaderData.setVector4("material_OrbTone", new Vector4(1.13, 1.22, 0.92, 0.82));
+  orbMat.shaderData.setVector4("material_OrbRim", new Vector4(0.36, 0.055, 0.18, 0.55));
+  orbMat.shaderData.setFloat("material_OrbShellThickness", 0.025);
 
   const orbEntity = uiRoot.createChild("Siri voice orb");
   const orbTransform = orbEntity.transform as UITransform;
@@ -559,14 +581,12 @@ it("animates VoiceOrb and LiquidGlass scaling via GPU vertex uniforms with zero 
   const orbVisualTransform = orbVisualEntity.transform as UITransform;
   orbVisualTransform.size.set(80, 80);
   const orbVisualImage = orbVisualEntity.addComponent(Image);
-  orbVisualImage.sprite = orbCache.sprite;
+  orbVisualImage.sprite = whiteSprite;
   orbVisualImage.color = new Color(1, 1, 1, 1);
-  orbVisualImage.setMaterial(orbCache.displayMaterial);
+  orbVisualImage.setMaterial(orbMat);
 
   try {
-    // Warm up 2 frames so chunkUI uploads initial quad vertices once, orbCache bakes its 96x96 RT,
-    // and both production shaders (LiquidGlassUiV6 + VoiceOrbBakeV1/VoiceOrbDisplayV1) compile.
-    orbCache.scheduleUpdate(0, 0, 1 / 60);
+    // Warm up 2 frames so chunkUI uploads initial quad vertices once and compiles both shaders.
     engine.update();
     engine.update();
 
@@ -603,8 +623,8 @@ it("animates VoiceOrb and LiquidGlass scaling via GPU vertex uniforms with zero 
     for (let f = 0; f < 30; f++) {
       const scale = f < 20 ? 1 + Math.sin(f * 0.4) * 0.025 : 1.72;
       const expandPx = 80 * (scale - 1);
-      orbCache.scheduleUpdate(f * 0.05, f < 20 ? 0 : 1, 1 / 60);
-      orbCache.displayMaterial.shaderData.setFloat("material_OrbScaleExpandPixels", expandPx);
+      orbMat.shaderData.setFloat("material_Time", f * 0.05);
+      orbMat.shaderData.setFloat("material_OrbScaleExpandPixels", expandPx);
       orbGlass.setQuadExpandPixels(expandPx, expandPx);
       orbGlass.setLayout(80 * scale, 80 * scale, 40 * scale);
       engine.update();
@@ -630,7 +650,7 @@ it("animates VoiceOrb and LiquidGlass scaling via GPU vertex uniforms with zero 
     expect(gl.getError()).toBe(gl.NO_ERROR);
   } finally {
     orbGlass.destroy();
-    orbCache.destroy();
+    orbMat.destroy();
     whiteSprite.destroy();
     whiteTex.destroy();
     engine.destroy();
@@ -702,117 +722,6 @@ it("rotates PrimitiveChunk 3-frame VBO/IBO slots in modified WebGL2 RHI with zer
   } finally {
     sprite.destroy();
     tex.destroy();
-    engine.destroy();
-    canvas.remove();
-  }
-});
-
-it("bakes SeedWorldVoiceOrbCache into 96x96 RT at 30Hz idle / 60Hz listening with zero chunkUI VBO uploads, context-restore recovery, and leak-free destroy", async () => {
-  const canvas = document.createElement("canvas");
-  canvas.width = 256;
-  canvas.height = 256;
-  document.body.append(canvas);
-  const engine = await WebGLEngine.create({ canvas, shaderCompiler: new ShaderCompiler() });
-  const scene = engine.sceneManager.activeScene!;
-  scene.background.solidColor.set(0, 0, 0, 1);
-  const root = scene.createRootEntity("voice-orb-cache-root");
-  const cameraEntity = root.createChild("world-cam");
-  const camera = cameraEntity.addComponent(Camera);
-
-  const uiRoot = root.createChild("ui-root");
-  const uiCanvas = uiRoot.addComponent(UICanvas);
-  uiCanvas.renderMode = CanvasRenderMode.ScreenSpaceOverlay;
-  uiCanvas.camera = camera;
-  uiCanvas.referenceResolution.set(256, 256);
-
-  const orbCache = new SeedWorldVoiceOrbCache(engine, camera);
-  const orbEntity = uiRoot.createChild("Siri voice orb visual");
-  const orbTransform = orbEntity.transform as UITransform;
-  orbTransform.size.set(120, 120);
-  const orbImage = orbEntity.addComponent(Image);
-  orbImage.sprite = orbCache.sprite;
-  orbImage.color = new Color(1, 1, 1, 1);
-  orbImage.setMaterial(orbCache.displayMaterial);
-
-  try {
-    expect(orbCache.texture.width).toBe(96);
-    expect(orbCache.texture.height).toBe(96);
-
-    // Frame 0: immediate bake populates 96x96 RT and displays bright aurora pixels at screen center.
-    orbCache.scheduleUpdate(2.5, 0, 1 / 60);
-    engine.update();
-
-    const gl = (engine._hardwareRenderer as any).gl as WebGL2RenderingContext;
-    const samplePixel = (x: number, y: number): [number, number, number, number] => {
-      const px = new Uint8Array(4);
-      gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
-      return [px[0], px[1], px[2], px[3]];
-    };
-    const centerPx = samplePixel(128, 128);
-    expect(centerPx[0] + centerPx[1] + centerPx[2]).toBeGreaterThan(80);
-    // Corner outside orb radius must remain untouched black.
-    const cornerPx = samplePixel(10, 10);
-    expect(cornerPx[0] + cornerPx[1] + cornerPx[2]).toBe(0);
-
-    // Count offscreen VoiceOrbBakeV1 bakes over 16 idle frames at 120Hz (30Hz pacing -> exactly 4 bakes).
-    const bufferSubDataSpy = vi.spyOn(gl, "bufferSubData");
-    const bufferDataSpy = vi.spyOn(gl, "bufferData");
-    const bakesBeforeIdle = orbCache.bakeCount;
-    expect(bakesBeforeIdle).toBe(1);
-
-    for (let f = 1; f <= 16; f++) {
-      orbCache.scheduleUpdate(2.5 + f / 120, 0, 1 / 120);
-      orbCache.displayMaterial.shaderData.setFloat("material_OrbScaleExpandPixels", Math.sin(f * 0.3) * 4);
-      engine.update();
-    }
-    expect(orbCache.bakeCount - bakesBeforeIdle).toBe(4);
-    expect(bufferSubDataSpy.mock.calls.filter(([t]) => t === gl.ARRAY_BUFFER).length).toBe(0);
-    expect(bufferDataSpy.mock.calls.filter(([t]) => t === gl.ARRAY_BUFFER || t === gl.ELEMENT_ARRAY_BUFFER).length).toBe(0);
-
-    // Active listening at 120Hz doubles bake cadence to 60Hz (9 bakes: immediate transition + 8 paced frames).
-    const bakesBeforeActive = orbCache.bakeCount;
-    for (let f = 1; f <= 16; f++) {
-      orbCache.scheduleUpdate(3.0 + f / 120, 1, 1 / 120);
-      orbCache.displayMaterial.shaderData.setFloat("material_OrbScaleExpandPixels", 86);
-      engine.update();
-    }
-    expect(orbCache.bakeCount - bakesBeforeActive).toBeGreaterThanOrEqual(8);
-
-    // WebGL context loss + restore must invalidate first-bake state and force an immediate re-bake even on a tiny dt.
-    const bakesBeforeRestore = orbCache.bakeCount;
-    canvas.dispatchEvent(new Event("webglcontextlost", { cancelable: true }));
-    canvas.dispatchEvent(new Event("webglcontextrestored"));
-    orbCache.scheduleUpdate(4.0, 0, 1 / 240);
-    engine.update();
-    expect(orbCache.bakeCount).toBe(bakesBeforeRestore + 1);
-    const restoredCenterPx = samplePixel(128, 128);
-    expect(restoredCenterPx[0] + restoredCenterPx[1] + restoredCenterPx[2]).toBeGreaterThan(80);
-    expect(gl.getError()).toBe(gl.NO_ERROR);
-
-    // Destroying mid-frame while Image still holds references (deferred root destroy) must force-destroy
-    // every owned GPU resource (including RenderTarget color texture) when end-of-frame flushes.
-    (engine as unknown as { _frameInProcess: boolean })._frameInProcess = true;
-    try {
-      orbEntity.destroy();
-      orbCache.destroy();
-    } finally {
-      (engine as unknown as { _frameInProcess: boolean })._frameInProcess = false;
-    }
-    expect(orbCache.texture.pendingDestroy).toBe(true);
-    expect(orbCache.displayMaterial.pendingDestroy).toBe(true);
-    expect(orbCache.bakeMaterial.pendingDestroy).toBe(true);
-    expect(orbCache.sprite.pendingDestroy).toBe(true);
-    expect((orbCache as unknown as { _renderTarget: { pendingDestroy: boolean } })._renderTarget.pendingDestroy).toBe(true);
-    expect((orbCache as unknown as { _lutTexture: { pendingDestroy: boolean } })._lutTexture.pendingDestroy).toBe(true);
-    engine.update();
-    expect(orbCache.texture.destroyed).toBe(true);
-    expect(orbCache.displayMaterial.destroyed).toBe(true);
-    expect(orbCache.bakeMaterial.destroyed).toBe(true);
-    expect(orbCache.sprite.destroyed).toBe(true);
-    expect((orbCache as unknown as { _renderTarget: { destroyed: boolean } })._renderTarget.destroyed).toBe(true);
-    expect((orbCache as unknown as { _lutTexture: { destroyed: boolean } })._lutTexture.destroyed).toBe(true);
-  } finally {
-    orbCache.destroy();
     engine.destroy();
     canvas.remove();
   }

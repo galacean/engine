@@ -1,3 +1,4 @@
+import { WorldLayer } from "@galacean/engine-project/rendering/WorldLayer";
 import { MountedDecorationRenderer } from "./MountedDecorationRenderer";
 import { RigidDecorationRenderer, type RigidDecorationBinding } from "./RigidDecorationRenderer";
 import { injectWallRoofJoint } from "./ConstructionWallRoofJointShader";
@@ -433,6 +434,7 @@ export class EngineResidentScene {
     private readonly terrainGrid?: ConstructionTerrainGrid
   ) {
     this.root = parent.createChild("Masonry");
+    this.root.layer = WorldLayer.Building;
   }
   releasePackageData(): void {
     this.pack = null;

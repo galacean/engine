@@ -36,7 +36,6 @@ export type AgentSessionTask = {
   recoveryEvents: ModelRecoveryRecord[];
   outcome?: { status: "completed" | "failed" | "stopped"; message: string };
   debug?: {
-    model: string;
     previousRecordCount: number;
     steps: AgentStepRecord[];
     failedAttempts?: AgentModelAttempt[];
@@ -76,9 +75,7 @@ export class SessionData {
       inputs: [{ id: input.id, text: input.text }],
       progress: [],
       recoveryEvents: [],
-      ...(options.debugMode
-        ? { debug: { model: options.model?.trim() || "默认路由", previousRecordCount, steps: [] } }
-        : {})
+      ...(options.debugMode ? { debug: { previousRecordCount, steps: [] } } : {})
     });
     if (this.tasks.length > 20) this.tasks.shift();
   }

@@ -87,7 +87,8 @@ import {
 import type { SeedWorldPickVisitor } from "@galacean/engine-project/rendering/SeedWorldPickBatch";
 import { bindWorldClickInput } from "./src/SeedWorldClickInput.ts";
 import { waitForSnapshotWarmup } from "./src/SeedWorldSnapshotWarmup.ts";
-import type { WorldSelection } from "./storage/SharedWorldStorage";
+import type { SeedWorldSaveSelection } from "./storage/SeedWorldStorageHost";
+import { SharedWorldStorage } from "./storage/SharedWorldStorage";
 import { seedWorldStorageHost } from "./storage/SeedWorldStorageHost";
 import { openSeedWorldProject } from "./SeedWorldProject.ts";
 import {
@@ -96,7 +97,11 @@ import {
   loadSeedWorldTemplateBinaryBundles,
   releaseSeedWorldCommonBinaryBundle
 } from "./src/SeedWorldCommonBinaryBundle.ts";
-import { loadSeedWorldProjectTextBundle, parsePreloadedJson } from "./src/SeedWorldProjectTextBundle.ts";
+import {
+  loadSeedWorldProjectTextBundle,
+  parsePreloadedJson,
+  releaseSeedWorldProjectTextBundle
+} from "./src/SeedWorldProjectTextBundle.ts";
 import { runSeedWorldStartupShaderWarmup } from "./src/SeedWorldStartupShaderWarmup.ts";
 import { createSeedWorldProjectClose } from "./SeedWorldProjectClose.ts";
 import { SEED_WORLD_EDITOR_PATH, seedWorldProjectFormats } from "./SeedWorldProjectFormats.ts";
@@ -252,6 +257,7 @@ import {
 } from "@galacean/engine-world-planning/world/SeedWorldShaderWarmup";
 import { registerSeedWorldVoiceHudStartupShaders } from "./assistant/SeedWorldVoiceHudShaders.ts";
 import { planningPageUrl } from "./src/planning/spatial/PlanningPageUrl.ts";
+import { resolveAppTemplate } from "./src/planning/spatial/FlashAppTemplateBinding.ts";
 import type { PlanningSeedDebugSidebar } from "./src/planning/spatial/runtime/PlanningSeedDebugSidebar.ts";
 import type { PlanningSeedObbDebug } from "./src/planning/spatial/runtime/PlanningSeedObbDebug.ts";
 import type { PlanningSeedRuntimeDebug } from "./src/planning/spatial/runtime/PlanningSeedRuntimeDebug.ts";
@@ -313,7 +319,7 @@ export async function mountSeedWorldDemo(
     persistPlayerState?: boolean;
     assetSources?: readonly ProjectFileProvider[];
     retrievalManifestUrl?: string;
-    storageSelection?: WorldSelection;
+    storageSelection?: SeedWorldSaveSelection;
   } = {}
 ): Promise<void> {
   let showAssistant = options.showAssistant !== false;
@@ -689,6 +695,7 @@ export async function mountSeedWorldDemo(
       runtimeReleaseIndex++;
     }
   };
+  const editorRestore: { pending?: { resumeWrites: () => void; migratingLegacy: boolean } } = {};
   const dispose = createSeedWorldProjectClose(
     async () => {
       tools?.dispose();
@@ -704,11 +711,12 @@ export async function mountSeedWorldDemo(
       await playerState?.dispose();
     },
     async () => {
-      await runtimeProject?.save();
+      if (!editorRestore.pending) await runtimeProject?.save();
     },
     async () => {
       await disposeRuntime();
       releaseSeedWorldCommonBinaryBundle();
+      releaseSeedWorldProjectTextBundle();
       runtimeProject?.dispose();
     }
   );
@@ -747,13 +755,10 @@ export async function mountSeedWorldDemo(
         .catch(closeFailure);
     };
   };
-  window.addEventListener(
-    "pagehide",
-    () => {
-      void dispose().catch((error) => console.error("Seed World close failed", error));
-    },
-    { once: true }
-  );
+  const onPageHide = () => {
+    void dispose().catch((error) => console.error("Seed World close failed", error));
+  };
+  window.addEventListener("pagehide", onPageHide, { once: true });
   try {
     // Overlap Planning Worker boot and startup asset bundle fetches with Engine + Loading Orb initialization.
     planningWorker.prewarm();
@@ -803,7 +808,7 @@ export async function mountSeedWorldDemo(
         })
     );
     void commonBinaryBundleTask.catch(() => {});
-    const requestedTemplateId = pageUrl.searchParams.get("template") ?? "original";
+    const requestedTemplateId = resolveAppTemplate();
     const eagerBuildingBundle = requestedTemplateId !== "titan-wasteland" && requestedTemplateId !== "low-poly";
     let buildingBinaryBundleTask: Promise<ReadonlyMap<string, Uint8Array> | undefined> | undefined = eagerBuildingBundle
       ? timed("loadBuildingBinaryBundle (parallel)", () =>
@@ -925,7 +930,6 @@ export async function mountSeedWorldDemo(
       "SeedWorld/LiquidGlass",
       "SeedWorld/VoiceOrb",
       "SeedWorld/WorkingText",
-      "SeedWorld/UIAtlasTile",
       "SeedWorld/PhotoCopy",
       "SeedWorld/SnapshotSurfacePack",
       "SeedWorld/InteractionDepthPack",
@@ -1010,7 +1014,9 @@ export async function mountSeedWorldDemo(
       ).setDownloadUrls?.(urls);
     }
     runtimeProject = await timed("openSeedWorldProject", () =>
-      openSeedWorldProject(pageUrl, initialProject, prefetchedTextAssets, options.storageSelection)
+      openSeedWorldProject(pageUrl, initialProject, prefetchedTextAssets, options.storageSelection, (resumeWrites, migratingLegacy) => {
+        editorRestore.pending = { resumeWrites, migratingLegacy };
+      })
     );
     if (disposed) {
       runtimeProject.dispose();
@@ -1030,6 +1036,49 @@ export async function mountSeedWorldDemo(
       registerSeedWorldVoiceHudStartupShaders();
     };
     const eagerVoiceHudShaders = pageUrl.searchParams.get("agentTrace") === "1";
+    const templateUsesOcean =
+      WORLD_TEMPLATE_ART[requestedTemplateId]?.initialPlanning?.landMode !== "continuous" ||
+      pageUrl.searchParams.get("landMode") === "island";
+    let oceanWaterAotLoaded = false;
+    let oceanWaterAotTask: Promise<void> | undefined;
+    const loadOceanWaterAotShaders = (): Promise<void> => {
+      if (oceanWaterAotLoaded || disposed) return Promise.resolve();
+      if (!oceanWaterAotTask) {
+        const task = (async () => {
+          try {
+            const oceanAotPaths = initialProject.files
+              .filter((file) => file.type === "Shader" && file.virtualPath.startsWith("Shader/Water/ocean-"))
+              .map((file) => file.virtualPath);
+            if (oceanAotPaths.length > 0 && !disposed) {
+              const results = await Promise.allSettled(
+                oceanAotPaths.map((url) => engine!.resourceManager.load({ type: AssetType.Shader, url }))
+              );
+              if (disposed) return;
+              const failed = results.find((result): result is PromiseRejectedResult => result.status === "rejected");
+              if (failed) {
+                console.warn("[SeedWorld] Ocean Water AOT shader preload failed; will retry on demand", failed.reason);
+                return;
+              }
+            }
+            if (disposed) return;
+            const { registerSeedWorldWaterStartupShaders } = await import(
+              "@galacean/engine-water/world/SeedWorldWaterStartupShaders"
+            );
+            if (disposed) return;
+            registerSeedWorldWaterStartupShaders({ includeOcean: true });
+            oceanWaterAotLoaded = true;
+          } catch (error) {
+            console.warn("[SeedWorld] Ocean Water AOT shader registration failed; will retry on demand", error);
+          } finally {
+            if (oceanWaterAotTask === task) {
+              oceanWaterAotTask = undefined;
+            }
+          }
+        })();
+        oceanWaterAotTask = task;
+      }
+      return oceanWaterAotTask;
+    };
     // Overlap startup shaders and farming scene setup while WorldPlanning.worker.ts
     // and planningSource.storage.initialize run without competing for CDN bandwidth.
     const startupShadersTask = (async () => {
@@ -1040,21 +1089,33 @@ export async function mountSeedWorldDemo(
       if (eagerVoiceHudShaders) ensureVoiceHudStartupShaders();
       // Preload AOT Water .shaderc files from the common SWB1 bundle before registering startup
       // profiles so resolveWaterShaderModule hits Shader.find() instead of JIT Shader.create().
+      // Continuous-land templates (low-poly, titan-wasteland, oil-paint) skip ocean AOT profiles.
       await commonBinaryBundleTask;
       syncPrefetchedBinaryAssets();
       const waterAotShaderPaths = initialProject.files
-        .filter((file) => file.type === "Shader" && file.virtualPath.startsWith("Shader/Water/"))
+        .filter(
+          (file) =>
+            file.type === "Shader" &&
+            file.virtualPath.startsWith("Shader/Water/") &&
+            (templateUsesOcean || !file.virtualPath.startsWith("Shader/Water/ocean-"))
+        )
         .map((file) => file.virtualPath);
+      let allWaterAotLoaded = true;
       if (waterAotShaderPaths.length > 0 && !disposed) {
-        await Promise.allSettled(
+        const results = await Promise.allSettled(
           waterAotShaderPaths.map((url) => engine!.resourceManager.load({ type: AssetType.Shader, url }))
         );
+        allWaterAotLoaded = results.every((result) => result.status === "fulfilled");
       }
       if (disposed) return;
       const { registerSeedWorldWaterStartupShaders } = await import(
         "@galacean/engine-water/world/SeedWorldWaterStartupShaders"
       );
-      registerSeedWorldWaterStartupShaders();
+      if (disposed) return;
+      registerSeedWorldWaterStartupShaders({ includeOcean: templateUsesOcean });
+      if (templateUsesOcean && allWaterAotLoaded) {
+        oceanWaterAotLoaded = true;
+      }
       recordBootSpan("register startup shaders", startupShadersAt);
     })();
     void startupShadersTask.catch(() => {});
@@ -1077,6 +1138,14 @@ export async function mountSeedWorldDemo(
     // Launch CPU-heavy rasterization, rock formation prep, and zero-SWB1 project setup immediately
     // without blocking on template SWB1 shard downloads so cold Wi-Fi boots never idle the CPU.
     let prewarmedRasterPlan: IslandPlan | undefined = source.takeInitialPlan();
+    if (
+      !templateUsesOcean &&
+      !oceanWaterAotLoaded &&
+      prewarmedRasterPlan &&
+      prewarmedRasterPlan.parameters.landMode !== "continuous"
+    ) {
+      void loadOceanWaterAotShaders().catch(() => {});
+    }
     if (requestedTemplateId !== "oil-paint" && prewarmedRasterPlan?.parameters.worldTemplate?.id === "oil-paint") {
       void import("@galacean/engine-world-planning/spatial/oil-paint/OilPaintTextures")
         .then(({ prewarmOilPaintBrushTexture }) => {
@@ -1290,6 +1359,7 @@ export async function mountSeedWorldDemo(
     navigation.enabled = false;
     navigation.setInputEnabled(false);
     navigation.movementSpeed = 4;
+    navigation.rotationSensitivity = 4;
     navigation.verticalMovementEnabled = false;
     navigation.setVerticalOffset(0);
     navigation.setEyeHeight(PLANNING_REFERENCE.actor.heightM);
@@ -1769,7 +1839,8 @@ export async function mountSeedWorldDemo(
           navigation.synchronizeView();
           debugSidebar?.restoreCameraMode(bookmark.mode);
         },
-        (error) => console.warn("[seed-world-planner] player state persistence failed", error)
+        (error) => console.warn("[seed-world-planner] player state persistence failed", error),
+        requestedTemplateId
       );
     type SpawnView = PlanningSpawnView | (Pick<PlanningSpawnView, "eye" | "target"> & { framing: "authored" });
     const spawnViews = new WeakMap<IslandPlan, { key: string; view: SpawnView }>();
@@ -2758,6 +2829,9 @@ export async function mountSeedWorldDemo(
 
             const waterTask = (async () => {
               canvas.dataset.waterPreparation = "preparing";
+              if (plan.parameters.landMode !== "continuous") {
+                await loadOceanWaterAotShaders();
+              }
               candidateWater = await timed("water.prepare", () => water!.prepare(plan, signal));
               canvas.dataset.waterPreparation = "ready";
             })();
@@ -2811,9 +2885,7 @@ export async function mountSeedWorldDemo(
                 additionalRenderers: additionalRenderers.length ? additionalRenderers : undefined,
                 additionalInstancedRenderers: vegetationWarmup?.renderers,
                 additionalRendererMaterials: masonryWarmup?.extraMaterials,
-                additionalPointLightCounts: masonryWarmup?.decorationPointLightBudget
-                  ? [masonryWarmup.decorationPointLightBudget]
-                  : undefined,
+                buildingPointLights: masonryWarmup?.getPointLightWarmup(),
                 includeGpuInstancing: true,
                 onlySharedMeshGpuInstancing: true,
                 includeLodDither: false,
@@ -3517,12 +3589,32 @@ export async function mountSeedWorldDemo(
     shaderAudit?.setPhase("post-ready");
     disconnectEditorAssets = timed("tools.connectProject", () => tools!.application.connectProject(runtimeProject!));
     const savedEditor = runtimeProject.projectPackage.contents[SEED_WORLD_EDITOR_PATH];
-    if (typeof savedEditor === "string")
-      await timed("restoreEditorDocument", () =>
-        tools!.application.restoreEditorDocument(JSON.parse(savedEditor), editorLifetime.signal, {
-          restoreCamera: false
-        })
-      );
+    try {
+      if (typeof savedEditor === "string") {
+        await timed("restoreEditorDocument", () =>
+          tools!.application.restoreEditorDocument(JSON.parse(savedEditor), editorLifetime.signal, { restoreCamera: false })
+        );
+      }
+      if (editorRestore.pending) {
+        const { resumeWrites, migratingLegacy } = editorRestore.pending;
+        resumeWrites();
+        if (migratingLegacy) await startupSaveTask;
+        editorRestore.pending = undefined;
+      }
+    } catch (error) {
+      if (!editorRestore.pending || disposed || editorLifetime.signal.aborted) throw error;
+      const { migratingLegacy } = editorRestore.pending;
+      const readOnly = !runtimeProject.canSave;
+      console.warn("恢复编辑器存档失败，将初始化入口模板", error);
+      await dispose();
+      window.removeEventListener("pagehide", onPageHide);
+      shell.remove();
+      const host = await seedWorldStorageHost();
+      const storageSelection = migratingLegacy && host
+        ? { ...await SharedWorldStorage.select(host.db, host.appVersion, requestedTemplateId), skipLegacyPreview: true }
+        : { olderApp: readOnly, restoreFailed: true };
+      return mountSeedWorldDemo(handoff, { ...options, storageSelection });
+    }
     if (disposed) throw new Error("Seed page disposed during editor restoration");
     if (debugSidebar) debugSidebar.setInputEnabled(true);
     else {

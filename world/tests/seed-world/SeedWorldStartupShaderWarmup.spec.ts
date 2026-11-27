@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import {
+  type Entity,
   MeshRenderer,
   PipelineStage,
   RenderQueueType,
@@ -20,6 +21,8 @@ import {
 } from "@galacean/engine-world-planning/world/SeedWorldShaderVariantCoverage";
 import { PlanningAnimalHost } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHost";
 import { runSeedWorldStartupShaderWarmup } from "../../demos/seed-world/src/SeedWorldStartupShaderWarmup";
+
+const buildingPointLights = { hasLights: true, poolRoot: { name: "MasonryLocalLights" } as Entity };
 
 function deferred<T = void>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
@@ -162,7 +165,7 @@ describe("startup shader publication boundary", () => {
         {
           prepareShaderWarmup: async () => ({
             renderers: [fakeRenderer],
-            decorationPointLightBudget: 4,
+            getPointLightWarmup: () => buildingPointLights,
             dispose: disposeMasonry
           })
         },
@@ -198,12 +201,12 @@ describe("startup shader publication boundary", () => {
       includePhotoCopy: false
     });
     expect(f.collectVariants.mock.calls[0][4].additionalRenderers).toBeUndefined();
-    expect(f.collectVariants.mock.calls[0][4].additionalPointLightCounts).toBeUndefined();
+    expect(f.collectVariants.mock.calls[0][4].buildingPointLights).toBeUndefined();
     expect(f.collectVariants.mock.calls[1][4]).toMatchObject({
       includeGenerationReveal: false,
       additionalRenderers: [fakeRenderer, { name: "rock-grass-warmup" }],
       additionalInstancedRenderers: [fakeVegRenderer],
-      additionalPointLightCounts: [4],
+      buildingPointLights,
       includeLiquidGlassMask: true,
       includePhotoCopy: true
     });
@@ -224,7 +227,7 @@ describe("startup shader publication boundary", () => {
         {
           prepareShaderWarmup: async () => ({
             renderers: [fakeRenderer],
-            decorationPointLightBudget: 4,
+            getPointLightWarmup: () => buildingPointLights,
             dispose: disposeMasonry
           })
         },
@@ -248,7 +251,7 @@ describe("startup shader publication boundary", () => {
       pollIntervalMilliseconds: 4,
       additionalRenderers: [fakeRenderer, { name: "rock-grass-warmup" }],
       additionalInstancedRenderers: [fakeVegRenderer],
-      additionalPointLightCounts: [4],
+      buildingPointLights,
       includeLodDither: false,
       includeOpaqueScreenSpaceReflection: false,
       includeLiquidGlassMask: true,
@@ -270,7 +273,7 @@ describe("startup shader publication boundary", () => {
         {
           prepareShaderWarmup: async () => ({
             renderers: [fakeRenderer],
-            decorationPointLightBudget: 4,
+            getPointLightWarmup: () => buildingPointLights,
             dispose: disposeMasonry
           })
         },
@@ -306,7 +309,7 @@ describe("startup shader publication boundary", () => {
     expect(f.collectVariants.mock.calls[1][4]).toMatchObject({
       additionalRenderers: [fakeRenderer, { name: "rock-grass-warmup" }],
       additionalInstancedRenderers: [fakeVegRenderer],
-      additionalPointLightCounts: [4]
+      buildingPointLights
     });
     expect(disposeMasonry).toHaveBeenCalledOnce();
     expect(disposeVegetation).toHaveBeenCalledOnce();
@@ -519,6 +522,7 @@ describe("startup shader publication boundary", () => {
         engine: { _macroCollection: new ShaderMacroCollection() } as any,
         scene: {
           rootEntities: [rootEntity],
+          _lightManager: { _pointLights: { length: 0 } },
           shaderData: { _macroCollection: new ShaderMacroCollection() },
           background: { mode: 0 }
         } as any,
@@ -536,7 +540,7 @@ describe("startup shader publication boundary", () => {
         prepareMasonryShaderWarmup: async () => ({
           renderers: [],
           extraMaterials: new Map([[gpRenderer, [gpShadowOnlyMat as any]]]),
-          decorationPointLightBudget: 0,
+          getPointLightWarmup: () => ({ hasLights: false }),
           dispose: () => {}
         }),
         prepareVegetationShaderWarmup: () => ({ renderers: [vegRenderer], dispose: () => {} }),
@@ -1233,7 +1237,7 @@ describe("animal presentation preparation", () => {
     const prepareMasonry = vi.fn(async () => ({
       renderers: [masonryRenderer],
       extraMaterials: new Map([[masonryRenderer, [masonryMat]]]),
-      decorationPointLightBudget: 4,
+      getPointLightWarmup: () => buildingPointLights,
       dispose: disposeMasonry
     }));
     const prepareAnimal = vi.fn(async () => ({
@@ -1320,7 +1324,7 @@ describe("animal presentation preparation", () => {
     expect(deferredOpts.additionalRenderers).toEqual([animalRenderer]);
     expect(deferredOpts.additionalInstancedRenderers).toEqual([vegRenderer]);
     expect(deferredOpts.additionalRendererMaterials.get(animalRenderer)).toEqual([animalMat]);
-    expect(deferredOpts.additionalPointLightCounts).toEqual([4]);
+    expect(deferredOpts.buildingPointLights).toBe(buildingPointLights);
     expect(disposeAnimal).toHaveBeenCalledOnce();
     expect(disposeVeg).toHaveBeenCalledOnce();
   });
@@ -1908,5 +1912,38 @@ describe("animal presentation preparation", () => {
     masonryReady.resolve();
     await task;
     expect(order).toEqual(["masonry-flushed", "collect"]);
+  });
+
+  it("gates ocean Water AOT .shaderc preloading and startup registration on continuous-land templates without splitting a separate WaterShaderAotProfiles chunk", async () => {
+    const demoSource = readFileSync(new URL("../../demos/seed-world/SeedWorldDemo.ts", import.meta.url), "utf8");
+    expect(demoSource).toContain('WORLD_TEMPLATE_ART[requestedTemplateId]?.initialPlanning?.landMode !== "continuous"');
+    expect(demoSource).toContain('!file.virtualPath.startsWith("Shader/Water/ocean-")');
+    expect(demoSource).toContain("registerSeedWorldWaterStartupShaders({ includeOcean: templateUsesOcean })");
+    expect(demoSource).not.toContain("SeedWorldWaterShaderAotProfiles");
+    // Ensure waterTask awaits reusable oceanWaterAotTask before water.prepare() whenever a plan uses non-continuous land
+    // (covering both startup island restore and runtime landMode/document switches).
+    expect(demoSource).toMatch(
+      /if\s*\(\s*plan\.parameters\.landMode\s*!==\s*"continuous"\s*\)\s*\{\s*await\s+loadOceanWaterAotShaders\(\);/u
+    );
+    expect(demoSource).toContain("oceanWaterAotTask = undefined;");
+
+    const { registerSeedWorldWaterStartupShaders } = await import(
+      "@galacean/engine-water/world/SeedWorldWaterStartupShaders"
+    );
+    const { SEED_WORLD_WATER_SHADER_AOT_CONTRACT } = await import(
+      "@galacean/engine-water/world/SeedWorldWaterShaderAotContract"
+    );
+    const allNames = SEED_WORLD_WATER_SHADER_AOT_CONTRACT.map((p) => p.shaderName);
+    const nonOceanNames = SEED_WORLD_WATER_SHADER_AOT_CONTRACT.filter((p) => !p.id.startsWith("ocean-")).map(
+      (p) => p.shaderName
+    );
+    const findSpy = vi.spyOn(Shader, "find").mockImplementation((name: string) => ({ name }) as unknown as Shader);
+    try {
+      expect(registerSeedWorldWaterStartupShaders()).toEqual(allNames);
+      expect(registerSeedWorldWaterStartupShaders({ includeOcean: true })).toEqual(allNames);
+      expect(registerSeedWorldWaterStartupShaders({ includeOcean: false })).toEqual(nonOceanNames);
+    } finally {
+      findSpy.mockRestore();
+    }
   });
 });

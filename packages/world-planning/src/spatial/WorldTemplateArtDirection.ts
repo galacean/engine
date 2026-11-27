@@ -1,6 +1,10 @@
 import type { TemplateNode, TemplateAssetSlot } from "./WorldTemplateGeometry";
 import { resolveRockCollisionPolicy, type RockCollisionPolicy } from "./RockCollisionPolicy";
 import {
+  animalAnimationLodConfig,
+  type AnimalAnimationLodConfig
+} from "@galacean/engine-animals/gameplay/animal/AnimalLod";
+import {
   TERRAIN_DEFAULT_SEASON_PALETTES,
   type TerrainSeason
 } from "@galacean/engine-environment/terrain/environment/SceneSeasonPalette";
@@ -60,6 +64,8 @@ export type WorldTemplateArtDirection = Partial<WorldTemplatePalette> & {
   season?: TerrainSeason;
   /** Whether animals render with toon outlines (defaults to true; set false for painterly/realistic templates). */
   animalOutline?: boolean;
+  /** Explicit per-template screen-relative skeletal animation frequency LOD policy. */
+  animalAnimationLod: AnimalAnimationLodConfig;
   /** Optional per-template masonry/building tint overrides (wall/plaster, roof tiles, timber). */
   buildingPalette?: Partial<Record<"brick" | "roof_tile" | "wooden_plank", string>>;
   /** Optional per-tree linear RGB palette sampled deterministically across natural woodland trees. */
@@ -491,6 +497,11 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
   "sakura-pearl": {
     ...sakura.palette,
     reference: "SeedWorld-01-sakura-pearl.png",
+    animalAnimationLod: {
+      enabled: true,
+      screenRelativeTransitionHeights: [0.12, 0.06, 0.03],
+      ratesHz: [30, 15, 10, 7.5]
+    },
     focus: sakuraSubject ? [sakuraSubject.id] : [],
     frameFraction: 1.48,
     azimuthDegrees: 0,
@@ -528,6 +539,11 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
   },
   "emerald-forest": {
     modelLayout: "authored",
+    animalAnimationLod: {
+      enabled: true,
+      screenRelativeTransitionHeights: [0.12, 0.06, 0.03],
+      ratesHz: [30, 15, 10, 7.5]
+    },
     spores: {
       count: 400,
       center: [0, 6, 15],
@@ -650,6 +666,11 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
   "titan-wasteland": {
     reference: "media_1794901995967_d0f328ad.jpg",
     modelLayout: "authored",
+    animalAnimationLod: {
+      enabled: true,
+      screenRelativeTransitionHeights: [0.12, 0.06, 0.03],
+      ratesHz: [30, 15, 10, 7.5]
+    },
     grassGroundFusion: false,
     focus: ["oasis-scarlet-tree"],
     frameFraction: 0.85,
@@ -1536,6 +1557,11 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
     reference: "oil-paint-autumn-mvp",
     season: "autumn",
     animalOutline: false,
+    animalAnimationLod: {
+      enabled: true,
+      screenRelativeTransitionHeights: [0.12, 0.06, 0.03],
+      ratesHz: [30, 15, 10, 7.5]
+    },
     buildingPalette: {
       brick: "#d6b992",
       roof_tile: "#a84c2a",
@@ -1825,4 +1851,20 @@ export const WORLD_TEMPLATE_ART: Readonly<Record<string, WorldTemplateArtDirecti
 /** Resolves the effective rock/prop collision threshold for a template (global default merged with per-template override). */
 export function templateRockCollisionPolicy(templateId?: string): RockCollisionPolicy {
   return resolveRockCollisionPolicy(templateId ? WORLD_TEMPLATE_ART[templateId]?.rockCollision : undefined);
+}
+
+/** Explicit skeletal animation LOD policy for the original procedural world (6th template, no worldTemplate.id). */
+export const ORIGINAL_WORLD_ANIMAL_ANIMATION_LOD: AnimalAnimationLodConfig = {
+  enabled: true,
+  screenRelativeTransitionHeights: [0.12, 0.06, 0.03],
+  ratesHz: [30, 15, 10, 7.5]
+};
+
+/** Resolves the effective animal skeletal animation LOD policy for a template. */
+export function templateAnimalAnimationLod(templateId?: string): AnimalAnimationLodConfig {
+  return animalAnimationLodConfig(
+    templateId && WORLD_TEMPLATE_ART[templateId]
+      ? WORLD_TEMPLATE_ART[templateId].animalAnimationLod
+      : ORIGINAL_WORLD_ANIMAL_ANIMATION_LOD
+  );
 }

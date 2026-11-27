@@ -15,6 +15,8 @@ export interface PlanningWorldHandoff {
   document: PlanningDocument;
   result: SemanticResult;
   waterResetRequest?: string;
+  /** The preview is running in memory because its save could not be restored. */
+  temporaryStorage?: boolean;
   /** The handoff contains user edits without a durable source copy. */
   userEdit?: boolean;
 }
@@ -42,8 +44,9 @@ export async function createPlanningWorldSource(search: string, handoff: Plannin
   }
   const client = workerClient ?? new PlanningWorkerClient();
   if (!handoff) {
-    const template = initialPlanningTemplate(search, seed,
-      document ? exportPlanningRecipe(document).parameters.worldTemplate?.id ?? "" : undefined);
+    const template = initialPlanningTemplate(
+      document ? exportPlanningRecipe(document).parameters.worldTemplate?.id ?? "" : undefined
+    );
     if (template !== undefined) {
       replaceSavedTemplate = !!document;
       try {

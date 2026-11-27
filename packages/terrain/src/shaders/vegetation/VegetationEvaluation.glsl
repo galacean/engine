@@ -229,8 +229,8 @@ SurfaceData evaluateVegetationMaterial(Varyings varyings, bool isFrontFacing, fl
     );
   #endif
   #ifdef MATERIAL_VEGETATION_CLIMATE_LEAF
-    // Keep canopy visibility separate from albedo. Indirect lighting consumes it as AO;
-    // shared lighting also uses it only while the real shadow-map signal fades away.
+    // Indirect light uses canopy visibility as AO. Direct light uses it when the
+    // shadow map loses leaf detail at a cascade transition or at its far limit.
     ambientOcclusion = mix(
       1.0,
       ambientOcclusion,

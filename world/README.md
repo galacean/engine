@@ -52,6 +52,7 @@ WORLD_DEMO=water pnpm --dir world dev
 WORLD_DEMO=animals/cute-zoo pnpm --dir world build
 pnpm --dir world build
 pnpm --dir world build:all
+pnpm --dir world build:seed-world-flash-app
 pnpm --dir world check:boundaries
 pnpm --dir world typecheck
 ```
@@ -68,7 +69,7 @@ pnpm --dir world typecheck
 
 普通 Seed World 构建和 `build:all` 按 SHA-256 匹配项目清单和植被模板使用的 PNG。内容相同的贴图共用一个带哈希的下载地址，各材质独立设置采样方式和颜色空间。
 
-打包 Seed World 灵光闪应用时，在独立 Git 工作树执行 `node world/scripts/build-seed-world-npm.mjs`。运行目录为 `world/dist/seed-world-flash-app/`，可重建源码快照为 `world/dist/seed-world-flash-source/`。完整流程见 [Seed World 灵光闪应用构建与发布指南](demos/seed-world/FLASH_APP_PUBLISH.md)。
+发布 Seed World 为灵光闪应用时，执行 `pnpm --dir world build:seed-world-flash-app`（产出公共运行基座 `world/dist/seed-world-flash-app/` 及 6 份单模板静态运行目录 `world/dist/seed-world-flash-apps/<templateId>/`）；完整发布、上架与验收步骤见 [Seed World 灵光闪应用构建与发布指南](demos/seed-world/FLASH_APP_PUBLISH.md)。
 
 首次启动必须执行 `prepare:engine`；修改 `packages/shader` 源码后需要重跑，产物直接生成在 `packages/shader/compiledShaders/`（GLSL）与 `packages/shader/compiledWebGPUShaders/`（WGSL）。World 的业务包是 `private` workspace 源码包，使用显式子路径导出。通用浏览器入口、WebGPU 引擎入口和 RHI 有独立的模块与类型产物。
 

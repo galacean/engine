@@ -26,7 +26,7 @@
 | 指标 | 定义 | 优化方向与健康阈值 |
 | --- | --- | --- |
 | `taskCompleted` / `passRate` | 所有功能 `verify()` 断言通过且无致命错误 | 越高越好（目标 `100%`） |
-| `modelVerified` | 每个 turn 捕获的 `modelsSeen` 均命中 `BENCH_EXPECTED_MODEL` | **硬门禁 `true`**（防静默降级/路由漂移） |
+| `modelVerified` | 每个 turn 捕获的 `modelsSeen` 非空且均为 `aisearch_dsv41flash` | **硬门禁 `true`**（防静默降级/路由漂移） |
 | `firstSkillHitRate` | 模型首跳读取的 Skill 命中 `expectedSkills` 比例 | 目标 `≥ 95%` |
 | `overheadRatio`（步数膨胀比） | `llmTurns / optimalSteps` | 越接近 `1.0x` 越好；复杂任务健康区间 `≤ 2.5x` |
 | `firstPassScriptRate` | `execute` 首次提交即通过 TS 静态检查与执行的比例 | 越高越好 |

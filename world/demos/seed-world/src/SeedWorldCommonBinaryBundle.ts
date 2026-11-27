@@ -1,6 +1,7 @@
 // Replaced at build time in seed-world production builds with the emitted binary bundle URLs.
 const COMMON_BIN_BUNDLE_URL: string | undefined = "__SEED_WORLD_COMMON_BIN_BUNDLE_URL__";
 const BUILDING_BIN_BUNDLE_URL: string | undefined = "__SEED_WORLD_BUILDING_BIN_BUNDLE_URL__";
+const BUILDING_TEX_BUNDLE_URL: string | undefined = "__SEED_WORLD_BUILDING_TEX_BUNDLE_URL__";
 // Replaced at build time with a JSON-encoded map of templateId -> uncompressed SWB1 shard URLs (<= 10 MiB/shard).
 const TEMPLATE_BIN_BUNDLES_JSON: string = "__SEED_WORLD_TEMPLATE_BIN_BUNDLES_JSON__";
 
@@ -31,16 +32,26 @@ interface TemplateBundleState {
 
 let cachedCommonBundlePromise: Promise<ReadonlyMap<string, Uint8Array> | undefined> | undefined;
 let cachedBuildingBundlePromise: Promise<ReadonlyMap<string, Uint8Array> | undefined> | undefined;
+let cachedBuildingTexBundlePromise: Promise<ReadonlyMap<string, Uint8Array> | undefined> | undefined;
+let cachedBuildingCombinedPromise: Promise<ReadonlyMap<string, Uint8Array> | undefined> | undefined;
 const cachedTemplateBundleStates = new Map<string, TemplateBundleState>();
 let bundleReleaseEpoch = 0;
 
 const prefetchedFetchAssets = new Map<string, Uint8Array>();
+const prefetchedFetchTextAssets = new Map<string, string>();
 let installedFetchWrapper: typeof globalThis.fetch | undefined;
 let originalFetch: typeof globalThis.fetch | undefined;
 
 function contentTypeForAssetUrl(url: string): string {
   const clean = url.split(/[?#]/, 1)[0]?.toLowerCase() ?? "";
-  if (clean.endsWith(".json")) return "application/json; charset=utf-8";
+  if (
+    clean.endsWith(".json") ||
+    clean.endsWith(".prefab") ||
+    clean.endsWith(".mat") ||
+    clean.endsWith(".scene")
+  ) {
+    return "application/json; charset=utf-8";
+  }
   if (clean.endsWith(".png")) return "image/png";
   if (clean.endsWith(".jpg") || clean.endsWith(".jpeg")) return "image/jpeg";
   if (clean.endsWith(".webp")) return "image/webp";
@@ -59,18 +70,28 @@ function resolveFetchRequestUrl(input: RequestInfo | URL): string | undefined {
   }
 }
 
+function maybeUninstallFetchWrapperIfEmpty(): void {
+  if (prefetchedFetchAssets.size > 0 || prefetchedFetchTextAssets.size > 0) return;
+  if (installedFetchWrapper && globalThis.fetch === installedFetchWrapper && originalFetch) {
+    globalThis.fetch = originalFetch;
+  }
+  installedFetchWrapper = undefined;
+  originalFetch = undefined;
+}
+
 function ensureFetchPrefetchInterceptorInstalled(): void {
   if (installedFetchWrapper || typeof globalThis.fetch !== "function") return;
   const baseFetch = globalThis.fetch;
   originalFetch = baseFetch;
   const wrappedFetch: typeof globalThis.fetch = (input, init) => {
-    if (prefetchedFetchAssets.size > 0) {
+    if (prefetchedFetchAssets.size > 0 || prefetchedFetchTextAssets.size > 0) {
       const method = (init?.method ?? (typeof input === "object" && "method" in input ? input.method : "GET"))
         .toUpperCase();
       if (method === "GET") {
         const resolvedUrl = resolveFetchRequestUrl(input);
         const bytes = resolvedUrl ? prefetchedFetchAssets.get(resolvedUrl) : undefined;
-        if (bytes) {
+        const text = bytes === undefined && resolvedUrl ? prefetchedFetchTextAssets.get(resolvedUrl) : undefined;
+        if (bytes !== undefined || text !== undefined) {
           const signal = init?.signal ?? (typeof input === "object" && "signal" in input ? input.signal : undefined);
           if (signal?.aborted) {
             const reason =
@@ -80,7 +101,7 @@ function ensureFetchPrefetchInterceptorInstalled(): void {
             return Promise.reject(reason);
           }
           return Promise.resolve(
-            new Response(bytes.slice(), {
+            new Response(bytes !== undefined ? bytes.slice() : text!, {
               status: 200,
               headers: { "Content-Type": contentTypeForAssetUrl(resolvedUrl!) }
             })
@@ -106,14 +127,30 @@ export function registerSeedWorldPrefetchedFetchAssets(assets: ReadonlyMap<strin
   ensureFetchPrefetchInterceptorInstalled();
 }
 
-/** Uninstalls the scoped `fetch()` prefetch wrapper and clears retained byte-slice references. */
+/**
+ * Registers prefetched small project text assets (`.json`/`.mat`/`.prefab`/`.scene` from `seed-world-project-text-bundle`)
+ * for direct `fetch()` consumers (e.g., `WaterBuiltinAssets` `conversion.json`, `PlanningLightingParameters`,
+ * `PlanningWaterInitialization`) so pruned Flash App builds serve them from memory with zero HTTP requests even after
+ * SWB1 binary buffers are released.
+ */
+export function registerSeedWorldPrefetchedFetchTextAssets(assets: ReadonlyMap<string, string> | undefined): void {
+  if (!assets || assets.size === 0) return;
+  for (const [url, text] of assets) {
+    prefetchedFetchTextAssets.set(url, text);
+  }
+  ensureFetchPrefetchInterceptorInstalled();
+}
+
+/** Clears prefetched project text assets and restores `globalThis.fetch` if no binary prefetch entries remain. */
+export function clearSeedWorldPrefetchedFetchTextAssets(): void {
+  prefetchedFetchTextAssets.clear();
+  maybeUninstallFetchWrapperIfEmpty();
+}
+
+/** Releases SWB1 binary byte-slice references and restores `globalThis.fetch` when no text-bundle entries remain. */
 export function uninstallSeedWorldFetchPrefetchInterceptor(): void {
   prefetchedFetchAssets.clear();
-  if (installedFetchWrapper && globalThis.fetch === installedFetchWrapper && originalFetch) {
-    globalThis.fetch = originalFetch;
-  }
-  installedFetchWrapper = undefined;
-  originalFetch = undefined;
+  maybeUninstallFetchWrapperIfEmpty();
 }
 
 async function maybeGunzip(buffer: ArrayBuffer): Promise<Uint8Array | undefined> {
@@ -255,14 +292,38 @@ export function loadSeedWorldCommonBinaryBundle(
   );
 }
 
+export interface LoadSeedWorldBuildingBinaryBundleOptions extends LoadSeedWorldSingleBinaryBundleOptions {
+  /** Override uncompressed building texture SWB1 bundle URL (primarily for deterministic unit testing). */
+  readonly textureUrl?: string;
+}
+
 /**
- * Loads the build-time consolidated gzipped building-kit binary bundle (`packages/building/` .mesh/.shaderc/.tex/.shader).
+ * Loads the build-time consolidated building-kit binary bundles in parallel:
+ * - Gzipped `seed-world-building-bin-bundle` (`packages/building/` `.mesh/.shaderc/.tex/.shader`).
+ * - Uncompressed `seed-world-building-tex-bundle` (`packages/building/` `.ktx2` textures, deduplicated across templates).
  * Loaded only for templates/scenes that actually use authored buildings so non-building templates pay zero bytes.
  */
 export function loadSeedWorldBuildingBinaryBundle(
-  options?: LoadSeedWorldSingleBinaryBundleOptions
+  options?: LoadSeedWorldBuildingBinaryBundleOptions
 ): Promise<ReadonlyMap<string, Uint8Array> | undefined> {
-  return fetchSwb1Bundle(
+  if (options?.url !== undefined && options.textureUrl === undefined) {
+    return fetchSwb1Bundle(
+      BUILDING_BIN_BUNDLE_URL,
+      "Building binary bundle",
+      () => cachedBuildingBundlePromise,
+      (next) => {
+        cachedBuildingBundlePromise = next;
+      },
+      options
+    );
+  }
+  if (cachedBuildingCombinedPromise) return cachedBuildingCombinedPromise;
+  const epoch = bundleReleaseEpoch;
+  let promise: Promise<ReadonlyMap<string, Uint8Array> | undefined> | undefined;
+  const clearIfCurrent = () => {
+    if (promise && cachedBuildingCombinedPromise === promise) cachedBuildingCombinedPromise = undefined;
+  };
+  const binPromise = fetchSwb1Bundle(
     BUILDING_BIN_BUNDLE_URL,
     "Building binary bundle",
     () => cachedBuildingBundlePromise,
@@ -271,6 +332,31 @@ export function loadSeedWorldBuildingBinaryBundle(
     },
     options
   );
+  const texOptions: LoadSeedWorldSingleBinaryBundleOptions | undefined = options
+    ? {
+        url: options.textureUrl,
+        moduleBaseUrl: options.moduleBaseUrl,
+        distRootUrl: options.distRootUrl,
+        fetchImpl: options.fetchImpl
+      }
+    : undefined;
+  const texPromise = fetchSwb1Bundle(
+    BUILDING_TEX_BUNDLE_URL,
+    "Building texture bundle",
+    () => cachedBuildingTexBundlePromise,
+    (next) => {
+      cachedBuildingTexBundlePromise = next;
+    },
+    texOptions
+  );
+  promise = Promise.all([binPromise, texPromise]).then(([binAssets, texAssets]) => {
+    if (epoch !== bundleReleaseEpoch || cachedBuildingCombinedPromise !== promise) return undefined;
+    const merged = mergeSeedWorldBinaryAssetMaps(binAssets, texAssets);
+    if (!merged) clearIfCurrent();
+    return merged;
+  });
+  cachedBuildingCombinedPromise = promise;
+  return promise;
 }
 
 /**
@@ -439,6 +525,8 @@ export function releaseSeedWorldCommonBinaryBundle(): void {
   bundleReleaseEpoch++;
   cachedCommonBundlePromise = undefined;
   cachedBuildingBundlePromise = undefined;
+  cachedBuildingTexBundlePromise = undefined;
+  cachedBuildingCombinedPromise = undefined;
   for (const state of cachedTemplateBundleStates.values()) {
     if (!state.settled) state.controller.abort();
     state.listeners.clear();

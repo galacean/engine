@@ -945,6 +945,11 @@ const DEFAULT_LOW_POLY_VALLEY = resolveLowPolyValley(templateBaseSeed("low-poly"
 export const LOW_POLY_VALLEY: WorldTemplateArtDirection = {
   reference: "Stone Arch Valley",
   modelLayout: "authored",
+  animalAnimationLod: {
+    enabled: true,
+    screenRelativeTransitionHeights: [0.12, 0.06, 0.03],
+    ratesHz: [30, 15, 10, 7.5]
+  },
   centeredStart: true,
   sharedVertexColorMaterial: "Low Poly vertex colors",
   spawnOffset: DEFAULT_LOW_POLY_VALLEY.view.spawnOffset,

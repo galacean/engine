@@ -1,3 +1,4 @@
+import { WorldLayer } from "@galacean/engine-project/rendering/WorldLayer";
 import { destroyOwnedMesh } from "@galacean/engine-project/geometry/destroyOwnedMesh";
 import markupViewportSource from "./MarkupViewport.shader?raw";
 import markupStrokeFieldSource from "./MarkupStrokeField.shader?raw";
@@ -19,7 +20,7 @@ import {
   Color,
   Entity,
   Font,
-  Layer,
+  type Layer,
   Material,
   MeshRenderer,
   ModelMesh,
@@ -43,7 +44,7 @@ import {
 import type { AgentViewImage } from "@galacean/engine-ai-chat/ai-chat/agent-types";
 import type { ViewAnnotation, ViewPoint } from "./SeedWorldViewSnapshot";
 
-export const PHOTO_WORKSPACE_LAYER = Layer.Layer25;
+export const PHOTO_WORKSPACE_LAYER = WorldLayer.PhotoWorkspace;
 const WORKSPACE_UNIT_SCALE = 0.001;
 
 let cachedShutterWavDataUrl: string | undefined;

@@ -15,10 +15,10 @@ const REMOTE_STREAM_UPDATE_EVENT = "CandyJar.FlashApp.OnRemoteStreamUpdate";
 function isRetryableStreamError(error: unknown): boolean {
   const text = typeof error === "string" ? error : JSON.stringify(error ?? "");
   if (text.includes("<!DOCTYPE html>")) return false;
-  if (text.includes("lingguang_ai_chat_recovery") && !text.includes("lingguang_ai_chat_stream_result_bridge")) {
+  if (text.includes("lingguang_seed_world_stream_recovery") && !text.includes("lingguang_seed_world_stream_result")) {
     return false;
   }
-  if (text.includes("lingguang_ai_chat_stream_result_bridge") && !/LLMAgent error|"agent_error"|"errorCode"/.test(text)) {
+  if (text.includes("lingguang_seed_world_stream_result") && !/LLMAgent error|"agent_error"|"errorCode"/.test(text)) {
     return false;
   }
   return /\bHTTP\s*(?:429|502|503|504)\b|\b(?:status|statusCode)["':=\s]+(?:429|502|503|504)\b|TPM_LIMIT_EXCEEDED|RATE_LIMIT|too many requests|ECONNRESET|ETIMEDOUT|APITimeoutError|APIConnectionError|ConnectTimeout|Connection error/i.test(text);
@@ -186,7 +186,7 @@ export function installAsap8082WindowShim(options: AsapTransportOptions = {}) {
           if (!forwardedToConsumer) {
             const text = typeof data.data === "string" ? data.data : JSON.stringify(data.data);
             const frames = parseBridgeFrames(text);
-            const bridge = frames.find((frame) => frame.type === "lingguang_ai_chat_stream_result_bridge");
+            const bridge = frames.find((frame) => frame.type === "lingguang_seed_world_stream_result");
             if (bridge) {
               const bridgeResult =
                 bridge.result && typeof bridge.result === "object" ? (bridge.result as Record<string, unknown>) : undefined;
@@ -198,7 +198,7 @@ export function installAsap8082WindowShim(options: AsapTransportOptions = {}) {
               }
               bufferedPreModelFrames.push(data.data);
               flushBuffered();
-            } else if (frames.length > 0 && frames.every((frame) => frame.type === "lingguang_ai_chat_recovery")) {
+            } else if (frames.length > 0 && frames.every((frame) => frame.type === "lingguang_seed_world_stream_recovery")) {
               // ASAP internal retry keepalive heartbeat: pass through to asap-chat without disarming outer retry
               emitFragment({ success: true, type: "text", content: data.data, hasNext: true, extInfo: htmlContentCtx });
             } else {

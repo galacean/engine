@@ -1,7 +1,36 @@
 import { describe, expect, it, vi } from "vitest";
+import { createDefaultWeatherState } from "@galacean/engine";
+import { seedWorldProjectFormats } from "../../../demos/seed-world/SeedWorldProjectFormats.ts";
 import { beginSeedWorldProjectEdit } from "../../../demos/seed-world/agent-adapter/SeedWorldProjectEdit";
 import type { RuntimeProjectContribution } from "@galacean/engine-runtime-editor/runtime-editor/runtime-editor.ts";
 import { setup } from "./seed-world-edit-harness";
+
+describe("Seed World saved editor document", () => {
+  const editor = {
+    format: "seed-world-editor", version: 2, revision: 3,
+    memory: { tags: [], namedSelections: [], semanticSerial: 0 }
+  };
+  const format = seedWorldProjectFormats.get("SeedWorldEditor")!;
+  const validate = (environment: unknown) => format.validate(JSON.stringify({ ...editor, settings: { environment } }));
+
+  it("rejects nested data that the 3D runtime cannot restore", () => {
+    expect(() => validate({ atmosphere: null })).toThrow("Invalid world editor environment atmosphere");
+    expect(() => validate({ weatherChannels: null })).toThrow("Invalid world editor weather channels");
+    expect(() => validate({ weatherChannels: { precipitation: { rainRate: 0.5 } } }))
+      .toThrow("Invalid world editor weather channel precipitation");
+    expect(() => validate({ weatherChannels: {
+      precipitation: { ...createDefaultWeatherState().precipitation, rainRate: 2 }
+    } })).toThrow("rainRate must be in [0, 1]");
+  });
+
+  it("accepts stored runtime weather and a reset sky color", () => {
+    expect(() => validate({
+      timeHours: 21,
+      atmosphere: { skyColorRgb: null },
+      weatherChannels: { precipitation: createDefaultWeatherState().precipitation }
+    })).not.toThrow();
+  });
+});
 
 describe("Seed World execute transactions", () => {
 

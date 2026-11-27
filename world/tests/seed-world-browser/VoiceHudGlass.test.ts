@@ -5,7 +5,6 @@ import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { UICanvas } from "@galacean/engine-ui";
 import { expect, it } from "vitest";
 import { createSeedWorldVoiceHudView } from "../../demos/seed-world/assistant/SeedWorldChatPanel";
-import { VOICE_ORB_IDLE_BAKE_INTERVAL_SEC } from "../../demos/seed-world/assistant/SeedWorldVoiceOrbCache";
 import { resolveSeedWorldHudScale, resolveSeedWorldVoiceOrbLayout } from "../../demos/seed-world/src/SeedWorldHudLayout";
 
 function readPixels(gl: WebGL2RenderingContext, x: number, y: number, width: number, height: number): Uint8Array {
@@ -115,11 +114,10 @@ it("preserves scene brightness, keeps white glyphs sharp at two densities, and t
     scene.background.mode = BackgroundMode.SolidColor;
     layout.hidePanelImmediately();
     layout.enabled = false;
-    const { orbCache } = view.resources;
-    orbCache.scheduleUpdate(0, 0, VOICE_ORB_IDLE_BAKE_INTERVAL_SEC);
+    const { orbMaterial } = view.resources;
     const visual = view.orbEntity.findByName("Siri voice orb visual")!;
     const orb = resolveSeedWorldVoiceOrbLayout(canvas.width, canvas.height);
-    const expand = orbCache.displayMaterial.shaderData.getFloat("material_OrbScaleExpandPixels");
+    const expand = orbMaterial.shaderData.getFloat("material_OrbScaleExpandPixels") ?? 0;
     const radius = (orb.orbSizePx + expand) / 2;
     const centerY = orb.orbBottomPx + orb.orbSizePx / 2;
     function readRim() {

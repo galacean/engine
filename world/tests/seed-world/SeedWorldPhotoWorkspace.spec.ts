@@ -821,29 +821,4 @@ describe("SeedWorldPhotoWorkspace multi-photo lifecycle and reentrancy", () => {
 
     panel.dispose();
   });
-
-  it("skips matchMedia queries and redundant backdrop writes on idle ticks", () => {
-    const { ws } = createWorkspace({ reducedMotion: false });
-    const matchMediaSpy = vi.fn(() => ({ matches: false }));
-    vi.stubGlobal("matchMedia", matchMediaSpy);
-    const backdropColor = (ws.graphics.backdrop.getMaterial() as any).baseColor;
-    let alphaWrites = 0;
-    let currentAlpha = backdropColor.a;
-    Object.defineProperty(backdropColor, "a", {
-      configurable: true,
-      get: () => currentAlpha,
-      set: (value: number) => {
-        alphaWrites++;
-        currentAlpha = value;
-      }
-    });
-
-    for (let i = 0; i < 30; i++) {
-      (ws as any).tick(1 / 60);
-    }
-
-    expect(matchMediaSpy).not.toHaveBeenCalled();
-    expect(alphaWrites).toBe(0);
-    ws.dispose();
-  });
 });

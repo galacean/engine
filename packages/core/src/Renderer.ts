@@ -336,6 +336,10 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
    * @internal
    */
   override _onEnableInScene(): void {
+    // Treat a newly enabled renderer as visible until the first culling result.
+    const engine = this.engine;
+    const frameCount = engine.time.frameCount;
+    this._renderFrameCount = engine._frameInProcess ? frameCount - 1 : frameCount;
     const componentsManager = this.scene!._componentsManager;
     if (this._overrideUpdate) {
       componentsManager.addOnUpdateRenderers(this);

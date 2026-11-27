@@ -93,7 +93,6 @@ import type { SeedWorldPlanningService } from "../../../demos/seed-world/agent-a
 import type { SeedWorldAnimalService } from "../../../demos/seed-world/agent-adapter/ports/SeedWorldAnimalService.ts";
 import type { SeedWorldParameterAuthoring } from "../../../demos/seed-world/agent-adapter/tools/parameter-tools.ts";
 import { createSeedWorldChatAgentConfiguration } from "../../../demos/seed-world/assistant/SeedWorldChatPanel.ts";
-import { SEED_WORLD_MODEL } from "../../../demos/seed-world/assistant/SeedWorldModel.ts";
 import { seedWorldProjectFormats } from "../../../demos/seed-world/SeedWorldProjectFormats.ts";
 import { seedWorldScriptModules } from "../../../demos/seed-world/systems/SeedWorldScriptModules.ts";
 import { installAsap8082WindowShim } from "./asap-8082-transport.ts";
@@ -2068,7 +2067,7 @@ export async function createHeadlessSeedWorldFixture(options: {
         const lastAttempt = event.step.attempts[event.step.attempts.length - 1];
         for (let i = modelRequests.length - 1; i >= 0; i--) {
           if (modelRequests[i]!.step === event.step.step && !modelRequests[i]!.modelName) {
-            modelRequests[i]!.modelName = lastAttempt?.debug?.modelName;
+            modelRequests[i]!.modelName = lastAttempt?.telemetry?.modelName ?? lastAttempt?.debug?.modelName;
             modelRequests[i]!.requestedModel = lastAttempt?.debug?.requestedModel;
             modelRequests[i]!.finishReason = lastAttempt?.finishReason;
             modelRequests[i]!.durationMs = lastAttempt?.durationMilliseconds;
@@ -2127,7 +2126,6 @@ export async function createHeadlessSeedWorldFixture(options: {
     let errorMessage: string | undefined;
     try {
       const submission = session.submit(prompt, {
-        model: SEED_WORLD_MODEL,
         debugMode: true,
         inputSource: options?.inputSource ?? "text",
         context: {
