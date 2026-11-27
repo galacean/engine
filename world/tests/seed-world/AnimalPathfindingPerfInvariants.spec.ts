@@ -2,6 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import { Renderer } from "@galacean/engine-core";
 import { animalAnimationLodConfig, animalAnimationLodStride } from "@galacean/engine-animals/gameplay/animal/AnimalLod";
 import { readAnimalPopulationConfig } from "@galacean/engine-world-planning/spatial/AnimalPopulationComponent";
+import {
+  ORIGINAL_WORLD_ANIMAL_ANIMATION_LOD,
+  templateAnimalAnimationLod,
+  WORLD_TEMPLATE_ART
+} from "@galacean/engine-world-planning/spatial/WorldTemplateArtDirection";
 import { LakeBoundaryQueryIndex } from "@galacean/engine-water/water/compiler/lake/LakeBoundaryQueryIndex";
 import { PlanningNavigationSurface } from "@galacean/engine-world-planning/spatial/runtime/PlanningNavigationSurface";
 import { PlanningAnimalHabitat } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHabitat";
@@ -500,6 +505,19 @@ describe("animal pathfinding performance invariants", () => {
       screenRelativeTransitionHeights: [0.18, 0.06, 0.03],
       ratesHz: [30, 15, 10, 5]
     });
+
+    // All 6 templates (5 authored + original) explicitly define animation LOD config.
+    const expectedLod = {
+      enabled: true,
+      screenRelativeTransitionHeights: [0.12, 0.06, 0.03],
+      ratesHz: [30, 15, 10, 7.5]
+    };
+    expect(ORIGINAL_WORLD_ANIMAL_ANIMATION_LOD).toEqual(expectedLod);
+    expect(templateAnimalAnimationLod("")).toEqual(expectedLod);
+    for (const id of ["low-poly", "sakura-pearl", "emerald-forest", "titan-wasteland", "oil-paint"]) {
+      expect(WORLD_TEMPLATE_ART[id].animalAnimationLod).toEqual(expectedLod);
+      expect(templateAnimalAnimationLod(id)).toEqual(expectedLod);
+    }
   });
 
   it("skips off-screen Animator.update and decimates distant Animation LOD ticks while keeping 30Hz motion", () => {

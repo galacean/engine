@@ -13,7 +13,10 @@ import { FireflyPresenter } from "@galacean/engine-animals/gameplay/animal/Firef
 import type { Camera } from "@galacean/engine";
 import { querySeedAnimalCatalog, seedAnimalSpeciesId } from "./PlanningAnimalCatalog.ts";
 import { templateAnimalPopulation } from "@galacean/engine-world-planning/spatial/AnimalPopulationComponent";
-import { WORLD_TEMPLATE_ART } from "@galacean/engine-world-planning/spatial/WorldTemplateArtDirection";
+import {
+  templateAnimalAnimationLod,
+  WORLD_TEMPLATE_ART
+} from "@galacean/engine-world-planning/spatial/WorldTemplateArtDirection";
 import { PlanningAnimalSurfaceKind, type PlanningAnimalSurfaceData } from "./PlanningAnimalSurface.ts";
 import type { AnimalInstanceDocument } from "@galacean/engine-animals/gameplay/animal/AnimalInstanceDocument";
 import {
@@ -257,9 +260,10 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
   ): void {
     validateAnimalPopulationConfig(config);
     this.interaction = animalInteractionConfig(config.interaction);
-    const templateWildlife = templateAnimalPopulation(plan.parameters.worldTemplate?.id);
+    const templateId = plan.parameters.worldTemplate?.id;
+    const templateWildlife = templateAnimalPopulation(templateId);
     this.animationLod = animalAnimationLodConfig({
-      ...templateWildlife?.animationLod,
+      ...templateAnimalAnimationLod(templateId),
       ...config.animationLod
     });
     if (this.population) {

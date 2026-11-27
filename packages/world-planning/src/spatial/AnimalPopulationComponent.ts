@@ -11,25 +11,21 @@ import {
 } from "@galacean/engine-animals/gameplay/animal/AnimalInteraction";
 import {
   DEFAULT_ANIMAL_ANIMATION_LOD,
-  animalAnimationLodConfig,
-  type AnimalAnimationLodConfig
+  animalAnimationLodConfig
 } from "@galacean/engine-animals/gameplay/animal/AnimalLod";
 import type { AnimalPopulationConfig } from "@galacean/engine-animals/gameplay/animal/AnimalPopulation";
 import type { PlanningComponentDefinition } from "./PlanningComponents";
 import type { PlanningDocument } from "./PlanningDocument";
 import type { PlanningSystemDeclaration } from "./PlanningSystemDeclaration";
 import { ComponentRegistry, resolveComponent, type SpatialField } from "./SpatialDocument";
+import { templateAnimalAnimationLod } from "./WorldTemplateArtDirection";
 
 /** Lightweight registration metadata; inspecting configuration never imports GLBs or animation runtimes. */
 export const SEED_ANIMAL_TYPES = animalTypes.map((type) => ({ ...type, canEat: type.canEat === true }));
 const templatePopulations = new Map(
   Object.entries(templateWildlife).map(([id, population]) => [
     id,
-    {
-      ...population,
-      animationLod: (population as { animationLod?: Partial<AnimalAnimationLodConfig> }).animationLod,
-      models: new Set([...population.residents, population.flock.typeId])
-    }
+    { ...population, models: new Set([...population.residents, population.flock.typeId]) }
   ])
 );
 export function templateAnimalPopulation(template: unknown) {
@@ -342,6 +338,7 @@ export function readAnimalPopulationConfig(document: PlanningDocument): AnimalPo
   const birdTotal = integer("birdCount", "bird-count");
   const templateId = document.entities.world.components.worldTemplate?.values.id;
   const wildlife = templateAnimalPopulation(templateId);
+  const templateAnimLod = templateAnimalAnimationLod(typeof templateId === "string" ? templateId : undefined);
   const models = wildlife?.models;
   const eligible = models ? SEED_ANIMAL_TYPES.filter((type) => models.has(type.typeId)) : SEED_ANIMAL_TYPES;
   const speciesPool = models
@@ -461,36 +458,23 @@ export function readAnimalPopulationConfig(document: PlanningDocument): AnimalPo
       Object.fromEntries(Object.keys(DEFAULT_ANIMAL_INTERACTION).map((key) => [key, values[`interaction.${key}`]]))
     ),
     animationLod: animalAnimationLodConfig({
-      enabled: hasExplicit("animationLod.enabled")
-        ? Boolean(values["animationLod.enabled"])
-        : (wildlife?.animationLod?.enabled ?? DEFAULT_ANIMAL_ANIMATION_LOD.enabled),
+      enabled: hasExplicit("animationLod.enabled") ? Boolean(values["animationLod.enabled"]) : templateAnimLod.enabled,
       screenRelativeTransitionHeights: [
         hasExplicit("animationLod.lod0Height")
           ? Number(values["animationLod.lod0Height"])
-          : (wildlife?.animationLod?.screenRelativeTransitionHeights?.[0] ??
-            DEFAULT_ANIMAL_ANIMATION_LOD.screenRelativeTransitionHeights[0]),
+          : templateAnimLod.screenRelativeTransitionHeights[0],
         hasExplicit("animationLod.lod1Height")
           ? Number(values["animationLod.lod1Height"])
-          : (wildlife?.animationLod?.screenRelativeTransitionHeights?.[1] ??
-            DEFAULT_ANIMAL_ANIMATION_LOD.screenRelativeTransitionHeights[1]),
+          : templateAnimLod.screenRelativeTransitionHeights[1],
         hasExplicit("animationLod.lod2Height")
           ? Number(values["animationLod.lod2Height"])
-          : (wildlife?.animationLod?.screenRelativeTransitionHeights?.[2] ??
-            DEFAULT_ANIMAL_ANIMATION_LOD.screenRelativeTransitionHeights[2])
+          : templateAnimLod.screenRelativeTransitionHeights[2]
       ],
       ratesHz: [
-        hasExplicit("animationLod.lod0Hz")
-          ? Number(values["animationLod.lod0Hz"])
-          : (wildlife?.animationLod?.ratesHz?.[0] ?? DEFAULT_ANIMAL_ANIMATION_LOD.ratesHz[0]),
-        hasExplicit("animationLod.lod1Hz")
-          ? Number(values["animationLod.lod1Hz"])
-          : (wildlife?.animationLod?.ratesHz?.[1] ?? DEFAULT_ANIMAL_ANIMATION_LOD.ratesHz[1]),
-        hasExplicit("animationLod.lod2Hz")
-          ? Number(values["animationLod.lod2Hz"])
-          : (wildlife?.animationLod?.ratesHz?.[2] ?? DEFAULT_ANIMAL_ANIMATION_LOD.ratesHz[2]),
-        hasExplicit("animationLod.farHz")
-          ? Number(values["animationLod.farHz"])
-          : (wildlife?.animationLod?.ratesHz?.[3] ?? DEFAULT_ANIMAL_ANIMATION_LOD.ratesHz[3])
+        hasExplicit("animationLod.lod0Hz") ? Number(values["animationLod.lod0Hz"]) : templateAnimLod.ratesHz[0],
+        hasExplicit("animationLod.lod1Hz") ? Number(values["animationLod.lod1Hz"]) : templateAnimLod.ratesHz[1],
+        hasExplicit("animationLod.lod2Hz") ? Number(values["animationLod.lod2Hz"]) : templateAnimLod.ratesHz[2],
+        hasExplicit("animationLod.farHz") ? Number(values["animationLod.farHz"]) : templateAnimLod.ratesHz[3]
       ]
     }),
     spawnRadius: width * Math.SQRT2,
