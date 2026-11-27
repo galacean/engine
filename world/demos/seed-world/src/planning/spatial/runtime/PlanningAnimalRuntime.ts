@@ -1441,6 +1441,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
           resolveMaterial: p.outlineEnabled ? this.resolveMaterial : this.resolvePlainMaterial,
           resolvePlainMaterial: this.resolvePlainMaterial,
           distantUpdateSeconds: DISTANT_ANIMAL_UPDATE_SECONDS,
+          shortHorizonGroundValidation: true,
           interactionArrivalRadius: () =>
             food.approaching?.appearance === "cart" && food.cart?.entering ? 0.06 : undefined,
           arrivedAtInteraction: (destination) =>

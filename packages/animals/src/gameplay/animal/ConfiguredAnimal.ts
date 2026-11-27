@@ -164,6 +164,11 @@ export interface ConfiguredAnimalOptions {
   resolveMaterial?: (source: Material) => Material;
   /** Optional non-outlined companion material for distant instances once outline fades to zero. */
   resolvePlainMaterial?: (source: Material) => Material;
+  /**
+   * Use Unity NavMeshAgent-style global corridor + exact local short-horizon kinematic validation
+   * on ground routes (validates exact departure turn + 2s local horizon instead of 6000 substeps).
+   */
+  shortHorizonGroundValidation?: boolean;
 }
 
 /** One destination owns its admission, world revalidation and completion across gait clips. */
@@ -773,7 +778,10 @@ export class ConfiguredAnimal implements AnimalAgent {
       this.surfaceBlocked = !supported;
       const translationAllowed = fraction > 0 && supported;
       const turningAllowed =
-        translationAllowed && (this.proposedMotion.x !== this.motion.x || this.proposedMotion.z !== this.motion.z);
+        translationAllowed &&
+        (this.groundRecovery.pivoting ||
+          this.proposedMotion.x !== this.motion.x ||
+          this.proposedMotion.z !== this.motion.z);
       if (translationAllowed) {
         this.motion.x += (this.proposedMotion.x - this.motion.x) * fraction;
         this.motion.z += (this.proposedMotion.z - this.motion.z) * fraction;
@@ -1726,7 +1734,9 @@ export class ConfiguredAnimal implements AnimalAgent {
     const maxMergedSteps = baseStrideDistance > 1e-4 ? Math.max(1, Math.floor(1.5 / baseStrideDistance)) : 1;
     const airFrom = medium === "air" ? (this.scratchAirFrom ??= { x: 0, y: 0, z: 0 }) : undefined;
     const airTo = medium === "air" ? (this.scratchAirTo ??= { x: 0, y: 0, z: 0 }) : undefined;
-    const maxIterations = Math.min(6000, budget);
+    const shortHorizon = this.options.shortHorizonGroundValidation === true && medium === "ground" && !arrivalMedium;
+    const maxIterations = Math.min(shortHorizon ? 180 : 6000, budget);
+    let validatedSeconds = 0;
     for (let i = 0; i < maxIterations; i++) {
       yield;
       const nextCursor = advanceAnimalRouteTarget(motion, points, cursor, passRadius);
@@ -1789,7 +1799,8 @@ export class ConfiguredAnimal implements AnimalAgent {
         this.previewQuery = query;
         let recovered: boolean;
         try {
-          recovered = recovery.advance(motion, proposed, speed, length, baseDt, canTraverseRecovery);
+          const targetHeading = distSq > 1e-8 ? Math.atan2(dx, dz) : undefined;
+          recovered = recovery.advance(motion, proposed, speed, length, baseDt, canTraverseRecovery, targetHeading);
         } finally {
           this.previewQuery = undefined;
         }
@@ -1801,8 +1812,11 @@ export class ConfiguredAnimal implements AnimalAgent {
       if (stepCount > 1) {
         i += stepCount - 1;
         // Preserve per-substep cooperative budget accounting without repeating geometry queries.
-        for (let k = 1; k < stepCount; k++) yield;
+        if (!shortHorizon) {
+          for (let k = 1; k < stepCount; k++) yield;
+        }
       }
+      validatedSeconds += stepDt;
       copyMotionState(motion, proposed);
       // A clear waypoint chord does not guarantee a clear slow-turning arc.
       // Validate the actual planned curve against the same decision-time footprints.
@@ -1814,6 +1828,41 @@ export class ConfiguredAnimal implements AnimalAgent {
           : this.canTraverseRouteStep(query, fromX, fromZ, motion.x, motion.z))
       )
         return false;
+      if (shortHorizon && !arrived && !recovery.recovering) {
+        const remDx = targetPoint[0] - motion.x;
+        const remDz = targetPoint[1] - motion.z;
+        const remDist = Math.hypot(remDx, remDz);
+        const remErr =
+          remDist > 1e-4
+            ? Math.atan2(
+                Math.sin(Math.atan2(remDx, remDz) - motion.heading),
+                Math.cos(Math.atan2(remDx, remDz) - motion.heading)
+              )
+            : 0;
+        const alignedDirect =
+          cursor === points.length - 1 &&
+          Math.abs(remErr) < 0.05 &&
+          Math.abs(motion.angularSpeed) < 0.03 &&
+          this.canTraverseRouteStep(query, motion.x, motion.z, target[0], target[1]);
+        const localHorizonClear =
+          validatedSeconds >= 2.0 &&
+          (motion.speed > speed * 0.25 || Math.abs(remErr) < 0.15) &&
+          this.canTraverseRouteStep(query, motion.x, motion.z, targetPoint[0], targetPoint[1]);
+        if (alignedDirect || localHorizonClear) {
+          return {
+            points,
+            cursor: 0,
+            passRadius,
+            speed: nominalSpeed,
+            medium,
+            scale: this.scale,
+            multiplier: this.speedMultiplier,
+            arrivalMedium,
+            preparedAt: this.system.time,
+            from: initial
+          };
+        }
+      }
       if (medium === "air" && ground.canTraverseAir) {
         let wanted = ground.heightAt(motion.x, motion.z, "air") ?? y;
         if (!steering.continuous && arrivalMedium) {
@@ -1952,13 +2001,15 @@ export class ConfiguredAnimal implements AnimalAgent {
       return true;
     copyMotionState(this.groundCheckpoint, proposed);
     const canTraverseRecovery = (this.recoveryCanTranslate ??= (from, to) => this.canTranslate(to, from));
+    const targetHeading = Math.hypot(dx, dz) > 1e-4 ? Math.atan2(dx, dz) : undefined;
     const recovered = this.groundRecovery.advance(
       this.motion,
       proposed,
       this.velocity * this.scale * this.speedMultiplier,
       length,
       seconds,
-      canTraverseRecovery
+      canTraverseRecovery,
+      targetHeading
     );
     if (!recovered && supported) copyMotionState(proposed, this.groundCheckpoint);
     return recovered || supported;

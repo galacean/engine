@@ -15,6 +15,7 @@ import { AnimalSystem } from "@galacean/engine-animals/gameplay/animal/AnimalSys
 import { ConfiguredAnimal } from "@galacean/engine-animals/gameplay/animal/ConfiguredAnimal";
 import { AnimalBlendClock } from "@galacean/engine-animals/gameplay/animal/AnimalBlendClock";
 import { AnimalMotionPlayback } from "@galacean/engine-animals/gameplay/animal/AnimalMotionPlayback";
+import { GroundAnimalRecovery } from "@galacean/engine-animals/gameplay/animal/GroundAnimalRecovery";
 import { PlanningWaterRuntime } from "@galacean/engine-world-planning/spatial/runtime/PlanningWaterRuntime";
 
 vi.mock("@galacean/engine-world-planning/semantic-study/PlanningWhiteboxes", () => ({ planningWhiteboxes: () => [] }));
@@ -645,5 +646,67 @@ describe("animal pathfinding performance invariants", () => {
     expect(ok).toBe(true);
     expect(nearNotify).not.toHaveBeenCalled();
     expect(farNotify).toHaveBeenCalledTimes(1);
+  });
+
+  it("pivots out of a narrow pocket with only a rear exit instead of deadlocking, while rejecting sealed cages", () => {
+    const recovery = new GroundAnimalRecovery();
+    // Bear facing +X (90 deg); only rear -X (270 deg) corridor is traversable.
+    const canTraversePocket = (a: { x: number; z: number }, b: { x: number; z: number }) =>
+      a.x <= 0.05 && b.x <= 0.05 && Math.abs(a.z) <= 0.4 && Math.abs(b.z) <= 0.4;
+    const motion = { x: 0, z: 0, heading: Math.PI / 2, speed: 0, angularSpeed: 0 };
+    const proposed = { ...motion };
+    const targetHeading = -Math.PI / 2; // 270 deg (-X)
+    let sawPivot = false;
+    for (let step = 0; step < 80; step++) {
+      expect(recovery.advance(motion, proposed, 1.8, 3.0, 1 / 15, canTraversePocket, targetHeading)).toBe(true);
+      if (recovery.pivoting) sawPivot = true;
+      Object.assign(motion, proposed);
+      if (!recovery.recovering) break;
+    }
+    expect(sawPivot).toBe(true);
+    expect(recovery.recovering).toBe(false);
+    // Heading now points straight down the -X exit (sin ~ -1, cos ~ 0)
+    expect(Math.sin(motion.heading)).toBeLessThan(-0.95);
+
+    // In a 100% sealed cage (no open direction), recovery must reject instead of spinning.
+    const sealed = new GroundAnimalRecovery();
+    const canTraverseSealed = (a: { x: number; z: number }, b: { x: number; z: number }) =>
+      Math.hypot(a.x, a.z) < 0.05 && Math.hypot(b.x, b.z) < 0.05;
+    const m2 = { x: 0, z: 0, heading: 0, speed: 0, angularSpeed: 0 };
+    expect(sealed.advance(m2, { ...m2 }, 1.8, 3.0, 1 / 15, canTraverseSealed, Math.PI)).toBe(false);
+  });
+
+  it("validates a 40m ground corridor in short-horizon mode in < 40 steps instead of full-route simulation", () => {
+    const canTraverse = vi.fn(() => true);
+    const animal: any = Object.create(ConfiguredAnimal.prototype);
+    Object.assign(animal, {
+      options: {
+        shortHorizonGroundValidation: true,
+        ground: {
+          staticRouteQuery: () => ({ canTraverse, obstruction: () => undefined }),
+          heightAt: () => 0
+        }
+      },
+      config: { bounds: { min: [-0.5, 0, -1], max: [0.5, 1.5, 1] } },
+      scale: 1,
+      speedMultiplier: 1,
+      baseRadius: 0.8,
+      motion: { x: 0, z: 0, heading: Math.PI / 3, speed: 0, angularSpeed: 0 },
+      root: { transform: { position: { y: 0 } } },
+      system: { time: 1 },
+      groundSteering: { maxAngularSpeed: 0.5, turnSpeedRatio: 0.5, arrivalRadius: 0.2 },
+      airSteering: { maxAngularSpeed: 0.8, turnSpeedRatio: 0.65, arrivalRadius: 0.3 },
+      canOccupy: () => true
+    });
+    const task = animal.createRouteTask([0, 40], 1.5, "ground");
+    let steps = 0;
+    let res = task.next();
+    while (!res.done && steps < 200) {
+      steps++;
+      res = task.next();
+    }
+    expect(res.done).toBe(true);
+    expect(Boolean(res.value)).toBe(true);
+    expect(steps).toBeLessThan(40);
   });
 });
