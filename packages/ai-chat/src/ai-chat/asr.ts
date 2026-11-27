@@ -1,4 +1,4 @@
-import { resolveCandyJar, type CandyJarApi } from "./candyjar-bridge";
+import type { CandyJarApi } from "./candyjar-bridge";
 
 export type AsrTextPayload = {
   text: string;
@@ -25,8 +25,7 @@ export type AsrStartOptions = {
 export type AsrAvailability =
   | {
       available: true;
-      provider: "local-wrapper" | "native";
-      implementation?: string;
+      provider: "native";
       protocolVersion: number;
     }
   | {
@@ -115,25 +114,13 @@ type NativeAsrApi = {
   abort?(): Promise<void>;
 };
 
-type AsrWindow = NonNullable<Parameters<typeof resolveCandyJar>[0]> & {
+type AsrWindow = Window & {
   CandyJar?: CandyJarApi;
   artifactId?: string;
   artifactVersion?: string;
   lingguang?: {
     asr?: NativeAsrApi;
     canIUse?(api: string | { api: string }): Promise<boolean>;
-  };
-};
-
-type LocalRuntimeInfo = {
-  runtime: "asap-local-wrapper";
-  protocolVersion: number;
-  capabilities: {
-    asr: {
-      available: boolean;
-      implementation?: string;
-      reason?: string;
-    };
   };
 };
 
@@ -167,13 +154,6 @@ type ProviderSession = {
 
 type AsrProvider = {
   begin(id: string, options: AsrStartOptions, callbacks: ProviderCallbacks): ProviderSession;
-  destroy(): void;
-};
-
-type LocalProviderSession = {
-  callbacks: ProviderCallbacks;
-  released: Deferred<ProviderRelease>;
-  seq: number;
 };
 
 type ManagedAsrSessionState = "resolving" | "starting" | "listening" | "stopping" | "aborting" | "terminal";
@@ -183,24 +163,8 @@ type TimedPromiseResult<T> =
   | { status: "rejected"; reason: unknown }
   | { status: "timed-out" };
 
-type AsrResultEvent = Event & {
-  detail?: unknown;
-  id?: unknown;
-  result?: unknown;
-  isFinal?: unknown;
-  speechState?: unknown;
-  errorCode?: unknown;
-  errorMessage?: unknown;
-  message?: unknown;
-  seq?: unknown;
-};
-
-const LOCAL_RUNTIME_PROTOCOL_VERSION = 1;
-const LOCAL_RUNTIME_DISCOVERY_TIMEOUT_MILLISECONDS = 1_000;
-const ASR_CALL_TIMEOUT_MILLISECONDS = 20_000;
 const ASR_FINALIZATION_TIMEOUT_MILLISECONDS = 20_000;
 const ASR_ABORT_TIMEOUT_MILLISECONDS = 5_000;
-const ASR_EVENT = "CandyJar.ASR.OnResult";
 const MAX_ASR_DIAGNOSTIC_EVENTS = 96;
 let nextSessionId = 0;
 
@@ -213,17 +177,17 @@ export function createAsrClient(hostWindow: AsrWindow = window): AsrClient {
 class DefaultAsrClient implements AsrClient {
   readonly availability: Promise<AsrAvailability>;
 
+  private readonly _providerResolution: Promise<ProviderResolution>;
   private _activeSession: ManagedAsrSession | undefined;
   private _destroyed = false;
 
   constructor(
-    private readonly _providerResolution: Promise<ProviderResolution>,
+    resolution: ProviderResolution,
     private readonly _diagnostics: AsrDiagnosticsRecorder
   ) {
-    this.availability = _providerResolution.then((resolution) => {
-      this._diagnostics.setAvailability(resolution.availability);
-      return resolution.availability;
-    });
+    this._providerResolution = Promise.resolve(resolution);
+    this.availability = Promise.resolve(resolution.availability);
+    this._diagnostics.setAvailability(resolution.availability);
   }
 
   getDiagnostics(): AsrDiagnostics {
@@ -257,15 +221,6 @@ class DefaultAsrClient implements AsrClient {
     const activeSession = this._activeSession;
     this._activeSession = undefined;
     if (activeSession) void activeSession.abort();
-    const released = activeSession?.released ?? Promise.resolve();
-    void released.then(() => {
-      void this._providerResolution.then(
-        (resolution) => {
-          if (resolution.available) resolution.provider.destroy();
-        },
-        () => undefined
-      );
-    });
   }
 }
 
@@ -617,50 +572,15 @@ class ManagedAsrSession implements AsrSession {
   }
 }
 
-async function resolveProvider(
-  hostWindow: AsrWindow,
-  diagnostics: AsrDiagnosticsRecorder
-): Promise<ProviderResolution> {
-  const candyJar = resolveAvailableCandyJar(hostWindow);
+function resolveProvider(hostWindow: AsrWindow, diagnostics: AsrDiagnosticsRecorder): ProviderResolution {
   const nativeAsr = resolveNativeAsr(hostWindow.lingguang?.asr);
+  const sdkDevMock = Boolean(nativeAsr) && usesSdkAsrMock(hostWindow.location);
   diagnostics.record("provider.resolution_started", {
-    hasCandyJar: Boolean(candyJar),
+    hasCandyJar: typeof hostWindow.CandyJar?.call === "function",
     hasNativeAsr: Boolean(nativeAsr)
   });
-  const localRuntimePromise = candyJar ? queryLocalRuntimeInfo(candyJar) : Promise.resolve(undefined);
-  const localRuntime = await localRuntimePromise;
 
-  if (localRuntime) {
-    const capability = localRuntime.capabilities.asr;
-    diagnostics.record("provider.local_runtime_detected", {
-      protocolVersion: localRuntime.protocolVersion,
-      available: capability.available,
-      implementation: capability.implementation,
-      reason: capability.reason
-    });
-    if (!capability.available || !candyJar) {
-      return {
-        available: false,
-        availability: {
-          available: false,
-          reason: capability.reason ?? "unsupported",
-          message: "暂不支持语音"
-        }
-      };
-    }
-    return {
-      available: true,
-      provider: createLocalWrapperProvider(hostWindow, candyJar, diagnostics),
-      availability: {
-        available: true,
-        provider: "local-wrapper",
-        implementation: capability.implementation,
-        protocolVersion: localRuntime.protocolVersion
-      }
-    };
-  }
-
-  if (nativeAsr) {
+  if (nativeAsr && !sdkDevMock) {
     diagnostics.record("provider.native_selected");
     return {
       available: true,
@@ -670,11 +590,11 @@ async function resolveProvider(
   }
 
   diagnostics.record("provider.unavailable", {
-    reason: "documented-native-contract-missing"
+    reason: sdkDevMock ? "sdk-dev-mock" : "documented-native-contract-missing"
   });
   return {
     available: false,
-    availability: { available: false, reason: "unsupported", message: "暂不支持语音" }
+    availability: { available: false, reason: sdkDevMock ? "sdk-dev-mock" : "unsupported", message: "暂不支持语音" }
   };
 }
 
@@ -683,43 +603,10 @@ function resolveNativeAsr(value: NativeAsrApi | undefined): NativeAsrApi | undef
   return value;
 }
 
-function resolveAvailableCandyJar(hostWindow: AsrWindow): CandyJarApi | undefined {
-  if (typeof hostWindow.CandyJar?.call === "function") return resolveCandyJar(hostWindow);
-  if (!hostWindow.parent || hostWindow.parent === hostWindow) return undefined;
-  return resolveCandyJar(hostWindow);
-}
-
-function queryLocalRuntimeInfo(candyJar: CandyJarApi): Promise<LocalRuntimeInfo | undefined> {
-  const discovery = new Promise<LocalRuntimeInfo | undefined>((resolve) => {
-    candyJar.call(
-      "Env",
-      "getRuntimeInfo",
-      {},
-      (result) => resolve(normalizeLocalRuntimeInfo(result)),
-      () => resolve(undefined),
-      LOCAL_RUNTIME_DISCOVERY_TIMEOUT_MILLISECONDS
-    );
-  });
-  // Native bridges may omit callbacks when the optional probe is unsupported.
-  return resolveWithTimeout(discovery, undefined, LOCAL_RUNTIME_DISCOVERY_TIMEOUT_MILLISECONDS);
-}
-
-function normalizeLocalRuntimeInfo(value: unknown): LocalRuntimeInfo | undefined {
-  if (!isRecord(value) || value.runtime !== "asap-local-wrapper") return undefined;
-  if (value.protocolVersion !== LOCAL_RUNTIME_PROTOCOL_VERSION || !isRecord(value.capabilities)) return undefined;
-  const asr = value.capabilities.asr;
-  if (!isRecord(asr) || typeof asr.available !== "boolean") return undefined;
-  return {
-    runtime: "asap-local-wrapper",
-    protocolVersion: LOCAL_RUNTIME_PROTOCOL_VERSION,
-    capabilities: {
-      asr: {
-        available: asr.available,
-        implementation: readOptionalString(asr.implementation),
-        reason: readOptionalString(asr.reason)
-      }
-    }
-  };
+// The Flash App SDK's development mode exposes no-op ASR methods at these addresses.
+function usesSdkAsrMock(location: Location | undefined): boolean {
+  const { hostname, port } = location ?? {};
+  return hostname === "localhost" || hostname === "127.0.0.1" || Boolean(port && port !== "80" && port !== "443");
 }
 
 function createNativeProvider(nativeAsr: NativeAsrApi, diagnostics: AsrDiagnosticsRecorder): AsrProvider {
@@ -797,100 +684,6 @@ function createNativeProvider(nativeAsr: NativeAsrApi, diagnostics: AsrDiagnosti
           });
         }
       };
-    },
-    destroy() {}
-  };
-}
-
-function createLocalWrapperProvider(
-  hostWindow: AsrWindow,
-  candyJar: CandyJarApi,
-  diagnostics: AsrDiagnosticsRecorder
-): AsrProvider {
-  const sessions = new Map<string, LocalProviderSession>();
-  const publishRelease = (id: string, session: LocalProviderSession, release: ProviderRelease) => {
-    sessions.delete(id);
-    session.released.resolve(release);
-  };
-  const onResult = (event: Event) => {
-    const payload = readAsrEvent(event as AsrResultEvent);
-    const id = readOptionalString(payload.id);
-    if (!id) return;
-    const session = sessions.get(id);
-    if (!session) return;
-    diagnostics.record("local.result_event", {
-      sessionId: id,
-      speechState: payload.speechState,
-      errorCode: payload.errorCode,
-      isFinal: payload.isFinal,
-      textLength: typeof payload.result === "string" ? payload.result.length : undefined,
-      seq: payload.seq
-    });
-    const errorCode = String(payload.errorCode ?? "0");
-    if (errorCode !== "0" && errorCode !== "38") {
-      const error = buildAsrError(payload, id, errorCode);
-      session.callbacks.onError(error);
-      publishRelease(id, session, { reason: "error", error });
-      return;
-    }
-    const terminal = payload.isFinal === true || payload.speechState === "cancel" || payload.speechState === "complete";
-    if (typeof payload.result === "string") {
-      const eventSeq = normalizeSequence(payload.seq);
-      if (eventSeq === undefined || eventSeq > session.seq) {
-        const seq = eventSeq ?? session.seq + 1;
-        session.seq = seq;
-        session.callbacks.onText({ text: payload.result, seq, isFinal: payload.isFinal === true });
-      }
-    }
-    if (terminal) {
-      publishRelease(id, session, { reason: payload.speechState === "cancel" ? "abort" : "stop" });
-    }
-  };
-  hostWindow.document.addEventListener(ASR_EVENT, onResult);
-
-  return {
-    begin(id, options, callbacks) {
-      diagnostics.record("local.start_invoked", { sessionId: id });
-      if (sessions.size > 0) {
-        const error = createError("ASR_BUSY", "已有语音识别正在进行");
-        const released = createDeferred<ProviderRelease>();
-        released.resolve({ reason: "error", error: normalizeAsrError(error, id) });
-        return {
-          started: Promise.reject(error),
-          released: released.promise,
-          requestStop: async () => undefined,
-          requestAbort: async () => undefined
-        };
-      }
-      const released = createDeferred<ProviderRelease>();
-      const session: LocalProviderSession = { callbacks, released, seq: 0 };
-      sessions.set(id, session);
-      const started = callCandyJar(candyJar, "startRecognize", {
-        id,
-        lang: options.lang ?? "zh-CN",
-        interim: options.interim ?? true,
-        continuous: options.continuous ?? false
-      }).catch((error) => {
-        publishRelease(id, session, { reason: "error", error: normalizeAsrError(error, id) });
-        throw error;
-      });
-      return {
-        started,
-        released: released.promise,
-        requestStop: () => {
-          diagnostics.record("local.stop_invoked", { sessionId: id });
-          return callCandyJar(candyJar, "cancelRecognize", { id });
-        },
-        requestAbort: async () => {
-          diagnostics.record("local.abort_invoked", { sessionId: id });
-          await callCandyJar(candyJar, "cancelRecognize", { id, abort: true });
-          publishRelease(id, session, { reason: "abort" });
-        }
-      };
-    },
-    destroy() {
-      sessions.clear();
-      hostWindow.document.removeEventListener(ASR_EVENT, onResult);
     }
   };
 }
@@ -1029,50 +822,6 @@ function removeUndefinedDiagnosticValues(values: Record<string, unknown>): Recor
   return Object.fromEntries(Object.entries(values).filter(([, value]) => value !== undefined));
 }
 
-function callCandyJar(
-  candyJar: CandyJarApi,
-  action: "startRecognize" | "cancelRecognize",
-  params: Record<string, unknown>
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    candyJar.call("ASR", action, params, () => resolve(), reject, ASR_CALL_TIMEOUT_MILLISECONDS);
-  });
-}
-
-function readAsrEvent(event: AsrResultEvent): Record<string, unknown> {
-  const detail = isRecord(event.detail) ? event.detail : {};
-  return {
-    id: event.id ?? detail.id,
-    result: event.result ?? detail.result,
-    isFinal: normalizeBoolean(event.isFinal ?? detail.isFinal),
-    speechState: event.speechState ?? detail.speechState,
-    errorCode: event.errorCode ?? detail.errorCode,
-    errorMessage: event.errorMessage ?? detail.errorMessage,
-    message: event.message ?? detail.message,
-    seq: event.seq ?? detail.seq
-  };
-}
-
-function buildAsrError(payload: Record<string, unknown>, sessionId: string, errorCode: string): AsrError {
-  const message = readOptionalString(payload.message) ?? readOptionalString(payload.errorMessage);
-  if (errorCode === "40" || errorCode === "NO_SPEECH") {
-    return {
-      error: "no-speech",
-      message: message ?? "未识别到文字",
-      fatal: true,
-      sessionId,
-      code: errorCode
-    };
-  }
-  return {
-    error: mapErrorCode(errorCode),
-    message: message ?? `识别过程出错（${errorCode}）`,
-    fatal: true,
-    sessionId,
-    code: errorCode
-  };
-}
-
 function normalizeAsrError(value: unknown, sessionId: string): AsrError {
   if (isAsrError(value)) return { ...value, sessionId };
   const record = isRecord(value) ? value : undefined;
@@ -1121,15 +870,6 @@ function mapErrorMessage(message: string): AsrError["error"] {
   return "unknown";
 }
 
-function normalizeSequence(value: unknown): number | undefined {
-  const sequence = typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN;
-  return Number.isSafeInteger(sequence) && sequence > 0 ? sequence : undefined;
-}
-
-function normalizeBoolean(value: unknown): boolean {
-  return value === true || value === "1";
-}
-
 function readOptionalString(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
 }
@@ -1168,31 +908,6 @@ function createDeferred<T>(): Deferred<T> {
     reject = rejectPromise;
   });
   return { promise, resolve, reject };
-}
-
-function resolveWithTimeout<T>(promise: Promise<T>, fallback: T, timeoutMilliseconds: number): Promise<T> {
-  return new Promise((resolve) => {
-    let settled = false;
-    const timeout = globalThis.setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      resolve(fallback);
-    }, timeoutMilliseconds);
-    promise.then(
-      (value) => {
-        if (settled) return;
-        settled = true;
-        globalThis.clearTimeout(timeout);
-        resolve(value);
-      },
-      () => {
-        if (settled) return;
-        settled = true;
-        globalThis.clearTimeout(timeout);
-        resolve(fallback);
-      }
-    );
-  });
 }
 
 function settlePromiseWithTimeout<T>(promise: Promise<T>, timeoutMilliseconds: number): Promise<TimedPromiseResult<T>> {
