@@ -83,14 +83,18 @@ node world/scripts/acceptance/shared-world-storage.mjs http://127.0.0.1:4180
 
 ## 3. 编排发布 6 个灵光闪应用
 
-使用 `world/scripts/publish-seed-world-flash-apps.mjs` 在能访问目标 OceanBase/Layotto 登记库的发布机执行。先用 `--verify-registry` 只读核对发布机的登记库与 PUGC HTTP 服务环境。编排器先预留版本，再使用该版本核对存档表、打包、上传和部署，最后提交登记。预留或登记重试沿用同一个发布 ID。 `PUBLISHER_ROOT` 下的 `scripts` 目录须提供 `asap-publish.cjs`、`asap-service-url.cjs` 和 `asap-remote-skill.cjs`。存档接口和版本查询须指向同一 ASAP 环境。
+使用 `world/scripts/publish-seed-world-flash-apps.mjs` 编排发布 6 个应用：
+- **默认 `--registry-mode http`**：可在任意开发机直接执行（无需直连 OceanBase/Layotto），通过 `GET /api/trace/versions_by_artifact` 校验基线版本、按逐应用独立 `app_key`（`<appKey>-<timestamp>-<hex>`，避免多应用覆盖同一雨燕 Entry URL）部署，并通过 `POST /api/flash-app/register` 登记版本（502–504/网络超时重试前自动按 `entryUrl` 查重防止双增版本号）。
+- **`--registry-mode direct-db`**：仅在能访问目标 OceanBase/Layotto 登记库的发布机执行；先用 `--verify-registry` 只读核对登记库与 PUGC HTTP 服务环境，先预留版本再核对存档表、打包、上传和部署，最后提交登记（预留或登记重试沿用同一个发布 ID）。
+
+`PUBLISHER_ROOT` 下的 `scripts` 目录须提供 `asap-publish.cjs`、`asap-service-url.cjs` 和 `asap-remote-skill.cjs`。存档接口和版本查询须指向同一 ASAP 环境。
 
 ```bash
 ENGINE_WORKTREE_ROOT=/absolute/path/to/engine
 PUBLISHER_ROOT=/absolute/path/to/compatible-pugc-publisher
 ASAP_SERVICE_DIR=/absolute/path/to/asap-service
 
-# 0. 只读核对发布机的登记库
+# 0. （仅 direct-db 模式）只读核对发布机的登记库
 node "$ENGINE_WORKTREE_ROOT/world/scripts/publish-seed-world-flash-apps.mjs" \
   --verify-registry --publisher-root "$PUBLISHER_ROOT" --asap-service-dir "$ASAP_SERVICE_DIR"
 

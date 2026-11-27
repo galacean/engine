@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { cpSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -56,8 +57,12 @@ export function deploySeedWorldFlashApp(item, version, { callAsap, appKey, timeo
     pack(dist, join(staging, release));
     upload(backup);
     upload(release);
+    // Yuyan binds each preview Entry URL to app_key; append a per-release suffix matching PUGC deploy.cjs
+    // so separate apps and versions never overwrite each other's live Entry URL.
+    const deployTimestamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..+/, "").replace("T", "");
+    const releaseAppKey = `${appKey}-${deployTimestamp}-${randomBytes(2).toString("hex")}`;
     const output = callAsap({
-      operation: "deploy", object_name: `${prefix}/${release}`, app_key: appKey, timeout
+      operation: "deploy", object_name: `${prefix}/${release}`, app_key: releaseAppKey, timeout
     });
     if (!output?.entry_url) throw new Error("ASAP deployment did not return an Entry URL");
     return { entryUrl: output.entry_url, backupOss: `${prefix}/${backup}` };
