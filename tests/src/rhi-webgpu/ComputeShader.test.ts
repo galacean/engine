@@ -517,4 +517,460 @@ describe("ShaderLab ComputeShader & WebGPU-only Capabilities", () => {
       }
     }
   );
+
+  /**
+   * Upstream Naga `tests/in/wgsl/` compute & storage conformance ports.
+   * Every test explicitly verifies Chrome Tint compilation (`getCompilationInfo()` zero errors),
+   * WebGPU validation error scope, AND real GPU buffer/texture readback values.
+   */
+  async function assertCleanComputeWGSL(device: GPUDevice, cs: ComputeShader, kernelName?: string): Promise<void> {
+    const linked = cs._linkVariant(kernelName);
+    const mod = device.createShaderModule({ label: `naga-compute-${cs.name}`, code: linked.compute });
+    const info = await mod.getCompilationInfo();
+    const errors = info.messages.filter((m) => m.type === "error");
+    if (errors.length > 0) {
+      throw new Error(
+        `Chrome Tint WGSL compilation error in ${cs.name}:\n${errors
+          .map((e) => `L${e.lineNum}:${e.linePos} ${e.message}`)
+          .join("\n")}\n---\n${linked.compute}`
+      );
+    }
+  }
+
+  it.skipIf(!navigator.gpu)(
+    "Naga collatz.wgsl: executes in-place SSBO while-loop recurrence with exact known results",
+    async () => {
+      const engine = await WebGPUEngine.create({ canvas: document.createElement("canvas") });
+      const { device } = engine._hardwareRenderer as WebGPUGraphicDevice;
+      device.pushErrorScope("validation");
+      try {
+        const cs = ComputeShader.create(
+          `ComputeShader "Naga/Collatz" {
+            WorkgroupSize = (1, 1, 1);
+            ComputeKernel = csMain;
+
+            storage PrimeIndices {
+              uint data[];
+            };
+
+            uint collatz_iterations(uint n_base) {
+              uint n = n_base;
+              uint i = 0u;
+              while (n > 1u) {
+                if (n % 2u == 0u) {
+                  n = n / 2u;
+                } else {
+                  n = 3u * n + 1u;
+                }
+                i = i + 1u;
+              }
+              return i;
+            }
+
+            void csMain() {
+              uint id = gl_GlobalInvocationID.x;
+              data[id] = collatz_iterations(data[id]);
+            }
+          }`,
+          engine
+        );
+        await assertCleanComputeWGSL(device, cs);
+
+        const input = new Uint32Array([1, 2, 3, 4, 7, 27]);
+        const buf = new Buffer(engine, BufferBindFlag.StorageBuffer, input, BufferUsage.Dynamic);
+        cs.shaderData.setBuffer("PrimeIndices", buf);
+        cs.dispatch(6, 1, 1);
+
+        const out = new Uint32Array(6);
+        await buf.getDataAsync(out);
+        expect(Array.from(out)).toEqual([0, 1, 7, 2, 16, 111]);
+
+        cs.destroy();
+        buf.destroy();
+        expect(await device.popErrorScope()).toBeNull();
+      } finally {
+        engine.destroy();
+      }
+    }
+  );
+
+  it.skipIf(!navigator.gpu)(
+    "Naga boids.wgsl: executes double-buffered struct-array SSBO flocking simulation with uniforms",
+    async () => {
+      const engine = await WebGPUEngine.create({ canvas: document.createElement("canvas") });
+      const { device } = engine._hardwareRenderer as WebGPUGraphicDevice;
+      device.pushErrorScope("validation");
+      try {
+        const cs = ComputeShader.create(
+          `ComputeShader "Naga/Boids" {
+            WorkgroupSize = (4, 1, 1);
+            ComputeKernel = csMain;
+
+            struct Particle {
+              vec2 pos;
+              vec2 vel;
+            };
+
+            readonly storage ParticlesSrc {
+              Particle srcParticles[];
+            };
+
+            storage ParticlesDst {
+              Particle dstParticles[];
+            };
+
+            float u_deltaT;
+            float u_rule1Distance;
+            float u_rule2Distance;
+            float u_rule3Distance;
+            float u_rule1Scale;
+            float u_rule2Scale;
+            float u_rule3Scale;
+
+            void csMain() {
+              uint index = gl_GlobalInvocationID.x;
+              uint total = uint(srcParticles.length());
+              if (index >= total) return;
+
+              vec2 vPos = srcParticles[index].pos;
+              vec2 vVel = srcParticles[index].vel;
+              vec2 cMass = vec2(0.0);
+              vec2 cVel = vec2(0.0);
+              vec2 colVel = vec2(0.0);
+              int cMassCount = 0;
+              int cVelCount = 0;
+
+              for (uint i = 0u; i < total; i++) {
+                if (i == index) continue;
+                vec2 pos = srcParticles[i].pos;
+                vec2 vel = srcParticles[i].vel;
+                if (distance(pos, vPos) < u_rule1Distance) {
+                  cMass += pos;
+                  cMassCount++;
+                }
+                if (distance(pos, vPos) < u_rule2Distance) {
+                  colVel -= (pos - vPos);
+                }
+                if (distance(pos, vPos) < u_rule3Distance) {
+                  cVel += vel;
+                  cVelCount++;
+                }
+              }
+              if (cMassCount > 0) cMass = cMass / float(cMassCount) - vPos;
+              if (cVelCount > 0) cVel = cVel / float(cVelCount);
+
+              vVel = vVel + cMass * u_rule1Scale + colVel * u_rule2Scale + cVel * u_rule3Scale;
+              float speed = length(vVel);
+              if (speed > 0.0001) {
+                vVel = normalize(vVel) * clamp(speed, 0.0, 0.5);
+              }
+              vPos = vPos + vVel * u_deltaT;
+
+              dstParticles[index].pos = vPos;
+              dstParticles[index].vel = vVel;
+            }
+          }`,
+          engine
+        );
+        await assertCleanComputeWGSL(device, cs);
+
+        // 4 particles: each Particle is 4 floats (vec2 pos, vec2 vel) = 16 bytes
+        const init = new Float32Array([
+          0.0, 0.0, 0.1, 0.0,
+          0.2, 0.0, 0.1, 0.0,
+          0.0, 0.2, 0.0, 0.1,
+          0.2, 0.2, 0.0, 0.1
+        ]);
+        const srcBuf = new Buffer(engine, BufferBindFlag.StorageBuffer, init, BufferUsage.Static);
+        const dstBuf = new Buffer(engine, BufferBindFlag.StorageBuffer, init.byteLength, BufferUsage.Dynamic);
+        cs.shaderData.setBuffer("ParticlesSrc", srcBuf);
+        cs.shaderData.setBuffer("ParticlesDst", dstBuf);
+        cs.shaderData.setFloat("u_deltaT", 1.0);
+        cs.shaderData.setFloat("u_rule1Distance", 1.0);
+        cs.shaderData.setFloat("u_rule2Distance", 0.05);
+        cs.shaderData.setFloat("u_rule3Distance", 1.0);
+        cs.shaderData.setFloat("u_rule1Scale", 0.1);
+        cs.shaderData.setFloat("u_rule2Scale", 0.1);
+        cs.shaderData.setFloat("u_rule3Scale", 0.1);
+
+        cs.dispatch(1);
+
+        const out = new Float32Array(16);
+        await dstBuf.getDataAsync(out);
+        // Particle 0 starts at (0,0) with vel (0.1,0); neighbors average pos=(2/15? (0.4/3,0.4/3)), avg vel=(0.1/3,0.2/3)
+        // New vel should point into (+x, +y) quadrant and pos should move strictly > 0 in both x and y
+        expect(out[0]).toBeGreaterThan(0.1);
+        expect(out[1]).toBeGreaterThan(0.01);
+        expect(Number.isFinite(out[12])).toBe(true);
+        expect(Number.isFinite(out[15])).toBe(true);
+
+        cs.destroy();
+        srcBuf.destroy();
+        dstBuf.destroy();
+        expect(await device.popErrorScope()).toBeNull();
+      } finally {
+        engine.destroy();
+      }
+    }
+  );
+
+  it.skipIf(!navigator.gpu)(
+    "Naga atomicOps.wgsl + 9883-atomic_sub-negative + atomicCompareExchange: tests signed atomic_int, workgroup atomics, all ops, and float CAS loop",
+    async () => {
+      const engine = await WebGPUEngine.create({ canvas: document.createElement("canvas") });
+      const { device } = engine._hardwareRenderer as WebGPUGraphicDevice;
+      device.pushErrorScope("validation");
+      try {
+        const cs = ComputeShader.create(
+          `ComputeShader "Naga/AtomicOpsFull" {
+            WorkgroupSize = (4, 1, 1);
+            ComputeKernel = csMain;
+
+            storage SignedBuf {
+              atomic_int sAdd;
+              atomic_int sSubNeg;
+              atomic_int sMin;
+              atomic_int sMax;
+              atomic_int sBit;
+              atomic_int sExch;
+              atomic_int sFloatCas;
+            };
+
+            storage OutputBuf {
+              int wgSum;
+              int exchOld;
+            };
+
+            shared atomic_int wgCounter;
+
+            void csMain() {
+              uint lid = gl_LocalInvocationIndex;
+              if (lid == 0u) {
+                atomicStore(wgCounter, 0);
+              }
+              workgroupBarrier();
+
+              // Signed storage & workgroup atomics including Naga #9883 atomicSub(x, -1)
+              atomicAdd(wgCounter, int(lid) + 1); // 1+2+3+4 = 10
+              atomicAdd(sAdd, -2);                // 4 * (-2) = -8
+              atomicSub(sSubNeg, -3);             // 0 - 4*(-3) = +12
+              atomicMin(sMin, int(lid) - 10);     // min(0, -10,-9,-8,-7) = -10
+              atomicMax(sMax, int(lid) - 2);      // max(-5, -2,-1,0,1) = 1
+
+              if (lid == 0u) {
+                atomicOr(sBit, 0x0F);
+                atomicAnd(sBit, 0x06);
+                atomicXor(sBit, 0x03);            // (0x0F & 0x06) ^ 0x03 = 0x05
+                exchOld = atomicExchange(sExch, -77);
+              }
+
+              // Naga atomicCompareExchange.wgsl: lock-free float add (+1.5 per thread = 6.0) via atomicCompSwap
+              int oldBits = atomicLoad(sFloatCas);
+              for (int iter = 0; iter < 32; iter++) {
+                float nextVal = intBitsToFloat(oldBits) + 1.5;
+                int prev = atomicCompSwap(sFloatCas, oldBits, floatBitsToInt(nextVal));
+                if (prev == oldBits) break;
+                oldBits = prev;
+              }
+
+              workgroupBarrier();
+              if (lid == 0u) {
+                wgSum = atomicLoad(wgCounter);
+              }
+            }
+          }`,
+          engine
+        );
+        await assertCleanComputeWGSL(device, cs);
+
+        const initSigned = new Int32Array([0, 0, 0, -5, 0, 123, 0]);
+        const signedBuf = new Buffer(engine, BufferBindFlag.StorageBuffer, initSigned, BufferUsage.Dynamic);
+        const outBuf = new Buffer(engine, BufferBindFlag.StorageBuffer, 8, BufferUsage.Dynamic);
+        cs.shaderData.setBuffer("SignedBuf", signedBuf);
+        cs.shaderData.setBuffer("OutputBuf", outBuf);
+        cs.dispatch(1);
+
+        const signedOut = new Int32Array(7);
+        const extraOut = new Int32Array(2);
+        await signedBuf.getDataAsync(signedOut);
+        await outBuf.getDataAsync(extraOut);
+
+        expect(signedOut[0]).toBe(-8);
+        expect(signedOut[1]).toBe(12);
+        expect(signedOut[2]).toBe(-10);
+        expect(signedOut[3]).toBe(1);
+        expect(signedOut[4]).toBe(5);
+        expect(signedOut[5]).toBe(-77);
+        const floatResult = new Float32Array(signedOut.buffer, 6 * 4, 1)[0];
+        expect(floatResult).toBeCloseTo(6.0, 4);
+        expect(Array.from(extraOut)).toEqual([10, 123]);
+
+        cs.destroy();
+        signedBuf.destroy();
+        outBuf.destroy();
+        expect(await device.popErrorScope()).toBeNull();
+      } finally {
+        engine.destroy();
+      }
+    }
+  );
+
+  it.skipIf(!navigator.gpu)(
+    "Naga storage-textures.wgsl: executes writeonly imageStore -> readonly imageLoad on r32float storage texture and sampler2D compute read",
+    async () => {
+      const engine = await WebGPUEngine.create({ canvas: document.createElement("canvas") });
+      const { device } = engine._hardwareRenderer as WebGPUGraphicDevice;
+      device.pushErrorScope("validation");
+      try {
+        const cs = ComputeShader.create(
+          `ComputeShader "Naga/StorageTexAndSample" {
+            Kernel "WriteR32F" {
+              WorkgroupSize = (4, 4, 1);
+              ComputeKernel = csWrite;
+              layout(r32float) writeonly image2D dstTex;
+              void csWrite() {
+                ivec2 p = ivec2(int(gl_GlobalInvocationID.x), int(gl_GlobalInvocationID.y));
+                float v = float(p.y * 4 + p.x) * 0.5 + 1.0;
+                imageStore(dstTex, p, vec4(v, 0.0, 0.0, 1.0));
+              }
+            }
+
+            Kernel "ReadAndSample" {
+              WorkgroupSize = (4, 4, 1);
+              ComputeKernel = csRead;
+              layout(r32float) readonly image2D srcStorage;
+              sampler2D srcSampled;
+              storage OutBuf {
+                float results[];
+              };
+              void csRead() {
+                ivec2 p = ivec2(int(gl_GlobalInvocationID.x), int(gl_GlobalInvocationID.y));
+                vec4 stVal = imageLoad(srcStorage, p);
+                vec4 texVal = texelFetch(srcSampled, p, 0);
+                ivec2 sz = textureSize(srcSampled, 0);
+                // Pack: storage read value + sampled red channel * 10 + (sz == 4x4 ? 100 : 0)
+                results[p.y * 4 + p.x] = stVal.x + texVal.x * 10.0 + (sz.x == 4 && sz.y == 4 ? 100.0 : 0.0);
+              }
+            }
+          }`,
+          engine
+        );
+        await assertCleanComputeWGSL(device, cs, "WriteR32F");
+        await assertCleanComputeWGSL(device, cs, "ReadAndSample");
+
+        const r32Tex = new Texture2D(engine, 4, 4, TextureFormat.R32_SFloat, false, false);
+        const rgbaTex = new Texture2D(engine, 4, 4, TextureFormat.R8G8B8A8_UNorm, false, false);
+        const rgbaInit = new Uint8Array(4 * 4 * 4);
+        for (let i = 0; i < 16; i++) {
+          rgbaInit[i * 4] = 255; // red = 1.0
+          rgbaInit[i * 4 + 3] = 255;
+        }
+        rgbaTex.setPixelBuffer(rgbaInit);
+
+        const outBuf = new Buffer(engine, BufferBindFlag.StorageBuffer, 16 * 4, BufferUsage.Dynamic);
+        cs.shaderData.setTexture("dstTex", r32Tex);
+        cs.shaderData.setTexture("srcStorage", r32Tex);
+        cs.shaderData.setTexture("srcSampled", rgbaTex);
+        cs.shaderData.setBuffer("OutBuf", outBuf);
+
+        cs.dispatch("WriteR32F", 1, 1, 1);
+        cs.dispatch("ReadAndSample", 1, 1, 1);
+
+        const out = new Float32Array(16);
+        await outBuf.getDataAsync(out);
+        for (let i = 0; i < 16; i++) {
+          const expected = i * 0.5 + 1.0 + 10.0 + 100.0;
+          expect(out[i]).toBeCloseTo(expected, 4);
+        }
+
+        cs.destroy();
+        r32Tex.destroy();
+        rgbaTex.destroy();
+        outBuf.destroy();
+        expect(await device.popErrorScope()).toBeNull();
+      } finally {
+        engine.destroy();
+      }
+    }
+  );
+
+  it.skipIf(!navigator.gpu)(
+    "Naga workgroup-var-init + barriers + WorkGroupID/LocalInvocationID/NumWorkGroups multi-group reduction",
+    async () => {
+      const engine = await WebGPUEngine.create({ canvas: document.createElement("canvas") });
+      const { device } = engine._hardwareRenderer as WebGPUGraphicDevice;
+      device.pushErrorScope("validation");
+      try {
+        const cs = ComputeShader.create(
+          `ComputeShader "Naga/MultiWorkgroupReduce" {
+            WorkgroupSize = (4, 1, 1);
+            ComputeKernel = csMain;
+
+            storage OutBuf {
+              uint groupSums[];
+            };
+
+            shared uint s_vals[4];
+
+            void csMain() {
+              uint lid = gl_LocalInvocationID.x;
+              uint wid = gl_WorkGroupID.x;
+              uint nwg = gl_NumWorkGroups.x;
+              s_vals[lid] = wid * 10u + lid + 1u;
+              workgroupBarrier();
+              storageBarrier();
+              if (lid == 0u) {
+                groupSums[wid] = (s_vals[0] + s_vals[1] + s_vals[2] + s_vals[3]) + nwg * 1000u;
+              }
+            }
+          }`,
+          engine
+        );
+        await assertCleanComputeWGSL(device, cs);
+
+        const outBuf = new Buffer(engine, BufferBindFlag.StorageBuffer, 3 * 4, BufferUsage.Dynamic);
+        cs.shaderData.setBuffer("OutBuf", outBuf);
+        cs.dispatch(3, 1, 1);
+
+        const out = new Uint32Array(3);
+        await outBuf.getDataAsync(out);
+        // wid=0: (1+2+3+4)+3000 = 3010; wid=1: (11+12+13+14)+3000 = 3050; wid=2: (21+22+23+24)+3000 = 3090
+        expect(Array.from(out)).toEqual([3010, 3050, 3090]);
+
+        cs.destroy();
+        outBuf.destroy();
+        expect(await device.popErrorScope()).toBeNull();
+      } finally {
+        engine.destroy();
+      }
+    }
+  );
+
+  it("preserves backward compatibility for GLSL identifiers named storage, shared, readonly, writeonly, readwrite", () => {
+    const compiler = new ShaderCompiler();
+    const source = `
+      Shader "Tests/ContextualKeywords" {
+        SubShader "Default" {
+          Pass "0" {
+            VertexShader = vert;
+            FragmentShader = frag;
+            struct a2v { vec4 POSITION; };
+            void vert(a2v v) { gl_Position = v.POSITION; }
+            void frag() {
+              float storage = 0.2;
+              float shared = 0.3;
+              float readonly = 0.1;
+              float writeonly = 0.2;
+              float readwrite = 0.2;
+              gl_FragColor = vec4(storage + shared, readonly + writeonly, readwrite, 1.0);
+            }
+          }
+        }
+      }
+    `;
+    const parsed = compiler._parseShaderSource(source);
+    const pass = parsed.subShaders[0].passes[0];
+    const gles = compiler._parseShaderPass(pass.contents, pass.vertexEntry, pass.fragmentEntry, ShaderLanguage.GLSLES300);
+    expect(gles?.fragmentShaderInstructions?.length).toBeGreaterThan(0);
+  });
 });

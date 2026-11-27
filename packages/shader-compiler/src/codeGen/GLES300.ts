@@ -50,7 +50,8 @@ export class GLES300Visitor extends GLESVisitor {
 
   override getVaryingProp(prop: StructProp): string {
     const qualifier = this.context.stage === EShaderStage.FRAGMENT ? "in" : "out";
-    return `${qualifier} ${prop.typeInfo.typeLexeme} ${this.interfaceName(prop, ShaderStructRole.Varying)};`;
+    const interp = prop.isFlat ? "flat " : prop.isCentroid ? "centroid " : "";
+    return `${interp}${qualifier} ${prop.typeInfo.typeLexeme} ${this.interfaceName(prop, ShaderStructRole.Varying)};`;
   }
 
   override getMRTProp(prop: StructProp): string {

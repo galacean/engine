@@ -1102,7 +1102,18 @@ export class Lexer extends BaseLexer {
     }
     const token = this._createToken();
     const word = buffer.join("");
-    const kt = Lexer._lexemeTable[word];
+    let kt = Lexer._lexemeTable[word];
+    if (
+      kt === Keyword.STORAGE ||
+      kt === Keyword.READONLY ||
+      kt === Keyword.WRITEONLY ||
+      kt === Keyword.READWRITE ||
+      kt === Keyword.SHARED
+    ) {
+      if (!this._isContextualWebGPUKeyword(kt)) {
+        kt = undefined;
+      }
+    }
 
     if (this._macroDefineExpectsNameToken) {
       // Bypass MACRO_CALL classification for this one word. Used for the name of
@@ -1129,6 +1140,84 @@ export class Lexer extends BaseLexer {
       token.set(kt ?? ETokenType.ID, word, start);
     }
     return token;
+  }
+
+  /**
+   * Contextual disambiguation for WebGPU-only keywords (`storage`, `readonly`, `writeonly`,
+   * `readwrite`, `shared`) so existing GLSL/ShaderLab identifiers like `float storage = ...;`
+   * continue to lex as `ETokenType.ID` with zero backward-compatibility regressions.
+   */
+  private _isContextualWebGPUKeyword(kt: Keyword): boolean {
+    const src = this._source;
+    const len = src.length;
+    const skipWs = (i: number): number => {
+      while (i < len) {
+        const ch = src.charCodeAt(i);
+        if (ch === 32 || ch === 9 || ch === 10 || ch === 13) {
+          i++;
+          continue;
+        }
+        if (ch === 47 && i + 1 < len) {
+          const next = src.charCodeAt(i + 1);
+          if (next === 47) {
+            i += 2;
+            while (i < len && src.charCodeAt(i) !== 10) i++;
+            continue;
+          }
+          if (next === 42) {
+            i += 2;
+            while (i + 1 < len && !(src.charCodeAt(i) === 42 && src.charCodeAt(i + 1) === 47)) i++;
+            i = Math.min(len, i + 2);
+            continue;
+          }
+        }
+        break;
+      }
+      return i;
+    };
+    const scanIdent = (i: number): { word: string; end: number } | undefined => {
+      const start = skipWs(i);
+      if (start >= len || !BaseLexer.isAlpha(src.charCodeAt(start))) return undefined;
+      let end = start + 1;
+      while (end < len && BaseLexer.isAlnum(src.charCodeAt(end))) end++;
+      return { word: src.slice(start, end), end };
+    };
+
+    const first = scanIdent(this._currentIndex);
+    if (!first) return false;
+
+    if (kt === Keyword.STORAGE) {
+      const afterName = skipWs(first.end);
+      return afterName < len && src.charCodeAt(afterName) === 123; // '{'
+    }
+    if (kt === Keyword.READONLY) {
+      if (first.word === "storage") {
+        const blockName = scanIdent(first.end);
+        if (!blockName) return false;
+        const afterName = skipWs(blockName.end);
+        return afterName < len && src.charCodeAt(afterName) === 123; // '{'
+      }
+      return first.word === "image2D" || first.word === "iimage2D" || first.word === "uimage2D";
+    }
+    if (kt === Keyword.WRITEONLY || kt === Keyword.READWRITE) {
+      return first.word === "image2D" || first.word === "iimage2D" || first.word === "uimage2D";
+    }
+    if (kt === Keyword.SHARED) {
+      // `shared <Type>[N] <Name>` or `shared <Type> <Name>`
+      let pos = skipWs(first.end);
+      if (pos < len && src.charCodeAt(pos) === 91) {
+        // '[' ... ']'
+        let depth = 1;
+        pos++;
+        while (pos < len && depth > 0) {
+          const c = src.charCodeAt(pos++);
+          if (c === 91) depth++;
+          else if (c === 93) depth--;
+        }
+      }
+      return scanIdent(pos) !== undefined;
+    }
+    return false;
   }
 
   /** True iff at least one `#define <word>` is reachable from the current branch. */

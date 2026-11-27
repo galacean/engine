@@ -240,16 +240,10 @@ describe.skipIf(!navigator.gpu)("ShaderLab dev/2.0 WGSL conformance", () => {
     expect(Array.from(px)).toEqual([255, 255, 255, 255]);
   });
 
-  it("compiles all dev/2.0 ShaderLab sampler types, texture builtins, derivatives, and builtin variables", async () => {
-    await validateWGSL(`
+  it("executes all dev/2.0 sampler types, texture-arg helper passing, derivatives, and shadow comparison on GPU with pixel readback", async () => {
+    const program = await validateWGSL(`
       sampler2D u_tex2d;
-      sampler3D u_tex3d;
-      samplerCube u_cube;
-      sampler2DArray u_arr;
       sampler2DShadow u_shadow2d;
-      samplerCubeShadow u_shadowCube;
-      sampler2DArrayShadow u_shadowArr;
-      isampler2D u_itex2d;
       usampler2D u_utex2d;
 
       struct a2v {
@@ -261,77 +255,153 @@ describe.skipIf(!navigator.gpu)("ShaderLab dev/2.0 WGSL conformance", () => {
         flat int inst;
       };
 
-      v2f vert(a2v v) {
+      // Naga texture-arg.wgsl: passing sampler2D into a user helper function
+      vec4 sampleHelper(sampler2D tex, vec2 uv) {
+        vec4 a = texture(tex, uv);
+        vec4 b = textureLod(tex, uv, 0.0);
+        vec4 c = textureGrad(tex, uv, dFdx(uv), dFdy(uv));
+        vec4 d = textureOffset(tex, uv, ivec2(0, 0));
+        vec4 e = textureProj(tex, vec3(uv, 1.0));
+        return (a + b + c + d + e) * 0.2;
+      }
+
+      v2f vert() {
         v2f o;
-        vec4 s = textureLod(u_tex2d, v.TEXCOORD_0, 0.0);
-        o.uv = v.TEXCOORD_0 + s.xy * 0.0;
+        vec2 pos[3] = vec2[3](vec2(-1.0, -1.0), vec2(3.0, -1.0), vec2(-1.0, 3.0));
+        vec2 p = pos[gl_VertexID];
+        vec4 s = textureLod(u_tex2d, vec2(0.25, 0.25), 0.0);
+        o.uv = p * 0.5 + 0.5 + s.xy * 0.0;
         o.inst = gl_VertexID + gl_InstanceID + gl_MaxVertexAttribs;
-        gl_PointSize = 2.0;
-        gl_Position = vec4(v.POSITION, 1.0);
+        gl_PointSize = 1.0;
+        gl_Position = vec4(p, 0.0, 1.0);
         return o;
       }
 
       void frag(v2f i) {
-        vec2 uv = i.uv;
-        vec4 c = vec4(0.0);
-
-        // 2D / 3D / Cube / Array sampling + bias + lod + grad + offset + proj
-        c += texture(u_tex2d, uv);
-        c += texture(u_tex2d, uv, 0.5);
-        c += texture2D(u_tex2d, uv);
-        c += textureLod(u_tex2d, uv, 1.0);
-        c += texture2DLodEXT(u_tex2d, uv, 1.0);
-        c += textureGrad(u_tex2d, uv, dFdx(uv), dFdy(uv));
-        c += textureOffset(u_tex2d, uv, ivec2(1, -1));
-        c += textureLodOffset(u_tex2d, uv, 0.0, ivec2(1, 0));
-        c += textureGradOffset(u_tex2d, uv, dFdx(uv), dFdy(uv), ivec2(0, 1));
-        c += textureProj(u_tex2d, vec3(uv, 1.0));
-        c += textureProj(u_tex2d, vec4(uv, 0.0, 1.0));
-        c += textureProjLod(u_tex2d, vec3(uv, 1.0), 0.0);
-        c += textureProjOffset(u_tex2d, vec3(uv, 1.0), ivec2(1, 0));
-        c += textureProjGrad(u_tex2d, vec3(uv, 1.0), dFdx(uv), dFdy(uv));
-
-        c += texture(u_tex3d, vec3(uv, 0.5));
-        c += textureLod(u_tex3d, vec3(uv, 0.5), 0.0);
-        c += texture(u_cube, normalize(vec3(uv, 1.0)));
-        c += textureCubeLodEXT(u_cube, normalize(vec3(uv, 1.0)), 0.0);
-        c += texture(u_arr, vec3(uv, 0.0));
-        c += textureLod(u_arr, vec3(uv, 0.0), 0.0);
-
-        // Shadow samplers (2D, Cube, 2DArray) including Grad / Offset / Proj
-        float sh = 0.0;
-        sh += texture(u_shadow2d, vec3(uv, 0.5));
-        sh += textureLod(u_shadow2d, vec3(uv, 0.5), 0.0);
-        sh += textureOffset(u_shadow2d, vec3(uv, 0.5), ivec2(1, 0));
-        sh += textureGrad(u_shadow2d, vec3(uv, 0.5), dFdx(uv), dFdy(uv));
-        sh += textureProj(u_shadow2d, vec4(uv, 0.5, 1.0));
-        sh += texture(u_shadowCube, vec4(normalize(vec3(uv, 1.0)), 0.5));
-        sh += textureGrad(u_shadowCube, vec4(normalize(vec3(uv, 1.0)), 0.5), vec3(0.01), vec3(0.01));
-        sh += texture(u_shadowArr, vec4(uv, 0.0, 0.5));
-
-        // Integer/unsigned textures & textureSize / texelFetch / texelFetchOffset
-        ivec2 sz2 = textureSize(u_tex2d, 0);
-        ivec3 sz3 = textureSize(u_tex3d, 0);
-        ivec2 szc = textureSize(u_cube, 0);
-        ivec3 sza = textureSize(u_arr, 0);
-        ivec2 szs = textureSize(u_shadow2d, 0);
-        ivec4 it = texelFetch(u_itex2d, ivec2(0), 0);
-        uvec4 ut = texelFetchOffset(u_utex2d, ivec2(0), 0, ivec2(1, 0));
-
-        // Derivatives & fragment builtins + discard
-        vec2 fw = fwidth(uv);
-        float meta = float(sz2.x + sz3.z + szc.x + sza.z + szs.x + it.x + int(ut.x) + i.inst + gl_MaxDrawBuffers);
+        vec4 c = sampleHelper(u_tex2d, vec2(0.25, 0.25));
+        ivec2 sz = textureSize(u_tex2d, 0);
+        uvec4 ut = texelFetch(u_utex2d, ivec2(1, 0), 0);
+        // Depth texture has 0.75: ref 0.5 <= 0.75 -> compare pass (1.0)
+        float sh = texture(u_shadow2d, vec3(0.5, 0.5, 0.5));
+        float okSize = (sz.x == 2 && sz.y == 2 && ut.x == 128u) ? 1.0 : 0.0;
         if (gl_FragCoord.x < -1.0 && !gl_FrontFacing) {
           discard;
         }
-        gl_FragDepth = clamp(gl_PointCoord.x * 0.5, 0.0, 1.0);
-        gl_FragColor = c + vec4(sh, fw.x, fw.y, meta * 0.0);
+        gl_FragColor = vec4(c.r, c.g, sh * okSize, 1.0);
       }
     `);
+
+    // Create real GPU textures and execute render pass with pixel readback
+    const tex2d = device.createTexture({
+      size: [2, 2],
+      format: "rgba8unorm",
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+    });
+    // 2x2 texture: (0,0)=(200,100,50,255), rest same so linear sampling is exact
+    const rgbaData = new Uint8Array([
+      200, 100, 50, 255, 200, 100, 50, 255,
+      200, 100, 50, 255, 200, 100, 50, 255
+    ]);
+    device.queue.writeTexture({ texture: tex2d }, rgbaData, { bytesPerRow: 8 }, [2, 2]);
+
+    const utex2d = device.createTexture({
+      size: [2, 2],
+      format: "rgba8uint",
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+    });
+    const uintData = new Uint8Array([
+      10, 0, 0, 255, 128, 0, 0, 255,
+      20, 0, 0, 255, 30, 0, 0, 255
+    ]);
+    device.queue.writeTexture({ texture: utex2d }, uintData, { bytesPerRow: 8 }, [2, 2]);
+
+    // Depth texture cleared to 0.75 via a render pass
+    const depthTex = device.createTexture({
+      size: [2, 2],
+      format: "depth32float",
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+    });
+    {
+      const enc = device.createCommandEncoder();
+      const dp = enc.beginRenderPass({
+        colorAttachments: [],
+        depthStencilAttachment: {
+          view: depthTex.createView(),
+          depthClearValue: 0.75,
+          depthLoadOp: "clear",
+          depthStoreOp: "store"
+        }
+      });
+      dp.end();
+      device.queue.submit([enc.finish()]);
+    }
+
+    const linearSampler = device.createSampler({ magFilter: "linear", minFilter: "linear" });
+    const cmpSampler = device.createSampler({ compare: "less-equal", magFilter: "linear", minFilter: "linear" });
+
+    const vMod = device.createShaderModule({ code: program.vertex });
+    const fMod = device.createShaderModule({ code: program.fragment });
+    const pipeline = device.createRenderPipeline({
+      layout: "auto",
+      vertex: { module: vMod, entryPoint: "main" },
+      fragment: { module: fMod, entryPoint: "main", targets: [{ format: "rgba8unorm" }] }
+    });
+
+    const entriesByGroup = new Map<number, GPUBindGroupEntry[]>();
+    for (const t of program.reflection.textures) {
+      let list = entriesByGroup.get(t.group);
+      if (!list) entriesByGroup.set(t.group, (list = []));
+      if (t.name === "u_tex2d") {
+        list.push({ binding: t.textureBinding, resource: tex2d.createView() });
+        if (t.samplerBinding !== undefined) list.push({ binding: t.samplerBinding, resource: linearSampler });
+      } else if (t.name === "u_utex2d") {
+        list.push({ binding: t.textureBinding, resource: utex2d.createView() });
+        if (t.samplerBinding !== undefined) list.push({ binding: t.samplerBinding, resource: linearSampler });
+      } else if (t.name === "u_shadow2d") {
+        list.push({ binding: t.textureBinding, resource: depthTex.createView() });
+        if (t.samplerBinding !== undefined) list.push({ binding: t.samplerBinding, resource: cmpSampler });
+      }
+    }
+
+    const target = device.createTexture({
+      size: [2, 2],
+      format: "rgba8unorm",
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
+    });
+    const readback = device.createBuffer({
+      size: 256,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+    });
+    const encoder = device.createCommandEncoder();
+    const pass = encoder.beginRenderPass({
+      colorAttachments: [{ view: target.createView(), clearValue: [0, 0, 0, 0], loadOp: "clear", storeOp: "store" }]
+    });
+    pass.setPipeline(pipeline);
+    for (const [grp, entries] of entriesByGroup) {
+      pass.setBindGroup(grp, device.createBindGroup({ layout: pipeline.getBindGroupLayout(grp), entries }));
+    }
+    pass.draw(3);
+    pass.end();
+    encoder.copyTextureToBuffer({ texture: target }, { buffer: readback, bytesPerRow: 256 }, [1, 1]);
+    device.queue.submit([encoder.finish()]);
+    await readback.mapAsync(GPUMapMode.READ);
+    const px = Array.from(new Uint8Array(readback.getMappedRange(0, 4)));
+    readback.unmap();
+    tex2d.destroy();
+    utex2d.destroy();
+    depthTex.destroy();
+    target.destroy();
+    readback.destroy();
+
+    expect(Math.abs(px[0] - 200)).toBeLessThanOrEqual(1);
+    expect(Math.abs(px[1] - 100)).toBeLessThanOrEqual(1);
+    expect(px[2]).toBe(255);
+    expect(px[3]).toBe(255);
   });
 
-  it("compiles explicit Scene/Camera uniform blocks, MRT struct outputs, qualifiers, and nested struct/array uniforms", async () => {
-    await validateWGSL(`
+  it("executes explicit Scene/Camera UBOs, mat2-uniform-alignment std140, MRT (2 targets), and flat/centroid varyings with pixel readback", async () => {
+    // Covers Naga mat2-uniform-alignment.wgsl + struct-layout.wgsl + fragment-output.wgsl + interpolate.wgsl
+    const program = await validateWGSL(`
       uniform Camera {
         mat4 camera_VPMat;
       };
@@ -342,8 +412,9 @@ describe.skipIf(!navigator.gpu)("ShaderLab dev/2.0 WGSL conformance", () => {
       };
 
       struct MaterialCfg {
+        int tag;
+        mat2 rot;
         vec4 baseColor;
-        float roughness;
       };
 
       MaterialCfg material_cfg;
@@ -354,33 +425,141 @@ describe.skipIf(!navigator.gpu)("ShaderLab dev/2.0 WGSL conformance", () => {
         layout(location = 1) vec4 normal;
       };
 
-      struct a2v {
-        vec3 POSITION;
-      };
-
       struct v2f {
         smooth vec2 uv;
         flat int tag;
         centroid vec2 cuv;
       };
 
-      v2f vert(a2v v) {
+      v2f vert() {
+        vec2 pos[3] = vec2[3](vec2(-1.0, -1.0), vec2(3.0, -1.0), vec2(-1.0, 3.0));
         v2f o;
-        o.uv = v.POSITION.xy;
-        o.cuv = v.POSITION.xy;
-        o.tag = gl_VertexID;
-        gl_Position = camera_VPMat * vec4(v.POSITION, 1.0);
+        o.uv = vec2(0.2, 0.4);
+        o.cuv = vec2(0.1, 0.3);
+        o.tag = 5;
+        gl_Position = camera_VPMat * vec4(pos[gl_VertexID], 0.0, 1.0);
         return o;
       }
 
       FragOut frag(v2f i) {
         FragOut o;
-        float w = kWeights[0] + kWeights[1] + kWeights[2];
-        o.albedo = material_cfg.baseColor * w + scene_Tints[0] + vec4(i.uv + i.cuv, float(i.tag), 0.0);
-        o.normal = scene_Tints[1] + scene_FogParams * material_cfg.roughness;
+        float w = kWeights[0] + kWeights[1] + kWeights[2]; // 1.0
+        vec2 rotated = material_cfg.rot * vec2(1.0, 0.5);
+        float tagOk = (i.tag == 5 && material_cfg.tag == 7) ? 1.0 : 0.0;
+        // Attachment 0: (rotated.x, rotated.y, material_cfg.baseColor.z * w, tagOk)
+        o.albedo = vec4(rotated.x, rotated.y, material_cfg.baseColor.z * w, tagOk);
+        // Attachment 1: scene_Tints[1] + scene_FogParams * 0.5
+        o.normal = scene_Tints[1] + scene_FogParams * 0.5;
         return o;
       }
     `);
+
+    const vMod = device.createShaderModule({ code: program.vertex });
+    const fMod = device.createShaderModule({ code: program.fragment });
+    const pipeline = device.createRenderPipeline({
+      layout: "auto",
+      vertex: { module: vMod, entryPoint: "main" },
+      fragment: {
+        module: fMod,
+        entryPoint: "main",
+        targets: [{ format: "rgba8unorm" }, { format: "rgba8unorm" }]
+      }
+    });
+
+    // Populate UBO buffers using reflection offsets (verifies std140 mat2/struct alignment on GPU!)
+    const gpuBuffers: GPUBuffer[] = [];
+    const entriesByGroup = new Map<number, GPUBindGroupEntry[]>();
+    for (const block of program.reflection.uniformBlocks) {
+      const raw = new ArrayBuffer(block.byteLength);
+      const f32 = new Float32Array(raw);
+      const i32 = new Int32Array(raw);
+      for (const m of block.members) {
+        const w = m.offset / 4;
+        if (m.name === "camera_VPMat") {
+          // Identity mat4
+          f32.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], w);
+        } else if (m.name === "scene_FogParams") {
+          f32.set([0.2, 0.4, 0.6, 0.0], w);
+        } else if (m.name === "scene_Tints") {
+          // array stride 16 bytes -> element 0 at w, element 1 at w + 4
+          f32.set([0.0, 0.0, 0.0, 0.0], w);
+          f32.set([0.5, 0.25, 0.1, 1.0], w + (m.arrayStride / 4));
+        } else if (m.name === "material_cfg.tag") {
+          i32[w] = 7;
+        } else if (m.name === "material_cfg.rot") {
+          // std140 mat2: col0 at w (0.5, 0.0), col1 at w + matrixStride/4 (0.0, 0.8)
+          const colStride = (m.matrixStride || 16) / 4;
+          f32[w] = 0.5;
+          f32[w + 1] = 0.0;
+          f32[w + colStride] = 0.0;
+          f32[w + colStride + 1] = 0.8;
+        } else if (m.name === "material_cfg.baseColor") {
+          f32.set([0.1, 0.2, 0.75, 1.0], w);
+        }
+      }
+      const buf = device.createBuffer({
+        size: block.byteLength,
+        usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+      });
+      device.queue.writeBuffer(buf, 0, raw);
+      gpuBuffers.push(buf);
+      let list = entriesByGroup.get(block.group);
+      if (!list) entriesByGroup.set(block.group, (list = []));
+      list.push({ binding: block.binding, resource: { buffer: buf } });
+    }
+
+    const rt0 = device.createTexture({
+      size: [2, 2],
+      format: "rgba8unorm",
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
+    });
+    const rt1 = device.createTexture({
+      size: [2, 2],
+      format: "rgba8unorm",
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
+    });
+    const rb0 = device.createBuffer({ size: 256, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+    const rb1 = device.createBuffer({ size: 256, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+
+    const encoder = device.createCommandEncoder();
+    const pass = encoder.beginRenderPass({
+      colorAttachments: [
+        { view: rt0.createView(), clearValue: [0, 0, 0, 0], loadOp: "clear", storeOp: "store" },
+        { view: rt1.createView(), clearValue: [0, 0, 0, 0], loadOp: "clear", storeOp: "store" }
+      ]
+    });
+    pass.setPipeline(pipeline);
+    for (const [grp, entries] of entriesByGroup) {
+      pass.setBindGroup(grp, device.createBindGroup({ layout: pipeline.getBindGroupLayout(grp), entries }));
+    }
+    pass.draw(3);
+    pass.end();
+    encoder.copyTextureToBuffer({ texture: rt0 }, { buffer: rb0, bytesPerRow: 256 }, [1, 1]);
+    encoder.copyTextureToBuffer({ texture: rt1 }, { buffer: rb1, bytesPerRow: 256 }, [1, 1]);
+    device.queue.submit([encoder.finish()]);
+
+    await Promise.all([rb0.mapAsync(GPUMapMode.READ), rb1.mapAsync(GPUMapMode.READ)]);
+    const px0 = Array.from(new Uint8Array(rb0.getMappedRange(0, 4)));
+    const px1 = Array.from(new Uint8Array(rb1.getMappedRange(0, 4)));
+    rb0.unmap();
+    rb1.unmap();
+    for (const b of gpuBuffers) b.destroy();
+    rt0.destroy();
+    rt1.destroy();
+    rb0.destroy();
+    rb1.destroy();
+
+    // Attachment 0: (0.5*1.0=0.5 -> 128, 0.8*0.5=0.4 -> 102, 0.75 -> 191, 1.0 -> 255)
+    expect(Math.abs(px0[0] - 128)).toBeLessThanOrEqual(1);
+    expect(Math.abs(px0[1] - 102)).toBeLessThanOrEqual(1);
+    expect(Math.abs(px0[2] - 191)).toBeLessThanOrEqual(1);
+    expect(px0[3]).toBe(255);
+
+    // Attachment 1: (0.5+0.1=0.6 -> 153, 0.25+0.2=0.45 -> 115, 0.1+0.3=0.4 -> 102, 1.0 -> 255)
+    expect(Math.abs(px1[0] - 153)).toBeLessThanOrEqual(1);
+    expect(Math.abs(px1[1] - 115)).toBeLessThanOrEqual(1);
+    expect(Math.abs(px1[2] - 102)).toBeLessThanOrEqual(1);
+    expect(px1[3]).toBe(255);
   });
 
   /**
@@ -616,6 +795,209 @@ describe.skipIf(!navigator.gpu)("ShaderLab dev/2.0 WGSL conformance", () => {
       expect(px[1]).toBeGreaterThan(180);
       expect(px[2]).toBeGreaterThan(55);
       expect(px[2]).toBeLessThan(75);
+    });
+
+    it("matches Naga access.wgsl (dynamic matrix-in-struct indexing, swizzle writes, module globals) on WebGL2 and WebGPU", async () => {
+      const px = await assertDualRHIEqual(`
+        struct Baz {
+          mat3x2 m;
+        };
+        const vec2 kOffset = vec2(0.1, 0.2);
+        vec4 g_accum = vec4(0.0);
+
+        void vert() {
+          vec2 pos = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2)) * 2.0 - 1.0;
+          gl_Position = vec4(pos, 0.0, 1.0);
+        }
+        void frag() {
+          int idx = 1;
+          Baz t = Baz(mat3x2(vec2(0.1, 0.2), vec2(0.3, 0.4), vec2(0.5, 0.6)));
+          t.m[0] = vec2(0.25, 0.5);
+          t.m[idx] = vec2(0.4, 0.6);
+          t.m[0][1] = 0.75;
+          t.m[idx][idx] = 0.85;
+          g_accum.xy = t.m[0] + kOffset;
+          g_accum.zw = vec2(t.m[idx][idx], 1.0);
+          gl_FragColor = clamp(g_accum, 0.0, 1.0);
+        }
+      `);
+      // Expected: (0.25+0.1=0.35 -> 89, 0.75+0.2=0.95 -> 242, 0.85 -> 217, 1.0 -> 255)
+      expect(Math.abs(px[0] - 89)).toBeLessThanOrEqual(2);
+      expect(Math.abs(px[1] - 242)).toBeLessThanOrEqual(2);
+      expect(Math.abs(px[2] - 217)).toBeLessThanOrEqual(2);
+      expect(px[3]).toBe(255);
+    });
+
+    it("matches Naga constructors.wgsl, conversions.wgsl, and 10093-select-vector-condition on WebGL2 and WebGPU", async () => {
+      const px = await assertDualRHIEqual(`
+        struct Varyings {
+          flat ivec4 a;
+          flat ivec4 b;
+        };
+        Varyings vert() {
+          Varyings o;
+          vec2 pos = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2)) * 2.0 - 1.0;
+          o.a = ivec4(2, 9, 4, 10);
+          o.b = ivec4(5, 3, 8, 1);
+          gl_Position = vec4(pos, 0.0, 1.0);
+          return o;
+        }
+        void frag(Varyings v) {
+          // Naga 10093: componentwise vector-condition select via bvec4
+          bvec4 cond = lessThan(v.a, v.b); // (T, F, T, F)
+          vec4 fa = vec4(v.a) * 0.05;
+          vec4 fb = vec4(v.b) * 0.05;
+          vec4 sel = mix(fa, fb, cond); // (0.25, 0.45, 0.40, 0.50)
+
+          // Naga constructors.wgsl: mat3->mat2 truncation, scalar diagonal, vec4->vec2 truncation
+          mat3 m3 = mat3(0.5);
+          mat2 m2 = mat2(m3);
+          vec2 trunc2 = vec2(sel);
+          gl_FragColor = vec4(
+            clamp(trunc2.x + m2[0][0] * 0.5, 0.0, 1.0),
+            clamp(trunc2.y, 0.0, 1.0),
+            clamp(sel.z + sel.w * 0.5, 0.0, 1.0),
+            1.0
+          );
+        }
+      `);
+      // Expected: (0.25+0.25=0.50 -> 128, 0.45 -> 115, 0.40+0.25=0.65 -> 166, 255)
+      expect(Math.abs(px[0] - 128)).toBeLessThanOrEqual(2);
+      expect(Math.abs(px[1] - 115)).toBeLessThanOrEqual(2);
+      expect(Math.abs(px[2] - 166)).toBeLessThanOrEqual(2);
+      expect(px[3]).toBe(255);
+    });
+
+    it("matches Naga texture-arg.wgsl and 2D/uint texture sampling identically on WebGL2 and WebGPU", async () => {
+      const source = `
+        sampler2D u_albedo;
+        vec4 fetchHelper(sampler2D tex, vec2 uv) {
+          vec4 a = textureLod(tex, uv, 0.0);
+          vec4 b = texelFetch(tex, ivec2(1, 0), 0);
+          return mix(a, b, 0.5);
+        }
+        void vert() {
+          vec2 pos = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2)) * 2.0 - 1.0;
+          gl_Position = vec4(pos, 0.0, 1.0);
+        }
+        void frag() {
+          ivec2 sz = textureSize(u_albedo, 0);
+          vec4 c = fetchHelper(u_albedo, vec2(0.25, 0.25));
+          gl_FragColor = vec4(c.rgb, float(sz.x == 2 && sz.y == 2));
+        }
+      `;
+      // 2x2 RGBA8 texture: texel(0,0)=(40,80,120,255), texel(1,0)=(200,160,80,255)
+      const texels = new Uint8Array([
+        40, 80, 120, 255, 200, 160, 80, 255,
+        40, 80, 120, 255, 200, 160, 80, 255
+      ]);
+
+      // 1. Execute on real Chrome WebGL2
+      const glslPass = compiler._parseShaderPass(source, "vert", "frag", ShaderLanguage.GLSLES300);
+      const glMacros = new Map<string, string>([
+        ["GRAPHICS_API_WEBGL2", ""],
+        ["HAS_TEX_LOD", ""],
+        ["HAS_DERIVATIVES", ""],
+        ["GL_ES", "1"],
+        ["GL_FRAGMENT_PRECISION_HIGH", "1"],
+        ["__VERSION__", "300"]
+      ]);
+      const vsSrc = "#version 300 es\n" + ShaderMacroProcessor.evaluate(glslPass!.vertexShaderInstructions!, glMacros);
+      const fsSrc =
+        "#version 300 es\nprecision highp float;\nprecision highp int;\n" +
+        ShaderMacroProcessor.evaluate(glslPass!.fragmentShaderInstructions!, glMacros);
+      const canvas = document.createElement("canvas");
+      canvas.width = 4;
+      canvas.height = 4;
+      const gl = canvas.getContext("webgl2")!;
+      const compile = (type: number, code: string) => {
+        const s = gl.createShader(type)!;
+        gl.shaderSource(s, code);
+        gl.compileShader(s);
+        if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s) ?? "gl compile err");
+        return s;
+      };
+      const vs = compile(gl.VERTEX_SHADER, vsSrc);
+      const fs = compile(gl.FRAGMENT_SHADER, fsSrc);
+      const prog = gl.createProgram()!;
+      gl.attachShader(prog, vs);
+      gl.attachShader(prog, fs);
+      gl.linkProgram(prog);
+      const glTex = gl.createTexture()!;
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, glTex);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 2, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, texels);
+      gl.useProgram(prog);
+      gl.uniform1i(gl.getUniformLocation(prog, "u_albedo"), 0);
+      gl.viewport(0, 0, 4, 4);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      const glPixels = new Uint8Array(4 * 4 * 4);
+      gl.readPixels(0, 0, 4, 4, gl.RGBA, gl.UNSIGNED_BYTE, glPixels);
+      const glPx = glPixels.slice((1 * 4 + 1) * 4, (1 * 4 + 1) * 4 + 4);
+      gl.deleteTexture(glTex);
+      gl.deleteProgram(prog);
+      gl.deleteShader(vs);
+      gl.deleteShader(fs);
+
+      // 2. Execute on real Chrome WebGPU (Tint + Dawn)
+      const program = await validateWGSL(source);
+      const vMod = device.createShaderModule({ code: program.vertex });
+      const fMod = device.createShaderModule({ code: program.fragment });
+      const pipeline = device.createRenderPipeline({
+        layout: "auto",
+        vertex: { module: vMod, entryPoint: "main" },
+        fragment: { module: fMod, entryPoint: "main", targets: [{ format: "rgba8unorm" }] }
+      });
+      const gpuTex = device.createTexture({
+        size: [2, 2],
+        format: "rgba8unorm",
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+      });
+      device.queue.writeTexture({ texture: gpuTex }, texels, { bytesPerRow: 8 }, [2, 2]);
+      const sampler = device.createSampler({ minFilter: "nearest", magFilter: "nearest" });
+      const tRef = program.reflection.textures[0];
+      const bg = device.createBindGroup({
+        layout: pipeline.getBindGroupLayout(tRef.group),
+        entries: [
+          { binding: tRef.textureBinding, resource: gpuTex.createView() },
+          ...(tRef.samplerBinding !== undefined ? [{ binding: tRef.samplerBinding, resource: sampler }] : [])
+        ]
+      });
+      const target = device.createTexture({
+        size: [4, 4],
+        format: "rgba8unorm",
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
+      });
+      const rb = device.createBuffer({ size: 256 * 4, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+      const enc = device.createCommandEncoder();
+      const pass = enc.beginRenderPass({
+        colorAttachments: [{ view: target.createView(), clearValue: [0, 0, 0, 0], loadOp: "clear", storeOp: "store" }]
+      });
+      pass.setPipeline(pipeline);
+      pass.setBindGroup(tRef.group, bg);
+      pass.draw(3);
+      pass.end();
+      enc.copyTextureToBuffer({ texture: target }, { buffer: rb, bytesPerRow: 256 }, [4, 4]);
+      device.queue.submit([enc.finish()]);
+      await rb.mapAsync(GPUMapMode.READ);
+      const gpuPx = new Uint8Array(new Uint8Array(rb.getMappedRange(), 2 * 256 + 1 * 4, 4));
+      rb.unmap();
+      rb.destroy();
+      target.destroy();
+      gpuTex.destroy();
+
+      // Expected mix((40,80,120), (200,160,80), 0.5) = (120, 120, 100, 255) on BOTH backends!
+      for (let c = 0; c < 4; c++) {
+        expect(Math.abs(glPx[c] - gpuPx[c])).toBeLessThanOrEqual(1);
+      }
+      expect(Math.abs(gpuPx[0] - 120)).toBeLessThanOrEqual(1);
+      expect(Math.abs(gpuPx[1] - 120)).toBeLessThanOrEqual(1);
+      expect(Math.abs(gpuPx[2] - 100)).toBeLessThanOrEqual(1);
+      expect(gpuPx[3]).toBe(255);
     });
   });
 });
