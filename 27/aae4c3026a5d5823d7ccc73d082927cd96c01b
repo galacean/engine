@@ -1,0 +1,31 @@
+packages/building/src/building/runtime/BuildingWallBakeUV.ts
+  s_c72f930c19d1f3::t_56ce1d575d6ba9 1,98-147
+  s_c72f930c19d1f3::t_1457a6d89e48f2 148
+packages/building/src/building/runtime/RawGlslInstructions.ts
+  s_c72f930c19d1f3::t_40ddb751d6e6c4 18-19
+packages/building/src/building/runtime/BuildingUnitWallUV.ts
+  s_c72f930c19d1f3::t_56ce1d575d6ba9 52
+  s_c72f930c19d1f3::t_3b876c46ae3679 57-66,93-96,115,126-127
+  s_c72f930c19d1f3::t_1470f9ac42f727 5-7,10,12,14-15,17,19-29,32-33,36-39,42,44-45,47-51,53-56,67-74,78-92,97-113,117-123,125,128-129,131,133,138-139,141,147-169,173,187
+packages/building/src/building/runtime/EngineResidentScene.ts
+  s_c72f930c19d1f3::t_57b1ce33b13125 4,320,483,643-653,657,659-660,1335,1404-1406,1408-1415,1417-1426,1428-1434,1454,1604,1606
+  s_c72f930c19d1f3::t_56ce1d575d6ba9 3
+packages/building/tests/BuildingUnitWallUV.spec.ts
+  s_c72f930c19d1f3::t_24fa005d539ce5 1-70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "27aae4c3026a5d5823d7ccc73d082927cd96c01b",
+  "prompts": {},
+  "sessions": {
+    "s_c72f930c19d1f3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21604-5ead-7042-b751-c18d1813c1a0",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
