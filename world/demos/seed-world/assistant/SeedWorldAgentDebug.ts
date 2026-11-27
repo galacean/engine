@@ -23,6 +23,7 @@ export interface SeedWorldAgentDebugApi {
   readonly enabled: boolean;
   readonly traceCount: number;
   enable(): void;
+  openPanel(): void;
   disable(): void;
   clear(): void;
   getCurrentTrace(): AgentTraceSnapshot | undefined;
@@ -95,6 +96,12 @@ class SeedWorldAgentDebugSurface implements SeedWorldAgentDebugController {
   enable(): void {
     this._store.setEnabled(true);
     this._mount();
+    this._refresh();
+  }
+
+  openPanel(): void {
+    this.enable();
+    if (this._panel) this._panel.style.display = "flex";
     this._refresh();
   }
 

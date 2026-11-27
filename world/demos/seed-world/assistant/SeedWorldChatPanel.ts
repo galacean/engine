@@ -121,6 +121,8 @@ const PANEL_HORIZONTAL_MARGIN = hudUnits(22);
 type VoiceHapticKind = "press" | "ready" | "release" | "error";
 
 const VOICE_LONG_PRESS_DELAY_MILLISECONDS = 260;
+export const VOICE_ORB_TRACE_TAP_COUNT = 5;
+export const VOICE_ORB_TRACE_TAP_WINDOW_MILLISECONDS = 800;
 
 const VOICE_HAPTIC_PATTERNS: Readonly<Record<VoiceHapticKind, number | readonly number[]>> = {
   press: 32,
@@ -1635,13 +1637,17 @@ class VoiceTranscriptPointer extends Script {
   }
 }
 
-class VoiceOrbPointer extends Script {
+/** @internal Exported so the voice-orb 5-tap trace gesture can be unit-tested directly. */
+export class VoiceOrbPointer extends Script {
   controller: SeedWorldVoiceHudController | undefined;
   layout: VoiceHudLayout | undefined;
   private _pendingPointerId: number | undefined;
   private _pendingDomPointerId: number | undefined;
   private _longPressTriggered = false;
   private _longPressTimer: ReturnType<typeof setTimeout> | undefined;
+  private readonly _eligibleClickPointerIds = new Set<number>();
+  private _traceTapCount = 0;
+  private _lastTraceTapAt = 0;
 
   private readonly _onWindowPointerEnd = (event: PointerEvent) => {
     if (this._pendingPointerId === undefined) return;
@@ -1655,11 +1661,16 @@ class VoiceOrbPointer extends Script {
 
   override onPointerDown(eventData: PointerEventData): void {
     const pointerId = eventData.pointer.id;
-    if (this._pendingPointerId !== undefined || this.controller?.listening) return;
+    if (this.controller?.listening) {
+      this._resetTraceTaps();
+      return;
+    }
+    if (this._pendingPointerId !== undefined) return;
     this._pendingPointerId = pointerId;
     const uniqueId = (eventData.pointer as { _uniqueID?: number })._uniqueID;
     this._pendingDomPointerId = typeof uniqueId === "number" ? uniqueId : undefined;
     this._longPressTriggered = false;
+    this._eligibleClickPointerIds.add(pointerId);
     this.layout?.setOrbPressState("holding");
     if (typeof window !== "undefined") {
       window.addEventListener("pointerup", this._onWindowPointerEnd, false);
@@ -1669,6 +1680,8 @@ class VoiceOrbPointer extends Script {
       this._longPressTimer = undefined;
       if (this._pendingPointerId !== pointerId) return;
       this._longPressTriggered = true;
+      this._eligibleClickPointerIds.delete(pointerId);
+      this._resetTraceTaps();
       this.layout?.setOrbPressState("active");
       this.controller?.handlePointerDown(pointerId);
     }, VOICE_LONG_PRESS_DELAY_MILLISECONDS);
@@ -1678,19 +1691,35 @@ class VoiceOrbPointer extends Script {
     this._endPending(eventData.pointer.id, "up");
   }
 
+  override onPointerClick(eventData: PointerEventData): void {
+    if (!this._eligibleClickPointerIds.delete(eventData.pointer.id)) return;
+    this._recordTraceTap();
+  }
+
   override onPointerEndDrag(eventData: PointerEventData): void {
     const pointer = eventData.pointer;
     this._endPending(pointer.id, pointer.phase === PointerPhase.Leave ? "cancel" : "end_drag");
+    // UIPointerEventEmitter.processUp fires onPointerClick before onPointerEndDrag.
+    // A pointer still marked eligible here ended off-orb or cancelled without clicking.
+    if (this._eligibleClickPointerIds.delete(pointer.id)) {
+      this._resetTraceTaps();
+    }
   }
 
   override onDestroy(): void {
     this._clearPendingState();
+    this._eligibleClickPointerIds.clear();
+    this._resetTraceTaps();
   }
 
   private _endPending(pointerId: number, kind: "up" | "end_drag" | "cancel"): void {
     if (this._pendingPointerId !== pointerId) return;
     const triggered = this._longPressTriggered;
     this._clearPendingState();
+    if (triggered || kind !== "up") {
+      this._eligibleClickPointerIds.delete(pointerId);
+      this._resetTraceTaps();
+    }
     if (!triggered) return;
     if (kind === "cancel") {
       this.controller?.handlePointerCancel(pointerId);
@@ -1703,6 +1732,24 @@ class VoiceOrbPointer extends Script {
     }
     if (kind === "end_drag") this.controller?.handlePointerEndDrag(pointerId);
     else this.controller?.handlePointerUp(pointerId);
+  }
+
+  private _recordTraceTap(): void {
+    const now = Date.now();
+    if (this._traceTapCount > 0 && now - this._lastTraceTapAt > VOICE_ORB_TRACE_TAP_WINDOW_MILLISECONDS) {
+      this._traceTapCount = 0;
+    }
+    this._traceTapCount += 1;
+    this._lastTraceTapAt = now;
+    if (this._traceTapCount >= VOICE_ORB_TRACE_TAP_COUNT) {
+      this._resetTraceTaps();
+      this.controller?.debug.openPanel();
+    }
+  }
+
+  private _resetTraceTaps(): void {
+    this._traceTapCount = 0;
+    this._lastTraceTapAt = 0;
   }
 
   private _clearPendingState(): void {
