@@ -1025,7 +1025,7 @@ export async function mountSeedWorldDemo(
       const { registerSeedWorldWaterStartupShaders } = await import(
         "@galacean/engine-water/world/SeedWorldWaterStartupShaders"
       );
-      registerSeedWorldWaterStartupShaders();
+      registerSeedWorldWaterStartupShaders({ includeOcean: true });
     };
     // Overlap startup shaders and farming scene setup while WorldPlanning.worker.ts
     // and planningSource.storage.initialize run without competing for CDN bandwidth.
@@ -1054,19 +1054,10 @@ export async function mountSeedWorldDemo(
         );
       }
       if (disposed) return;
-      if (templateUsesOcean) {
-        const { registerSeedWorldWaterStartupShaders } = await import(
-          "@galacean/engine-water/world/SeedWorldWaterStartupShaders"
-        );
-        registerSeedWorldWaterStartupShaders();
-      } else {
-        const { SEED_WORLD_WATER_SHADER_AOT_PROFILE_DEFINITIONS } = await import(
-          "@galacean/engine-water/world/SeedWorldWaterShaderAotProfiles"
-        );
-        for (const profile of SEED_WORLD_WATER_SHADER_AOT_PROFILE_DEFINITIONS) {
-          if (!profile.id.startsWith("ocean-")) profile.resolveShader();
-        }
-      }
+      const { registerSeedWorldWaterStartupShaders } = await import(
+        "@galacean/engine-water/world/SeedWorldWaterStartupShaders"
+      );
+      registerSeedWorldWaterStartupShaders({ includeOcean: templateUsesOcean });
       recordBootSpan("register startup shaders", startupShadersAt);
     })();
     void startupShadersTask.catch(() => {});
