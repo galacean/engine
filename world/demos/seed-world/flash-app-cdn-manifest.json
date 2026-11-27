@@ -402,6 +402,12 @@
       "size": 218269,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/22d00e9565a8ff36-stone_floor--stone_floor_normal.ktx2"
     },
+    "22d33c521a9fc1f3eb171ffeab13bb8a44a467c6b2c9a8b945287186de1cad6a": {
+      "examplePath": "assets/seed-world-tpl-low-poly-s0-bundle-22d33c52.bin",
+      "ext": ".bin",
+      "size": 5736919,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/22d33c521a9fc1f3-seed-world-tpl-low-poly-s0-bundle-22d33c52.bin"
+    },
     "22d92849417813b18368a1a20bf41489f86f763a851840e5dd55e9c0f5770fea": {
       "examplePath": "packages/building/src/building/assets/native/Meshes/decoration-window_gothic_3x1_dormer_glass.mesh",
       "ext": ".mesh",
@@ -444,11 +450,23 @@
       "size": 20976,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/241dcba7f4642cd4-brick.mesh"
     },
+    "255f3033d8ad8ab37e53a64b6700b34d51c79c021533ea3731e29ebe0bda9be4": {
+      "examplePath": "assets/seed-world-tpl-titan-wasteland-json-bundle-255f3033.bin",
+      "ext": ".bin",
+      "size": 688772,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/255f3033d8ad8ab3-seed-world-tpl-titan-wasteland-json-bundle-255f3033.bin"
+    },
     "2566bea861e00621a809f59430cd4b6a8d548dd75fb1703c5a9e326eb75e155c": {
       "examplePath": "packages/world-planning/src/integrations/terrain/rock-formation/lod-meshes/rock-22/lod1.glb",
       "ext": ".glb",
       "size": 15816,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/2566bea861e00621-lod1.glb"
+    },
+    "2793966aed65049bc905fd8e75891bcb1100ec04a0597c98898f202877c83092": {
+      "examplePath": "assets/seed-world-tpl-titan-wasteland-s0-bundle-2793966a.bin",
+      "ext": ".bin",
+      "size": 5110085,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/2793966aed65049b-seed-world-tpl-titan-wasteland-s0-bundle-2793966a.bin"
     },
     "28baaf000313ace27abe284bb23724232d76977069d21f29130f3bca473d15a2": {
       "examplePath": "packages/terrain/src/data/seed-world/public/Texture/99437d6e68062de5.ktx2",
@@ -876,6 +894,12 @@
       "size": 1674888,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/4a81847b6c0235e4-pink-tree-4a81847b.glb"
     },
+    "4ac6dd6be7e00da51d580b7f55b067e952add23919a5a369356604cfe61741ee": {
+      "examplePath": "assets/seed-world-tpl-oil-paint-s0-bundle-4ac6dd6b.bin",
+      "ext": ".bin",
+      "size": 7716380,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/4ac6dd6be7e00da5-seed-world-tpl-oil-paint-s0-bundle-4ac6dd6b.bin"
+    },
     "4b35e8ce93a3b056a53d7e414c568ed621a68d9cc6c28128c34af8474bd09c2d": {
       "examplePath": "assets/seed-world-project-text-bundle-4b35e8ce.json",
       "ext": ".json",
@@ -1068,6 +1092,12 @@
       "size": 27988,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/583d2268452241a3-lod2.glb"
     },
+    "585cdc452f6b7c49fd3910216922853d150846973312222bf02b3a541f4e7716": {
+      "examplePath": "assets/seed-world-tpl-sakura-pearl-s0-bundle-585cdc45.bin",
+      "ext": ".bin",
+      "size": 5722929,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/585cdc452f6b7c49-seed-world-tpl-sakura-pearl-s0-bundle-585cdc45.bin"
+    },
     "58ccb3999b03226c8b9c76db49e20991dcfe0084bebfc8479033bf10a6a04558": {
       "examplePath": "assets/seed-world-project-text-bundle-58ccb399.json",
       "ext": ".json",
@@ -1085,6 +1115,12 @@
       "ext": ".wav",
       "size": 926444,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/5a17fbaf00364e53-leaves-5a17fbaf.wav"
+    },
+    "5a8acaed08694a76756033da3d5126f29ea48ed151c6128d149898a391c273a4": {
+      "examplePath": "assets/seed-world-building-tex-bundle-5a8acaed.bin",
+      "ext": ".bin",
+      "size": 5884569,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/5a8acaed08694a76-seed-world-building-tex-bundle-5a8acaed.bin"
     },
     "5bbc9087fb70780cfad3e6e89eadcf28fa495f068ef8685fb7f6b7a7f7cb7938": {
       "examplePath": "packages/terrain/src/data/seed-world/public/textures/terrain-mud-2.png",
@@ -1229,6 +1265,12 @@
       "ext": ".glb",
       "size": 10000,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/6912018987a62869-pine.glb"
+    },
+    "6948ce972ea6b0ffb79e36e1db0187781ad0ec0e9947e75fd0ba76671e22460b": {
+      "examplePath": "assets/seed-world-tpl-sakura-pearl-s1-bundle-6948ce97.bin",
+      "ext": ".bin",
+      "size": 5724626,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/6948ce972ea6b0ff-seed-world-tpl-sakura-pearl-s1-bundle-6948ce97.bin"
     },
     "69cf776a29daf0981a67e90382fe7dc449ed7b6c0670cf2726bb3231e8fdb896": {
       "examplePath": "packages/world-planning/src/assets/low-poly/barn.glb",
@@ -1379,6 +1421,12 @@
       "ext": ".bin",
       "size": 5695363,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/734410a570426693-seed-world-tpl-low-poly-s0-bundle-734410a5.bin"
+    },
+    "73c0988da574c23fdbe94889dba4593baf198a932aa0f058a1f51d94ea4ae192": {
+      "examplePath": "assets/seed-world-common-bin-bundle-73c0988d.bin",
+      "ext": ".bin",
+      "size": 714453,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/73c0988da574c23f-seed-world-common-bin-bundle-73c0988d.bin"
     },
     "747b713e543525a47bae3d9d6df60eb6e9f686ec5ead8d3eb0518dd09e111d19": {
       "examplePath": "packages/world-planning/src/integrations/terrain/rock-formation/lod-meshes/rock-22/lod2.glb",
@@ -1722,6 +1770,12 @@
       "size": 628201,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/91b93b170f25b192-radish-farmlands.ktx2"
     },
+    "91ce9ddc1abc21c44e70689d130770bccbc72dbaf94207541863100f8a1e78a8": {
+      "examplePath": "assets/seed-world-tpl-emerald-forest-s0-bundle-91ce9ddc.bin",
+      "ext": ".bin",
+      "size": 7156815,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/91ce9ddc1abc21c4-seed-world-tpl-emerald-forest-s0-bundle-91ce9ddc.bin"
+    },
     "9310c4a53b73b8a0ea998a67989e75989b19f43e51c0dda32aebbee99cbac8bb": {
       "examplePath": "packages/world-planning/src/assets/low-poly/pine.glb",
       "ext": ".glb",
@@ -1853,6 +1907,12 @@
       "ext": ".shaderc",
       "size": 446691,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/a372fef73275d7da-Grass.shaderc"
+    },
+    "a3864ecb1850a5313f36368417cdbe58090bbb5864259fd41396bf82c160e99f": {
+      "examplePath": "assets/seed-world-tpl-original-s0-bundle-a3864ecb.bin",
+      "ext": ".bin",
+      "size": 5578392,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/a3864ecb1850a531-seed-world-tpl-original-s0-bundle-a3864ecb.bin"
     },
     "a3bfd8865c1245e085ad9d621857ce3fa6e5e31282edfa7111f9c792f728be9d": {
       "examplePath": "packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc",
@@ -2088,6 +2148,12 @@
       "size": 8184,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/b9c91cf6019096bd-grass-2-small.glb"
     },
+    "ba3e0b45ba2f6f088e50cc0bd4a5c3085da4ae5c07e7f59a938ce0b6e5936f2d": {
+      "examplePath": "assets/seed-world-tpl-original-s1-bundle-ba3e0b45.bin",
+      "ext": ".bin",
+      "size": 5579941,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/ba3e0b45ba2f6f08-seed-world-tpl-original-s1-bundle-ba3e0b45.bin"
+    },
     "ba45b31a2ee59a602b323a141478d6e5ccb2b617e2830f7ad9e3aafef82bc586": {
       "examplePath": "packages/building/src/building/assets/native/Meshes/balcony_door_gothic_rank3_hat.mesh",
       "ext": ".mesh",
@@ -2255,6 +2321,12 @@
       "ext": ".mesh",
       "size": 21812,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/c64eff863efa53bd-stone-frame--window_gothic_1x1_dormer.mesh"
+    },
+    "c72c7e05fba1d2b8603d8775c473fbdadd56945192dee3de4182b9556cf12607": {
+      "examplePath": "assets/seed-world-tpl-emerald-forest-s1-bundle-c72c7e05.bin",
+      "ext": ".bin",
+      "size": 7156216,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/c72c7e05fba1d2b8-seed-world-tpl-emerald-forest-s1-bundle-c72c7e05.bin"
     },
     "c75e190f7f63b6660bd9ed45d2098e490f00c2b76d3a8ba7cbe849cb6bbe55e2": {
       "examplePath": "packages/building/src/building/assets/native/Shaders/sdf-brick_roof_clip.shaderc",
