@@ -1,0 +1,18 @@
+packages/animals/src/gameplay/animal/ConfiguredAnimal.ts
+  h_171a11afaf879a 1088
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime.ts
+  h_171a11afaf879a 1213,1228
+world/tests/seed-world/AnimalPathfindingPerfInvariants.spec.ts
+  h_171a11afaf879a 13,609-648
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "38735942bd308a0547c0ac36e697b26351668299",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
