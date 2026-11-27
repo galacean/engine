@@ -1,0 +1,18 @@
+world/demos/seed-world/assistant/SeedWorldAgentDebug.ts
+  h_ddbf152d31b140 26,102-107
+world/demos/seed-world/assistant/SeedWorldChatPanel.ts
+  h_ddbf152d31b140 124-125,1640-1641,1648-1650,1664-1668,1673,1683-1684,1694-1698,1702-1706,1711-1712,1719-1722,1737-1754
+world/tests/seed-world/SeedWorldAgentDebug.spec.ts
+  h_ddbf152d31b140 1-310
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2194cf176f32d6795039e49f06e6c9807e1200b6",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
