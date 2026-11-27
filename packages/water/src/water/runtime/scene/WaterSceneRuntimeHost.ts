@@ -1,4 +1,5 @@
-import { Camera, Entity, Layer, MeshRenderer, type Engine, type Scene } from "@galacean/engine-core";
+import { WorldLayer } from "@galacean/engine-project/rendering/WorldLayer";
+import { Camera, Entity, type Layer, MeshRenderer, type Engine, type Scene } from "@galacean/engine-core";
 import { BoundingFrustum, Matrix, type BoundingBox } from "@galacean/engine-math";
 import type { WaterBodyAsset } from "../../authoring/body/WaterBodyAsset";
 import type { WaterBodySourceV1 } from "../../authoring/body/WaterBodyAuthoringTypes";
@@ -405,7 +406,7 @@ export class WaterSceneRuntimeHost {
     }
     this._maximumConcurrentBodyPreparations = maximumConcurrentBodyPreparations;
     this._yieldBetweenBodyPreparationBatches = options.yieldBetweenBodyPreparationBatches === true;
-    this._root.layer = options.waterLayer ?? Layer.Layer30;
+    this._root.layer = options.waterLayer ?? WorldLayer.Water;
     this._cameraFeatures = new CameraWaterFeatureBroker(options.camera);
     const assets = this._assets;
     const world = this._world;

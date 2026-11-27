@@ -1,9 +1,10 @@
+import { WorldLayer } from "@galacean/engine-project/rendering/WorldLayer";
 import {
   BackgroundMode,
   Camera,
   CameraClearFlags,
   Color,
-  Layer,
+  type Layer,
   RenderTarget,
   Shader,
   Texture2D,
@@ -15,7 +16,7 @@ import {
 import heightSource from "@galacean/engine-terrain/shaders/terrain/TerrainHeight.glsl?raw";
 import type { Observer } from "../spatial/guidance/VisibilityQuery";
 
-export const PLANNING_TERRAIN_LAYER = Layer.Layer30;
+export const PLANNING_TERRAIN_LAYER = WorldLayer.PlanningTerrainDepth;
 export const PLANNING_DEPTH_FAR_M = 12000;
 /** Uses the production vertex function, residency and renderer uniforms. No second terrain geometry. */
 const source = `Shader "Planning/TerrainDepth" {

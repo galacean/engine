@@ -1,5 +1,6 @@
+import { WorldLayer } from "@galacean/engine-project/rendering/WorldLayer";
 import { createFarmlandsWaterResourceFactories } from "@galacean/engine-water/water/resources/river/FarmlandsWaterRuntimeResources";
-import { Camera, Layer, type Engine, type Entity } from "@galacean/engine";
+import { Camera, type Engine, type Entity } from "@galacean/engine";
 import {
   createWaterBodyAsset,
   createWaterBodyInstance,
@@ -56,8 +57,8 @@ export class PlanningWaterView {
       root,
       camera,
       scene,
-      waterLayer: Layer.Layer29,
-      reflection: { cullingMask: camera.cullingMask, waterLayerMask: Layer.Layer29 },
+      waterLayer: WorldLayer.Water,
+      reflection: { cullingMask: camera.cullingMask, waterLayerMask: WorldLayer.Water },
       maximumConcurrentBodyPreparations: 2,
       cacheEntryLimit: 4
     });

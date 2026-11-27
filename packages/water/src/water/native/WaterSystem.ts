@@ -1,6 +1,7 @@
+import { WorldLayer } from "@galacean/engine-project/rendering/WorldLayer";
 import { RiverCompileWorkerClient } from "../runtime/river/RiverCompileWorkerClient";
 import { isWaterBuiltinShader } from "./WaterBuiltinShaders";
-import { Camera, ignoreClone, Layer, Script, type Entity, type Scene } from "@galacean/engine-core";
+import { Camera, ignoreClone, Script, type Entity, type Scene } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { createWaterBodyAsset } from "../authoring/body/WaterBodyAsset";
 import { createWaterBodyInstance } from "../authoring/body/WaterBodyInstance";
@@ -1156,8 +1157,8 @@ export class WaterSystem extends Script implements WaterRuntimeControl {
       root,
       scene: this.entity.scene!,
       camera: this.camera,
-      waterLayer: Layer.Layer30,
-      reflection: { cullingMask: this.camera.cullingMask, waterLayerMask: Layer.Layer30 },
+      waterLayer: WorldLayer.Water,
+      reflection: { cullingMask: this.camera.cullingMask, waterLayerMask: WorldLayer.Water },
       ...this._runtimeOptions
     });
     this._environment = host.createEnvironmentReflectionProvider({

@@ -14,7 +14,7 @@ import {
 export interface SeedWorldMasonryShaderWarmupHandle {
   readonly renderers?: readonly Renderer[];
   readonly extraMaterials?: ReadonlyMap<Renderer, readonly Material[]>;
-  readonly decorationPointLightBudget?: number;
+  getPointLightWarmup?(): NonNullable<SeedWorldRendererWarmupOptions["buildingPointLights"]>;
   dispose(): void;
 }
 
@@ -311,7 +311,7 @@ export async function runSeedWorldStartupShaderWarmup(
     if (prepareSecondaryInStartup || precompileCoreMasonry) {
       rockGrassWarmup = deps.prepareRockGrassShaderWarmup?.();
     }
-    const startupMasonryPointLightBudget = masonryWarmup?.decorationPointLightBudget;
+    const getStartupPointLightWarmup = masonryWarmup?.getPointLightWarmup;
     deps.progress(0.98, "预编译场景渲染变体");
     const assistant = !deferSecondaryPrep && deps.showAssistant ? deps.prepareAssistantPresentation() : undefined;
     const includeInactiveRoots = deps.getIncludeInactiveRoots?.();
@@ -347,7 +347,7 @@ export async function runSeedWorldStartupShaderWarmup(
     } as const;
     const buildFullWarmupOptions = (handles: {
       masonry?: SeedWorldMasonryShaderWarmupHandle;
-      masonryPointLightBudget?: number;
+      getPointLightWarmup?: SeedWorldMasonryShaderWarmupHandle["getPointLightWarmup"];
       animal?: SeedWorldAnimalShaderWarmupHandle;
       vegetation?: SeedWorldVegetationShaderWarmupHandle;
       rockGrass?: SeedWorldVegetationShaderWarmupHandle;
@@ -362,7 +362,6 @@ export async function runSeedWorldStartupShaderWarmup(
         handles.masonry?.extraMaterials,
         handles.animal?.extraMaterials
       );
-      const pointLightBudget = handles.masonry?.decorationPointLightBudget ?? handles.masonryPointLightBudget;
       return {
         ...baseWarmupOptions,
         ...(handles.overlayRenderers !== undefined ? { overlayRenderers: handles.overlayRenderers } : {}),
@@ -372,7 +371,7 @@ export async function runSeedWorldStartupShaderWarmup(
         additionalRenderers: additionalRenderers.length ? additionalRenderers : undefined,
         additionalInstancedRenderers: handles.vegetation?.renderers,
         additionalRendererMaterials,
-        additionalPointLightCounts: pointLightBudget ? [pointLightBudget] : undefined
+        buildingPointLights: (handles.masonry?.getPointLightWarmup ?? handles.getPointLightWarmup)?.()
       } as const;
     };
     const collectDeferredBackgroundVariants = (): readonly SeedWorldShaderVariantEntry[] => {
@@ -394,7 +393,7 @@ export async function runSeedWorldStartupShaderWarmup(
     // Compile 100% of prioritized spawn-frame visible variants before reveal (never truncated),
     // and defer secondary template variants (offscreen renderers, offscreen masonry LOD0/LOD1,
     // steady-state masonry entrance-OFF partners, unmaterialized vegetation species,
-    // SCENE_POINT_LIGHT_COUNT=4, masonry LOD dither, PhotoCopy/LiquidGlassMask, CRUD reveal/deferred
+    // other reachable point-light counts, masonry LOD dither, PhotoCopy/LiquidGlassMask, CRUD reveal/deferred
     // effects) to post-reveal warmup.
     // Keep synchronous full-set warmup only when `agentTrace=1` requests full audit receipts.
     if (deferSecondary) {
@@ -600,7 +599,7 @@ export async function runSeedWorldStartupShaderWarmup(
             return computeSecondaryVariants(
               buildFullWarmupOptions({
                 masonry: deferredMasonry,
-                masonryPointLightBudget: startupMasonryPointLightBudget,
+                getPointLightWarmup: getStartupPointLightWarmup,
                 animal: deferredAnimal,
                 vegetation: deferredVegetation,
                 rockGrass: deferredRockGrass,

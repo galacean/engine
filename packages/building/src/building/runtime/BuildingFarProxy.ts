@@ -1,3 +1,4 @@
+import { WorldLayer } from "@galacean/engine-project/rendering/WorldLayer";
 import {
   BoundingBox,
   Buffer,
@@ -1116,6 +1117,7 @@ export function createBuildingFarProxy(
   mesh.bounds = new BoundingBox(new Vector3(minX, minY, minZ), new Vector3(maxX, maxY, maxZ));
 
   const root = parent.createChild("Far proxy surfaces");
+  root.layer = WorldLayer.Building;
   root.isActive = false;
   const renderer = root.addComponent(MeshRenderer);
   renderer.mesh = mesh;

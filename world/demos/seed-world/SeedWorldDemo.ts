@@ -2860,9 +2860,7 @@ export async function mountSeedWorldDemo(
                 additionalRenderers: additionalRenderers.length ? additionalRenderers : undefined,
                 additionalInstancedRenderers: vegetationWarmup?.renderers,
                 additionalRendererMaterials: masonryWarmup?.extraMaterials,
-                additionalPointLightCounts: masonryWarmup?.decorationPointLightBudget
-                  ? [masonryWarmup.decorationPointLightBudget]
-                  : undefined,
+                buildingPointLights: masonryWarmup?.getPointLightWarmup(),
                 includeGpuInstancing: true,
                 onlySharedMeshGpuInstancing: true,
                 includeLodDither: false,
