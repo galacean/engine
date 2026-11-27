@@ -16,6 +16,7 @@ import {
 } from "@galacean/engine";
 import {
   collectSeedWorldRendererVariants,
+  hasParallelShaderCompile,
   warmupSeedWorldShaderVariants,
   withSeedWorldGenerationRevealVariants
 } from "@galacean/engine-world-planning/world/SeedWorldShaderWarmup";
@@ -2571,5 +2572,113 @@ describe("renderer warmup scope", () => {
     expect(raymarchUber[0]!.macros.some((m) => m.n === "ENABLE_EFFECT_VOLUMETRIC_LIGHT")).toBe(true);
     expect(raymarchUber[0]!.macros.some((m) => m.n === "VOLUMETRIC_LIGHT_RAYMARCH")).toBe(true);
     expect(raymarchPrimary.some((v) => v.shader === "PostProcess/OilPaint")).toBe(false);
+  });
+
+  it("selects WebGPU parallel PSO prewarm, skips WebGL2-only TF variants, and passes primitive/shaderData specialization", async () => {
+    const webgpuEngine = {
+      _macroCollection: new ShaderMacroCollection(),
+      _hardwareRenderer: {
+        backend: "webgpu",
+        supportsRendering: true,
+        supportsCompute: true,
+        supportsTransformFeedback: false,
+        capability: { maxAntiAliasing: 4 }
+      }
+    } as any;
+    const webglNoExtEngine = {
+      _hardwareRenderer: {
+        backend: "webgl2",
+        gl: { getExtension: () => null }
+      }
+    } as any;
+
+    expect(hasParallelShaderCompile(webgpuEngine)).toBe(true);
+    expect(hasParallelShaderCompile(webglNoExtEngine)).toBe(false);
+
+    const prewarmSpy = vi.fn(async () => {});
+    const getProgramSpy = vi.fn(() => ({
+      isValid: true,
+      _platformProgram: { prewarm: prewarmSpy }
+    }));
+    const resolvedState = { tag: "resolved-render-state" };
+    const forwardPass = {
+      getTagValue: () => "Forward",
+      _getShaderProgram: getProgramSpy,
+      _renderState: { _resolve: () => resolvedState },
+      _renderStateDataMap: {}
+    };
+    const tfPass = {
+      getTagValue: () => "TransformFeedback",
+      _getShaderProgram: vi.fn()
+    };
+    const mockShader = {
+      name: "Test/WebGPURhiWarmup",
+      destroyed: false,
+      subShaders: [{ passes: [forwardPass, tfPass] }]
+    };
+
+    const findSpy = vi.spyOn(Shader, "find").mockImplementation((name: string) => {
+      if (name === "Test/WebGPURhiWarmup") return mockShader as any;
+      return null as any;
+    });
+
+    try {
+      const fakePrimitive = {
+        vertexElements: [{ attribute: "NORMAL" }],
+        _getShaderInputs: () => ({ key: "6:NORMAL:float", types: { NORMAL: "float" } })
+      };
+      const fakeSubMesh = { topology: 4 };
+      const materialShaderData = { _macroCollection: new ShaderMacroCollection() };
+      const material = {
+        instanceId: 42,
+        destroyed: false,
+        shader: mockShader,
+        shaderData: materialShaderData
+      };
+      const meshRenderer = Object.create(MeshRenderer.prototype);
+      Object.defineProperties(meshRenderer, {
+        entity: { value: { isActiveInHierarchy: true } },
+        shaderData: { value: { _macroCollection: new ShaderMacroCollection() } },
+        mesh: { value: { _primitive: fakePrimitive, subMeshes: [fakeSubMesh] } },
+        enabled: { value: true },
+        castShadows: { value: false },
+        _update: { value: () => {} },
+        getMaterials: { value: () => [material] }
+      });
+
+      const scene = { shaderData: { _macroCollection: new ShaderMacroCollection() }, background: { mode: 0 } } as any;
+      const camera = {
+        _updateShaderData() {},
+        shaderData: { _macroCollection: new ShaderMacroCollection() },
+        _isIndependentCanvasEnabled: () => false
+      } as any;
+      const root = {
+        getComponentsIncludeChildren(_type: unknown, output: unknown[]) {
+          output.length = 0;
+          output.push(meshRenderer);
+        }
+      } as any;
+
+      const variants = collectSeedWorldRendererVariants(webgpuEngine, scene, camera, [root], {
+        includeGpuInstancing: false
+      });
+      // WebGPU skips TransformFeedback pass (pi=1) and only keeps Forward pass (pi=0)
+      expect(variants).toHaveLength(1);
+      expect(variants[0]!.pi).toBe(0);
+
+      const report = await warmupSeedWorldShaderVariants(webgpuEngine, variants, { strict: true });
+      expect(report.compiled).toBe(1);
+      expect(report.parallelCompileSupported).toBe(true);
+      expect(report.issues).toEqual([]);
+      // Passed real primitive and material/renderer shaderData so WebGPU cache specialization matches draw time
+      expect(getProgramSpy).toHaveBeenCalledTimes(1);
+      expect(getProgramSpy.mock.calls[0]![3]).toBe(fakePrimitive);
+      expect(getProgramSpy.mock.calls[0]![5]).toBe(materialShaderData);
+      // Invoked async PSO prewarm with primitive, subMesh, target, resolved renderState, frontFaceInvert
+      expect(prewarmSpy).toHaveBeenCalledTimes(1);
+      expect(prewarmSpy).toHaveBeenCalledWith(fakePrimitive, fakeSubMesh, null, resolvedState, false);
+    } finally {
+      findSpy.mockRestore();
+    }
   });
 });

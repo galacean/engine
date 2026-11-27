@@ -846,8 +846,14 @@ export async function mountSeedWorldDemo(
     let parallelCompileSupported = false;
     if (engine._hardwareRenderer.backend === "webgpu") {
       const gpu = engine._hardwareRenderer as WebGPUGraphicDevice;
+      parallelCompileSupported = true;
       seedWorldBootTrace.setMeta({
-        device: { backend: "webgpu", gpuVendor: gpu.adapter.info?.vendor, gpuRenderer: gpu.renderer }
+        device: {
+          backend: "webgpu",
+          gpuVendor: gpu.adapter.info?.vendor,
+          gpuRenderer: gpu.renderer,
+          parallelShaderCompile: true
+        }
       });
       seedWorldBootTrace.event("info", "webgpu", gpu.renderer, `maxTextureDimension2D=${gpu.device.limits.maxTextureDimension2D}`);
     } else {

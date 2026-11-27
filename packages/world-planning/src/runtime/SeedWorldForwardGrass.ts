@@ -3,6 +3,8 @@ import {
   Buffer,
   BufferBindFlag,
   BufferUsage,
+  ComputeShader,
+  EngineEventType,
   VertexBufferBinding,
   VertexElement,
   VertexElementFormat,
@@ -17,7 +19,6 @@ import {
   Shader,
   ShaderData,
   ShaderDataGroup,
-  ShaderLanguage,
   ShaderPass,
   Texture2D,
   TextureFilterMode,
@@ -83,6 +84,7 @@ const LOD3_MIN_DISTANCE_METRES = 40;
 const LOD3_MIN_SPAN_AFTER_LOD2_METRES = 24;
 
 const TF_SHADER_NAME = "SeedWorld/ForwardGrassTF";
+const COMPUTE_SHADER_NAME = "SeedWorld/ForwardGrassCompute";
 const TF_VARYINGS = ["v_PositionRotation", "v_Scale", "v_SurfaceWeights", "v_TerrainNormal"];
 
 const EMPTY_INPUTS: never[] = [];
@@ -90,9 +92,7 @@ const EMPTY_GROUPS = new Float32Array(0);
 
 const RendererShaderData = ShaderData as unknown as new (group: ShaderDataGroup) => ShaderData;
 
-const TF_SHADER_SOURCE = `Shader "${TF_SHADER_NAME}" {
-  SubShader "Default" {
-    Pass "ForwardGrassTF" {
+const FORWARD_GRASS_SHARED_GLSL = `
       sampler2D u_TerrainTex;
       sampler2D u_MaskTex;
       vec4 u_GrassParams[8];
@@ -111,10 +111,6 @@ const TF_SHADER_SOURCE = `Shader "${TF_SHADER_NAME}" {
       #define u_Frustum3 u_Frustum[3]
       #define u_Frustum4 u_Frustum[4]
       #define u_Frustum5 u_Frustum[5]
-
-      struct Attributes {
-        float a_GrassGroup;
-      };
 
       struct Varyings {
         vec4 v_PositionRotation;
@@ -160,9 +156,7 @@ const TF_SHADER_SOURCE = `Shader "${TF_SHADER_NAME}" {
         return true;
       }
 
-      Varyings vert(Attributes a) {
-        gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
-        int cellIndex = int(a.a_GrassGroup) + (gl_VertexID & 7) + ((gl_VertexID >> 3) << 10);
+      Varyings evalForwardGrassCell(int cellIndex) {
         ivec2 cell = ivec2(u_WindowOriginSize.xy / u_LodParams.x) + ivec2(cellIndex & 1023, cellIndex >> 10);
 
         uint baseSeed = forwardGrassCellHash(cell);
@@ -190,9 +184,6 @@ const TF_SHADER_SOURCE = `Shader "${TF_SHADER_NAME}" {
           return emitCulled();
         }
 
-        // Ring 0 <-> Ring 1 share the exact 0.25m world lattice, so staggered distance jitter
-        // swaps each clump in-place at its identical position/yaw/scale over a 10m band.
-        // Ring 1 <-> Ring 2 use different lattice steps (0.25m vs 0.50m), so they crossfade smoothly in scale.
         float ringLod = u_GridRect.w;
         float lodBlendScale = 1.0;
         if (ringLod < 0.5) {
@@ -245,9 +236,8 @@ const TF_SHADER_SOURCE = `Shader "${TF_SHADER_NAME}" {
           return emitCulled();
         }
 
-        // Toroidal physical addressing lets incremental 4m strips update edges without full-window copies.
         vec2 maskUV = (mod(worldXZ, u_WindowOriginSize.w) + vec2(0.5)) * u_WindowOriginSize.z;
-        vec4 maskSample = texture(u_MaskTex, maskUV);
+        vec4 maskSample = textureLod(u_MaskTex, maskUV, 0.0);
         if (maskSample.r <= 0.0005) {
           return emitCulled();
         }
@@ -312,6 +302,22 @@ const TF_SHADER_SOURCE = `Shader "${TF_SHADER_NAME}" {
         o.v_TerrainNormal = normalize(vec3(nx, ny, nz));
         return o;
       }
+`;
+
+const TF_SHADER_SOURCE = `Shader "${TF_SHADER_NAME}" {
+  SubShader "Default" {
+    Pass "ForwardGrassTF" {
+      ${FORWARD_GRASS_SHARED_GLSL}
+
+      struct Attributes {
+        float a_GrassGroup;
+      };
+
+      Varyings vert(Attributes a) {
+        gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
+        int cellIndex = int(a.a_GrassGroup) + (gl_VertexID & 7) + ((gl_VertexID >> 3) << 10);
+        return evalForwardGrassCell(cellIndex);
+      }
 
       void frag() {
         gl_FragColor = vec4(0.0);
@@ -322,6 +328,61 @@ const TF_SHADER_SOURCE = `Shader "${TF_SHADER_NAME}" {
     }
   }
 }`;
+
+const COMPUTE_SHADER_SOURCE = `ComputeShader "${COMPUTE_SHADER_NAME}" {
+  WorkgroupSize = (64, 1, 1);
+  ComputeKernel = csMain;
+
+  int u_GroupOffset;
+
+  ${FORWARD_GRASS_SHARED_GLSL}
+
+  readonly storage CandidateGroupsBuf {
+    float candidateGroups[];
+  };
+
+  storage OutGrassTransformsBuf {
+    float outTransforms[];
+  };
+
+  void csMain() {
+    uint groupIdx = gl_WorkGroupID.x;
+    uint localCell = gl_LocalInvocationID.x;
+    int cellIndex = int(candidateGroups[uint(u_GroupOffset) + groupIdx]) + (int(localCell) & 7) + ((int(localCell) >> 3) << 10);
+    Varyings o = evalForwardGrassCell(cellIndex);
+    uint dst = (groupIdx * 64u + localCell) * 13u;
+    outTransforms[dst] = o.v_PositionRotation.x;
+    outTransforms[dst + 1u] = o.v_PositionRotation.y;
+    outTransforms[dst + 2u] = o.v_PositionRotation.z;
+    outTransforms[dst + 3u] = o.v_PositionRotation.w;
+    outTransforms[dst + 4u] = o.v_Scale.x;
+    outTransforms[dst + 5u] = o.v_Scale.y;
+    outTransforms[dst + 6u] = o.v_Scale.z;
+    outTransforms[dst + 7u] = o.v_SurfaceWeights.x;
+    outTransforms[dst + 8u] = o.v_SurfaceWeights.y;
+    outTransforms[dst + 9u] = o.v_SurfaceWeights.z;
+    outTransforms[dst + 10u] = o.v_TerrainNormal.x;
+    outTransforms[dst + 11u] = o.v_TerrainNormal.y;
+    outTransforms[dst + 12u] = o.v_TerrainNormal.z;
+  }
+}`;
+
+const forwardGrassComputeCache = new WeakMap<Engine, ComputeShader>();
+
+function getOrCreateForwardGrassComputeShader(engine: Engine): ComputeShader {
+  let cs = forwardGrassComputeCache.get(engine);
+  if (!cs || cs.destroyed) {
+    cs = ComputeShader.create(COMPUTE_SHADER_SOURCE, engine);
+    forwardGrassComputeCache.set(engine, cs);
+    engine.once(EngineEventType.Shutdown, () => {
+      if (forwardGrassComputeCache.get(engine) === cs) {
+        forwardGrassComputeCache.delete(engine);
+      }
+      cs!.destroy();
+    });
+  }
+  return cs;
+}
 
 function getForwardGrassTfPass(engine?: Engine): ShaderPass {
   let shader = Shader.find(TF_SHADER_NAME);
@@ -427,7 +488,8 @@ interface ForwardGrassRingState {
   readonly renderer: MeshRenderer;
   readonly pickBatch: SeedWorldArrayPickBatch;
   readonly ringMesh: SeedWorldForwardGrassRingMesh;
-  readonly simulator: TransformFeedbackSimulator;
+  readonly simulator?: TransformFeedbackSimulator;
+  computeBinding?: VertexBufferBinding;
   readonly shaderData: ShaderData;
   readonly bounds: BoundingBox;
   readonly tileData: Uint16Array;
@@ -453,6 +515,8 @@ interface ForwardGrassRingState {
  */
 export class SeedWorldForwardGrass {
   private readonly _engine: Engine;
+  private readonly _useCompute: boolean;
+  private readonly _computeShader?: ComputeShader;
   private readonly _root: Entity;
   private readonly _terrainTex: Texture2D;
   private readonly _maskTex: Texture2D;
@@ -532,6 +596,9 @@ export class SeedWorldForwardGrass {
     configureRenderer: (renderer: MeshRenderer) => void
   ) {
     this._engine = engine;
+    this._useCompute = Boolean(
+      (engine as Engine & { _hardwareRenderer?: { supportsCompute?: boolean } })._hardwareRenderer?.supportsCompute
+    );
     this._root = parent.createChild("Frustum Grass (TF)");
 
     const terrainTex = new Texture2D(
@@ -553,22 +620,41 @@ export class SeedWorldForwardGrass {
     maskTex.isGCIgnored = true;
     this._maskTex = maskTex;
 
-    const tfPass = getForwardGrassTfPass(engine);
+    const tfPass = this._useCompute ? undefined : getForwardGrassTfPass(engine);
+    if (this._useCompute) {
+      this._computeShader = getOrCreateForwardGrassComputeShader(engine);
+    }
     for (const config of RING_CONFIGS) {
-      const simulator = new TransformFeedbackSimulator(
-        engine,
-        DETAIL_TRANSFORM_STRIDE_BYTES,
-        config.initialCapacity,
-        tfPass,
-        TF_VARYINGS,
-        "output-only"
-      );
+      let simulator: TransformFeedbackSimulator | undefined;
+      let computeBinding: VertexBufferBinding | undefined;
+      let instanceBinding: VertexBufferBinding;
+      if (this._useCompute) {
+        const buffer = new Buffer(
+          engine,
+          BufferBindFlag.VertexBuffer,
+          config.initialCapacity * DETAIL_TRANSFORM_STRIDE_BYTES,
+          BufferUsage.Dynamic
+        );
+        buffer.isGCIgnored = true;
+        computeBinding = new VertexBufferBinding(buffer, DETAIL_TRANSFORM_STRIDE_BYTES);
+        instanceBinding = computeBinding;
+      } else {
+        simulator = new TransformFeedbackSimulator(
+          engine,
+          DETAIL_TRANSFORM_STRIDE_BYTES,
+          config.initialCapacity,
+          tfPass!,
+          TF_VARYINGS,
+          "output-only"
+        );
+        instanceBinding = simulator.readBinding;
+      }
       const bounds = new BoundingBox(new Vector3(-1, -1, -1), new Vector3(1, 1, 1));
       const entity = this._root.createChild(`Forward Grass LOD${config.lod}`);
       const ringMesh = createSeedWorldForwardGrassRingMesh(
         engine,
         sourceMesh,
-        simulator.readBinding,
+        instanceBinding,
         bounds,
         entity.name,
         config.meshLod
@@ -596,6 +682,7 @@ export class SeedWorldForwardGrass {
         pickBatch,
         ringMesh,
         simulator,
+        computeBinding,
         shaderData,
         bounds,
         tileData: new Uint16Array(COARSE_GRID_SIZE * COARSE_GRID_SIZE),
@@ -806,7 +893,8 @@ export class SeedWorldForwardGrass {
     for (const ring of this._rings) {
       ring.renderer.mesh = null!;
       ring.ringMesh.mesh.destroy();
-      ring.simulator.destroy();
+      ring.simulator?.destroy();
+      ring.computeBinding?.buffer.destroy();
     }
     this._candidateBindings[0]?.buffer.destroy();
     this._candidateBindings.length = 0;
@@ -1575,10 +1663,24 @@ export class SeedWorldForwardGrass {
       ring.candidateCount = this._writeCandidateGroups(ring);
       if (ring.candidateCount > ring.capacity) {
         const capacity = Math.ceil(ring.candidateCount * 1.25);
-        const previous = ring.simulator.readBinding.buffer;
-        ring.simulator.resize(capacity, EMPTY_INPUTS);
-        ring.ringMesh.mesh.setVertexBufferBinding(ring.simulator.readBinding, ring.ringMesh.instanceBinding);
-        previous.destroy();
+        if (this._useCompute) {
+          const previous = ring.computeBinding!.buffer;
+          const nextBuffer = new Buffer(
+            this._engine,
+            BufferBindFlag.VertexBuffer,
+            capacity * DETAIL_TRANSFORM_STRIDE_BYTES,
+            BufferUsage.Dynamic
+          );
+          nextBuffer.isGCIgnored = true;
+          ring.computeBinding = new VertexBufferBinding(nextBuffer, DETAIL_TRANSFORM_STRIDE_BYTES);
+          ring.ringMesh.mesh.setVertexBufferBinding(ring.computeBinding, ring.ringMesh.instanceBinding);
+          previous.destroy();
+        } else {
+          const previous = ring.simulator!.readBinding.buffer;
+          ring.simulator!.resize(capacity, EMPTY_INPUTS);
+          ring.ringMesh.mesh.setVertexBufferBinding(ring.simulator!.readBinding, ring.ringMesh.instanceBinding);
+          previous.destroy();
+        }
         ring.capacity = capacity;
       }
       if (ring.candidateCount) {
@@ -1690,14 +1792,27 @@ export class SeedWorldForwardGrass {
       v[30] = params.useEcologicalHeight ? 1 : 0;
       v[31] = GRASS_AUTHORED_HEIGHT_METRES;
 
-      if (!ring.simulator.beginUpdate(sd, EMPTY_INPUTS, this._candidateBindings, ring.candidateElements)) {
-        ring.renderer.enabled = false;
-        continue;
-      }
-      try {
-        ring.simulator.draw(MeshTopology.Points, 0, CANDIDATE_CELLS_PER_GROUP, count / CANDIDATE_CELLS_PER_GROUP);
-      } finally {
-        ring.simulator.endUpdate();
+      if (this._useCompute) {
+        const groupCount = count / CANDIDATE_CELLS_PER_GROUP;
+        sd.setInt("u_GroupOffset", ring.candidateGroups.byteOffset / 4);
+        sd.setBuffer("CandidateGroupsBuf", this._candidateBindings[0]!.buffer);
+        sd.setBuffer("OutGrassTransformsBuf", ring.computeBinding!.buffer);
+        try {
+          this._computeShader!.dispatch(groupCount, 1, 1, sd);
+        } finally {
+          sd.setBuffer("CandidateGroupsBuf", null);
+          sd.setBuffer("OutGrassTransformsBuf", null);
+        }
+      } else {
+        if (!ring.simulator!.beginUpdate(sd, EMPTY_INPUTS, this._candidateBindings, ring.candidateElements)) {
+          ring.renderer.enabled = false;
+          continue;
+        }
+        try {
+          ring.simulator!.draw(MeshTopology.Points, 0, CANDIDATE_CELLS_PER_GROUP, count / CANDIDATE_CELLS_PER_GROUP);
+        } finally {
+          ring.simulator!.endUpdate();
+        }
       }
 
       ring.ringMesh.mesh.instanceCount = count;

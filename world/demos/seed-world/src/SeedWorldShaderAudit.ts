@@ -142,9 +142,7 @@ export function installSeedWorldShaderAudit(): SeedWorldShaderAuditHandle {
     _compileShaderProgram: (
       engine: Engine,
       macroCollection: ShaderMacroCollection,
-      deferCompletion?: boolean,
-      cacheOnly?: boolean,
-      requestedFeedback?: readonly string[]
+      ...rest: unknown[]
     ) => InternalShaderProgram;
   };
   const origCompile = passProto._compileShaderProgram;
@@ -189,12 +187,10 @@ export function installSeedWorldShaderAudit(): SeedWorldShaderAuditHandle {
     this: ShaderPass,
     engine: Engine,
     macroCollection: ShaderMacroCollection,
-    deferCompletion?: boolean,
-    cacheOnly?: boolean,
-    requestedFeedback?: readonly string[]
+    ...rest: unknown[]
   ): InternalShaderProgram {
     const t0 = performance.now();
-    const program = origCompile.call(this, engine, macroCollection, deferCompletion, cacheOnly, requestedFeedback);
+    const program = origCompile.call(this, engine, macroCollection, ...rest);
     const elapsedMs = Math.round((performance.now() - t0) * 100) / 100;
     ensureBindHooked(program);
     if (!disposed && !seenPrograms.has(program)) {

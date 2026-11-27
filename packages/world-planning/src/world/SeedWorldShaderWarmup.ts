@@ -16,18 +16,22 @@ import {
   type Material,
   MeshRenderer,
   ParticleRenderer,
+  type Primitive,
   Renderer,
   RenderQueueType,
+  type RenderTarget,
   ScreenSpaceReflectionQuality,
   type ScreenSpaceReflectionSettings,
   SkinnedMeshRenderer,
   type Scene,
   Shader,
+  type ShaderData,
   ShaderMacro,
   ShaderMacroCollection,
   ShaderPass,
   ShaderProperty,
   ShadowType,
+  type SubPrimitive,
   SunLensFlareEffect,
   TextureFormat,
   Vector3,
@@ -216,8 +220,11 @@ type RuntimeShaderPass = ShaderPass & {
     engine: Engine,
     macroCollection: ShaderMacroCollection,
     feedbackOrDefer?: string[] | boolean,
-    cacheOnly?: boolean,
-    deferCompletionOverride?: boolean
+    primitiveOrCache?: Primitive | boolean,
+    renderer?: ShaderData,
+    material?: ShaderData,
+    element?: ShaderData,
+    camera?: Camera
   ): RuntimeShaderProgram;
 };
 
@@ -405,9 +412,449 @@ function buildNextSsrFallbackEntry(
   };
 }
 
+interface WebGPUWarmupTarget {
+  readonly primitive?: Primitive;
+  readonly subPrimitives?: readonly SubPrimitive[];
+  readonly material?: Material;
+  readonly renderer?: Renderer;
+  readonly camera: Camera;
+  readonly renderToTexture?: boolean;
+  readonly frontFaceInvert: boolean;
+  readonly isOverlay?: boolean;
+  readonly stage: string;
+}
+
+interface WebGPUWarmupRegistry {
+  readonly byVariantKey: Map<string, WebGPUWarmupTarget[]>;
+  readonly byPassKey: Map<string, WebGPUWarmupTarget[]>;
+  readonly targetSignatures: Map<string, Set<string>>;
+}
+
+const webgpuWarmupRegistries = new WeakMap<Engine, WebGPUWarmupRegistry>();
+
+function isWebGPUEngine(engine: Engine): boolean {
+  return (engine as unknown as { _hardwareRenderer?: { backend?: string } })._hardwareRenderer?.backend === "webgpu";
+}
+
+function getOrCreateWebGPUWarmupRegistry(engine: Engine): WebGPUWarmupRegistry {
+  let reg = webgpuWarmupRegistries.get(engine);
+  if (!reg) {
+    reg = {
+      byVariantKey: new Map(),
+      byPassKey: new Map(),
+      targetSignatures: new Map()
+    };
+    webgpuWarmupRegistries.set(engine, reg);
+  }
+  return reg;
+}
+
+function webGPUWarmupTargetSignature(target: WebGPUWarmupTarget): string {
+  const inputKey = target.primitive?._getShaderInputs?.()?.key ?? "";
+  const topologies = target.subPrimitives?.map((s) => s.topology).join(",") ?? "";
+  const matId = target.material ? String((target.material as unknown as { instanceId?: number }).instanceId ?? 0) : "";
+  return `${inputKey}|${topologies}|${matId}|${target.frontFaceInvert ? 1 : 0}|${target.renderToTexture === undefined ? "u" : target.renderToTexture ? 1 : 0}|${target.isOverlay ? 1 : 0}|${target.stage}`;
+}
+
+function recordWebGPUWarmupTarget(
+  registry: WebGPUWarmupRegistry | undefined,
+  entry: SeedWorldShaderVariantEntry,
+  target: WebGPUWarmupTarget | undefined
+): void {
+  if (!registry || !target) return;
+  const sig = webGPUWarmupTargetSignature(target);
+  const variantKey = seedWorldShaderVariantKey(normalizeSeedWorldShaderVariants([entry])[0]!);
+  let variantSigs = registry.targetSignatures.get(variantKey);
+  if (!variantSigs) {
+    variantSigs = new Set();
+    registry.targetSignatures.set(variantKey, variantSigs);
+  }
+  if (!variantSigs.has(sig)) {
+    variantSigs.add(sig);
+    let list = registry.byVariantKey.get(variantKey);
+    if (!list) {
+      list = [];
+      registry.byVariantKey.set(variantKey, list);
+    }
+    list.push(target);
+  }
+  const passKey = `${entry.shader}|${entry.si}|${entry.pi}`;
+  let passSigs = registry.targetSignatures.get(`pass:${passKey}`);
+  if (!passSigs) {
+    passSigs = new Set();
+    registry.targetSignatures.set(`pass:${passKey}`, passSigs);
+  }
+  if (!passSigs.has(sig) && passSigs.size < 8) {
+    passSigs.add(sig);
+    let passList = registry.byPassKey.get(passKey);
+    if (!passList) {
+      passList = [];
+      registry.byPassKey.set(passKey, passList);
+    }
+    passList.push(target);
+  }
+}
+
 export function hasParallelShaderCompile(engine: Engine): boolean {
+  if (isWebGPUEngine(engine)) return true;
   const gl = (engine as unknown as { _hardwareRenderer?: { gl?: WebGL2RenderingContext } })._hardwareRenderer?.gl;
   return Boolean(gl?.getExtension?.("KHR_parallel_shader_compile"));
+}
+
+async function warmupSeedWorldShaderVariantsWebGPU(
+  engine: Engine,
+  sourceEntries: readonly SeedWorldShaderVariantEntry[],
+  options: SeedWorldShaderWarmupOptions = {}
+): Promise<SeedWorldShaderWarmupReport> {
+  options.signal?.throwIfAborted();
+  if (options.enabled === false) return skippedWarmupReport(sourceEntries.length);
+  const entries = options.preserveOrder
+    ? deduplicateOrderedShaderVariants(sourceEntries)
+    : normalizeSeedWorldShaderVariants(sourceEntries);
+  const issues: SeedWorldShaderWarmupIssue[] = [];
+  const startedAt = performance.now();
+  const frameBudgetMilliseconds = Math.max(0, options.frameBudgetMilliseconds ?? DEFAULT_FRAME_BUDGET_MILLISECONDS);
+  const maxElapsedMilliseconds =
+    options.maxElapsedMilliseconds !== undefined && Number.isFinite(options.maxElapsedMilliseconds)
+      ? Math.max(0, options.maxElapsedMilliseconds)
+      : undefined;
+  const maximumPendingPipelines = Math.max(1, Math.floor(options.maximumPendingPrograms ?? 28));
+  const cooldownFrames = Math.max(0, Math.floor(options.cooldownFrames ?? 0));
+  const maxFrameIntervalMs =
+    options.maxFrameIntervalMs !== undefined && Number.isFinite(options.maxFrameIntervalMs)
+      ? Math.max(0, options.maxFrameIntervalMs)
+      : 0;
+  const backoffMilliseconds = Math.max(0, options.backoffMilliseconds ?? 250);
+
+  let frameStartedAt = startedAt;
+  let compiled = 0;
+  let longestVariantMilliseconds = 0;
+  let reportedCompleted = -1;
+  let cooldownRemaining = 0;
+  let backoffUntil = 0;
+
+  const reportProgress = () => {
+    const completed = compiled + issues.length;
+    if (completed !== reportedCompleted) {
+      reportedCompleted = completed;
+      options.onProgress?.(completed, entries.length);
+    }
+  };
+  const canSubmitNow = (): boolean => {
+    if (options.isPaused?.()) return false;
+    if (cooldownRemaining > 0) return false;
+    if (backoffUntil > 0 && performance.now() < backoffUntil) return false;
+    return true;
+  };
+  const yieldFrame = async () => {
+    reportProgress();
+    const beforeYield = performance.now();
+    if (cooldownFrames === 0 && maxFrameIntervalMs === 0) {
+      await nextTimerTick(Math.max(1, Math.floor(options.pollIntervalMilliseconds ?? 4)));
+    } else {
+      await nextAnimationFrame();
+    }
+    options.signal?.throwIfAborted();
+    const now = performance.now();
+    frameStartedAt = now;
+    if (maxFrameIntervalMs > 0 && now - beforeYield > maxFrameIntervalMs) {
+      backoffUntil = Math.max(backoffUntil, now + backoffMilliseconds);
+    }
+    if (cooldownRemaining > 0) cooldownRemaining--;
+  };
+
+  const registry = webgpuWarmupRegistries.get(engine);
+  const allocatedTargets: RenderTarget[] = [];
+  const rtPool = (
+    engine as unknown as {
+      _renderTargetPool?: {
+        allocateRenderTarget: (
+          width: number,
+          height: number,
+          colorFormat: TextureFormat | null,
+          depthFormat: TextureFormat | null,
+          needDepthTexture: boolean,
+          mipMap: boolean,
+          isSRGB: boolean,
+          msaaSamples: number
+        ) => RenderTarget;
+        freeRenderTarget: (rt: RenderTarget) => void;
+      };
+    }
+  )._renderTargetPool;
+  const maxAntiAliasing =
+    (engine as unknown as { _hardwareRenderer?: { capability?: { maxAntiAliasing?: number } } })._hardwareRenderer
+      ?.capability?.maxAntiAliasing ?? 1;
+
+  let shadowRT: RenderTarget | null | undefined;
+  let depthOnlyRT: RenderTarget | null | undefined;
+  let ldrNoDepthRT: RenderTarget | null | undefined;
+  const forwardTargetsByCamera = new WeakMap<Camera, RenderTarget | null>();
+  const hdrNoDepthTargetsByCamera = new WeakMap<Camera, RenderTarget | null>();
+
+  const allocateTempRT = (
+    colorFormat: TextureFormat | null,
+    depthFormat: TextureFormat | null,
+    needDepthTexture: boolean,
+    isSRGB: boolean,
+    msaaSamples: number
+  ): RenderTarget | null => {
+    if (!rtPool) return null;
+    try {
+      const rt = rtPool.allocateRenderTarget(
+        4,
+        4,
+        colorFormat,
+        depthFormat,
+        needDepthTexture,
+        false,
+        isSRGB,
+        msaaSamples
+      );
+      allocatedTargets.push(rt);
+      return rt;
+    } catch {
+      return null;
+    }
+  };
+
+  const getTargetsForStage = (target: WebGPUWarmupTarget): readonly (RenderTarget | null)[] => {
+    const cam = target.camera as unknown as {
+      renderTarget?: RenderTarget | null;
+      msaaSamples?: number;
+      _isIndependentCanvasEnabled?: () => boolean;
+      _getInternalColorTextureFormat?: () => TextureFormat;
+      _isInternalFormatHDR?: () => boolean;
+      _renderPipeline?: { _allocatePrewarmInternalColorTarget?: (msaa: number) => RenderTarget };
+    };
+    if (target.isOverlay || target.renderToTexture === false) {
+      return [null];
+    }
+    if (target.stage === "ShadowCaster") {
+      if (shadowRT === undefined) {
+        shadowRT = allocateTempRT(null, TextureFormat.Depth16, true, false, 1);
+      }
+      return shadowRT ? [shadowRT] : [];
+    }
+    if (target.stage === "DepthOnly") {
+      if (depthOnlyRT === undefined) {
+        depthOnlyRT = allocateTempRT(null, TextureFormat.Depth24, true, false, 1);
+      }
+      return depthOnlyRT ? [depthOnlyRT] : [];
+    }
+    if (target.stage === "SSRReceiver" || target.stage === "SSRContributionDepth") {
+      return [];
+    }
+    const isBlitOrPost = target.stage === "Forward" && target.renderer === undefined && target.renderToTexture === true;
+    if (isBlitOrPost) {
+      const rts: (RenderTarget | null)[] = [];
+      if (!hdrNoDepthTargetsByCamera.has(target.camera)) {
+        const fmt = cam._getInternalColorTextureFormat?.() ?? TextureFormat.R8G8B8A8_UNorm;
+        const isSRGB = !(cam._isInternalFormatHDR?.() ?? false);
+        hdrNoDepthTargetsByCamera.set(target.camera, allocateTempRT(fmt, null, false, isSRGB, 1));
+      }
+      const hdrRt = hdrNoDepthTargetsByCamera.get(target.camera);
+      if (hdrRt) rts.push(hdrRt);
+      if (ldrNoDepthRT === undefined) {
+        ldrNoDepthRT = allocateTempRT(TextureFormat.R8G8B8A8_UNorm, null, false, false, 1);
+      }
+      if (ldrNoDepthRT && ldrNoDepthRT !== hdrRt) rts.push(ldrNoDepthRT);
+      return rts;
+    }
+    // Forward / Sky / Particle renderers targeting the camera's internal color target (or swapchain).
+    if (cam.renderTarget) {
+      return [cam.renderTarget];
+    }
+    if (cam._isIndependentCanvasEnabled?.()) {
+      if (!forwardTargetsByCamera.has(target.camera)) {
+        const msaa = Math.min(cam.msaaSamples ?? 1, maxAntiAliasing);
+        let rt: RenderTarget | null = null;
+        try {
+          rt = cam._renderPipeline?._allocatePrewarmInternalColorTarget?.(msaa) ?? null;
+          if (rt) allocatedTargets.push(rt);
+        } catch {
+          rt = null;
+        }
+        forwardTargetsByCamera.set(target.camera, rt);
+      }
+      const fwd = forwardTargetsByCamera.get(target.camera);
+      return fwd ? [fwd] : [null];
+    }
+    return [null];
+  };
+
+  const inFlight = new Set<Promise<void>>();
+  let nextEntry = 0;
+  let budgetExceeded = false;
+
+  try {
+    while (nextEntry < entries.length && !budgetExceeded) {
+      options.signal?.throwIfAborted();
+      if (!canSubmitNow() || inFlight.size >= maximumPendingPipelines) {
+        if (inFlight.size >= maximumPendingPipelines) {
+          await Promise.race(inFlight);
+        } else {
+          await yieldFrame();
+        }
+        continue;
+      }
+      if (
+        maxElapsedMilliseconds !== undefined &&
+        nextEntry > 0 &&
+        performance.now() - startedAt >= maxElapsedMilliseconds
+      ) {
+        budgetExceeded = true;
+        break;
+      }
+      const entry = entries[nextEntry++]!;
+      const key = seedWorldShaderVariantKey(entry);
+      const shader = Shader.find(entry.shader);
+      if (!shader) {
+        issues.push({ key, reason: "missing-shader", message: `Shader '${entry.shader}' is not registered.` });
+        continue;
+      }
+      const pass = shader.subShaders[entry.si]?.passes[entry.pi] as RuntimeShaderPass | undefined;
+      if (!pass) {
+        issues.push({
+          key,
+          reason: "missing-pass",
+          message: `Shader '${entry.shader}' has no subShader ${entry.si}, pass ${entry.pi}.`
+        });
+        continue;
+      }
+      const macros = new ShaderMacroCollection();
+      for (const macro of entry.macros) {
+        macros.enable(macro.v === undefined ? ShaderMacro.getByName(macro.n) : ShaderMacro.getByName(macro.n, macro.v));
+      }
+      const variantStartedAt = performance.now();
+      try {
+        const passKey = `${entry.shader}|${entry.si}|${entry.pi}`;
+        const targets = registry?.byVariantKey.get(key) ?? registry?.byPassKey.get(passKey);
+        if (targets && targets.length > 0 && !options.cacheOnly) {
+          let validAny = false;
+          for (let ti = 0; ti < targets.length; ti++) {
+            const target = targets[ti]!;
+            const program = pass._getShaderProgram(
+              engine,
+              macros,
+              undefined,
+              target.primitive,
+              target.renderer?.shaderData,
+              target.material?.shaderData,
+              undefined,
+              target.camera
+            );
+            if (!program.isValid) continue;
+            validAny = true;
+            const platform = (
+              program as unknown as {
+                _platformProgram?: {
+                  prewarm?: (
+                    primitive: Primitive,
+                    sub: SubPrimitive,
+                    rt: RenderTarget | null,
+                    state: unknown,
+                    frontFaceInvert: boolean
+                  ) => Promise<void>;
+                };
+              }
+            )._platformProgram;
+            if (platform?.prewarm && target.primitive && target.subPrimitives?.length) {
+              const state = (
+                pass as unknown as {
+                  _renderState?: {
+                    _resolve?: (eng: Engine, map: unknown, matData?: ShaderData) => unknown;
+                  };
+                  _renderStateDataMap?: unknown;
+                }
+              )._renderState?._resolve?.(engine, pass._renderStateDataMap, target.material?.shaderData);
+              if (state) {
+                const renderTargets = getTargetsForStage(target);
+                const seenTopologies = new Set<number>();
+                for (let si = 0; si < target.subPrimitives.length; si++) {
+                  const sub = target.subPrimitives[si]!;
+                  if (seenTopologies.has(sub.topology)) continue;
+                  seenTopologies.add(sub.topology);
+                  for (let ri = 0; ri < renderTargets.length; ri++) {
+                    const rt = renderTargets[ri]!;
+                    const task = Promise.resolve()
+                      .then(() => platform.prewarm!(target.primitive!, sub, rt, state, target.frontFaceInvert))
+                      .catch(() => {
+                        // Speculative RT attachment mismatch must not abort valid shader warmup.
+                      });
+                    inFlight.add(task);
+                    void task.finally(() => inFlight.delete(task));
+                  }
+                }
+              }
+            }
+          }
+          if (validAny) {
+            compiled++;
+          } else {
+            issues.push({
+              key,
+              reason: "invalid-program",
+              message: "WebGPU shader program compiled to an invalid program."
+            });
+          }
+        } else {
+          const program = pass._getShaderProgram(engine, macros, undefined, options.cacheOnly);
+          if (program.isValid) {
+            compiled++;
+          } else {
+            issues.push({
+              key,
+              reason: "invalid-program",
+              message: "WebGPU shader program compiled to an invalid program."
+            });
+          }
+        }
+        if (cooldownFrames > 0) cooldownRemaining = Math.max(cooldownRemaining, cooldownFrames);
+      } catch (error) {
+        issues.push({
+          key,
+          reason: "compile-error",
+          message: error instanceof Error ? error.message : String(error)
+        });
+      } finally {
+        longestVariantMilliseconds = Math.max(longestVariantMilliseconds, performance.now() - variantStartedAt);
+      }
+      if (performance.now() - frameStartedAt >= frameBudgetMilliseconds) {
+        await yieldFrame();
+      }
+    }
+    if (inFlight.size > 0) {
+      await Promise.all(inFlight);
+    }
+  } finally {
+    if (rtPool) {
+      for (let i = 0; i < allocatedTargets.length; i++) {
+        rtPool.freeRenderTarget(allocatedTargets[i]!);
+      }
+    }
+  }
+
+  reportProgress();
+  const deferred = nextEntry < entries.length ? Object.freeze(entries.slice(nextEntry)) : undefined;
+  const report: SeedWorldShaderWarmupReport = Object.freeze({
+    requested: entries.length,
+    compiled,
+    parallelCompileSupported: true,
+    ...(deferred ? { deferred } : {}),
+    issues: Object.freeze(issues),
+    elapsedMilliseconds: performance.now() - startedAt,
+    longestVariantMilliseconds
+  });
+  if (options.strict && issues.length > 0) {
+    console.error("[Seed World Shader coverage]", JSON.stringify(issues));
+    const details = issues
+      .slice(0, 4)
+      .map((issue) => `[${issue.key}] ${issue.message}`)
+      .join(" | ");
+    throw new Error(`Seed World Shader warmup failed for ${issues.length}/${entries.length} variants: ${details}`);
+  }
+  return report;
 }
 
 export async function warmupSeedWorldShaderVariants(
@@ -415,6 +862,9 @@ export async function warmupSeedWorldShaderVariants(
   sourceEntries: readonly SeedWorldShaderVariantEntry[],
   options: SeedWorldShaderWarmupOptions = {}
 ): Promise<SeedWorldShaderWarmupReport> {
+  if (isWebGPUEngine(engine)) {
+    return warmupSeedWorldShaderVariantsWebGPU(engine, sourceEntries, options);
+  }
   options.signal?.throwIfAborted();
   if (options.enabled === false) return skippedWarmupReport(sourceEntries.length);
   const entries = options.preserveOrder
@@ -886,13 +1336,18 @@ function collectSeedWorldRendererVariantsInternal(
   const runtimeHardware = (
     engine as unknown as {
       _hardwareRenderer?: {
+        backend?: string;
         supportsRendering?: boolean;
+        supportsTransformFeedback?: boolean;
         canIUse?: (cap: GLCapabilityType) => boolean;
         capability?: { maxDrawBuffers?: number };
       };
     }
   )._hardwareRenderer;
+  const isWebGPU = runtimeHardware?.backend === "webgpu";
   const supportsRendering = runtimeHardware?.supportsRendering !== false;
+  const supportsTransformFeedback = runtimeHardware?.supportsTransformFeedback ?? !isWebGPU;
+  const webgpuRegistry = isWebGPU ? getOrCreateWebGPUWarmupRegistry(engine) : undefined;
   const { depthPrepassEnabled, forwardDepthResolveEnabled } = resolveDepthMode(engine, scene, camera);
   const rawSsrSettings =
     (
@@ -959,6 +1414,10 @@ function collectSeedWorldRendererVariantsInternal(
   const ssrContext: AppendShaderVariantContext = {
     depthPrepassEnabled,
     ssrEnabled,
+    supportsTransformFeedback,
+    recordWebGPUWarmupTarget: webgpuRegistry
+      ? (entry, target) => recordWebGPUWarmupTarget(webgpuRegistry, entry, target)
+      : undefined,
     includeOpaqueSsr: options.includeOpaqueScreenSpaceReflection === true,
     skipNonSsrForwardForReceivers: Boolean(options.onlyFrustumVisible) && ssrEnabled,
     isSsrReceiver,
@@ -1246,7 +1705,11 @@ function collectSeedWorldRendererVariantsInternal(
         particleMacros.isEnable(ShaderMacro.getByName("RENDERER_TRANSFORM_FEEDBACK"));
       const isWindParticle = Boolean(options.particleWindRenderers?.includes(particleRenderer));
       const isSubEmitterTarget = subEmitterTargets.has(particleRenderer);
-      if (supportsRendering && (useTransformFeedback || isWindParticle || isSubEmitterTarget)) {
+      if (
+        supportsRendering &&
+        supportsTransformFeedback &&
+        (useTransformFeedback || isWindParticle || isSubEmitterTarget)
+      ) {
         const feedback = Shader.find("Effect/ParticleFeedback");
         if (!feedback) throw new Error("Particle feedback shader is not registered");
         const pushFeedbackPass = (passIndex: number, macros: ShaderMacroCollection) => {
@@ -1365,6 +1828,35 @@ function collectSeedWorldRendererVariantsInternal(
         sourceHasFiniteBounds &&
         sourceIsSingleSubMesh
     );
+    const rendererBaseTarget = webgpuRegistry
+      ? (() => {
+          const rendererPrimitive: Primitive | undefined = isMesh
+            ? (renderer.mesh as unknown as { _primitive?: Primitive } | undefined)?._primitive
+            : (sourceRenderer as unknown as { generator?: { _primitive?: Primitive } }).generator?._primitive;
+          const rendererSubPrimitives: readonly SubPrimitive[] | undefined = isMesh
+            ? (renderer.mesh as unknown as { subMeshes?: readonly SubPrimitive[] } | undefined)?.subMeshes
+            : (() => {
+                const sp = (sourceRenderer as unknown as { generator?: { _subPrimitive?: SubPrimitive } }).generator
+                  ?._subPrimitive;
+                return sp ? [sp] : undefined;
+              })();
+          const transformEntity = (
+            sourceRenderer as unknown as { _transformEntity?: { transform?: { _isFrontFaceInvert?: () => boolean } } }
+          )._transformEntity;
+          const rendererFrontFaceInvert =
+            typeof transformEntity?.transform?._isFrontFaceInvert === "function"
+              ? transformEntity.transform._isFrontFaceInvert()
+              : false;
+          return {
+            primitive: rendererPrimitive,
+            subPrimitives: rendererSubPrimitives,
+            renderer: sourceRenderer,
+            camera,
+            frontFaceInvert: rendererFrontFaceInvert,
+            renderToTexture
+          };
+        })()
+      : undefined;
     for (const material of materials) {
       if (!material || material.destroyed || material.shader.destroyed) continue;
       // Masonry shaders own their custom instance/packed vertex streams and never enter the generic UBO batcher.
@@ -1502,7 +1994,9 @@ function collectSeedWorldRendererVariantsInternal(
                 material,
                 supportsRendering,
                 true,
-                ssrContext
+                ssrContext,
+                false,
+                rendererBaseTarget ? { ...rendererBaseTarget, material } : undefined
               );
             }
           }
@@ -1519,7 +2013,8 @@ function collectSeedWorldRendererVariantsInternal(
             supportsRendering,
             false,
             ssrContext,
-            frustumShadowOnly
+            frustumShadowOnly,
+            rendererBaseTarget ? { ...rendererBaseTarget, material } : undefined
           );
           if (!frustumShadowOnly) appendPointLightVariants(material.shader, compileMacros);
         }
@@ -1547,7 +2042,9 @@ function collectSeedWorldRendererVariantsInternal(
               material,
               supportsRendering,
               false,
-              ssrContext
+              ssrContext,
+              false,
+              rendererBaseTarget ? { ...rendererBaseTarget, material } : undefined
             );
           }
           appendPointLightVariants(material.shader, steadyMacros);
@@ -1575,7 +2072,9 @@ function collectSeedWorldRendererVariantsInternal(
                 material,
                 supportsRendering,
                 false,
-                ssrContext
+                ssrContext,
+                false,
+                rendererBaseTarget ? { ...rendererBaseTarget, material } : undefined
               );
             }
             appendPointLightVariants(companionShader, compileMacros);
@@ -1586,12 +2085,17 @@ function collectSeedWorldRendererVariantsInternal(
   }
 
   // Camera passes and background materials are not Entity Renderer components.
-  const auxiliary: [Material | undefined, boolean | undefined, ("bloom" | "uber")?][] = [];
-  if (scene.background?.mode === BackgroundMode.Sky) auxiliary.push([scene.background.sky.material!, renderToTexture]);
-  for (const material of options.additionalBackgroundMaterials ?? []) auxiliary.push([material, renderToTexture]);
+  const auxiliary: [Material | undefined, boolean | undefined, ("bloom" | "uber" | "sky")?][] = [];
+  if (scene.background?.mode === BackgroundMode.Sky)
+    auxiliary.push([scene.background.sky.material!, renderToTexture, "sky"]);
+  for (const material of options.additionalBackgroundMaterials ?? [])
+    auxiliary.push([material, renderToTexture, "sky"]);
   const runtimeEngine = engine as unknown as {
     _hardwareRenderer?: { supportsRendering?: boolean };
-    _basicResources?: { blitMaterial?: Material };
+    _basicResources?: {
+      blitMaterial?: Material;
+      blitMesh?: { _primitive?: Primitive; subMeshes?: readonly SubPrimitive[] };
+    };
     _getActivePostProcessPasses?: () => readonly {
       isActive: boolean;
       _uberMaterial?: Material;
@@ -1600,6 +2104,28 @@ function collectSeedWorldRendererVariantsInternal(
       _volumetricLightMaterial?: Material | null;
       _material?: Material | null;
     }[];
+  };
+  const blitMesh = runtimeEngine._basicResources?.blitMesh;
+  const skyMesh = (
+    scene.background?.sky as unknown as
+      | { mesh?: { _primitive?: Primitive; subMeshes?: readonly SubPrimitive[] } }
+      | undefined
+  )?.mesh;
+  const makeBlitWebGPUTarget = (
+    material: Material | undefined,
+    targetFlag: boolean | undefined,
+    isSky = false
+  ): Omit<WebGPUWarmupTarget, "stage"> | undefined => {
+    if (!webgpuRegistry) return undefined;
+    const mesh = isSky ? skyMesh : blitMesh;
+    return {
+      primitive: mesh?._primitive,
+      subPrimitives: mesh?.subMeshes,
+      material,
+      camera,
+      renderToTexture: targetFlag,
+      frontFaceInvert: false
+    };
   };
   const blit = runtimeEngine._basicResources?.blitMaterial;
   if (blit) {
@@ -1641,7 +2167,7 @@ function collectSeedWorldRendererVariantsInternal(
         auxiliary.push([pass._bloomMaterial, true, "bloom"]);
       if (options.postProcessState?.sunLensFlare && pass._sunLensFlareMaterial && sunLensFlareVisibleInPrimary) {
         auxiliary.push([pass._sunLensFlareMaterial, true]);
-        if (supportsRendering) {
+        if (supportsRendering && supportsTransformFeedback) {
           const visibilityShader = Shader.find("PostProcess/SunLensFlareVisibility");
           if (visibilityShader && !visibilityShader.destroyed) {
             appendShaderVariants(
@@ -1693,7 +2219,17 @@ function collectSeedWorldRendererVariantsInternal(
             const vlPassIndices = volumetricLightWarmup.useRaymarch ? [3, 4] : [0, 1, 2];
             for (const pi of vlPassIndices) {
               if (!vlSubShader.passes[pi]) continue;
-              variants.push({ shader: vlMaterial.shader.name, si: 0, pi, macros: vlRecorded });
+              const vlEntry: SeedWorldShaderVariantEntry = {
+                shader: vlMaterial.shader.name,
+                si: 0,
+                pi,
+                macros: vlRecorded
+              };
+              variants.push(vlEntry);
+              if (webgpuRegistry) {
+                const bt = makeBlitWebGPUTarget(vlMaterial, true, false);
+                if (bt) recordWebGPUWarmupTarget(webgpuRegistry, vlEntry, { ...bt, stage: "Forward" });
+              }
             }
           }
         }
@@ -1714,7 +2250,7 @@ function collectSeedWorldRendererVariantsInternal(
     );
     macros.unionCollection((engine as RuntimeEngine)._macroCollection);
     const state = options.postProcessState;
-    if (state && kind) {
+    if (state && (kind === "bloom" || kind === "uber")) {
       const names = new Set(
         kind === "bloom"
           ? ["BLOOM_HQ"]
@@ -1751,7 +2287,20 @@ function collectSeedWorldRendererVariantsInternal(
         }
       }
     }
-    appendShaderVariants(material.shader, macros, variants, false, target, undefined, supportsRendering);
+    const auxWebgpuTarget = makeBlitWebGPUTarget(material, target, kind === "sky");
+    appendShaderVariants(
+      material.shader,
+      macros,
+      variants,
+      false,
+      target,
+      undefined,
+      supportsRendering,
+      false,
+      ssrContext,
+      false,
+      auxWebgpuTarget
+    );
     // In 2D Low volumetric-light mode, rotating the camera away from the sun toggles
     // ENABLE_EFFECT_VOLUMETRIC_LIGHT off dynamically; warm the off-state partner during
     // full/background warmup so 360-degree exploration never misses PostProcess/Uber.
@@ -1766,7 +2315,19 @@ function collectSeedWorldRendererVariantsInternal(
       noVlMacros.unionCollection(macros);
       noVlMacros.disable(ShaderMacro.getByName("ENABLE_EFFECT_VOLUMETRIC_LIGHT"));
       noVlMacros.disable(ShaderMacro.getByName("VOLUMETRIC_LIGHT_RAYMARCH"));
-      appendShaderVariants(material.shader, noVlMacros, variants, false, target, undefined, supportsRendering);
+      appendShaderVariants(
+        material.shader,
+        noVlMacros,
+        variants,
+        false,
+        target,
+        undefined,
+        supportsRendering,
+        false,
+        ssrContext,
+        false,
+        auxWebgpuTarget
+      );
     }
   }
   // Warm deferred SSR DepthOnly / Forward SSR variants + exact Lighting/ScreenSpaceReflection v2 passes when receivers exist.
@@ -1818,12 +2379,14 @@ function collectSeedWorldRendererVariantsInternal(
       for (const entry of ssrContext.deferredSsrForward) {
         const useBilateral = camSSRBilateral && entry.allowBilateral;
         const useVerifyDepth = !useBilateral && (camSSRVerifyDepth || (camSSRBilateral && !entry.allowBilateral));
-        variants.push({
+        const ssrForwardEntry: SeedWorldShaderVariantEntry = {
           shader: entry.shader,
           si: entry.si,
           pi: entry.pi,
           macros: [...entry.macros, ...buildForwardSsrMacros(useBilateral, useVerifyDepth)]
-        });
+        };
+        variants.push(ssrForwardEntry);
+        recordWebGPUWarmupTarget(webgpuRegistry, ssrForwardEntry, entry.webgpuTarget);
         // When both transparent and opaque SSR receivers exist under non-High quality, culling all
         // transparent receivers drops camSSRVerifyDepth at runtime; warm the opaque-only Forward variant too.
         if (
@@ -1833,12 +2396,14 @@ function collectSeedWorldRendererVariantsInternal(
           !camSSRBilateral &&
           entry.isOpaque
         ) {
-          variants.push({
+          const opaqueSsrEntry: SeedWorldShaderVariantEntry = {
             shader: entry.shader,
             si: entry.si,
             pi: entry.pi,
             macros: [...entry.macros, ...buildForwardSsrMacros(false, false)]
-          });
+          };
+          variants.push(opaqueSsrEntry);
+          recordWebGPUWarmupTarget(webgpuRegistry, opaqueSsrEntry, entry.webgpuTarget);
         }
       }
     }
@@ -1858,12 +2423,17 @@ function collectSeedWorldRendererVariantsInternal(
           .map((macro) => (macro.value === undefined ? { n: macro.name } : { n: macro.name, v: macro.value }));
         const appendSsrPass = (pi: number, extraMacros?: readonly SeedWorldShaderVariantMacro[]) => {
           if (!subShader.passes[pi]) return;
-          variants.push({
+          const ssrEntry: SeedWorldShaderVariantEntry = {
             shader: ssrShader.name,
             si: 0,
             pi,
             macros: extraMacros?.length ? [...baseRecorded, ...extraMacros] : baseRecorded
-          });
+          };
+          variants.push(ssrEntry);
+          if (webgpuRegistry) {
+            const bt = makeBlitWebGPUTarget(undefined, true, false);
+            if (bt) recordWebGPUWarmupTarget(webgpuRegistry, ssrEntry, { ...bt, stage: "Forward" });
+          }
         };
         const baseHiZ0Macros: SeedWorldShaderVariantMacro[] =
           hasFullDepthForSsr && !isXHigh ? [{ n: "SSR_DOWNSAMPLE_FROM_FULL_DEPTH" }] : [];
@@ -1934,6 +2504,17 @@ function collectSeedWorldRendererVariantsInternal(
   // Overlay UI uses a separate, empty camera macro set. Scene lighting, mesh
   // attributes and GPU instancing do not participate in this rendering path.
   for (const renderer of options.overlayRenderers ?? []) {
+    const overlayMesh = webgpuRegistry
+      ? (renderer as unknown as { mesh?: { _primitive?: Primitive; subMeshes?: readonly SubPrimitive[] } }).mesh
+      : undefined;
+    const overlayTransformEntity = webgpuRegistry
+      ? (renderer as unknown as { _transformEntity?: { transform?: { _isFrontFaceInvert?: () => boolean } } })
+          ._transformEntity
+      : undefined;
+    const overlayFrontFaceInvert =
+      typeof overlayTransformEntity?.transform?._isFrontFaceInvert === "function"
+        ? overlayTransformEntity.transform._isFrontFaceInvert()
+        : false;
     for (const material of renderer.getMaterials()) {
       if (!material || material.destroyed || material.shader.destroyed) continue;
       const macros = new ShaderMacroCollection();
@@ -1944,7 +2525,31 @@ function collectSeedWorldRendererVariantsInternal(
       );
       macros.unionCollection(engine._macroCollection);
       macros.enable(ShaderMacro.getByName("ENGINE_SHOULD_SRGB_CORRECT"));
-      appendShaderVariants(material.shader, macros, variants, false, false, material);
+      const overlayTarget: Omit<WebGPUWarmupTarget, "stage"> | undefined = webgpuRegistry
+        ? {
+            primitive: overlayMesh?._primitive,
+            subPrimitives: overlayMesh?.subMeshes,
+            material,
+            renderer,
+            camera,
+            renderToTexture: false,
+            frontFaceInvert: overlayFrontFaceInvert,
+            isOverlay: true
+          }
+        : undefined;
+      appendShaderVariants(
+        material.shader,
+        macros,
+        variants,
+        false,
+        false,
+        material,
+        supportsRendering,
+        false,
+        ssrContext,
+        false,
+        overlayTarget
+      );
       if (
         options.includeLiquidGlassMask !== false &&
         material.shader.name === "SeedWorld/LiquidGlassUiV6" &&
@@ -1953,14 +2558,38 @@ function collectSeedWorldRendererVariantsInternal(
         const maskedMacros = new ShaderMacroCollection();
         ShaderMacroCollection.unionCollection(macros, macros, maskedMacros);
         maskedMacros.enable(ShaderMacro.getByName("SEED_WORLD_GLASS_MASK"));
-        appendShaderVariants(material.shader, maskedMacros, variants, false, false, material);
+        appendShaderVariants(
+          material.shader,
+          maskedMacros,
+          variants,
+          false,
+          false,
+          material,
+          supportsRendering,
+          false,
+          ssrContext,
+          false,
+          overlayTarget
+        );
       }
       if (material.shader.name === "SeedWorld/VoiceOrbDisplayV1") {
         const bakeShader = Shader.find("SeedWorld/VoiceOrbBakeV1");
         if (bakeShader && !bakeShader.destroyed) {
           const bakeMacros = new ShaderMacroCollection();
           bakeMacros.unionCollection(engine._macroCollection);
-          appendShaderVariants(bakeShader, bakeMacros, variants, false, true, undefined, supportsRendering);
+          appendShaderVariants(
+            bakeShader,
+            bakeMacros,
+            variants,
+            false,
+            true,
+            undefined,
+            supportsRendering,
+            false,
+            ssrContext,
+            false,
+            makeBlitWebGPUTarget(undefined, true, false)
+          );
         }
       }
     }
@@ -2158,11 +2787,17 @@ function locateShaderPass(
 interface DeferredSsrForwardEntry extends SeedWorldShaderVariantEntry {
   readonly allowBilateral: boolean;
   readonly isOpaque: boolean;
+  readonly webgpuTarget?: WebGPUWarmupTarget;
 }
 
 interface AppendShaderVariantContext {
   readonly depthPrepassEnabled: boolean;
   readonly ssrEnabled: boolean;
+  readonly supportsTransformFeedback?: boolean;
+  readonly recordWebGPUWarmupTarget?: (
+    entry: SeedWorldShaderVariantEntry,
+    target: WebGPUWarmupTarget | undefined
+  ) => void;
   readonly includeOpaqueSsr: boolean;
   /** When true (primary startup warmup with SSR active), active SSR receivers only warm their SSR Forward variant and defer their non-SSR fallback to secondary warmup. */
   readonly skipNonSsrForwardForReceivers?: boolean;
@@ -2443,7 +3078,8 @@ function appendShaderVariants(
   supportsRendering = true,
   forwardOnly = false,
   context?: AppendShaderVariantContext,
-  shadowOnly = false
+  shadowOnly = false,
+  webgpuTargetBase?: Omit<WebGPUWarmupTarget, "stage">
 ): void {
   const macroElements: ShaderMacro[] = [];
   (ShaderMacro as unknown as RuntimeShaderMacroConstructor)._getMacrosElements(macros, macroElements);
@@ -2458,7 +3094,12 @@ function appendShaderVariants(
       if (forwardOnly && stage !== "Forward") continue;
       // Match shadow culling even while candidate roots are intentionally inactive.
       if (!castShadows && stage === "ShadowCaster") continue;
-      if (stage === "TransformFeedback" && !supportsRendering) continue;
+      if (stage === "TransformFeedback" && (!supportsRendering || context?.supportsTransformFeedback === false))
+        continue;
+      const stageName = typeof stage === "string" ? stage : "Forward";
+      const passWebgpuTarget: WebGPUWarmupTarget | undefined = webgpuTargetBase
+        ? { ...webgpuTargetBase, stage: stageName }
+        : undefined;
       if (stage === "DepthOnly" && context && !context.depthPrepassEnabled) {
         if (context.ssrEnabled && context.deferredSsrDepthOnly) {
           if (
@@ -2478,7 +3119,9 @@ function appendShaderVariants(
               renderToTexture !== undefined
                 ? recordedMacros.filter((macro) => macro.n !== "ENGINE_OUTPUT_SRGB_CORRECT")
                 : recordedMacros;
-            context.deferredSsrDepthOnly.push({ shader: shader.name, si, pi, macros: depthMacros });
+            const depthEntry: SeedWorldShaderVariantEntry = { shader: shader.name, si, pi, macros: depthMacros };
+            context.deferredSsrDepthOnly.push(depthEntry);
+            context.recordWebGPUWarmupTarget?.(depthEntry, passWebgpuTarget);
           }
         }
         continue;
@@ -2562,7 +3205,8 @@ function appendShaderVariants(
             pi,
             macros: passMacros,
             allowBilateral,
-            isOpaque: queue !== RenderQueueType.Transparent
+            isOpaque: queue !== RenderQueueType.Transparent,
+            webgpuTarget: passWebgpuTarget
           });
           // When SSR is active during primary startup warmup, RenderQueue always resolves active SSR
           // receivers through SSRProgramResolver (CAMERA_ENABLE_SSR) and only falls back on texture-unit
@@ -2572,7 +3216,9 @@ function appendShaderVariants(
           }
         }
       }
-      variants.push({ shader: shader.name, si, pi, macros: passMacros });
+      const entry: SeedWorldShaderVariantEntry = { shader: shader.name, si, pi, macros: passMacros };
+      variants.push(entry);
+      context?.recordWebGPUWarmupTarget?.(entry, passWebgpuTarget);
     }
   }
 }
