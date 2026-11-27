@@ -1,0 +1,21 @@
+packages/building/src/building/runtime/ConstructionDecorationLights.ts
+  s_c72f930c19d1f3::t_1eea2c8f3c9a88 198,201
+packages/building/tests/BuildingOptimization.spec.ts
+  s_c72f930c19d1f3::t_77c0f4dfa2e602 1438,1447,1456-1469
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "fc373dbfd4a0e7ffb14882f150406c033031c2b0",
+  "prompts": {},
+  "sessions": {
+    "s_c72f930c19d1f3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21604-5ead-7042-b751-c18d1813c1a0",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
