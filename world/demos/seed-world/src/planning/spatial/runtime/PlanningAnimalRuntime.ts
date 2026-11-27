@@ -38,6 +38,11 @@ import {
   type ResolvedAnimalAsset
 } from "@galacean/engine-animals/gameplay/animal/AnimalAssetLibrary";
 import { ConfiguredAnimal } from "@galacean/engine-animals/gameplay/animal/ConfiguredAnimal";
+import {
+  projectAnimalSize,
+  selectAnimalLod,
+  type AnimalLodLevel
+} from "@galacean/engine-animals/gameplay/animal/AnimalLod";
 import { animalCollisionRadius } from "@galacean/engine-animals/gameplay/animal/AnimalAssetCatalog";
 import { AnimalSystem } from "@galacean/engine-animals/gameplay/animal/AnimalSystem";
 import { GroundAnimalCrowd, type GroundAnimalBody } from "@galacean/engine-animals/gameplay/animal/GroundAnimalCrowd";
@@ -95,6 +100,9 @@ const ANIMAL_FIXED_STEP_SECONDS = 1 / 30;
 const CUTE_ZOO_PLAIN_APPEARANCE = Object.freeze({ ...CUTE_ZOO_TOON_APPEARANCE, outline: false });
 const OUTLINE_ZERO_DISTANCE = CUTE_ZOO_TOON_APPEARANCE.outlineFadeEnd ?? 0;
 const OUTLINE_OFF_HYSTERESIS_METERS = 0.25;
+// Screen-height coverage thresholds (projected diameter / viewport height, matching AnimalLod & rock LOD with 15% hysteresis):
+// LOD0 >= 12% -> 30Hz (stride 1), LOD1 6-12% -> 15Hz (stride 2), LOD2 3-6% -> 10Hz (stride 3), < 3% -> 7.5Hz (stride 4).
+const ANIM_LOD_SCREEN_HEIGHTS: readonly [number, number, number] = [0.12, 0.06, 0.03];
 
 /** Optional scene interactions; the observer camera remains independent of the physical player. */
 export interface PlanningAnimalInteractions {
@@ -132,6 +140,7 @@ interface Actor {
   error?: string;
   nextApproach?: number;
   food?: FoodMemory;
+  animLodLevel?: AnimalLodLevel;
 }
 interface Population {
   root: Entity;
@@ -1101,8 +1110,19 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
         } finally {
           p.navigation.endAnimalUpdate?.();
         }
+        const observer = this.observer();
+        const camera =
+          this.interactions.fireflies?.camera ??
+          (
+            this.parent.scene as unknown as {
+              _componentsManager?: { _activeCameras?: { _elements?: Camera[] } };
+            }
+          )?._componentsManager?._activeCameras?._elements?.[0];
+        const verticalFov = camera?.fieldOfView ?? 45;
+        const orthoSize = camera?.isOrthographic ? camera.orthographicSize : undefined;
         for (const actor of p.active) {
           const position = actor.animal!.position;
+          this.updateActorAnimationLod(actor, observer.x, observer.y, observer.z, verticalFov, orthoSize);
           if (position.x !== actor.x || position.z !== actor.z) {
             actor.x = position.x;
             actor.z = position.z;
@@ -1406,6 +1426,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
           resolveMaterial: p.outlineEnabled ? this.resolveMaterial : this.resolvePlainMaterial,
           resolvePlainMaterial: this.resolvePlainMaterial,
           distantUpdateSeconds: DISTANT_ANIMAL_UPDATE_SECONDS,
+          fastDirectGroundArc: true,
           interactionArrivalRadius: () =>
             food.approaching?.appearance === "cart" && food.cart?.entering ? 0.06 : undefined,
           arrivedAtInteraction: (destination) =>
@@ -2053,6 +2074,31 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
       if (distSq >= off * off) animal.setOutlineEnabled(false);
     } else if (distSq < cutoff * cutoff) {
       animal.setOutlineEnabled(true);
+    }
+  }
+
+  private updateActorAnimationLod(
+    actor: Actor,
+    obsX: number,
+    obsY: number | undefined,
+    obsZ: number,
+    verticalFov: number,
+    orthoSize: number | undefined
+  ): void {
+    const animal = actor.animal;
+    if (!animal) return;
+    const pos = animal.position;
+    const dx = pos.x - obsX;
+    const dy = obsY !== undefined ? pos.y - obsY : 0;
+    const dz = pos.z - obsZ;
+    const distance = Math.hypot(dx, dy, dz);
+    const projectedHeight = projectAnimalSize(animal.boundingRadius * 2, distance, verticalFov, orthoSize);
+    const prev: AnimalLodLevel = actor.animLodLevel === undefined ? 0 : actor.animLodLevel;
+    const next = selectAnimalLod(projectedHeight, ANIM_LOD_SCREEN_HEIGHTS, prev);
+    if (actor.animLodLevel === undefined || next !== prev) {
+      actor.animLodLevel = next;
+      const stride = next === null ? 4 : next + 1;
+      animal.setAnimationLod(stride, actor.birth.seed & 0xff);
     }
   }
 

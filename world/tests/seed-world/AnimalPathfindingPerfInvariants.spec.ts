@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { Renderer } from "@galacean/engine-core";
 import { LakeBoundaryQueryIndex } from "@galacean/engine-water/water/compiler/lake/LakeBoundaryQueryIndex";
 import { PlanningNavigationSurface } from "@galacean/engine-world-planning/spatial/runtime/PlanningNavigationSurface";
 import { PlanningAnimalHabitat } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHabitat";
@@ -409,5 +410,136 @@ describe("animal pathfinding performance invariants", () => {
     expect(water.hasWaterInBounds(5, 5, 10, 10)).toBe(true);
     expect(bodiesGetterCalls).toBe(2);
     expect(runtimeInterfacesCalls).toBe(2);
+  });
+
+  it("culls newly enabled off-screen renderers after their first unrendered frame and stays accurate post-frame", () => {
+    const engine = { time: { frameCount: 10 }, _frameInProcess: false };
+    const renderer: any = Object.create(Renderer.prototype);
+    renderer._engine = engine;
+    renderer._renderFrameCount = undefined;
+    renderer._enabledFrameCount = -1;
+    renderer._overrideUpdate = false;
+    renderer._scene = { _componentsManager: { addRenderer: () => {}, addOnUpdateRenderers: () => {} } };
+    Object.defineProperty(renderer, "engine", { get: () => engine });
+    Object.defineProperty(renderer, "scene", { get: () => renderer._scene });
+
+    // Enabled between frames (frame 10): stays visible for frame 11's update before first culling pass.
+    renderer._onEnableInScene();
+    expect(renderer.isCulled).toBe(false);
+    engine.time.frameCount = 11;
+    engine._frameInProcess = true;
+    expect(renderer.isCulled).toBe(false);
+
+    // Frame 11 finishes without rendering this renderer -> culled post-frame and on frame 12.
+    engine._frameInProcess = false;
+    expect(renderer.isCulled).toBe(true);
+    engine.time.frameCount = 12;
+    engine._frameInProcess = true;
+    expect(renderer.isCulled).toBe(true);
+
+    // Once rendered on frame 12 -> unculled post-frame 12 and during frame 13 update.
+    renderer._renderFrameCount = 12;
+    engine._frameInProcess = false;
+    expect(renderer.isCulled).toBe(false);
+    engine.time.frameCount = 13;
+    engine._frameInProcess = true;
+    expect(renderer.isCulled).toBe(false);
+
+    // Re-enabling later resets stale _renderFrameCount and grants one fresh visible frame.
+    engine.time.frameCount = 50;
+    engine._frameInProcess = false;
+    renderer._onEnableInScene();
+    expect(renderer.isCulled).toBe(false);
+    engine.time.frameCount = 51;
+    engine._frameInProcess = true;
+    expect(renderer.isCulled).toBe(false);
+    engine.time.frameCount = 52;
+    expect(renderer.isCulled).toBe(true);
+  });
+
+  it("skips off-screen Animator.update and decimates distant Animation LOD ticks while keeping 30Hz motion", () => {
+    const engine = { time: { frameCount: 10 } };
+    const pose = { sampled: false, finished: false };
+    const activeState = { name: "walk", pose };
+    const playback = new AnimalMotionPlayback();
+    playback.start(2.0, 1.5, "distance", 1);
+    const blendClock = new AnimalBlendClock();
+    blendClock.start(0);
+    const updateSpy = vi.fn();
+    const playSpy = vi.fn();
+    let culled = false;
+    const animal: any = Object.create(ConfiguredAnimal.prototype);
+    Object.assign(animal, {
+      active: true,
+      disposed: false,
+      system: { deferringPose: false, markPendingPoseFlush: () => {} },
+      root: { isActiveInHierarchy: true, engine },
+      config: {
+        bounds: { min: [-0.5, 0, -0.5], max: [0.5, 1, 0.5] },
+        animations: [{ id: "walk", clip: "walk", speed: 1.5 }]
+      },
+      clip: 0,
+      scale: 1,
+      movementMedium: "ground",
+      slopePitch: 0,
+      clipStartedFrame: -1,
+      activeState,
+      activeStateInstance: { speed: 1 },
+      verifiedAnimatedState: activeState,
+      playback,
+      blendClock,
+      nativeTransition: { duration: 0 },
+      pendingAnimatorSeconds: 0,
+      pendingGroundPlacement: false,
+      poseDesyncedWhileCulled: false,
+      animationLodStride: 1,
+      animationLodPhase: 0,
+      animationLodTicks: 0,
+      renderers: [
+        {
+          get isCulled() {
+            return culled;
+          }
+        }
+      ],
+      animator: {
+        speed: 1,
+        findAnimatorState: () => ({ speed: 1 }),
+        _isPoseCulled: () => culled,
+        play: (...args: unknown[]) => playSpy(...args),
+        update: (dt: number) => {
+          pose.sampled = true;
+          updateSpy(dt);
+        }
+      },
+      readPose: () => true,
+      correctRootMotion: () => {}
+    });
+    Object.defineProperty(animal, "duration", { get: () => 2.0 });
+    const walking = { x: 0, z: 0, heading: 0, speed: 1.5, angularSpeed: 0 };
+
+    // 1. Animation LOD stride=3 evaluates Animator.update once every 3 ticks while keeping full motion fraction=1.
+    animal.setAnimationLod(3, 0);
+    expect(animal.prepareAnimation(1 / 30, walking)).toBe(1);
+    expect(animal.prepareAnimation(1 / 30, walking)).toBe(1);
+    expect(updateSpy).toHaveBeenCalledTimes(0);
+    expect(animal.prepareAnimation(1 / 30, walking)).toBe(1);
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(updateSpy.mock.calls[0][0]).toBeCloseTo(3 / 30, 5);
+
+    // 2. Off-screen culling skips Animator.update completely and resyncs O(1) via play()+update(0) on re-entry.
+    updateSpy.mockClear();
+    playSpy.mockClear();
+    animal.setAnimationLod(1, 0);
+    culled = true;
+    expect(animal.prepareAnimation(1 / 30, walking)).toBe(1);
+    expect(animal.prepareAnimation(1 / 30, walking)).toBe(1);
+    expect(updateSpy).not.toHaveBeenCalled();
+
+    culled = false;
+    expect(animal.prepareAnimation(1 / 30, walking)).toBe(1);
+    expect(playSpy).toHaveBeenCalledTimes(1);
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(updateSpy.mock.calls[0][0]).toBe(0);
   });
 });
