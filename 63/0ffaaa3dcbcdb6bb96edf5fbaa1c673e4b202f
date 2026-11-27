@@ -1,0 +1,39 @@
+tests/src/core/physics/CharacterController.test.ts
+  s_3754ebc6b108f2::t_062b17d5986a3d 21,380-408
+  s_3754ebc6b108f2::t_534452762bc083 23,409-458
+  s_3754ebc6b108f2::t_13d3582c852189 459
+packages/design/src/physics/index.ts
+  s_3754ebc6b108f2::t_442cb119f2f5f2 1
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_3754ebc6b108f2::t_19ef1086bcd88a 233,236-237
+  s_3754ebc6b108f2::t_442cb119f2f5f2 3,235
+packages/core/src/physics/CharacterController.ts
+  s_3754ebc6b108f2::t_b01382a63b5bfa 16,18,195,219-221,224-226,235,258-259,265
+  s_3754ebc6b108f2::t_0a860610171c43 160-162,165-166,211-212,218,222,236-257,260-263,271-274
+packages/design/src/physics/ICharacterController.ts
+  s_3754ebc6b108f2::t_442cb119f2f5f2 80-95
+  s_3754ebc6b108f2::t_6eeffd61e2329a 6-7,41,46-47,49,52-53,55
+  s_3754ebc6b108f2::t_66d87fd4319334 96
+packages/design/src/physics/IPhysicsScene.ts
+  s_3754ebc6b108f2::t_6eeffd61e2329a 44-46
+  s_3754ebc6b108f2::t_442cb119f2f5f2 2,48
+packages/physics-physx/src/PhysXCharacterController.ts
+  s_3754ebc6b108f2::t_19ef1086bcd88a 1-4,6,9,12,15-19,21-53,56-70,76-77,79-81,83-84,91,98,105-107,114,118,120,122-126,130,132-133,140,148-150,157,164-165
+  s_3754ebc6b108f2::t_442cb119f2f5f2 5,20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "630ffaaa3dcbcdb6bb96edf5fbaa1c673e4b202f",
+  "prompts": {},
+  "sessions": {
+    "s_3754ebc6b108f2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a218cd-a576-7eb3-aadd-5c308d16914c",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
