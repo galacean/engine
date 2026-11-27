@@ -690,7 +690,7 @@ function resolveAvailableCandyJar(hostWindow: AsrWindow): CandyJarApi | undefine
 }
 
 function queryLocalRuntimeInfo(candyJar: CandyJarApi): Promise<LocalRuntimeInfo | undefined> {
-  return new Promise((resolve) => {
+  const discovery = new Promise<LocalRuntimeInfo | undefined>((resolve) => {
     candyJar.call(
       "Env",
       "getRuntimeInfo",
@@ -700,6 +700,8 @@ function queryLocalRuntimeInfo(candyJar: CandyJarApi): Promise<LocalRuntimeInfo 
       LOCAL_RUNTIME_DISCOVERY_TIMEOUT_MILLISECONDS
     );
   });
+  // Native bridges may omit callbacks when the optional probe is unsupported.
+  return resolveWithTimeout(discovery, undefined, LOCAL_RUNTIME_DISCOVERY_TIMEOUT_MILLISECONDS);
 }
 
 function normalizeLocalRuntimeInfo(value: unknown): LocalRuntimeInfo | undefined {
