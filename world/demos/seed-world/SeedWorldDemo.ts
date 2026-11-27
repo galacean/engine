@@ -97,7 +97,11 @@ import {
   loadSeedWorldTemplateBinaryBundles,
   releaseSeedWorldCommonBinaryBundle
 } from "./src/SeedWorldCommonBinaryBundle.ts";
-import { loadSeedWorldProjectTextBundle, parsePreloadedJson } from "./src/SeedWorldProjectTextBundle.ts";
+import {
+  loadSeedWorldProjectTextBundle,
+  parsePreloadedJson,
+  releaseSeedWorldProjectTextBundle
+} from "./src/SeedWorldProjectTextBundle.ts";
 import { runSeedWorldStartupShaderWarmup } from "./src/SeedWorldStartupShaderWarmup.ts";
 import { createSeedWorldProjectClose } from "./SeedWorldProjectClose.ts";
 import { SEED_WORLD_EDITOR_PATH, seedWorldProjectFormats } from "./SeedWorldProjectFormats.ts";
@@ -705,6 +709,7 @@ export async function mountSeedWorldDemo(
     async () => {
       await disposeRuntime();
       releaseSeedWorldCommonBinaryBundle();
+      releaseSeedWorldProjectTextBundle();
       runtimeProject?.dispose();
     }
   );
@@ -1006,6 +1011,49 @@ export async function mountSeedWorldDemo(
       registerSeedWorldVoiceHudStartupShaders();
     };
     const eagerVoiceHudShaders = pageUrl.searchParams.get("agentTrace") === "1";
+    const templateUsesOcean =
+      WORLD_TEMPLATE_ART[requestedTemplateId]?.initialPlanning?.landMode !== "continuous" ||
+      pageUrl.searchParams.get("landMode") === "island";
+    let oceanWaterAotLoaded = false;
+    let oceanWaterAotTask: Promise<void> | undefined;
+    const loadOceanWaterAotShaders = (): Promise<void> => {
+      if (oceanWaterAotLoaded || disposed) return Promise.resolve();
+      if (!oceanWaterAotTask) {
+        const task = (async () => {
+          try {
+            const oceanAotPaths = initialProject.files
+              .filter((file) => file.type === "Shader" && file.virtualPath.startsWith("Shader/Water/ocean-"))
+              .map((file) => file.virtualPath);
+            if (oceanAotPaths.length > 0 && !disposed) {
+              const results = await Promise.allSettled(
+                oceanAotPaths.map((url) => engine!.resourceManager.load({ type: AssetType.Shader, url }))
+              );
+              if (disposed) return;
+              const failed = results.find((result): result is PromiseRejectedResult => result.status === "rejected");
+              if (failed) {
+                console.warn("[SeedWorld] Ocean Water AOT shader preload failed; will retry on demand", failed.reason);
+                return;
+              }
+            }
+            if (disposed) return;
+            const { registerSeedWorldWaterStartupShaders } = await import(
+              "@galacean/engine-water/world/SeedWorldWaterStartupShaders"
+            );
+            if (disposed) return;
+            registerSeedWorldWaterStartupShaders({ includeOcean: true });
+            oceanWaterAotLoaded = true;
+          } catch (error) {
+            console.warn("[SeedWorld] Ocean Water AOT shader registration failed; will retry on demand", error);
+          } finally {
+            if (oceanWaterAotTask === task) {
+              oceanWaterAotTask = undefined;
+            }
+          }
+        })();
+        oceanWaterAotTask = task;
+      }
+      return oceanWaterAotTask;
+    };
     // Overlap startup shaders and farming scene setup while WorldPlanning.worker.ts
     // and planningSource.storage.initialize run without competing for CDN bandwidth.
     const startupShadersTask = (async () => {
@@ -1016,21 +1064,33 @@ export async function mountSeedWorldDemo(
       if (eagerVoiceHudShaders) ensureVoiceHudStartupShaders();
       // Preload AOT Water .shaderc files from the common SWB1 bundle before registering startup
       // profiles so resolveWaterShaderModule hits Shader.find() instead of JIT Shader.create().
+      // Continuous-land templates (low-poly, titan-wasteland, oil-paint) skip ocean AOT profiles.
       await commonBinaryBundleTask;
       syncPrefetchedBinaryAssets();
       const waterAotShaderPaths = initialProject.files
-        .filter((file) => file.type === "Shader" && file.virtualPath.startsWith("Shader/Water/"))
+        .filter(
+          (file) =>
+            file.type === "Shader" &&
+            file.virtualPath.startsWith("Shader/Water/") &&
+            (templateUsesOcean || !file.virtualPath.startsWith("Shader/Water/ocean-"))
+        )
         .map((file) => file.virtualPath);
+      let allWaterAotLoaded = true;
       if (waterAotShaderPaths.length > 0 && !disposed) {
-        await Promise.allSettled(
+        const results = await Promise.allSettled(
           waterAotShaderPaths.map((url) => engine!.resourceManager.load({ type: AssetType.Shader, url }))
         );
+        allWaterAotLoaded = results.every((result) => result.status === "fulfilled");
       }
       if (disposed) return;
       const { registerSeedWorldWaterStartupShaders } = await import(
         "@galacean/engine-water/world/SeedWorldWaterStartupShaders"
       );
-      registerSeedWorldWaterStartupShaders();
+      if (disposed) return;
+      registerSeedWorldWaterStartupShaders({ includeOcean: templateUsesOcean });
+      if (templateUsesOcean && allWaterAotLoaded) {
+        oceanWaterAotLoaded = true;
+      }
       recordBootSpan("register startup shaders", startupShadersAt);
     })();
     void startupShadersTask.catch(() => {});
@@ -1053,6 +1113,14 @@ export async function mountSeedWorldDemo(
     // Launch CPU-heavy rasterization, rock formation prep, and zero-SWB1 project setup immediately
     // without blocking on template SWB1 shard downloads so cold Wi-Fi boots never idle the CPU.
     let prewarmedRasterPlan: IslandPlan | undefined = source.takeInitialPlan();
+    if (
+      !templateUsesOcean &&
+      !oceanWaterAotLoaded &&
+      prewarmedRasterPlan &&
+      prewarmedRasterPlan.parameters.landMode !== "continuous"
+    ) {
+      void loadOceanWaterAotShaders().catch(() => {});
+    }
     if (requestedTemplateId !== "oil-paint" && prewarmedRasterPlan?.parameters.worldTemplate?.id === "oil-paint") {
       void import("@galacean/engine-world-planning/spatial/oil-paint/OilPaintTextures")
         .then(({ prewarmOilPaintBrushTexture }) => {
@@ -2735,6 +2803,9 @@ export async function mountSeedWorldDemo(
 
             const waterTask = (async () => {
               canvas.dataset.waterPreparation = "preparing";
+              if (plan.parameters.landMode !== "continuous") {
+                await loadOceanWaterAotShaders();
+              }
               candidateWater = await timed("water.prepare", () => water!.prepare(plan, signal));
               canvas.dataset.waterPreparation = "ready";
             })();

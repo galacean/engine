@@ -1909,4 +1909,37 @@ describe("animal presentation preparation", () => {
     await task;
     expect(order).toEqual(["masonry-flushed", "collect"]);
   });
+
+  it("gates ocean Water AOT .shaderc preloading and startup registration on continuous-land templates without splitting a separate WaterShaderAotProfiles chunk", async () => {
+    const demoSource = readFileSync(new URL("../../demos/seed-world/SeedWorldDemo.ts", import.meta.url), "utf8");
+    expect(demoSource).toContain('WORLD_TEMPLATE_ART[requestedTemplateId]?.initialPlanning?.landMode !== "continuous"');
+    expect(demoSource).toContain('!file.virtualPath.startsWith("Shader/Water/ocean-")');
+    expect(demoSource).toContain("registerSeedWorldWaterStartupShaders({ includeOcean: templateUsesOcean })");
+    expect(demoSource).not.toContain("SeedWorldWaterShaderAotProfiles");
+    // Ensure waterTask awaits reusable oceanWaterAotTask before water.prepare() whenever a plan uses non-continuous land
+    // (covering both startup island restore and runtime landMode/document switches).
+    expect(demoSource).toMatch(
+      /if\s*\(\s*plan\.parameters\.landMode\s*!==\s*"continuous"\s*\)\s*\{\s*await\s+loadOceanWaterAotShaders\(\);/u
+    );
+    expect(demoSource).toContain("oceanWaterAotTask = undefined;");
+
+    const { registerSeedWorldWaterStartupShaders } = await import(
+      "@galacean/engine-water/world/SeedWorldWaterStartupShaders"
+    );
+    const { SEED_WORLD_WATER_SHADER_AOT_CONTRACT } = await import(
+      "@galacean/engine-water/world/SeedWorldWaterShaderAotContract"
+    );
+    const allNames = SEED_WORLD_WATER_SHADER_AOT_CONTRACT.map((p) => p.shaderName);
+    const nonOceanNames = SEED_WORLD_WATER_SHADER_AOT_CONTRACT.filter((p) => !p.id.startsWith("ocean-")).map(
+      (p) => p.shaderName
+    );
+    const findSpy = vi.spyOn(Shader, "find").mockImplementation((name: string) => ({ name }) as unknown as Shader);
+    try {
+      expect(registerSeedWorldWaterStartupShaders()).toEqual(allNames);
+      expect(registerSeedWorldWaterStartupShaders({ includeOcean: true })).toEqual(allNames);
+      expect(registerSeedWorldWaterStartupShaders({ includeOcean: false })).toEqual(nonOceanNames);
+    } finally {
+      findSpy.mockRestore();
+    }
+  });
 });
