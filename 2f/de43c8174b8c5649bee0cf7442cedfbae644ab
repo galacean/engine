@@ -1,0 +1,90 @@
+packages/building/src/building/assets/native/Shaders/brick.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/brick_roof.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/decoration-stone.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/decoration.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/decoration_stone_frame.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/frame.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/glass.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/plaster.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/roof.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/sdf-brick.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/sdf-brick_clip.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/sdf-brick_roof.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/sdf-brick_roof_clip.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/wood.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/wood_roof.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/wooden-arch-frame.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/runtime/BuildingShaderLab.ts
+  h_171a11afaf879a 555,559-560
+packages/building/src/building/shaders/native/brick.shader
+  h_171a11afaf879a 535
+packages/building/src/building/shaders/native/brick_roof.shader
+  h_171a11afaf879a 540
+packages/building/src/building/shaders/native/decoration-stone.shader
+  h_171a11afaf879a 310
+packages/building/src/building/shaders/native/decoration.shader
+  h_171a11afaf879a 119
+packages/building/src/building/shaders/native/decoration_stone_frame.shader
+  h_171a11afaf879a 247
+packages/building/src/building/shaders/native/frame.shader
+  h_171a11afaf879a 160
+packages/building/src/building/shaders/native/glass.shader
+  h_171a11afaf879a 175
+packages/building/src/building/shaders/native/roof.shader
+  h_171a11afaf879a 359
+packages/building/src/building/shaders/native/wood.shader
+  h_171a11afaf879a 366
+packages/building/src/building/shaders/native/wood_roof.shader
+  h_171a11afaf879a 370
+packages/building/src/building/shaders/native/wooden-arch-frame.shader
+  h_171a11afaf879a 346
+packages/core/src/shader/ShaderPass.ts
+  h_171a11afaf879a 240
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_171a11afaf879a 2,1129-1212
+packages/shader-compiler/src/codeGen/WGSLVisitor.ts
+  h_171a11afaf879a 1410,4097-4099
+packages/terrain/src/data/seed-world/public/Shader/Billboard.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/terrain/loading/WorldBubbleLoadingScene.ts
+  h_171a11afaf879a 412-420,487-489
+packages/water/src/water/native/assets/Water/Shaders/builtin/river.json
+  h_171a11afaf879a 1
+packages/world-planning/src/runtime/SeedWorldForwardGrass.ts
+  h_171a11afaf879a 1797-1798
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_171a11afaf879a 23,37,600-601,634,664-676,827,891-898,1334-1345,1347-1348,1350,2108-2111,2130-2151
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2fde43c8174b8c5649bee0cf7442cedfbae644ab",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
