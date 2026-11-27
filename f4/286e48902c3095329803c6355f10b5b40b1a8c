@@ -1,0 +1,25 @@
+packages/vegetation/README.md
+  s_147482a53e9f64::t_dfef2ffb522127 12-15
+packages/terrain/src/data/seed-world/public/Shader/Billboard.shaderc
+  s_147482a53e9f64::t_8882958ce5ef1c 1
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  s_147482a53e9f64::t_f938e642ab1b26 1
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  s_147482a53e9f64::t_5ebf05b78869d2 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f4286e48902c3095329803c6355f10b5b40b1a8c",
+  "prompts": {},
+  "sessions": {
+    "s_147482a53e9f64": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2068a-0f66-7261-874f-d518cb87d5f4",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "鸿岳 <owen.wjh@alipay.com>"
+    }
+  }
+}
