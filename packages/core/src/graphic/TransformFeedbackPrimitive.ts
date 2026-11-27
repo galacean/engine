@@ -1,7 +1,6 @@
 import type { Engine } from "../Engine";
 import { GraphicsResource } from "../asset/GraphicsResource";
-import type { IPlatformTransformFeedbackPrimitive } from "../renderingHardwareInterface";
-import type { IPlatformShaderProgram, IPlatformFeedbackCompute } from "../renderingHardwareInterface";
+import type { IPlatformTransformFeedbackPrimitive, IPlatformShaderProgram } from "../renderingHardwareInterface";
 import { Buffer } from "./Buffer";
 import type { ElementRangeMapping } from "./ElementRangeMapping";
 import { BufferBindFlag } from "./enums/BufferBindFlag";
@@ -13,12 +12,11 @@ import type { VertexElement } from "./VertexElement";
 
 /**
  * @internal
- * Transform feedback storage for iterative simulations and independent output generators.
+ * WebGL2 Transform Feedback storage for iterative simulations and independent output generators.
  */
 export class TransformFeedbackPrimitive extends GraphicsResource {
-  private _platformPrimitive?: IPlatformTransformFeedbackPrimitive;
-  private _compute?: IPlatformFeedbackCompute;
-  private readonly _transformFeedback?: TransformFeedback;
+  private _platformPrimitive!: IPlatformTransformFeedbackPrimitive;
+  private readonly _transformFeedback: TransformFeedback;
   private _bindingA: VertexBufferBinding;
   private _bindingB?: VertexBufferBinding;
   private readonly _byteStride: number;
@@ -44,11 +42,12 @@ export class TransformFeedbackPrimitive extends GraphicsResource {
     bufferMode: "ping-pong" | "output-only" = "ping-pong"
   ) {
     super(engine);
-    this._byteStride = byteStride;
-    if (engine._hardwareRenderer.supportsTransformFeedback) {
-      this._transformFeedback = new TransformFeedback(engine);
-      this._transformFeedback.isGCIgnored = true;
+    if (!engine._hardwareRenderer.supportsTransformFeedback) {
+      throw new Error("TransformFeedback is only supported on WebGL2; use ComputeShader on WebGPU.");
     }
+    this._byteStride = byteStride;
+    this._transformFeedback = new TransformFeedback(engine);
+    this._transformFeedback.isGCIgnored = true;
     this._rebuild();
     this._bindingA = this._createBinding(vertexCount);
     if (bufferMode === "ping-pong") this._bindingB = this._createBinding(vertexCount);
@@ -58,7 +57,6 @@ export class TransformFeedbackPrimitive extends GraphicsResource {
   /**
    * Resize read and write buffers.
    * @param vertexCount - Number of vertices to allocate
-   * @param bufferMode - Whether draws read the previous output or generate into a stable binding
    * @param mappings - Element ranges to preserve from the previous read buffer
    */
   resize(vertexCount: number, mappings: ReadonlyArray<ElementRangeMapping>): void {
@@ -67,7 +65,7 @@ export class TransformFeedbackPrimitive extends GraphicsResource {
     const oldReadBuffer = this.readBinding.buffer;
     this._bindingA = this._createBinding(vertexCount);
     if (oldBindingB) this._bindingB = this._createBinding(vertexCount);
-    this._platformPrimitive?.invalidate();
+    this._platformPrimitive.invalidate();
 
     const stride = this._byteStride;
     const readBuffer = this.readBinding.buffer;
@@ -100,18 +98,7 @@ export class TransformFeedbackPrimitive extends GraphicsResource {
     if (!this._bindingB && feedbackElements.length) {
       throw new Error("Output-only transform feedback requires independent vertex inputs.");
     }
-    if (this._compute) {
-      this._compute.bind(
-        program,
-        this.readBinding,
-        this._readIsA ? (this._bindingB ?? this._bindingA) : this._bindingA,
-        feedbackElements,
-        inputBindings,
-        inputElements
-      );
-      return;
-    }
-    this._platformPrimitive!.bind(
+    this._platformPrimitive.bind(
       program,
       this._bindingA,
       this._bindingB ?? this._bindingA,
@@ -121,7 +108,7 @@ export class TransformFeedbackPrimitive extends GraphicsResource {
       this._readIsA
     );
     this._engine._hardwareRenderer.enableRasterizerDiscard();
-    this._transformFeedback!.bind();
+    this._transformFeedback.bind();
   }
 
   /**
@@ -132,11 +119,7 @@ export class TransformFeedbackPrimitive extends GraphicsResource {
    * @param instanceCount - Number of instances; defaults to one
    */
   draw(mode: MeshTopology, first: number, count: number, instanceCount = 1): void {
-    if (this._compute) {
-      this._compute.dispatch(first, count, instanceCount);
-      return;
-    }
-    const transformFeedback = this._transformFeedback!;
+    const transformFeedback = this._transformFeedback;
     transformFeedback.bindBufferRange(
       0,
       (this._readIsA && this._bindingB ? this._bindingB : this._bindingA).buffer,
@@ -144,7 +127,7 @@ export class TransformFeedbackPrimitive extends GraphicsResource {
       count * instanceCount * this._byteStride
     );
     transformFeedback.begin(mode);
-    this._platformPrimitive!.draw(mode, first, count, instanceCount);
+    this._platformPrimitive.draw(mode, first, count, instanceCount);
     transformFeedback.end();
   }
 
@@ -152,26 +135,16 @@ export class TransformFeedbackPrimitive extends GraphicsResource {
    * Unbind state after draw calls and make the written buffer current.
    */
   endDraw(): void {
-    if (this._compute) {
-      if (this._bindingB) this._readIsA = !this._readIsA;
-      return;
-    }
-    this._platformPrimitive!.unbind();
-    this._transformFeedback!.unbindBuffer(0);
-    this._transformFeedback!.unbind();
+    this._platformPrimitive.unbind();
+    this._transformFeedback.unbindBuffer(0);
+    this._transformFeedback.unbind();
     this._engine._hardwareRenderer.disableRasterizerDiscard();
     this._engine._hardwareRenderer.invalidateShaderProgramState();
     if (this._bindingB) this._readIsA = !this._readIsA;
   }
 
   override _rebuild(): void {
-    const device = this._engine._hardwareRenderer;
-    if (device.supportsCompute && device.createFeedbackCompute) {
-      this._compute?.destroy();
-      this._compute = device.createFeedbackCompute();
-    } else {
-      this._platformPrimitive = device.createPlatformTransformFeedbackPrimitive();
-    }
+    this._platformPrimitive = this._engine._hardwareRenderer.createPlatformTransformFeedbackPrimitive();
   }
 
   private _createBinding(vertexCount: number): VertexBufferBinding {
@@ -188,10 +161,9 @@ export class TransformFeedbackPrimitive extends GraphicsResource {
 
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._platformPrimitive?.destroy();
-    this._compute?.destroy();
+    this._platformPrimitive.destroy();
     this._bindingA.buffer.destroy();
     this._bindingB?.buffer.destroy();
-    this._transformFeedback?.destroy();
+    this._transformFeedback.destroy();
   }
 }

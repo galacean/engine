@@ -140,7 +140,7 @@ export class PostProcessUberPass extends PostProcessPass {
 
       const visibilityShader = Shader.find(SunLensFlareEffect._visibilityShaderName);
       this._sunLensFlareVisibilityPass = visibilityShader?.subShaders[0]?.passes[0] ?? null;
-      if (this._sunLensFlareVisibilityPass) {
+      if (this._sunLensFlareVisibilityPass || engine._hardwareRenderer.supportsCompute) {
         const tfShaderData = new ShaderData(ShaderDataGroup.Renderer);
         tfShaderData.setVector4(SunLensFlareEffect._tfDepthRectProperty, new Vector4(1, 1, 0, 0));
         tfShaderData.setVector4(SunLensFlareEffect._tfParams0Property, new Vector4(0.5, 0.5, 1, 0.012));
@@ -618,64 +618,71 @@ export class PostProcessUberPass extends PostProcessPass {
     let primitive = this._sunLensFlareStaticPrimitive!;
     let visibilityOverride = 1;
 
-    if (useDepthOcclusion && pipeline && this._sunLensFlareVisibilityPass && this._sunLensFlareTFShaderData) {
+    if (
+      useDepthOcclusion &&
+      pipeline &&
+      this._sunLensFlareTFShaderData &&
+      (engine._hardwareRenderer.supportsCompute || this._sunLensFlareVisibilityPass)
+    ) {
       const cameraState = pipeline._getOrCreateSunLensFlareCameraState();
-      const simulator = cameraState.ensureVisibilityTF(engine, this._sunLensFlareVisibilityPass);
       const tfShaderData = this._sunLensFlareTFShaderData;
-      if (simulator) {
-        const tau = sunLensFlareBlend.temporalSmoothing.value;
-        const elapsedTime = engine.time.elapsedTime;
-        const dt =
-          cameraState.lastElapsedTime < 0
-            ? -1
-            : elapsedTime > cameraState.lastElapsedTime
-              ? elapsedTime - cameraState.lastElapsedTime
-              : elapsedTime === cameraState.lastElapsedTime
-                ? engine.time.actualDeltaTime
-                : -1;
-        const sunJump = Math.hypot(screenState.sunU - cameraState.lastSunU, screenState.sunV - cameraState.lastSunV);
-        const snapHistory =
-          !cameraState.historyValid ||
-          !cameraState.lastDepthOcclusion ||
-          tau <= 1e-4 ||
-          dt <= 0 ||
-          dt > 0.5 ||
-          sunJump > 0.35;
-        const blendFactor = snapHistory ? 1 : 1 - Math.exp(-Math.min(dt, 0.1) / tau);
+      const tau = sunLensFlareBlend.temporalSmoothing.value;
+      const elapsedTime = engine.time.elapsedTime;
+      const dt =
+        cameraState.lastElapsedTime < 0
+          ? -1
+          : elapsedTime > cameraState.lastElapsedTime
+            ? elapsedTime - cameraState.lastElapsedTime
+            : elapsedTime === cameraState.lastElapsedTime
+              ? engine.time.actualDeltaTime
+              : -1;
+      const sunJump = Math.hypot(screenState.sunU - cameraState.lastSunU, screenState.sunV - cameraState.lastSunV);
+      const snapHistory =
+        !cameraState.historyValid ||
+        !cameraState.lastDepthOcclusion ||
+        tau <= 1e-4 ||
+        dt <= 0 ||
+        dt > 0.5 ||
+        sunJump > 0.35;
+      const blendFactor = snapHistory ? 1 : 1 - Math.exp(-Math.min(dt, 0.1) / tau);
 
-        tfShaderData.setTexture(SunLensFlareEffect._tfDepthTextureProperty, depthTexture);
-        tfShaderData.getVector4(SunLensFlareEffect._tfDepthRectProperty).copyFrom(depthRect);
-        tfShaderData
-          .getVector4(SunLensFlareEffect._tfParams0Property)
-          .set(screenState.sunU, screenState.sunV, screenState.aspectRatio, 0.012);
-        tfShaderData.getVector4(SunLensFlareEffect._tfParams1Property).set(0.999998, blendFactor, 0, 0);
+      tfShaderData.setTexture(SunLensFlareEffect._tfDepthTextureProperty, depthTexture);
+      tfShaderData.getVector4(SunLensFlareEffect._tfDepthRectProperty).copyFrom(depthRect);
+      tfShaderData
+        .getVector4(SunLensFlareEffect._tfParams0Property)
+        .set(screenState.sunU, screenState.sunV, screenState.aspectRatio, 0.012);
+      tfShaderData.getVector4(SunLensFlareEffect._tfParams1Property).set(0.999998, blendFactor, 0, 0);
 
-        if (simulator.beginUpdate(tfShaderData, this._sunLensFlareTFFeedbackElements, [], [])) {
-          try {
-            simulator.draw(MeshTopology.Points, 0, 1);
-          } finally {
-            simulator.endUpdate();
-            tfShaderData.setTexture(SunLensFlareEffect._tfDepthTextureProperty, null);
-          }
-          primitive = cameraState.getOrCreatePrimitive(
-            engine,
-            simulator.readBinding,
-            this._sunLensFlareCornerBinding!,
-            this._sunLensFlareInstanceBinding!,
-            this._sunLensFlareIndexBinding!,
-            SUN_LENS_FLARE_INSTANCE_COUNT,
-            SUN_LENS_FLARE_VISIBILITY_STEP_RATE
-          );
-          visibilityOverride = -1;
-          cameraState.historyValid = true;
-          cameraState.lastDepthOcclusion = true;
-          cameraState.lastSunU = screenState.sunU;
-          cameraState.lastSunV = screenState.sunV;
-          cameraState.lastElapsedTime = elapsedTime;
-        } else {
-          tfShaderData.setTexture(SunLensFlareEffect._tfDepthTextureProperty, null);
-          cameraState.invalidateHistory();
-        }
+      let visibilityBinding: VertexBufferBinding | null = null;
+      try {
+        visibilityBinding = cameraState.updateVisibility(
+          engine,
+          this._sunLensFlareVisibilityPass,
+          tfShaderData,
+          this._sunLensFlareTFFeedbackElements
+        );
+      } finally {
+        tfShaderData.setTexture(SunLensFlareEffect._tfDepthTextureProperty, null);
+      }
+
+      if (visibilityBinding) {
+        primitive = cameraState.getOrCreatePrimitive(
+          engine,
+          visibilityBinding,
+          this._sunLensFlareCornerBinding!,
+          this._sunLensFlareInstanceBinding!,
+          this._sunLensFlareIndexBinding!,
+          SUN_LENS_FLARE_INSTANCE_COUNT,
+          SUN_LENS_FLARE_VISIBILITY_STEP_RATE
+        );
+        visibilityOverride = -1;
+        cameraState.historyValid = true;
+        cameraState.lastDepthOcclusion = true;
+        cameraState.lastSunU = screenState.sunU;
+        cameraState.lastSunV = screenState.sunV;
+        cameraState.lastElapsedTime = elapsedTime;
+      } else {
+        cameraState.invalidateHistory();
       }
     } else {
       pipeline?._sunLensFlareCameraState?.invalidateHistory();

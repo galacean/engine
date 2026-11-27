@@ -2,11 +2,12 @@ import {
   Buffer,
   BufferBindFlag,
   BufferUsage,
+  ComputeShader,
+  EngineEventType,
   MeshTopology,
   Shader,
   ShaderData,
   ShaderDataGroup,
-  ShaderLanguage,
   ShaderPass,
   ShaderProperty,
   Texture2D,
@@ -44,6 +45,23 @@ export type BrickFeedbackSource = BrickGridFeedbackInput | BrickPackFeedbackInpu
 const OUT_STRIDE = 64;
 const IN_STRIDE = 80; // 5 * vec4
 
+const PACK_HELPER_GLSL = `
+      uint roundShift(uint v, uint shift) {
+        uint q = v >> shift, r = v & ((1u << shift) - 1u), mid = 1u << (shift - 1u);
+        return q + ((r > mid || (r == mid && (q & 1u) == 1u)) ? 1u : 0u);
+      }
+      uint toHalf(float value) {
+        uint bits = floatBitsToUint(value);
+        uint sgn = (bits >> 16) & 0x8000u, exponent = (bits >> 23) & 255u, fraction = bits & 0x7fffffu;
+        if (exponent == 255u) return sgn | 0x7c00u | (fraction != 0u ? (fraction >> 13) | 0x200u : 0u);
+        if (exponent >= 143u) return sgn | 0x7c00u;
+        if (exponent < 102u) return sgn;
+        if (exponent <= 112u) return sgn | roundShift(0x800000u | fraction, 126u - exponent);
+        return sgn | (((exponent - 112u) << 10) + roundShift(fraction, 13u));
+      }
+      uint pair(float a, float b) { return toHalf(a) | (toHalf(b) << 16); }
+`;
+
 const PACK_SHADER_NAME = "Building/BrickPackKernel";
 const PACK_SHADER_LAB_SOURCE = `Shader "${PACK_SHADER_NAME}" {
   SubShader "Default" {
@@ -62,22 +80,7 @@ const PACK_SHADER_LAB_SOURCE = `Shader "${PACK_SHADER_NAME}" {
         flat uvec4 result2;
         flat uvec4 result3;
       };
-
-      uint roundShift(uint v, uint shift) {
-        uint q = v >> shift, r = v & ((1u << shift) - 1u), mid = 1u << (shift - 1u);
-        return q + ((r > mid || (r == mid && (q & 1u) == 1u)) ? 1u : 0u);
-      }
-      uint toHalf(float value) {
-        uint bits = floatBitsToUint(value);
-        uint sgn = (bits >> 16) & 0x8000u, exponent = (bits >> 23) & 255u, fraction = bits & 0x7fffffu;
-        if (exponent == 255u) return sgn | 0x7c00u | (fraction != 0u ? (fraction >> 13) | 0x200u : 0u);
-        if (exponent >= 143u) return sgn | 0x7c00u;
-        if (exponent < 102u) return sgn;
-        if (exponent <= 112u) return sgn | roundShift(0x800000u | fraction, 126u - exponent);
-        return sgn | (((exponent - 112u) << 10) + roundShift(fraction, 13u));
-      }
-      uint pair(float a, float b) { return toHalf(a) | (toHalf(b) << 16); }
-
+      ${PACK_HELPER_GLSL}
       Varyings vert(Attributes a) {
         gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
         // a0 = (tx, ty, tz, bx), a1 = (by, bz, nx, ny), a2 = (nz, ox, oy, oz)
@@ -99,12 +102,62 @@ const PACK_SHADER_LAB_SOURCE = `Shader "${PACK_SHADER_NAME}" {
     }
   }
 }`;
+
+const PACK_COMPUTE_SOURCE = `ComputeShader "${PACK_SHADER_NAME}Compute" {
+  WorkgroupSize = (64, 1, 1);
+  ComputeKernel = csPack;
+
+  int uCount;
+  int uSlot;
+
+  readonly storage InBricks {
+    vec4 inData[];
+  };
+
+  storage OutBricks {
+    uvec4 outData[];
+  };
+  ${PACK_HELPER_GLSL}
+  void csPack() {
+    uint idx = gl_GlobalInvocationID.x;
+    if (int(idx) >= uCount) return;
+    uint ib = idx * 5u;
+    uint ob = idx * 4u;
+    vec4 a0 = inData[ib];
+    vec4 a1 = inData[ib + 1u];
+    vec4 a2 = inData[ib + 2u];
+    vec4 a3 = inData[ib + 3u];
+    vec4 a4 = inData[ib + 4u];
+    outData[ob] = uvec4(pair(a0.x, a0.y), pair(a0.z, a0.w), pair(a1.x, a1.y), pair(a1.z, a1.w));
+    outData[ob + 1u] = uvec4(toHalf(a2.x), floatBitsToUint(a2.y), floatBitsToUint(a2.z), floatBitsToUint(a2.w));
+    outData[ob + 2u] = uvec4(pair(a3.x, a3.y), pair(a3.z, a3.w), pair(-100.0, -100.0), pair(-100.0, a4.x));
+    outData[ob + 3u] = uvec4(toHalf(a4.y), floatBitsToUint(a4.z), uint(uSlot), floatBitsToUint(a4.w));
+  }
+}`;
+
 const VARYINGS = ["result0", "result1", "result2", "result3"];
 const IN_ELEMENTS = [0, 1, 2, 3, 4].map((i) => new VertexElement(`a${i}`, i * 16, VertexElementFormat.Vector4, 0));
 const RendererShaderData = ShaderData as unknown as new (group: ShaderDataGroup) => ShaderData;
+const PROP_U_COUNT = ShaderProperty.getByName("uCount");
 const PROP_U_SLOT = ShaderProperty.getByName("uSlot");
 const IS_LITTLE_ENDIAN = new Uint8Array(new Uint16Array([1]).buffer)[0] === 1;
 const terrainHeightTextures = new WeakMap<Engine, { samples: Uint16Array; resolution: number; texture: Texture2D }>();
+const packComputeCache = new WeakMap<Engine, ComputeShader>();
+
+function getOrCreatePackComputeShader(engine: Engine): ComputeShader {
+  let cs = packComputeCache.get(engine);
+  if (!cs || cs.destroyed) {
+    cs = ComputeShader.create(PACK_COMPUTE_SOURCE, engine);
+    packComputeCache.set(engine, cs);
+    engine.once(EngineEventType.Shutdown, () => {
+      if (packComputeCache.get(engine) === cs) {
+        packComputeCache.delete(engine);
+      }
+      cs!.destroy();
+    });
+  }
+  return cs;
+}
 
 /** Upload an R16 terrain height grid once per Engine/samples pair as a shared R8G8 GPU Texture2D (zero CPU copy on LE). */
 export function getOrCreateTerrainHeightTexture(engine: Engine, grid: ConstructionTerrainGrid): Texture2D {
@@ -145,7 +198,7 @@ function packKernelPass(engine?: Engine): ShaderPass {
   return shader.subShaders[0].passes[0];
 }
 
-/** Generate `storage_0_1` brick Texture2D from the feedback compute buffer (zero CPU 64B copy, zero readback). */
+/** Generate `storage_0_1` brick Texture2D from GPU compute/feedback buffer (zero CPU 64B copy, zero readback). */
 export function buildBrickStorageFromFeedback(
   engine: Engine,
   source: BrickFeedbackSource,
@@ -176,6 +229,27 @@ export function buildBrickStorageFromFeedback(
   }
 
   const inputBuf = new Buffer(engine, BufferBindFlag.VertexBuffer, source.data, BufferUsage.Static, false);
+  const shaderData = new RendererShaderData(ShaderDataGroup.Renderer);
+  shaderData.setInt(PROP_U_SLOT, source.slot);
+
+  if (device.supportsCompute) {
+    const outBuf = new Buffer(engine, BufferBindFlag.VertexBuffer, count * OUT_STRIDE, BufferUsage.Dynamic, false);
+    const cs = getOrCreatePackComputeShader(engine);
+    shaderData.setInt(PROP_U_COUNT, count);
+    shaderData.setBuffer("InBricks", inputBuf);
+    shaderData.setBuffer("OutBricks", outBuf);
+    try {
+      cs.dispatch(Math.ceil(count / 64), 1, 1, shaderData);
+      device.copyBufferToTexture(outBuf, texture, texels);
+    } finally {
+      shaderData.setBuffer("InBricks", null);
+      shaderData.setBuffer("OutBricks", null);
+      outBuf.destroy(true);
+      inputBuf.destroy(true);
+    }
+    return texture;
+  }
+
   const simulator = new TransformFeedbackSimulator(
     engine,
     OUT_STRIDE,
@@ -184,8 +258,6 @@ export function buildBrickStorageFromFeedback(
     VARYINGS,
     "output-only"
   );
-  const shaderData = new RendererShaderData(ShaderDataGroup.Renderer);
-  shaderData.setInt(PROP_U_SLOT, source.slot);
   try {
     if (!simulator.beginUpdate(shaderData, [], [new VertexBufferBinding(inputBuf, IN_STRIDE)], IN_ELEMENTS)) {
       throw Error("Brick pack TransformFeedback failed to compile");

@@ -1,13 +1,17 @@
-// Lay a surfaceGrid part on the GPU via WebGL2 TransformFeedback and write 64-byte brick records directly.
+// Lay a surfaceGrid part on the GPU via WebGPU ComputeShader or WebGL2 TransformFeedback and write 64-byte brick records directly.
 // The CPU keeps only the part's layout (~260 bytes + hole rects + terrain metadata);
-// TransformFeedback computes one record per slot, sampling the shared GPU R8G8 heightmap texture
+// the GPU kernel computes one record per slot, sampling the shared GPU R8G8 heightmap texture
 // for rolling terrain and trimming/clipping rectangular area modifications (doors/windows).
 import {
+  Buffer,
+  BufferBindFlag,
+  BufferUsage,
+  ComputeShader,
+  EngineEventType,
   MeshTopology,
   Shader,
   ShaderData,
   ShaderDataGroup,
-  ShaderLanguage,
   ShaderPass,
   Texture2D,
   TextureFilterMode,
@@ -17,8 +21,8 @@ import {
   Vector2,
   Vector3,
   Vector4,
-  type Engine,
-  type VertexBufferBinding
+  VertexBufferBinding,
+  type Engine
 } from "@galacean/engine";
 import {
   GRID_UNIT_KERNEL_STRIDE,
@@ -39,9 +43,7 @@ export {
 const STRIDE = GRID_UNIT_KERNEL_STRIDE;
 
 const NAME = "Building/GridUnitKernel";
-const SOURCE = `Shader "${NAME}" {
-  SubShader "Default" {
-    Pass "GridUnits" {
+const SHARED_UNIFORMS_AND_HELPERS = `
       int uCount;
       int uSlot;
       int uSeedState;
@@ -63,13 +65,6 @@ const SOURCE = `Shader "${NAME}" {
       int uRemoveCount;
       int uHoleCount;
       vec4 uHoles[${MAX_GRID_KERNEL_HOLES}];
-
-      struct Varyings {
-        flat uvec4 result0;
-        flat uvec4 result1;
-        flat uvec4 result2;
-        flat uvec4 result3;
-      };
 
       uint mix32(uint h) {
         h ^= h >> 16u; h *= 0x85ebca6bu; h ^= h >> 13u; h *= 0xc2b2ae35u; h ^= h >> 16u; return h;
@@ -128,22 +123,19 @@ const SOURCE = `Shader "${NAME}" {
         return uHeightMeta.z + (val / 65535.0) * uHeightMeta.w;
       }
 
-      Varyings vert() {
-        gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
-        Varyings v;
-        v.result0 = uvec4(0u); v.result1 = uvec4(0u); v.result2 = uvec4(0u); v.result3 = uvec4(0u);
-        int i = gl_VertexID;
+      void computeGridRecord(int i, out uvec4 result0, out uvec4 result1, out uvec4 result2, out uvec4 result3) {
+        result0 = uvec4(0u); result1 = uvec4(0u); result2 = uvec4(0u); result3 = uvec4(0u);
         int columns = int(uColumns.x);
-        if (i >= uCount || columns <= 0) return v;
+        if (i >= uCount || columns <= 0) return;
         int r = int(uGrid.w) + i / columns;
         int parity = ((r % 2) + 2) % 2;
         int c = (parity == 1 ? int(uColumns.z) : int(uColumns.y)) + i % columns;
-        if (c >= (parity == 1 ? int(uOddEnd) : int(uColumns.w))) return v;
+        if (c >= (parity == 1 ? int(uOddEnd) : int(uColumns.w))) return;
         float shift = parity == 1 ? uGrid.z : 0.0;
         vec4 rect = vec4((float(c) + shift) * uGrid.x, float(r) * uGrid.y, (float(c) + 1.0 + shift) * uGrid.x, float(r + 1) * uGrid.y);
         if (uGap.w > 0.5) {
           rect = vec4(max(rect.x, uBounds.x), max(rect.y, uBounds.z), min(rect.z, uBounds.y), min(rect.w, uBounds.w));
-          if (!(rect.z > rect.x && rect.w > rect.y)) return v;
+          if (!(rect.z > rect.x && rect.w > rect.y)) return;
           // Trim against removeArea holes: keep the largest remaining side, matching surfaceGrid on CPU.
           for (int hi = 0; hi < ${MAX_GRID_KERNEL_HOLES}; hi++) {
             if (hi >= uRemoveCount) break;
@@ -159,19 +151,19 @@ const SOURCE = `Shader "${NAME}" {
             if (a1 > bestArea) { bestArea = a1; rect = vec4(hole.z, b, rc, d); }
             if (a2 > bestArea) { bestArea = a2; rect = vec4(a, b, rc, hole.y); }
             if (a3 > bestArea) { bestArea = a3; rect = vec4(a, hole.w, rc, d); }
-            if (!(bestArea > 0.0)) return v;
+            if (!(bestArea > 0.0)) return;
           }
         }
-        if (rect.x < uBounds.x - 1e-6 || rect.z > uBounds.y + 1e-6 || rect.y < uBounds.z - 1e-6 || rect.w > uBounds.w + 1e-6) return v;
+        if (rect.x < uBounds.x - 1e-6 || rect.z > uBounds.y + 1e-6 || rect.y < uBounds.z - 1e-6 || rect.w > uBounds.w + 1e-6) return;
         // Reject any remaining overlap with removeArea or reserveArea, matching EffectiveSurface.covers().
         for (int hi = 0; hi < ${MAX_GRID_KERNEL_HOLES}; hi++) {
           if (hi >= uHoleCount) break;
           vec4 hole = uHoles[hi];
-          if (hole.x < rect.z && rect.x < hole.z && hole.y < rect.w && rect.y < hole.w) return v;
+          if (hole.x < rect.z && rect.x < hole.z && hole.y < rect.w && rect.y < hole.w) return;
         }
         vec3 size = vec3(joint(rect.z - rect.x, uGap.x, uGap.z), joint(rect.w - rect.y, uGap.y, uGap.z), uNominal.z);
         vec3 stretch = size / uNominal;
-        if (any(lessThan(stretch, uRangeMin - 1e-6)) || any(greaterThan(stretch, uRangeMax + 1e-6))) return v;
+        if (any(lessThan(stretch, uRangeMin - 1e-6)) || any(greaterThan(stretch, uRangeMax + 1e-6))) return;
         vec2 uv = vec2(rect.x + rect.z, rect.y + rect.w) * 0.5;
         float x = uv.x - uLength * 0.5;
         float lx = uStrip.x + uStrip.z * x;
@@ -182,10 +174,28 @@ const SOURCE = `Shader "${NAME}" {
         vec3 b = vec3(0.0, 1.0, 0.0) * size.y;
         vec3 n = vec3(-uStrip.w, 0.0, uStrip.z) * size.z;
         uint seed = mix32(fnvInt(fnv(fnvInt(uint(uSeedState), r), 58u), c)) & 0x7fffffffu;
-        v.result0 = uvec4(pair(t.x, t.y), pair(t.z, b.x), pair(b.y, b.z), pair(n.x, n.y));
-        v.result1 = uvec4(toHalf(n.z), floatBitsToUint(origin.x), floatBitsToUint(origin.y), floatBitsToUint(origin.z));
-        v.result2 = uvec4(0u, 0u, pair(-100.0, -100.0), toHalf(-100.0));
-        v.result3 = uvec4(0u, seed, uint(uSlot), 0u);
+        result0 = uvec4(pair(t.x, t.y), pair(t.z, b.x), pair(b.y, b.z), pair(n.x, n.y));
+        result1 = uvec4(toHalf(n.z), floatBitsToUint(origin.x), floatBitsToUint(origin.y), floatBitsToUint(origin.z));
+        result2 = uvec4(0u, 0u, pair(-100.0, -100.0), toHalf(-100.0));
+        result3 = uvec4(0u, seed, uint(uSlot), 0u);
+      }
+`;
+
+const SOURCE = `Shader "${NAME}" {
+  SubShader "Default" {
+    Pass "GridUnits" {
+      ${SHARED_UNIFORMS_AND_HELPERS}
+      struct Varyings {
+        flat uvec4 result0;
+        flat uvec4 result1;
+        flat uvec4 result2;
+        flat uvec4 result3;
+      };
+
+      Varyings vert() {
+        gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
+        Varyings v;
+        computeGridRecord(gl_VertexID, v.result0, v.result1, v.result2, v.result3);
         return v;
       }
 
@@ -198,10 +208,36 @@ const SOURCE = `Shader "${NAME}" {
     }
   }
 }`;
+
+const COMPUTE_SOURCE = `ComputeShader "${NAME}Compute" {
+  WorkgroupSize = (64, 1, 1);
+  ComputeKernel = csGrid;
+  ${SHARED_UNIFORMS_AND_HELPERS}
+  storage OutRecords {
+    uvec4 outData[];
+  };
+
+  void csGrid() {
+    uint idx = gl_GlobalInvocationID.x;
+    if (int(idx) >= uCount) return;
+    uvec4 r0;
+    uvec4 r1;
+    uvec4 r2;
+    uvec4 r3;
+    computeGridRecord(int(idx), r0, r1, r2, r3);
+    uint base = idx * 4u;
+    outData[base] = r0;
+    outData[base + 1u] = r1;
+    outData[base + 2u] = r2;
+    outData[base + 3u] = r3;
+  }
+}`;
+
 const VARYINGS = ["result0", "result1", "result2", "result3"];
 // Same internal bridge as EngineRoofFeedback: the Renderer group constructor is not public.
 const RendererShaderData = ShaderData as unknown as new (group: ShaderDataGroup) => ShaderData;
 const dummyHeightTextures = new WeakMap<Engine, Texture2D>();
+const gridComputeCache = new WeakMap<Engine, ComputeShader>();
 
 const DUMMY_HEIGHT_BYTES = new Uint8Array(2);
 
@@ -227,9 +263,27 @@ function kernelPass(engine?: Engine): ShaderPass {
   return shader.subShaders[0].passes[0];
 }
 
+function getOrCreateGridComputeShader(engine: Engine): ComputeShader {
+  let cs = gridComputeCache.get(engine);
+  if (!cs || cs.destroyed) {
+    cs = ComputeShader.create(COMPUTE_SOURCE, engine);
+    gridComputeCache.set(engine, cs);
+    engine.once(EngineEventType.Shutdown, () => {
+      if (gridComputeCache.get(engine) === cs) {
+        gridComputeCache.delete(engine);
+      }
+      cs!.destroy();
+    });
+  }
+  return cs;
+}
+
 /** Lays one part on the GPU. The output binding holds one 64-byte record per slot. */
 export class GridUnitKernel {
-  private readonly simulator: TransformFeedbackSimulator;
+  private readonly useCompute: boolean;
+  private readonly simulator?: TransformFeedbackSimulator;
+  private readonly computeShader?: ComputeShader;
+  private readonly computeBinding?: VertexBufferBinding;
   private readonly data = new RendererShaderData(ShaderDataGroup.Renderer);
   private readonly engine: Engine;
   private readonly heightMap?: Texture2D;
@@ -240,14 +294,28 @@ export class GridUnitKernel {
   ) {
     this.engine = engine;
     this.heightMap = heightMap;
-    this.simulator = new TransformFeedbackSimulator(
-      engine,
-      STRIDE,
-      Math.max(1, input.count),
-      kernelPass(engine),
-      VARYINGS,
-      "output-only"
-    );
+    this.useCompute = Boolean(engine._hardwareRenderer.supportsCompute);
+    if (this.useCompute) {
+      this.computeShader = getOrCreateGridComputeShader(engine);
+      const buf = new Buffer(
+        engine,
+        BufferBindFlag.VertexBuffer,
+        Math.max(1, input.count) * STRIDE,
+        BufferUsage.Dynamic,
+        false
+      );
+      buf.isGCIgnored = true;
+      this.computeBinding = new VertexBufferBinding(buf, STRIDE);
+    } else {
+      this.simulator = new TransformFeedbackSimulator(
+        engine,
+        STRIDE,
+        Math.max(1, input.count),
+        kernelPass(engine),
+        VARYINGS,
+        "output-only"
+      );
+    }
   }
   run(): VertexBufferBinding {
     const d = this.data,
@@ -294,21 +362,36 @@ export class GridUnitKernel {
       holeData[i * 4 + 3] = h[3];
     }
     d.setFloatArray("uHoles", holeData);
-    if (!this.simulator.beginUpdate(d, [], [], [])) throw Error("Grid unit kernel failed to compile");
-    try {
-      this.simulator.draw(MeshTopology.Points, 0, p.count);
-    } finally {
-      this.simulator.endUpdate();
+    if (this.useCompute) {
+      const binding = this.computeBinding!;
+      if (p.count > 0) {
+        d.setBuffer("OutRecords", binding.buffer);
+        try {
+          this.computeShader!.dispatch(Math.ceil(p.count / 64), 1, 1, d);
+        } finally {
+          d.setBuffer("OutRecords", null);
+        }
+      }
+      return binding;
     }
-    return this.simulator.readBinding;
+    const simulator = this.simulator!;
+    if (!simulator.beginUpdate(d, [], [], [])) throw Error("Grid unit kernel failed to compile");
+    try {
+      simulator.draw(MeshTopology.Points, 0, p.count);
+    } finally {
+      simulator.endUpdate();
+    }
+    return simulator.readBinding;
   }
   /** Reads the records back. Only for checks: rendering uses the binding directly. */
   read(): Uint8Array {
     const out = new Uint8Array(this.input.count * STRIDE);
-    this.simulator.readBinding.buffer.getData(out);
+    const buf = this.useCompute ? this.computeBinding!.buffer : this.simulator!.readBinding.buffer;
+    buf.getData(out);
     return out;
   }
   destroy(): void {
-    this.simulator.destroy();
+    this.simulator?.destroy();
+    this.computeBinding?.buffer.destroy();
   }
 }

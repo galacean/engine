@@ -113,6 +113,7 @@ export interface IWebGPUComputeOptions {
   workgroupSize?: readonly [number, number, number];
   resolveConstant?: (name: string) => number | undefined;
   maxUniformBlockBytes?: number;
+  unfilterableTextures?: ReadonlySet<string>;
 }
 
 /** Device-consumable program. Both modules and the layout describe exactly one variant. */

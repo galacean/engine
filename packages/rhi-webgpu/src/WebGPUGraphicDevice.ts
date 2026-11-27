@@ -33,7 +33,6 @@ import { WebGPUTexture } from "./WebGPUTexture";
 import { WebGPUDrawBundles, type RenderDrawCommands } from "./WebGPUDrawBundles";
 import { WebGPUDeferredPass, type WebGPURenderCommands } from "./WebGPUDeferredPass";
 import { WebGPUAttachmentOps } from "./WebGPUAttachmentOps";
-import { WebGPUFeedbackKernel } from "./WebGPUFeedbackKernel";
 import type { IWebGPUComputeProgram, IWebGPUShaderTexture } from "@galacean/engine-design";
 import { Color, Vector4 } from "@galacean/engine-math";
 import { WebGPUBuffer } from "./WebGPUBuffer";
@@ -124,9 +123,6 @@ export class WebGPUGraphicDevice implements IHardwareRenderer {
   }
   readonly supportsCompute = true;
   readonly supportsTransformFeedback = false;
-  createFeedbackCompute(): WebGPUFeedbackKernel {
-    return new WebGPUFeedbackKernel(this);
-  }
   private readonly _defaults = new Map<string, GPUTextureView>();
   private readonly _samplers = new Map<string, GPUSampler>();
   _fallbackView(layout: IWebGPUShaderTexture): GPUTextureView {

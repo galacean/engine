@@ -1,14 +1,19 @@
 import { Color, MathUtil, Vector3 } from "@galacean/engine-math";
 import type { Camera } from "../../Camera";
 import type { Engine } from "../../Engine";
+import { EngineEventType } from "../../EngineEventType";
+import { Buffer } from "../../graphic/Buffer";
+import { BufferBindFlag } from "../../graphic/enums/BufferBindFlag";
+import { BufferUsage } from "../../graphic/enums/BufferUsage";
+import { MeshTopology } from "../../graphic/enums/MeshTopology";
 import type { IndexBufferBinding } from "../../graphic/IndexBufferBinding";
 import { Primitive } from "../../graphic/Primitive";
 import { TransformFeedbackSimulator } from "../../graphic/TransformFeedbackSimulator";
-import type { VertexBufferBinding } from "../../graphic/VertexBufferBinding";
+import { VertexBufferBinding } from "../../graphic/VertexBufferBinding";
 import { VertexElement } from "../../graphic/VertexElement";
 import { VertexElementFormat } from "../../graphic/enums/VertexElementFormat";
 import type { Scene } from "../../Scene";
-import { ShaderMacro, ShaderProperty } from "../../shader";
+import { ComputeShader, ShaderData, ShaderMacro, ShaderProperty } from "../../shader";
 import type { ShaderPass } from "../../shader/ShaderPass";
 import { PostProcessEffect } from "../PostProcessEffect";
 import {
@@ -186,10 +191,54 @@ export class SunLensFlareEffect extends PostProcessEffect {
   }
 }
 
+const SUN_LENS_FLARE_VISIBILITY_COMPUTE_SOURCE = `ComputeShader "PostProcess/SunLensFlareVisibilityCompute" {
+  WorkgroupSize = (1, 1, 1);
+  ComputeKernel = csMain;
+
+  #include "ShaderLibrary/PostProcess/SunLensFlare.glsl"
+
+  readonly storage PrevVisibilityBuf {
+    float prevVis[];
+  };
+
+  storage NextVisibilityBuf {
+    float nextVis[];
+  };
+
+  void csMain() {
+    float rawVis = sampleSunLensFlareVisibilityTf(
+      renderer_SunLensFlareVisibilityParams0.xy,
+      renderer_SunLensFlareVisibilityParams0.z,
+      renderer_SunLensFlareVisibilityParams0.w,
+      renderer_SunLensFlareVisibilityParams1.x,
+      renderer_SunLensFlareDepthRect
+    );
+    float blendFactor = clamp(renderer_SunLensFlareVisibilityParams1.y, 0.0, 1.0);
+    nextVis[0] = mix(prevVis[0], rawVis, blendFactor);
+  }
+}`;
+
+const sunLensFlareComputeCache = new WeakMap<Engine, ComputeShader>();
+
+function getOrCreateVisibilityComputeShader(engine: Engine): ComputeShader {
+  let cs = sunLensFlareComputeCache.get(engine);
+  if (!cs || cs.destroyed) {
+    cs = ComputeShader.create(SUN_LENS_FLARE_VISIBILITY_COMPUTE_SOURCE, engine);
+    sunLensFlareComputeCache.set(engine, cs);
+    engine.once(EngineEventType.Shutdown, () => {
+      if (sunLensFlareComputeCache.get(engine) === cs) {
+        sunLensFlareComputeCache.delete(engine);
+      }
+      cs!.destroy();
+    });
+  }
+  return cs;
+}
+
 /**
  * Camera-scoped temporal occlusion state and GPU resources owned by `BasicRenderPipeline`.
- * Keeps Transform Feedback ping-pong buffers, their bound VAOs, and per-camera history isolated
- * across multiple cameras and deterministically destroyed with the Camera.
+ * Selects native `ComputeShader` on WebGPU or Transform Feedback on WebGL2, keeping per-camera
+ * ping-pong buffers and history isolated across multiple cameras.
  * @internal
  */
 export class SunLensFlareCameraState {
@@ -200,6 +249,9 @@ export class SunLensFlareCameraState {
   lastElapsedTime = -1;
 
   private _visibilityTF: TransformFeedbackSimulator | null = null;
+  private _computeVisA: VertexBufferBinding | null = null;
+  private _computeVisB: VertexBufferBinding | null = null;
+  private _computeReadIsA = true;
   private readonly _primitives = new Map<VertexBufferBinding, Primitive>();
 
   ensureVisibilityTF(engine: Engine, visibilityPass: ShaderPass): TransformFeedbackSimulator | null {
@@ -214,6 +266,54 @@ export class SunLensFlareCameraState {
     simulator.readBinding.buffer.setData(new Float32Array([1.0]));
     this._visibilityTF = simulator;
     return simulator;
+  }
+
+  /**
+   * Run one temporal visibility update step using `ComputeShader` on WebGPU or Transform Feedback on WebGL2.
+   * Returns the updated `VertexBufferBinding` holding the smoothed visibility float, or `null` on failure.
+   */
+  updateVisibility(
+    engine: Engine,
+    visibilityPass: ShaderPass | null,
+    shaderData: ShaderData,
+    feedbackElements: VertexElement[]
+  ): VertexBufferBinding | null {
+    if (engine._hardwareRenderer.supportsCompute) {
+      if (!this._computeVisA) {
+        const bufA = new Buffer(engine, BufferBindFlag.VertexBuffer, 4, BufferUsage.Dynamic, false);
+        const bufB = new Buffer(engine, BufferBindFlag.VertexBuffer, 4, BufferUsage.Dynamic, false);
+        bufA.isGCIgnored = true;
+        bufB.isGCIgnored = true;
+        bufA.setData(new Float32Array([1.0]));
+        bufB.setData(new Float32Array([1.0]));
+        this._computeVisA = new VertexBufferBinding(bufA, 4);
+        this._computeVisB = new VertexBufferBinding(bufB, 4);
+      }
+      const readBinding = this._computeReadIsA ? this._computeVisA : this._computeVisB!;
+      const writeBinding = this._computeReadIsA ? this._computeVisB! : this._computeVisA;
+      const cs = getOrCreateVisibilityComputeShader(engine);
+      shaderData.setBuffer("PrevVisibilityBuf", readBinding.buffer);
+      shaderData.setBuffer("NextVisibilityBuf", writeBinding.buffer);
+      cs.dispatch(1, 1, 1, shaderData);
+      shaderData.setBuffer("PrevVisibilityBuf", null);
+      shaderData.setBuffer("NextVisibilityBuf", null);
+      this._computeReadIsA = !this._computeReadIsA;
+      return writeBinding;
+    }
+
+    if (!visibilityPass) {
+      return null;
+    }
+    const simulator = this.ensureVisibilityTF(engine, visibilityPass);
+    if (!simulator || !simulator.beginUpdate(shaderData, feedbackElements, [], [])) {
+      return null;
+    }
+    try {
+      simulator.draw(MeshTopology.Points, 0, 1);
+    } finally {
+      simulator.endUpdate();
+    }
+    return simulator.readBinding;
   }
 
   getOrCreatePrimitive(
@@ -258,6 +358,11 @@ export class SunLensFlareCameraState {
     this._primitives.clear();
     this._visibilityTF?.destroy();
     this._visibilityTF = null;
+    this._computeVisA?.buffer.destroy();
+    this._computeVisB?.buffer.destroy();
+    this._computeVisA = null;
+    this._computeVisB = null;
+    this._computeReadIsA = true;
     this.historyValid = false;
     this.lastElapsedTime = -1;
   }

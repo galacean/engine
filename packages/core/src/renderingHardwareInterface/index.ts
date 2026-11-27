@@ -2,7 +2,6 @@ export { RHIMode } from "./RHIMode";
 export type { EngineGraphicsCapabilities } from "./EngineGraphicsCapabilities";
 export type { IHardwareRenderer } from "./IHardwareRenderer";
 export type { IPlatformBuffer } from "./IPlatformBuffer";
-export type { IPlatformFeedbackCompute } from "./IPlatformFeedbackCompute";
 export type { IPlatformPrimitive } from "./IPlatformPrimitive";
 export type { IPlatformRenderTarget } from "./IPlatformRenderTarget";
 export type { IPlatformShaderProgram, IPlatformShaderSource, IPlatformUniform } from "./IPlatformShaderProgram";

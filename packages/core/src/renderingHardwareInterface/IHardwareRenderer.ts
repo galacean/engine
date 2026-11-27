@@ -29,7 +29,6 @@ export interface IHardwareRenderer {
   storeExternalProjectionDepth?(source: RenderTarget, viewport: Vector4): void;
   readonly supportsCompute: boolean;
   readonly supportsTransformFeedback: boolean;
-  createFeedbackCompute?(): import("./IPlatformFeedbackCompute").IPlatformFeedbackCompute;
   readonly backend: `${RHIMode.WebGL2 | RHIMode.WebGPU}` | "null";
   readonly maxUniformBlockSize: number;
   readonly maxUniformBufferBindings: number;

@@ -684,8 +684,7 @@ function collectOpaqueSamplerPaths(
  * - Packs loose uniforms into std140 `Auto` UBOs (direct zero-copy where natural, word-unpacked where needed)
  * - Synthesizes GPU instancing UBO & flat instance index varying when enabled
  * - Expands sampler arrays and opaque-struct sampler leaves
- * - Synthesizes `@vertex fn main(...) -> VertexOutput` (ABI-compatible with `WebGPUFeedbackKernel`)
- *   and `@fragment fn main(...) -> FragmentOutput`
+ * - Synthesizes `@vertex fn main(...) -> VertexOutput` and `@fragment fn main(...) -> FragmentOutput`
  * - Runs `removeUnusedSamplers`, `fitTextureBindings`, and `poolSamplerBindings`
  */
 export class WGSLProgramLinker {
@@ -1798,7 +1797,9 @@ export class WGSLProgramLinker {
         const texBinding = nextBinding;
         nextBinding += 2;
         reflection.textures.push(
-          makeTextureReflection(samp.name, samp.samplerType, 0, texBinding, COMPUTE_VISIBILITY, {})
+          makeTextureReflection(samp.name, samp.samplerType, 0, texBinding, COMPUTE_VISIBILITY, {
+            unfilterableTextures: options.unfilterableTextures
+          })
         );
         replacements.push([
           new RegExp(`\\bvar\\s+${samp.texVar}\\s*:\\s*${texType.replace(/[<>*]/g, "\\$&")}\\s*;`),
@@ -1828,7 +1829,15 @@ export class WGSLProgramLinker {
           const texBinding = nextBinding;
           nextBinding += 2;
           reflection.textures.push(
-            makeTextureReflection(samp.name, samp.samplerType, 0, texBinding, COMPUTE_VISIBILITY, {}, idx)
+            makeTextureReflection(
+              samp.name,
+              samp.samplerType,
+              0,
+              texBinding,
+              COMPUTE_VISIBILITY,
+              { unfilterableTextures: options.unfilterableTextures },
+              idx
+            )
           );
           extraDecls.push(
             `@group(0) @binding(${texBinding}) var ${samp.texVar}_${idx}: ${texType};\n` +

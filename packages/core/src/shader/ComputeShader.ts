@@ -1,10 +1,14 @@
 import type { IComputeProgramSource, IWebGPUComputeProgram } from "@galacean/engine-design";
 import type { Engine } from "../Engine";
 import { EngineEventType } from "../EngineEventType";
+import { GLCapabilityType } from "../base/Constant";
 import type { IPlatformComputeProgram } from "../renderingHardwareInterface/IPlatformComputeProgram";
+import { Texture } from "../texture/Texture";
+import { TextureFormat } from "../texture/enums/TextureFormat";
 import { ShaderData } from "./ShaderData";
 import { ShaderDataGroup } from "./enums/ShaderDataGroup";
 import { ShaderMacroProcessor } from "./ShaderMacroProcessor";
+import { ShaderProperty } from "./ShaderProperty";
 
 interface CompiledComputeKernel {
   readonly name: string;
@@ -200,12 +204,40 @@ export class ComputeShader {
     });
   }
 
+  private _collectUnfilterableTextures(data: ShaderData): Set<string> | undefined {
+    const float32Filterable = this._engine._hardwareRenderer.canIUse(GLCapabilityType.textureFloatLinear);
+    const props = data._propertyValueMap;
+    let unfilterable: Set<string> | undefined;
+    for (const id in props) {
+      const value = props[id];
+      if (!(value instanceof Texture) || value.destroyed) continue;
+      const fmt = value.format;
+      const isUnfilterable =
+        value._isDepthTexture ||
+        (!float32Filterable &&
+          (fmt === TextureFormat.R32_SFloat ||
+            fmt === TextureFormat.R32G32_SFloat ||
+            fmt === TextureFormat.R32G32B32A32_SFloat));
+      if (isUnfilterable) {
+        const prop = ShaderProperty._propertyIdMap[id];
+        if (prop) {
+          (unfilterable ??= new Set()).add(prop.name);
+        }
+      }
+    }
+    return unfilterable;
+  }
+
   private _getOrCompileVariant(kernel: CompiledComputeKernel, data: ShaderData): IPlatformComputeProgram {
     const macros = data.getMacros();
     let key = "";
     if (macros.length) {
       const parts = macros.map((m) => (m.value !== undefined ? `${m.name}=${m.value}` : m.name)).sort();
       key = parts.join("|");
+    }
+    const unfilterable = this._collectUnfilterableTextures(data);
+    if (unfilterable) {
+      key += `#uf:${Array.from(unfilterable).sort().join(",")}`;
     }
     let program = kernel.variants.get(key);
     if (program && !program.isValid) {
@@ -214,14 +246,18 @@ export class ComputeShader {
       program = undefined;
     }
     if (!program) {
-      const linked = this._compileWGSLVariant(kernel, data);
+      const linked = this._compileWGSLVariant(kernel, data, unfilterable);
       program = this._engine._hardwareRenderer.createPlatformComputeProgram!(this._engine, linked);
       kernel.variants.set(key, program);
     }
     return program;
   }
 
-  private _compileWGSLVariant(kernel: CompiledComputeKernel, data: ShaderData): IWebGPUComputeProgram {
+  private _compileWGSLVariant(
+    kernel: CompiledComputeKernel,
+    data: ShaderData,
+    unfilterableTextures?: Set<string>
+  ): IWebGPUComputeProgram {
     const webgpuCompiler = this._engine._webGPUShaderCompiler!;
     const macros = new Map(ShaderMacroProcessor._defaultWebGPUMacros);
     const enabled = data.getMacros();
@@ -245,7 +281,8 @@ export class ComputeShader {
       uniformBlocks: kernel.source.uniformBlocks,
       workgroupSize: kernel.source.workgroupSize,
       resolveConstant,
-      maxUniformBlockBytes: rhi.maxUniformBlockSize
+      maxUniformBlockBytes: rhi.maxUniformBlockSize,
+      unfilterableTextures
     });
   }
 }
