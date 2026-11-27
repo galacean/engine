@@ -81,8 +81,11 @@ import {
   SEED_WORLD_WORKING_TEXT_SHADER_NAME,
   SEED_WORLD_VOICE_ORB_SHADER_NAME,
   SeedWorldLiquidGlassUiMaterial,
+  createSeedWorldVoiceOrbFrameUniformCache,
+  createVoiceOrbSpectrumLutTexture,
   seedWorldWorkingTextShaderSource,
-  seedWorldVoiceOrbShaderSource
+  seedWorldVoiceOrbShaderSource,
+  syncSeedWorldVoiceOrbFrameUniforms
 } from "./SeedWorldVoiceHudShaders.ts";
 
 import { projectSeedWorldTask } from "./SeedWorldTaskPresentation.ts";
@@ -2097,6 +2100,7 @@ export class VoiceHudLayout extends Script {
   private _transcriptWorkingStartedAt = 0;
   private _orbPhase = 0;
   private _orbBreathPhase = 0;
+  private readonly _orbUniformCache = createSeedWorldVoiceOrbFrameUniformCache();
   private _orbListeningBlend = 0;
   private _orbBasePixelSize = ORB_SIZE;
   private _orbPressState: "idle" | "holding" | "active" = "idle";
@@ -2218,8 +2222,11 @@ export class VoiceHudLayout extends Script {
     this._orbBreathPhase += dt;
     this._orbPhase += dt * (1.0 + this._orbListeningBlend * ORB_LISTEN_SPEED);
     const orbShaderData = this.orbMaterial?.shaderData;
-    orbShaderData?.setFloat("material_Time", this._orbPhase);
-    orbShaderData?.setFloat("material_Listening", this._orbListeningBlend);
+    if (orbShaderData) {
+      orbShaderData.setFloat("material_Time", this._orbPhase);
+      orbShaderData.setFloat("material_Listening", this._orbListeningBlend);
+      syncSeedWorldVoiceOrbFrameUniforms(orbShaderData, this._orbPhase, this._orbUniformCache);
+    }
     this.orbGlass?.setRimHighlight(this._orbListeningBlend * 0.08);
     if (this._transcriptWorking) {
       this.transcriptMaterial?.shaderData.setFloat(
@@ -2484,21 +2491,39 @@ function createVoiceHudResources(engine: Engine, camera: Camera): VoiceHudResour
   orbMaterial.isGCIgnored = true;
   transcriptMaterial.isGCIgnored = true;
   const orbData = orbMaterial.shaderData;
+  const orbCyan: readonly [number, number, number] = [0.0, 0.96, 1.0];
+  const orbAzure: readonly [number, number, number] = [0.14, 0.44, 1.0];
+  const orbViolet: readonly [number, number, number] = [0.52, 0.16, 1.0];
+  const orbOrchid: readonly [number, number, number] = [0.94, 0.16, 0.86];
+  const orbRose: readonly [number, number, number] = [1.0, 0.24, 0.68];
+  const orbCore: readonly [number, number, number] = [1, 1, 1];
+  const orbSpectrumLut = createVoiceOrbSpectrumLutTexture(
+    engine,
+    orbCyan,
+    orbAzure,
+    orbViolet,
+    orbOrchid,
+    orbRose,
+    orbCore
+  );
   orbData.setFloat("material_Time", 0);
   orbData.setFloat("material_Listening", 0);
   orbData.setFloat("material_OrbScaleExpandPixels", 0);
-  orbData.setVector4("material_OrbCyan", new Vector4(0.0, 0.96, 1.0, 1));
-  orbData.setVector4("material_OrbAzure", new Vector4(0.14, 0.44, 1.0, 1));
-  orbData.setVector4("material_OrbViolet", new Vector4(0.52, 0.16, 1.0, 1));
-  orbData.setVector4("material_OrbOrchid", new Vector4(0.94, 0.16, 0.86, 1));
-  orbData.setVector4("material_OrbRose", new Vector4(1.0, 0.24, 0.68, 1));
-  orbData.setVector4("material_OrbCore", new Vector4(1, 1, 1, 1));
+  orbData.setTexture("material_OrbSpectrumLut", orbSpectrumLut);
+  orbData.setFloat("material_OrbUseSpectrumLut", 1);
+  orbData.setVector4("material_OrbCyan", new Vector4(orbCyan[0], orbCyan[1], orbCyan[2], 1));
+  orbData.setVector4("material_OrbAzure", new Vector4(orbAzure[0], orbAzure[1], orbAzure[2], 1));
+  orbData.setVector4("material_OrbViolet", new Vector4(orbViolet[0], orbViolet[1], orbViolet[2], 1));
+  orbData.setVector4("material_OrbOrchid", new Vector4(orbOrchid[0], orbOrchid[1], orbOrchid[2], 1));
+  orbData.setVector4("material_OrbRose", new Vector4(orbRose[0], orbRose[1], orbRose[2], 1));
+  orbData.setVector4("material_OrbCore", new Vector4(orbCore[0], orbCore[1], orbCore[2], 1));
   orbData.setVector4("material_OrbMotion", new Vector4(0.90, 1.62, 0.26, 0.96));
   orbData.setVector4("material_OrbRibbon", new Vector4(0.74, 0.28, 1.72, 1.42));
   orbData.setVector4("material_OrbDisp", new Vector4(0.036, 0.045, 0.42, 0));
   orbData.setVector4("material_OrbTone", new Vector4(1.16, 1.48, 0.92, 0.62));
   orbData.setVector4("material_OrbRim", new Vector4(0.20, 0.05, 0.22, 0.45));
   orbData.setFloat("material_OrbShellThickness", 0.11);
+  syncSeedWorldVoiceOrbFrameUniforms(orbData, 0, createSeedWorldVoiceOrbFrameUniformCache());
   transcriptMaterial.shaderData.setFloat("material_SeedWorldWorking", 0);
   transcriptMaterial.shaderData.setFloat("material_SeedWorldWorkingTime", 0);
   transcriptMaterial.shaderData.setFloat("material_SeedWorldPanelLeftUv", 0);
@@ -2523,6 +2548,7 @@ function createVoiceHudResources(engine: Engine, camera: Camera): VoiceHudResour
       orbGlass.destroy();
       transcriptMaterial.destroy();
       orbMaterial.destroy();
+      orbSpectrumLut.destroy();
       whiteSprite.destroy();
       whiteTexture.destroy();
     }
