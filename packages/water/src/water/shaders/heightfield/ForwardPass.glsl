@@ -95,15 +95,15 @@
       };
       struct Varyings {
         vec3 worldPosition;
+#if {{USE_OBJECT_POSITION}}
         vec3 objectPosition;
-        vec2 meshUv;
+#endif
         vec3 baseNormalWS;
         vec3 macroNormalWS;
         vec3 tangentWS;
         vec2 atlasUv;
         float waveOffset;
         float surfaceEyeDepth;
-        float shoreDamping;
 #if defined(SCENE_VOLUMETRIC_CLOUD_SHADOW) && !defined(RENDERER_WORLD_PICK)
         float cloudShadow;
 #endif
@@ -132,6 +132,10 @@
           cross(computedBaseNormalWS, computedBaseTangentWS) * attr.TANGENT.w
         );
         vec2 computedAtlasUv = attr.TEXCOORD_0;
+        float waveOffset = 0.0;
+        float tangentSlope = 0.0;
+        float bitangentSlope = 0.0;
+#if {{WAVE_COUNT}} > 0
         vec4 localMap = texture2D(material_LocalMapTexture, computedAtlasUv);
         vec2 flowXZ = (localMap.rg * 2.0 - 1.0) * material_LocalMapDecode.x;
 {{VALUE_035_USELOCALBATHYMETRY_FLOAT_AUTHOREDDEPTH_WATERSPATIALFIELD}}
@@ -150,30 +154,28 @@
           1.0,
           flowWeight
         );
-        float waveOffset = 0.0;
-        float tangentSlope = 0.0;
-        float bitangentSlope = 0.0;
 {{VALUE_041_WAVEAPPLYSTATEMENTS_WAVECOUNT}}
+        waveOffset *= waterConnectionFacts(baseWorldPosition.xz).x;
+#endif
         vec3 computedMacroNormalWS = normalize(
           computedBaseNormalWS
             - computedBaseTangentWS * tangentSlope
             - computedBaseBitangentWS * bitangentSlope
         );
-        waveOffset *= waterConnectionFacts(baseWorldPosition.xz).x;
         vec3 displacedWorldPosition = baseWorldPosition.xyz + computedBaseNormalWS * waveOffset;
         vec4 localPosition = attr.POSITION + vec4(attr.NORMAL * waveOffset, 0.0);
         vec4 computedClipPosition = renderer_MVPMat * localPosition;
         gl_Position = computedClipPosition;
         output.worldPosition = displacedWorldPosition;
+#if {{USE_OBJECT_POSITION}}
         output.objectPosition = attr.POSITION.xyz;
-        output.meshUv = attr.TEXCOORD_0;
+#endif
         output.baseNormalWS = computedBaseNormalWS;
         output.macroNormalWS = computedMacroNormalWS;
         output.tangentWS = computedBaseTangentWS;
         output.atlasUv = computedAtlasUv;
         output.waveOffset = waveOffset;
         output.surfaceEyeDepth = -(camera_ViewMat * vec4(displacedWorldPosition, 1.0)).z;
-        output.shoreDamping = shoreDamping;
 #if defined(SCENE_VOLUMETRIC_CLOUD_SHADOW) && !defined(RENDERER_WORLD_PICK)
         output.cloudShadow = sampleVolumetricCloudShadow(displacedWorldPosition);
 #endif

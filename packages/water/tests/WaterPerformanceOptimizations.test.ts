@@ -809,6 +809,10 @@ describe("Water P0 + P1 performance optimizations", () => {
       expect(source, `${label}: coastalAlphaWeight deep-water skip`).toContain("closureInput.coastalAlphaWeight >= 0.9999");
       expect(source, `${label}: rain ripple fast gate`).toContain("if (rainRate > 0.0001)");
       expect(source, `${label}: secondary rain ripple gate`).toContain("if (rainRippleSecondaryAmount > 0.0)");
+      const forwardVert = source.slice(source.indexOf("Varyings vert("), source.indexOf("void frag(Varyings input)"));
+      expect(forwardVert, `${label}: wave-0 Forward omits VS localMap fetch`).not.toContain(
+        "texture2D(material_LocalMapTexture"
+      );
       const ssrPart = source.slice(source.indexOf('Pass "SSRReceiver"'));
       expect(ssrPart, `${label}: wave-0 SSRReceiver omits VS localMap fetch`).not.toContain(
         "texture2D(material_LocalMapTexture, attr.TEXCOORD_0)"
@@ -894,6 +898,22 @@ describe("Water P0 + P1 performance optimizations", () => {
         "sampleVolumetricCloudShadow("
       );
       expect(fragBody, `${label}: frag reads hoisted input.cloudShadow`).toContain("input.cloudShadow");
+
+      // Every declared Forward Varying field must be consumed by frag (no dead varying slots).
+      const forwardStart = source.indexOf('Pass "Forward"');
+      const ssrStart = source.indexOf('Pass "SSRReceiver"');
+      const farStart = source.indexOf('SubShader "WaterFar"');
+      const forwardEnd =
+        ssrStart > forwardStart ? ssrStart : farStart > forwardStart ? farStart : source.length;
+      const forwardBlock = source.slice(forwardStart, forwardEnd);
+      const varyMatch = forwardBlock.match(/struct Varyings \{([\s\S]*?)\};/);
+      expect(varyMatch, `${label}: Forward Varyings struct`).toBeTruthy();
+      const forwardFrag = forwardBlock.slice(forwardBlock.indexOf("void frag(Varyings input)"));
+      const declaredFields = [...varyMatch![1].matchAll(/(?:float|vec[234])\s+(\w+)\s*;/g)].map((m) => m[1]);
+      const unusedFields = declaredFields.filter(
+        (field) => !new RegExp(`\\binput\\.${field}\\b`).test(forwardFrag)
+      );
+      expect(unusedFields, `${label}: unused Forward Varyings`).toEqual([]);
     }
 
     for (const [label, rawJson] of [

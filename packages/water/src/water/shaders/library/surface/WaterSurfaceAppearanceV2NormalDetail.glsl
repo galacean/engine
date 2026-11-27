@@ -8,7 +8,7 @@
 #elif {{DETAIL_0_SPACE}} == 1
         vec2 appearanceLayerCoordinate0 = input.objectPosition.xz;
 #elif {{DETAIL_0_SPACE}} == 2
-        vec2 appearanceLayerCoordinate0 = input.meshUv;
+        vec2 appearanceLayerCoordinate0 = {{MESH_UV_COORDINATE}};
 #else
         vec2 appearanceLayerCoordinate0 = {{FLOW_ADVECTED_COORDINATE}};
 #endif
@@ -55,7 +55,7 @@
 #elif {{DETAIL_1_SPACE}} == 1
         vec2 appearanceLayerCoordinate1 = input.objectPosition.xz;
 #elif {{DETAIL_1_SPACE}} == 2
-        vec2 appearanceLayerCoordinate1 = input.meshUv;
+        vec2 appearanceLayerCoordinate1 = {{MESH_UV_COORDINATE}};
 #else
         vec2 appearanceLayerCoordinate1 = {{FLOW_ADVECTED_COORDINATE}};
 #endif

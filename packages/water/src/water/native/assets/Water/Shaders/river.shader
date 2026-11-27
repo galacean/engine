@@ -398,12 +398,10 @@ material_Water_renderState_blendMode("material_Water_renderState_blendMode", Enu
         vec2 TEXCOORD_5;
       };
       struct Varyings {
-        vec2 worldXZ;
         vec2 worldFlow;
         vec2 motionCoordinates;
         float riverHalfWidth;
         float localFlowSpeed;
-        float macroHeight;
         float surfaceEyeDepth;
         float authoredDepth;
         vec3 worldPosition;
@@ -1596,7 +1594,6 @@ struct RiverGeometryVertex {
   vec4 worldPosition;
   vec3 worldTangent;
   vec2 worldFlow;
-  float macroHeight;
   vec3 macroNormalWS;
   vec4 clipPosition;
 };
@@ -1639,7 +1636,6 @@ RiverGeometryVertex evaluateRiverGeometry(Attributes attr) {
   geometry.worldPosition = computedWorldPosition;
   geometry.worldTangent = worldTangent;
   geometry.worldFlow = computedWorldFlow;
-  geometry.macroHeight = computedMacroHeight;
   geometry.macroNormalWS = computedMacroNormalWS;
   geometry.clipPosition = computedClipPosition;
   return geometry;
@@ -1715,12 +1711,10 @@ vec3 evaluateRiverFlowNormalWS(vec2 motion, float halfWidth, float localSpeed, v
         Varyings output;
         RiverGeometryVertex geometry = evaluateRiverGeometry(attr);
         gl_Position = geometry.clipPosition;
-        output.worldXZ = geometry.worldPosition.xz;
         output.worldFlow = geometry.worldFlow;
         output.motionCoordinates = attr.TEXCOORD_2;
         output.riverHalfWidth = attr.TEXCOORD_3.x;
         output.localFlowSpeed = attr.TEXCOORD_1.x;
-        output.macroHeight = geometry.macroHeight;
         output.surfaceEyeDepth = -(camera_ViewMat * geometry.worldPosition).z;
         output.authoredDepth = attr.TEXCOORD_3.y;
         output.worldPosition = geometry.worldPosition.xyz;
@@ -2666,7 +2660,6 @@ struct RiverGeometryVertex {
   vec4 worldPosition;
   vec3 worldTangent;
   vec2 worldFlow;
-  float macroHeight;
   vec3 macroNormalWS;
   vec4 clipPosition;
 };
@@ -2709,7 +2702,6 @@ RiverGeometryVertex evaluateRiverGeometry(Attributes attr) {
   geometry.worldPosition = computedWorldPosition;
   geometry.worldTangent = worldTangent;
   geometry.worldFlow = computedWorldFlow;
-  geometry.macroHeight = computedMacroHeight;
   geometry.macroNormalWS = computedMacroNormalWS;
   geometry.clipPosition = computedClipPosition;
   return geometry;

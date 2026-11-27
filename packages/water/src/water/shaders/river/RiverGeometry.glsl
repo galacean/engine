@@ -146,7 +146,6 @@ struct RiverGeometryVertex {
   vec4 worldPosition;
   vec3 worldTangent;
   vec2 worldFlow;
-  float macroHeight;
   vec3 macroNormalWS;
   vec4 clipPosition;
 };
@@ -189,7 +188,6 @@ RiverGeometryVertex evaluateRiverGeometry(Attributes attr) {
   geometry.worldPosition = computedWorldPosition;
   geometry.worldTangent = worldTangent;
   geometry.worldFlow = computedWorldFlow;
-  geometry.macroHeight = computedMacroHeight;
   geometry.macroNormalWS = computedMacroNormalWS;
   geometry.clipPosition = computedClipPosition;
   return geometry;

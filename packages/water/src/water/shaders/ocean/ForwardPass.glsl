@@ -49,7 +49,6 @@
       vec4 material_OceanCausticsMotion;
       vec4 material_OceanTranslucencyParameters;
       float material_OceanTranslucencyCurvatureMask;
-      float renderer_OceanLod;
 {{VALUE_004_CREATEOCEANSCENEFOGDECLARATIONS}}
       #include "ShaderLibrary/Common/Common.glsl"
       #include "ShaderLibrary/Lighting/VolumetricCloudShadow.glsl"
@@ -62,7 +61,6 @@
         vec3 positionVS;
         vec4 clipPosition;
         float waveOffsetY;
-        float lod;
 #if defined(SCENE_VOLUMETRIC_CLOUD_SHADOW) && !defined(RENDERER_WORLD_PICK)
         float cloudShadow;
 #endif
@@ -170,7 +168,6 @@
         output.positionVS = (camera_ViewMat * worldPosition4).xyz;
         output.clipPosition = camera_VPMat * worldPosition4;
         output.waveOffsetY = offset.y;
-        output.lod = renderer_OceanLod;
 #if defined(SCENE_VOLUMETRIC_CLOUD_SHADOW) && !defined(RENDERER_WORLD_PICK)
         output.cloudShadow = sampleVolumetricCloudShadow(worldPosition4.xyz);
 #endif

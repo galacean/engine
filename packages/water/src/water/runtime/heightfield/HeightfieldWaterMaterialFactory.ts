@@ -17,6 +17,7 @@ import {
   WaterSurfaceAppearanceSchemaVersion,
   WaterSurfaceCompositionV2,
   WaterSurfaceDepthResponseModelV2,
+  WaterSurfaceDetailSpace,
   WaterSurfacePrimaryColorClosure
 } from "../../authoring/surface/WaterSurfaceAppearanceTypes";
 import { getWaterSurfaceDepthResponseSemantics } from "../../authoring/surface/WaterSurfaceDepthResponseSemantics";
@@ -268,7 +269,9 @@ function surfaceNormalStatements(
   return renderWaterShaderTemplate(heightfieldSurfaceNormalTemplate, {
     APPEARANCE_NORMAL_STATEMENTS: createWaterSurfaceAppearanceV2NormalStatements(
       appearance,
-      simplifiedForSsr ? { boundedTime: true, maxDetailLayers: 1 } : { boundedTime: true }
+      simplifiedForSsr
+        ? { boundedTime: true, maxDetailLayers: 1, meshUv: "input.atlasUv" }
+        : { boundedTime: true, meshUv: "input.atlasUv" }
     ),
     CONNECTION_BEFORE_RAIN: Number(connectionBeforeRain),
     RAIN_NORMAL_STATEMENTS: simplifiedForSsr
@@ -469,6 +472,7 @@ function ssrReceiverPass(
       appearanceUniforms
     ),
     SSR_WAVE_COUNT: waveCount,
+    USE_OBJECT_POSITION: appearance.detailLayers[0]?.space === WaterSurfaceDetailSpace.ObjectXz ? 1 : 0,
     VALUE_007_HEIGHTFIELD_WATER_PLANAR_TRANSFORM_SHADER_FUNCTIONS: registerGeneratedWaterShaderModule(
       "HeightfieldSsrPlanarTransform",
       HEIGHTFIELD_WATER_PLANAR_TRANSFORM_SHADER_FUNCTIONS
@@ -589,6 +593,11 @@ export function createHeightfieldWaterShaderSource(
       WATER_ENVIRONMENT_REFLECTION_UNIFORM_DECLARATIONS
     ),
     WAVE_COUNT: waveCount,
+    USE_OBJECT_POSITION: surfaceAppearanceV2.detailLayers.some(
+      (layer) => layer.space === WaterSurfaceDetailSpace.ObjectXz
+    )
+      ? 1
+      : 0,
     VALUE_012_HEIGHTFIELD_WATER_PLANAR_TRANSFORM_SHADER_FUNCTIONS: registerGeneratedWaterShaderModule(
       "HeightfieldForwardPlanarTransform",
       HEIGHTFIELD_WATER_PLANAR_TRANSFORM_SHADER_FUNCTIONS

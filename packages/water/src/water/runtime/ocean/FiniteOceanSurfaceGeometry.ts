@@ -944,7 +944,6 @@ function createGeometryChunk(
   renderer.mesh = mesh;
   renderer.setMaterial(material);
   applyWaterSurfaceRendererContract(renderer);
-  renderer.shaderData.setFloat("renderer_OceanLod", input.region === "near" ? 0 : 2);
   const wetWorldBounds = new BoundingBox(
     new Vector3(input.bounds.minimum[0], input.bounds.minimum[1], input.bounds.minimum[2]),
     new Vector3(input.bounds.maximum[0], input.bounds.maximum[1], input.bounds.maximum[2])

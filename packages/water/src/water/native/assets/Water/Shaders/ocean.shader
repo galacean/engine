@@ -356,7 +356,6 @@ float waterSurfaceCompositeExponentialDensity(float firstScaledDepth, float seco
       vec4 material_OceanCausticsMotion;
       vec4 material_OceanTranslucencyParameters;
       float material_OceanTranslucencyCurvatureMask;
-      float renderer_OceanLod;
 #ifndef WATER_OCEAN_SCENE_FOG_DECLARATIONS_INCLUDED
 #define WATER_OCEAN_SCENE_FOG_DECLARATIONS_INCLUDED
 #include "ShaderLibrary/Common/Fog.glsl"
@@ -386,7 +385,6 @@ vec4 waterOceanApplySceneFog(vec4 color, vec3 positionVS) {
         vec3 positionVS;
         vec4 clipPosition;
         float waveOffsetY;
-        float lod;
 #if defined(SCENE_VOLUMETRIC_CLOUD_SHADOW) && !defined(RENDERER_WORLD_PICK)
         float cloudShadow;
 #endif
@@ -1948,7 +1946,6 @@ float waterConnectionShore(vec2 p, float original) {
         output.positionVS = (camera_ViewMat * worldPosition4).xyz;
         output.clipPosition = camera_VPMat * worldPosition4;
         output.waveOffsetY = offset.y;
-        output.lod = renderer_OceanLod;
 #if defined(SCENE_VOLUMETRIC_CLOUD_SHADOW) && !defined(RENDERER_WORLD_PICK)
         output.cloudShadow = sampleVolumetricCloudShadow(worldPosition4.xyz);
 #endif

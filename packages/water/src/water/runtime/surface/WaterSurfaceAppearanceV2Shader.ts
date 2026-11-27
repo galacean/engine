@@ -219,6 +219,7 @@ export function createWaterSurfaceAppearanceV2NormalStatements(
   coordinates: Readonly<{
     flowAdvected?: string;
     flowAdvectedWeight?: string;
+    meshUv?: string;
     boundedTime?: boolean;
     maxDetailLayers?: number;
   }> = {}
@@ -229,6 +230,7 @@ export function createWaterSurfaceAppearanceV2NormalStatements(
       : appearance.detailLayers.length;
   return renderWaterShaderTemplate(waterSurfaceAppearanceV2NormalDetailShaderTemplate, {
     DETAIL_LAYER_COUNT: detailLayerCount,
+    MESH_UV_COORDINATE: coordinates.meshUv ?? "input.meshUv",
     // Geometry may supply a continuous transported domain (e.g. River travel
     // time). HF local FlowAdvected remains unresolved S2: it still uses
     // surfaceTime mod4096, including its authored velocity.

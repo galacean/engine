@@ -391,15 +391,12 @@ material_Water_renderState_blendMode("material_Water_renderState_blendMode", Enu
       };
       struct Varyings {
         vec3 worldPosition;
-        vec3 objectPosition;
-        vec2 meshUv;
         vec3 baseNormalWS;
         vec3 macroNormalWS;
         vec3 tangentWS;
         vec2 atlasUv;
         float waveOffset;
         float surfaceEyeDepth;
-        float shoreDamping;
 #if defined(SCENE_VOLUMETRIC_CLOUD_SHADOW) && !defined(RENDERER_WORLD_PICK)
         float cloudShadow;
 #endif
@@ -1599,59 +1596,25 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
           cross(computedBaseNormalWS, computedBaseTangentWS) * attr.TANGENT.w
         );
         vec2 computedAtlasUv = attr.TEXCOORD_0;
-        vec4 localMap = texture2D(material_LocalMapTexture, computedAtlasUv);
-        vec2 flowXZ = (localMap.rg * 2.0 - 1.0) * material_LocalMapDecode.x;
-        float authoredDepth = waterSpatialFieldDecodeDepth(
-          localMap.b,
-          material_LocalMapDecode.y
-        );
-        float signedDistance =
-          waterSpatialFieldDecodeSignedDistance(
-            localMap.a,
-            2.0,
-            -1.0,
-            material_LocalMapDecode.z
-          );
-
-        signedDistance = waterConnectionShore(baseWorldPosition.xz, signedDistance);
-        float shoreDamping = smoothstep(0.0, max(material_ShoreDampingWidth, 0.0001), signedDistance);
-        float flowSpeed = length(flowXZ);
-        float flowWeight = smoothstep(
-          0.055,
-          0.756,
-          flowSpeed
-        );
-        vec2 flowDirection = safeNormalize2(flowXZ, vec2(-0.36, -0.9329523));
-        float macroFlowAlignment = flowWeight * 0.72;
-        float macroAmplitudeScale = mix(
-          0.3,
-          1.0,
-          flowWeight
-        );
         float waveOffset = 0.0;
         float tangentSlope = 0.0;
         float bitangentSlope = 0.0;
-
         vec3 computedMacroNormalWS = normalize(
           computedBaseNormalWS
             - computedBaseTangentWS * tangentSlope
             - computedBaseBitangentWS * bitangentSlope
         );
-        waveOffset *= waterConnectionFacts(baseWorldPosition.xz).x;
         vec3 displacedWorldPosition = baseWorldPosition.xyz + computedBaseNormalWS * waveOffset;
         vec4 localPosition = attr.POSITION + vec4(attr.NORMAL * waveOffset, 0.0);
         vec4 computedClipPosition = renderer_MVPMat * localPosition;
         gl_Position = computedClipPosition;
         output.worldPosition = displacedWorldPosition;
-        output.objectPosition = attr.POSITION.xyz;
-        output.meshUv = attr.TEXCOORD_0;
         output.baseNormalWS = computedBaseNormalWS;
         output.macroNormalWS = computedMacroNormalWS;
         output.tangentWS = computedBaseTangentWS;
         output.atlasUv = computedAtlasUv;
         output.waveOffset = waveOffset;
         output.surfaceEyeDepth = -(camera_ViewMat * vec4(displacedWorldPosition, 1.0)).z;
-        output.shoreDamping = shoreDamping;
 #if defined(SCENE_VOLUMETRIC_CLOUD_SHADOW) && !defined(RENDERER_WORLD_PICK)
         output.cloudShadow = sampleVolumetricCloudShadow(displacedWorldPosition);
 #endif
@@ -2437,8 +2400,6 @@ closureInput.coastalAlpha = appearanceCoastalAlpha;
       };
       struct Varyings {
         vec3 worldPosition;
-        vec3 objectPosition;
-        vec2 meshUv;
         vec3 macroNormalWS;
         vec3 baseNormalWS;
         vec3 tangentWS;
@@ -2629,8 +2590,6 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
         vec4 localPosition = attr.POSITION + vec4(attr.NORMAL * waveOffset, 0.0);
         gl_Position = renderer_MVPMat * localPosition;
         varyings.worldPosition = baseWorldPosition.xyz + computedBaseNormalWS * waveOffset;
-        varyings.objectPosition = attr.POSITION.xyz;
-        varyings.meshUv = attr.TEXCOORD_0;
         varyings.macroNormalWS = computedMacroNormalWS;
         varyings.baseNormalWS = computedBaseNormalWS;
         varyings.tangentWS = computedBaseTangentWS;

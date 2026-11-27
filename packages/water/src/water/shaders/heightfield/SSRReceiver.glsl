@@ -64,8 +64,9 @@
       };
       struct Varyings {
         vec3 worldPosition;
+#if {{USE_OBJECT_POSITION}}
         vec3 objectPosition;
-        vec2 meshUv;
+#endif
         vec3 macroNormalWS;
         vec3 baseNormalWS;
         vec3 tangentWS;
@@ -125,8 +126,9 @@
         vec4 localPosition = attr.POSITION + vec4(attr.NORMAL * waveOffset, 0.0);
         gl_Position = renderer_MVPMat * localPosition;
         varyings.worldPosition = baseWorldPosition.xyz + computedBaseNormalWS * waveOffset;
+#if {{USE_OBJECT_POSITION}}
         varyings.objectPosition = attr.POSITION.xyz;
-        varyings.meshUv = attr.TEXCOORD_0;
+#endif
         varyings.macroNormalWS = computedMacroNormalWS;
         varyings.baseNormalWS = computedBaseNormalWS;
         varyings.tangentWS = computedBaseTangentWS;

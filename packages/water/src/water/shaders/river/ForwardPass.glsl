@@ -75,12 +75,10 @@
         vec2 TEXCOORD_5;
       };
       struct Varyings {
-        vec2 worldXZ;
         vec2 worldFlow;
         vec2 motionCoordinates;
         float riverHalfWidth;
         float localFlowSpeed;
-        float macroHeight;
         float surfaceEyeDepth;
         float authoredDepth;
         vec3 worldPosition;
@@ -105,12 +103,10 @@
         Varyings output;
         RiverGeometryVertex geometry = evaluateRiverGeometry(attr);
         gl_Position = geometry.clipPosition;
-        output.worldXZ = geometry.worldPosition.xz;
         output.worldFlow = geometry.worldFlow;
         output.motionCoordinates = attr.TEXCOORD_2;
         output.riverHalfWidth = attr.TEXCOORD_3.x;
         output.localFlowSpeed = attr.TEXCOORD_1.x;
-        output.macroHeight = geometry.macroHeight;
         output.surfaceEyeDepth = -(camera_ViewMat * geometry.worldPosition).z;
         output.authoredDepth = attr.TEXCOORD_3.y;
         output.worldPosition = geometry.worldPosition.xyz;
