@@ -1,5 +1,5 @@
 /** Shared, allocation-bounded profile/refraction/reflection binding for water-surface materials. */
-import type { ShaderData, Texture } from "@galacean/engine-core";
+import { ShaderMacro, type ShaderData, type Texture } from "@galacean/engine-core";
 import { Vector3, Vector4 } from "@galacean/engine-math";
 import {
   DEFAULT_WATER_REFLECTION_SAMPLING_SETTINGS,
@@ -35,18 +35,15 @@ interface NullableTextureShaderData {
   setTexture(propertyName: string, value: Texture | null): void;
 }
 
-interface WaterOpticsMacroShaderData {
-  enableMacro(name: string): void;
-  disableMacro(name: string): void;
-}
-
 type Mutable<T> = { -readonly [Property in keyof T]: T[Property] };
 type MutableReflectionReadback = Mutable<WaterSurfaceOpticsReflectionReadback>;
 type MutableBindingReadback = Mutable<WaterSurfaceOpticsBindingReadback>;
 type MutableVector3Tuple = [x: number, y: number, z: number];
 
 const EMPTY_REFLECTION_SAMPLING_CONFIG: WaterReflectionSamplingConfig = Object.freeze({});
-const LOCAL_ENVIRONMENT_REFLECTION_MACRO = "MATERIAL_WATER_LOCAL_ENVIRONMENT_REFLECTION";
+const LOCAL_ENVIRONMENT_REFLECTION_MACRO = ShaderMacro.getByName("MATERIAL_WATER_LOCAL_ENVIRONMENT_REFLECTION");
+const SECONDARY_ENVIRONMENT_REFLECTION_MACRO = ShaderMacro.getByName("MATERIAL_WATER_SECONDARY_ENVIRONMENT_REFLECTION");
+const ENVIRONMENT_BOX_PROJECTION_MACRO = ShaderMacro.getByName("MATERIAL_WATER_ENVIRONMENT_BOX_PROJECTION");
 
 function createMutableResolvedProfile(): MutableResolvedWaterOpticalProfile {
   return {
@@ -462,11 +459,24 @@ export function applyWaterSurfaceReflectionBinding(
   const readback = state.reflectionReadback as MutableReflectionReadback;
   writeReflectionReadback(readback, tier, binding, config);
   const nullableTextureData = shaderData as unknown as NullableTextureShaderData;
-  const macroShaderData = shaderData as unknown as Partial<WaterOpticsMacroShaderData>;
   if (readback.localEnvironmentAvailable) {
-    macroShaderData.enableMacro?.(LOCAL_ENVIRONMENT_REFLECTION_MACRO);
+    shaderData.enableMacro(LOCAL_ENVIRONMENT_REFLECTION_MACRO);
   } else {
-    macroShaderData.disableMacro?.(LOCAL_ENVIRONMENT_REFLECTION_MACRO);
+    shaderData.disableMacro(LOCAL_ENVIRONMENT_REFLECTION_MACRO);
+  }
+  const secondaryEnvironmentActive = readback.secondaryEnvironmentAvailable;
+  if (secondaryEnvironmentActive) {
+    shaderData.enableMacro(SECONDARY_ENVIRONMENT_REFLECTION_MACRO);
+  } else {
+    shaderData.disableMacro(SECONDARY_ENVIRONMENT_REFLECTION_MACRO);
+  }
+  const environmentBoxProjectionActive =
+    readback.environmentProjectionMode === "box" ||
+    (secondaryEnvironmentActive && readback.secondaryEnvironmentProjectionMode === "box");
+  if (environmentBoxProjectionActive) {
+    shaderData.enableMacro(ENVIRONMENT_BOX_PROJECTION_MACRO);
+  } else {
+    shaderData.disableMacro(ENVIRONMENT_BOX_PROJECTION_MACRO);
   }
 
   shaderData.setFloat(

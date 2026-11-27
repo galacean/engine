@@ -1942,4 +1942,54 @@ describe("animal presentation preparation", () => {
       findSpy.mockRestore();
     }
   });
+
+  it("expands withSeedWorldIblBlendVariants with water secondary environment macro on water forward passes only", async () => {
+    const { withSeedWorldIblBlendVariants } = await import(
+      "@galacean/engine-world-planning/world/SeedWorldShaderVariantCoverage"
+    );
+    const expanded = withSeedWorldIblBlendVariants([
+      { shader: "pbr", si: 0, pi: 0, macros: [{ n: "SCENE_USE_SPECULAR_ENV" }] },
+      { shader: "AIWorld/Ocean", si: 0, pi: 0, macros: [{ n: "SCENE_USE_SPECULAR_ENV" }] },
+      { shader: "AIWorld/Ocean", si: 0, pi: 1, macros: [{ n: "SCENE_USE_SPECULAR_ENV" }] },
+      {
+        shader: "AIWorld/HeightfieldWaterSurfaceAppearanceV2ed93d4a81a01602dHybridHigh0",
+        si: 0,
+        pi: 0,
+        macros: [{ n: "SCENE_USE_SPECULAR_ENV" }]
+      }
+    ]);
+    const hasVariant = (shader: string, pi: number, macroNames: readonly string[]) =>
+      expanded.some(
+        (entry) =>
+          entry.shader === shader &&
+          entry.pi === pi &&
+          entry.macros.length === macroNames.length &&
+          macroNames.every((name) => entry.macros.some((macro) => macro.n === name))
+      );
+
+    expect(hasVariant("pbr", 0, ["SCENE_USE_SPECULAR_ENV", "SCENE_USE_SPECULAR_ENV_BLEND"])).toBe(true);
+    expect(
+      hasVariant("AIWorld/Ocean", 0, [
+        "MATERIAL_WATER_SECONDARY_ENVIRONMENT_REFLECTION",
+        "SCENE_USE_SPECULAR_ENV",
+        "SCENE_USE_SPECULAR_ENV_BLEND"
+      ])
+    ).toBe(true);
+    expect(
+      hasVariant("AIWorld/HeightfieldWaterSurfaceAppearanceV2ed93d4a81a01602dHybridHigh0", 0, [
+        "MATERIAL_WATER_SECONDARY_ENVIRONMENT_REFLECTION",
+        "SCENE_USE_SPECULAR_ENV",
+        "SCENE_USE_SPECULAR_ENV_BLEND"
+      ])
+    ).toBe(true);
+    expect(hasVariant("AIWorld/Ocean", 1, ["SCENE_USE_SPECULAR_ENV", "SCENE_USE_SPECULAR_ENV_BLEND"])).toBe(true);
+    expect(
+      expanded.some(
+        (entry) =>
+          entry.shader === "AIWorld/Ocean" &&
+          entry.pi === 1 &&
+          entry.macros.some((macro) => macro.n === "MATERIAL_WATER_SECONDARY_ENVIRONMENT_REFLECTION")
+      )
+    ).toBe(false);
+  });
 });

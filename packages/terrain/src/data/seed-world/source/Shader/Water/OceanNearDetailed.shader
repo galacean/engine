@@ -36,17 +36,23 @@ Shader "AIWorld/Ocean" {
       vec4 material_EnvironmentReflectionParameters;
       float material_EnvironmentFallbackIntensity;
       float material_EnvironmentReflectionMaximumMip;
+      #ifdef MATERIAL_WATER_ENVIRONMENT_BOX_PROJECTION
       vec4 material_EnvironmentReflectionProbePosition;
       vec4 material_EnvironmentReflectionBoxMinimum;
       vec4 material_EnvironmentReflectionBoxMaximum;
+      #endif
+      #ifdef MATERIAL_WATER_SECONDARY_ENVIRONMENT_REFLECTION
       samplerCube material_SecondaryReflectionCubeTexture;
       vec4 material_SecondaryEnvironmentReflectionParameters;
       float material_SecondaryEnvironmentReflectionMaximumMip;
+      #ifdef MATERIAL_WATER_ENVIRONMENT_BOX_PROJECTION
       vec4 material_SecondaryEnvironmentReflectionProbePosition;
       vec4 material_SecondaryEnvironmentReflectionBoxMinimum;
       vec4 material_SecondaryEnvironmentReflectionBoxMaximum;
-      float material_EnvironmentReflectionAvailable;
+      #endif
       float material_EnvironmentReflectionBlend;
+      #endif
+      float material_EnvironmentReflectionAvailable;
       #ifdef MATERIAL_WATER_LOCAL_ENVIRONMENT_REFLECTION
       samplerCube material_LocalReflectionCubeTexture;
       float material_LocalEnvironmentReflectionAvailable;
@@ -108,10 +114,39 @@ float material_RefractionEnabled;
 #ifndef WATER_SURFACE_DEPTH_RESPONSE_INCLUDED
 #define WATER_SURFACE_DEPTH_RESPONSE_INCLUDED
 
+float waterSurfaceDepthSampleValidity(float rawDepth, float sceneEyeDepth, float surfaceEyeDepth) {
+  return step(0.0, sceneEyeDepth)
+    * step(sceneEyeDepth, 1000000.0)
+    * step(surfaceEyeDepth + 0.000001, sceneEyeDepth)
+    * (1.0 - step(0.999999, rawDepth));
+}
 
+vec3 waterSurfaceReconstructOpaquePositionWS(
+  vec3 surfacePositionWS,
+  vec3 cameraPositionWS,
+  mat4 cameraViewInverse,
+  float surfaceEyeDepth,
+  float sceneEyeDepth,
+  float orthographicProjection
+) {
+  float safeSurfaceEyeDepth = max(surfaceEyeDepth, 0.000001);
+  vec3 perspectivePosition = cameraPositionWS
+    + (surfacePositionWS - cameraPositionWS) * (sceneEyeDepth / safeSurfaceEyeDepth);
+  vec3 cameraForwardWS = normalize((cameraViewInverse * vec4(0.0, 0.0, -1.0, 0.0)).xyz);
+  vec3 orthographicPosition = surfacePositionWS
+    + cameraForwardWS * max(sceneEyeDepth - surfaceEyeDepth, 0.0);
+  return mix(perspectivePosition, orthographicPosition, clamp(orthographicProjection, 0.0, 1.0));
+}
 
 // Surface-normal depth uses the normalized physical macro normal; scrolling
 // detail normals never affect the appearance depth field.
+float waterSurfaceNormalDepth(
+  vec3 surfacePositionWS,
+  vec3 opaquePositionWS,
+  vec3 macroNormalWS
+) {
+  return abs(dot(surfacePositionWS - opaquePositionWS, normalize(macroNormalWS)));
+}
 
 float waterSurfaceDerivedSceneRayDepth(
   float verticalDepth,
@@ -134,15 +169,98 @@ float waterSurfaceCompositeExponentialDensity(float firstScaledDepth, float seco
 
 #ifndef WATER_SURFACE_NORMAL_FUNCTIONS_INCLUDED
 #define WATER_SURFACE_NORMAL_FUNCTIONS_INCLUDED
+vec3 waterSurfaceAppearanceSafeNormalize3(vec3 value, vec3 fallbackValue) {
+  float lengthSquared = dot(value, value);
+  return lengthSquared > 0.000001
+    ? value * inversesqrt(lengthSquared)
+    : fallbackValue;
+}
 
+vec3 waterSurfaceAppearanceDecodeTangentNormal(
+  vec4 packedNormal,
+  float strength,
+  float flipGreen
+) {
+  vec2 slope = packedNormal.rg * 2.0 - 1.0;
+  slope.y *= mix(1.0, -1.0, step(0.5, flipGreen));
+  slope *= strength;
+  float normalZ = sqrt(max(1.0 - dot(slope, slope), 0.0001));
+  normalZ = mix(1.0, normalZ, clamp(strength, 0.0, 1.0));
+  return waterSurfaceAppearanceSafeNormalize3(
+    vec3(slope, normalZ),
+    vec3(0.0, 0.0, 1.0)
+  );
+}
 
+vec3 waterSurfaceAppearanceDecodeTangentNormalPreserveSourceZ(
+  vec4 packedNormal,
+  float strength,
+  float flipGreen
+) {
+  vec2 sourceSlope = packedNormal.rg * 2.0 - 1.0;
+  sourceSlope.y *= mix(1.0, -1.0, step(0.5, flipGreen));
+  float sourceNormalZ = sqrt(max(1.0 - clamp(dot(sourceSlope, sourceSlope), 0.0, 1.0), 0.0001));
+  float normalZ = mix(1.0, sourceNormalZ, clamp(strength, 0.0, 1.0));
+  // Do not normalize here: partial-derivative/whiteout blends own the final
+  // normalization and must retain the authored XY-to-Z strength relation.
+  return vec3(sourceSlope * strength, normalZ);
+}
 
+vec3 waterSurfaceAppearanceBlendTangentNormals(
+  vec3 firstNormal,
+  vec3 secondNormal
+) {
+  return waterSurfaceAppearanceSafeNormalize3(
+    vec3(firstNormal.xy + secondNormal.xy, firstNormal.z * secondNormal.z),
+    vec3(0.0, 0.0, 1.0)
+  );
+}
 
+vec3 waterSurfaceAppearanceBlendTangentNormalsPartialDerivative(
+  vec3 firstNormal,
+  vec3 secondNormal
+) {
+  return waterSurfaceAppearanceSafeNormalize3(
+    vec3(
+      firstNormal.xy * secondNormal.z + secondNormal.xy * firstNormal.z,
+      firstNormal.z * secondNormal.z
+    ),
+    vec3(0.0, 0.0, 1.0)
+  );
+}
 
+vec3 waterSurfaceAppearanceV2BlendAddSlope(vec3 baseNormal, vec3 detailNormal) {
+  vec2 slope = baseNormal.xy / max(baseNormal.z, 0.0001)
+    + detailNormal.xy / max(detailNormal.z, 0.0001);
+  return waterSurfaceAppearanceSafeNormalize3(vec3(slope, 1.0), vec3(0.0, 0.0, 1.0));
+}
 
+vec3 waterSurfaceAppearanceV2BlendReoriented(vec3 baseNormal, vec3 detailNormal) {
+  vec3 t = baseNormal + vec3(0.0, 0.0, 1.0);
+  vec3 u = detailNormal * vec3(-1.0, -1.0, 1.0);
+  return waterSurfaceAppearanceSafeNormalize3(
+    t * dot(t, u) / max(t.z, 0.0001) - u,
+    vec3(0.0, 0.0, 1.0)
+  );
+}
 
 #endif
 
+float waterSurfaceAppearanceV2RefractionValidity(
+  float insideScreen,
+  float waterCoverage,
+  float shoreSafety,
+  float centeredGeometryBehindSurface,
+  float shiftedGeometryBehindSurface,
+  float shiftedDepthContinuity
+) {
+  return clamp(insideScreen, 0.0, 1.0)
+    * clamp(waterCoverage, 0.0, 1.0)
+    * clamp(shoreSafety, 0.0, 1.0)
+    * clamp(centeredGeometryBehindSurface, 0.0, 1.0)
+    * clamp(shiftedGeometryBehindSurface, 0.0, 1.0)
+    * clamp(shiftedDepthContinuity, 0.0, 1.0);
+}
 #endif
 
 #ifndef WATER_SURFACE_AMBIENT_LIGHTING_UNIFORMS_INCLUDED
@@ -244,6 +362,7 @@ vec4 waterOceanApplySceneFog(vec4 color, vec3 positionVS) {
         return mix(low, high, step(vec3(0.04045), color));
       }
 
+      #if defined(MATERIAL_WATER_ENVIRONMENT_BOX_PROJECTION) || defined(MATERIAL_WATER_LOCAL_ENVIRONMENT_REFLECTION)
       vec3 waterEnvironmentReflectionDirection(
         vec3 directionWS,
         vec3 positionWS,
@@ -276,16 +395,21 @@ vec4 waterOceanApplySceneFog(vec4 color, vec3 positionVS) {
         float projectedValid = step(0.00000001, dot(projectedDirection, projectedDirection));
         return mix(directionWS, projectedDirection, projectedValid);
       }
+      #endif
 
       vec3 sampleWaterDistantEnvironmentReflection(vec3 directionWS, vec3 positionWS, float roughness) {
-        vec3 originalDirectionWS = directionWS;
-        directionWS = waterEnvironmentReflectionDirection(
-          directionWS,
-          positionWS,
-          material_EnvironmentReflectionProbePosition,
-          material_EnvironmentReflectionBoxMinimum.xyz,
-          material_EnvironmentReflectionBoxMaximum.xyz
-        );
+        #ifdef MATERIAL_WATER_SECONDARY_ENVIRONMENT_REFLECTION
+          vec3 originalDirectionWS = directionWS;
+        #endif
+        #ifdef MATERIAL_WATER_ENVIRONMENT_BOX_PROJECTION
+          directionWS = waterEnvironmentReflectionDirection(
+            directionWS,
+            positionWS,
+            material_EnvironmentReflectionProbePosition,
+            material_EnvironmentReflectionBoxMinimum.xyz,
+            material_EnvironmentReflectionBoxMaximum.xyz
+          );
+        #endif
         vec2 rotation = material_EnvironmentReflectionParameters.xy;
         vec3 sampleDirection = vec3(
           rotation.x * directionWS.x + rotation.y * directionWS.z,
@@ -316,46 +440,52 @@ vec4 waterOceanApplySceneFog(vec4 color, vec3 positionVS) {
         #endif
         reflectedRadiance *= max(material_EnvironmentReflectionParameters.z, 0.0);
 
-        float secondaryWeight = clamp(material_EnvironmentReflectionBlend, 0.0, 1.0);
-        if (secondaryWeight > 0.0) {
-          vec3 secondaryDirection = waterEnvironmentReflectionDirection(
-            originalDirectionWS,
-            positionWS,
-            material_SecondaryEnvironmentReflectionProbePosition,
-            material_SecondaryEnvironmentReflectionBoxMinimum.xyz,
-            material_SecondaryEnvironmentReflectionBoxMaximum.xyz
-          );
-          vec2 secondaryRotation = material_SecondaryEnvironmentReflectionParameters.xy;
-          secondaryDirection = vec3(
-            secondaryRotation.x * secondaryDirection.x + secondaryRotation.y * secondaryDirection.z,
-            secondaryDirection.y,
-            -secondaryRotation.y * secondaryDirection.x + secondaryRotation.x * secondaryDirection.z
-          );
-          float secondaryMipLevel = clamp(roughness, 0.0, 1.0)
-            * max(material_SecondaryEnvironmentReflectionMaximumMip, 0.0);
-          #ifdef HAS_TEX_LOD
-            vec3 secondaryRadiance = textureCubeLodEXT(
-              material_SecondaryReflectionCubeTexture,
-              secondaryDirection,
-              secondaryMipLevel
-            ).rgb;
-          #else
-            vec3 secondaryRadiance = textureCube(
-              material_SecondaryReflectionCubeTexture,
-              secondaryDirection,
-              secondaryMipLevel
-            ).rgb;
-          #endif
-          #ifdef ENGINE_NO_SRGB
-            secondaryRadiance = mix(
-              secondaryRadiance,
-              waterEnvironmentSrgbToLinear(secondaryRadiance),
-              step(0.5, material_SecondaryEnvironmentReflectionParameters.w)
+        #ifdef MATERIAL_WATER_SECONDARY_ENVIRONMENT_REFLECTION
+          float secondaryWeight = clamp(material_EnvironmentReflectionBlend, 0.0, 1.0);
+          if (secondaryWeight > 0.0) {
+            #ifdef MATERIAL_WATER_ENVIRONMENT_BOX_PROJECTION
+              vec3 secondaryDirection = waterEnvironmentReflectionDirection(
+                originalDirectionWS,
+                positionWS,
+                material_SecondaryEnvironmentReflectionProbePosition,
+                material_SecondaryEnvironmentReflectionBoxMinimum.xyz,
+                material_SecondaryEnvironmentReflectionBoxMaximum.xyz
+              );
+            #else
+              vec3 secondaryDirection = originalDirectionWS;
+            #endif
+            vec2 secondaryRotation = material_SecondaryEnvironmentReflectionParameters.xy;
+            secondaryDirection = vec3(
+              secondaryRotation.x * secondaryDirection.x + secondaryRotation.y * secondaryDirection.z,
+              secondaryDirection.y,
+              -secondaryRotation.y * secondaryDirection.x + secondaryRotation.x * secondaryDirection.z
             );
-          #endif
-          secondaryRadiance *= max(material_SecondaryEnvironmentReflectionParameters.z, 0.0);
-          reflectedRadiance = mix(reflectedRadiance, secondaryRadiance, secondaryWeight);
-        }
+            float secondaryMipLevel = clamp(roughness, 0.0, 1.0)
+              * max(material_SecondaryEnvironmentReflectionMaximumMip, 0.0);
+            #ifdef HAS_TEX_LOD
+              vec3 secondaryRadiance = textureCubeLodEXT(
+                material_SecondaryReflectionCubeTexture,
+                secondaryDirection,
+                secondaryMipLevel
+              ).rgb;
+            #else
+              vec3 secondaryRadiance = textureCube(
+                material_SecondaryReflectionCubeTexture,
+                secondaryDirection,
+                secondaryMipLevel
+              ).rgb;
+            #endif
+            #ifdef ENGINE_NO_SRGB
+              secondaryRadiance = mix(
+                secondaryRadiance,
+                waterEnvironmentSrgbToLinear(secondaryRadiance),
+                step(0.5, material_SecondaryEnvironmentReflectionParameters.w)
+              );
+            #endif
+            secondaryRadiance *= max(material_SecondaryEnvironmentReflectionParameters.z, 0.0);
+            reflectedRadiance = mix(reflectedRadiance, secondaryRadiance, secondaryWeight);
+          }
+        #endif
         return reflectedRadiance * max(material_EnvironmentFallbackIntensity, 0.0);
       }
 
@@ -788,15 +918,21 @@ WaterSurfaceResolvedRawContributionsV2 waterSurfaceResolveRawContributionsV2(
     clamp(reflection.environmentValidity, 0.0, 1.0)
   );
   resolved.reflectionRadiance = reflection.analyticSample;
-  if (policy.reflectionSource > 2.5) {
-    float ssrScale = clamp(policy.ssrCompositeIntensity, 0.0, 1.0);
-    float ssrBlend = clamp(reflection.ssrValidity * ssrScale, 0.0, 1.0);
-    resolved.reflectionRadiance =
-      environment * (1.0 - ssrBlend)
-      + reflection.ssrPremultipliedSample * ssrScale;
-  } else if (policy.reflectionSource > 0.5) {
-    resolved.reflectionRadiance = environment;
-  }
+  #ifdef CAMERA_ENABLE_SSR
+    if (policy.reflectionSource > 2.5) {
+      float ssrScale = clamp(policy.ssrCompositeIntensity, 0.0, 1.0);
+      float ssrBlend = clamp(reflection.ssrValidity * ssrScale, 0.0, 1.0);
+      resolved.reflectionRadiance =
+        environment * (1.0 - ssrBlend)
+        + reflection.ssrPremultipliedSample * ssrScale;
+    } else if (policy.reflectionSource > 0.5) {
+      resolved.reflectionRadiance = environment;
+    }
+  #else
+    if (policy.reflectionSource > 0.5) {
+      resolved.reflectionRadiance = environment;
+    }
+  #endif
   return resolved;
 }
 
@@ -1342,6 +1478,10 @@ float waterSurface_waveCrest = 0.0;
 #endif
 
 
+      vec2 safeNormalize2(vec2 value, vec2 fallbackValue) {
+        float lengthSquared = dot(value, value);
+        return lengthSquared > 0.00000001 ? value * inversesqrt(lengthSquared) : fallbackValue;
+      }
 
       vec3 safeNormalize3(vec3 value, vec3 fallbackValue) {
         float lengthSquared = dot(value, value);
@@ -1496,6 +1636,9 @@ float waterConnectionShore(vec2 p, float original) {
   }
 #endif
   return result;
+}
+vec3 waterConnectionNormal(vec2 p, vec3 normal) {
+  return normalize(mix(vec3(0.0, 1.0, 0.0), normal, waterConnectionFacts(p).x));
 }
 #endif
 #ifndef WATER_OCEAN_GEOMETRY_INCLUDED

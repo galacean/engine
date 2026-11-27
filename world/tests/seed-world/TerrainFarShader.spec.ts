@@ -1,6 +1,10 @@
 import fs from "node:fs";
+import { Shader } from "@galacean/engine";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { describe, expect, it } from "vitest";
 import { ShaderMacroProcessor } from "../../../packages/core/src/shader/ShaderMacroProcessor";
+import { HeadlessEngine } from "../../../packages/rhi-null/src/HeadlessEngine";
+import { PLANNING_FARM_SOIL_SHADER } from "../../demos/seed-world/src/planning/spatial/farming/PlanningFarmSoilShader";
 
 const terrain = JSON.parse(
   fs.readFileSync(
@@ -645,5 +649,64 @@ describe("Terrain near/far production shader variants", () => {
     );
     expect(singleMapVs).not.toContain("TerrainAlphamapMetadata");
     expect(singleMapVs).not.toContain("TerrainLayerMetadata");
+  });
+
+  it("specializes FarmGround varyings and prunes surface climate calls under SCENE_SURFACE_CLIMATE_DRY", async () => {
+    const farmDryMacros = new Map<string, string>([
+      ["GRAPHICS_API_WEBGL2", ""],
+      ["MATERIAL_GRASS_GROUND_SURFACE", ""],
+      ["MATERIAL_FARM_GROUND_SURFACE", ""],
+      ["SCENE_SURFACE_CLIMATE_DRY", ""]
+    ]);
+    const farmDryVs = ShaderMacroProcessor.evaluate(grassForward.vertexShaderInstructions, farmDryMacros);
+    const farmDryFs = ShaderMacroProcessor.evaluate(grassForward.fragmentShaderInstructions, farmDryMacros);
+    const varyingsBlock = farmDryVs.match(/struct Varyings\s*\{[^}]*\}/)?.[0] ?? "";
+    expect(varyingsBlock).toContain("terrainNormalWS");
+    expect(varyingsBlock).toContain("positionWS");
+    expect(varyingsBlock).not.toContain("windCarrierNormalWS");
+    expect(varyingsBlock).not.toContain("windBentNormalWS");
+    expect(varyingsBlock).not.toContain("rootPositionWS");
+    expect(varyingsBlock).not.toContain("grassColor");
+    expect(farmDryFs).not.toMatch(/terrainProjectApplySurfaceClimate\s*\(\s*surfaceData/);
+
+    const farmWetMacros = new Map(farmDryMacros);
+    farmWetMacros.delete("SCENE_SURFACE_CLIMATE_DRY");
+    const farmWetFs = ShaderMacroProcessor.evaluate(grassForward.fragmentShaderInstructions, farmWetMacros);
+    expect(farmWetFs).toMatch(/terrainProjectApplySurfaceClimate\s*\(\s*surfaceData/);
+
+    const engine = await HeadlessEngine.create({
+      shaderCompiler: new ShaderCompiler(),
+      glTFLoader: { meshOpt: { workerCount: 0 } }
+    });
+    const soilShader = Shader.create(
+      PLANNING_FARM_SOIL_SHADER.replace("Farming/PlannerSoilSnow", "Farming/PlannerSoilSnowTest")
+    );
+    try {
+      const soilForward = soilShader.subShaders[0].passes.find((pass) => pass.name === "Forward Pass")!;
+      const soilDryFs = ShaderMacroProcessor.evaluate(
+        soilForward._fragmentShaderInstructions,
+        new Map<string, string>([
+          ["GRAPHICS_API_WEBGL2", ""],
+          ["FARM_SOIL_BATCH", ""],
+          ["RENDERER_ENABLE_VERTEXCOLOR", ""],
+          ["SCENE_SURFACE_CLIMATE_DRY", ""]
+        ])
+      );
+      expect(soilDryFs).not.toMatch(/terrainProjectApplySurfaceClimate\s*\(\s*surfaceData/);
+      expect(soilDryFs).not.toContain("soil_Row0");
+
+      const soilWetFs = ShaderMacroProcessor.evaluate(
+        soilForward._fragmentShaderInstructions,
+        new Map<string, string>([
+          ["GRAPHICS_API_WEBGL2", ""],
+          ["FARM_SOIL_BATCH", ""],
+          ["RENDERER_ENABLE_VERTEXCOLOR", ""]
+        ])
+      );
+      expect(soilWetFs).toMatch(/terrainProjectApplySurfaceClimate\s*\(\s*surfaceData/);
+    } finally {
+      soilShader.destroy();
+      engine.destroy();
+    }
   });
 });

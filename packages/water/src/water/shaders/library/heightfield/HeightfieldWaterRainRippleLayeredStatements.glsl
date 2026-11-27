@@ -1,6 +1,9 @@
 #ifndef WATER_HEIGHTFIELD_RAIN_RIPPLE_LAYERED_STATEMENTS_INCLUDED
 #define WATER_HEIGHTFIELD_RAIN_RIPPLE_LAYERED_STATEMENTS_INCLUDED
 
+#ifdef SCENE_SURFACE_CLIMATE_DRY
+        float rainRippleSurfaceRoughness = clamp(material_Roughness, 0.0, 1.0);
+#else
         float rainRate = clamp(scene_WeatherState.x, 0.0, 1.0)
           * material_MicroNormalsEnabled;
         float rainRippleMask = 0.0;
@@ -92,5 +95,6 @@
           rainRippleRoughnessFloor,
           1.0
         );
+#endif
 
 #endif

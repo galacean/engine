@@ -10,10 +10,13 @@ import {
 } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ShaderMacroProcessor } from "../../../core/src/shader/ShaderMacroProcessor";
 import { HeadlessEngine } from "../../../rhi-null/src/HeadlessEngine";
 import { SoilRenderBatches } from "../../src/farming/presentation/soil/SoilRenderBatches";
 import { SoilVisualProvider } from "../../src/farming/presentation/soil/SoilVisualProvider";
 import { SOIL_MOISTURE_SHADER } from "../../src/farming/presentation/soil/SoilMoistureShader";
+import { PLANT_HARVEST_SHADER } from "../../src/farming/presentation/PlantHarvestShader";
+import { HarvestProduce } from "../../src/farming/presentation/harvest/HarvestProduce";
 import {
   buildMoistureStencils,
   sampleMoisture,
@@ -988,6 +991,76 @@ describe("Track 3 Performance Optimizations (P1-4, P1-5, P1-6)", () => {
       expect(Object.is(hintQuerySpy.mock.calls[0][2], hintQuerySpy.mock.calls[1][2])).toBe(true);
       (presentation as unknown as { hintOccluded: (p: Vector3) => boolean }).hintOccluded(new Vector3(1.25, 0, -3.125));
       expect(hintQuerySpy.mock.calls[2][2]).toBe("1.25,0,-3.125");
+    });
+
+    it("compiles SoilMoisture, PlantHarvest, and BasketReveal shaders with dead uniforms and samplers pruned", async () => {
+      const engine = await createCompiledHeadlessEngine();
+      engines.push(engine);
+      const root = engine.sceneManager.activeScene!.createRootEntity("farming-shader-prune-test");
+
+      const soilShader = Shader.find("Farming/SoilMoisture") ?? Shader.create(SOIL_MOISTURE_SHADER);
+      const soilForward = soilShader.subShaders[0].passes.find((pass) => pass.name === "Forward Pass")!;
+      const soilBatchFs = ShaderMacroProcessor.evaluate(
+        soilForward._fragmentShaderInstructions,
+        new Map<string, string>([
+          ["GRAPHICS_API_WEBGL2", ""],
+          ["FARM_SOIL_BATCH", ""],
+          ["RENDERER_ENABLE_VERTEXCOLOR", ""]
+        ])
+      );
+      expect(soilBatchFs).not.toContain("soil_Row0");
+      expect(soilBatchFs).not.toContain("soil_BoundaryProgress");
+      expect(soilBatchFs).not.toContain("soil_CultivationProgress");
+      const soilSingleFs = ShaderMacroProcessor.evaluate(
+        soilForward._fragmentShaderInstructions,
+        new Map<string, string>([["GRAPHICS_API_WEBGL2", ""]])
+      );
+      expect(soilSingleFs).toContain("soil_Row0");
+      expect(soilSingleFs).toContain("soil_CultivationProgress");
+
+      const harvestShader = Shader.find("Farming/HarvestDissolve") ?? Shader.create(PLANT_HARVEST_SHADER);
+      for (const passName of ["ShadowCaster", "DepthOnly"] as const) {
+        const pass = harvestShader.subShaders[0].passes.find((entry) => entry.name === passName)!;
+        const opaqueFs = ShaderMacroProcessor.evaluate(
+          pass._fragmentShaderInstructions,
+          new Map<string, string>([
+            ["GRAPHICS_API_WEBGL2", ""],
+            ["MATERIAL_HAS_BASETEXTURE", ""]
+          ])
+        );
+        expect(opaqueFs).not.toContain("material_BaseTexture");
+        expect(opaqueFs).not.toContain("material_BaseColor");
+        expect(opaqueFs).not.toContain("material_AlphaCutoff");
+
+        const cutoutFs = ShaderMacroProcessor.evaluate(
+          pass._fragmentShaderInstructions,
+          new Map<string, string>([
+            ["GRAPHICS_API_WEBGL2", ""],
+            ["MATERIAL_IS_ALPHA_CUTOFF", ""],
+            ["MATERIAL_HAS_BASETEXTURE", ""]
+          ])
+        );
+        expect(cutoutFs).toContain("material_BaseTexture");
+        expect(cutoutFs).toContain("material_AlphaCutoff");
+      }
+
+      const produce = new HarvestProduce(root, {
+        eventId: 1,
+        cropId: "tomato",
+        quantity: 1,
+        slot: 0,
+        revealAt: 0
+      });
+      disposables.push(produce);
+      const basketShader = Shader.find("Farming/BasketReveal")!;
+      expect(basketShader).toBeTruthy();
+      for (const pass of basketShader.subShaders[0].passes) {
+        const fs = ShaderMacroProcessor.evaluate(
+          pass._fragmentShaderInstructions,
+          new Map<string, string>([["GRAPHICS_API_WEBGL2", ""]])
+        );
+        expect(fs).not.toContain("harvest_NoiseTexture");
+      }
     });
   });
 });

@@ -765,12 +765,12 @@ Shader "Lighting/ScreenSpaceReflection" {
       mat4 camera_SSRInvProjMat;
       mat4 camera_SSRInvViewMat;
       mat4 camera_SSRPrevVPMat;
-      mat4 camera_SSRPrevInvProjMat;
-      mat4 camera_SSRPrevInvViewMat;
       vec4 camera_SSRPrevViewZRow;
       float material_SSRTemporalBlend;
 
       #ifdef SSR_HIGH_VIRTUAL_REPROJECTION
+        mat4 camera_SSRPrevInvProjMat;
+        mat4 camera_SSRPrevInvViewMat;
         highp sampler2D material_SSRHitDistTexture;
         highp sampler2D material_SSRNormalRoughnessTexture;
         highp sampler2D material_SSRPrevNormalRoughnessTexture;
@@ -963,10 +963,12 @@ Shader "Lighting/ScreenSpaceReflection" {
         return min(nonNeg, vec3(65504.0));
       }
 
-      float karisWeight(vec3 c) {
-        float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
-        return 1.0 / (1.0 + lum);
-      }
+      #ifndef SSR_COLOR_PYRAMID_FULL_RES
+        float karisWeight(vec3 c) {
+          float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
+          return 1.0 / (1.0 + lum);
+        }
+      #endif
 
       void colorPyramidPrefilterFragment(Varyings v) {
         vec2 scale = renderer_SourceScaleOffset.xy;

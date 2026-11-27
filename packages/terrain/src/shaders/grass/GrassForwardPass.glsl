@@ -71,6 +71,9 @@ struct Varyings {
     #ifndef SCENE_SURFACE_CLIMATE_DRY
       float tipWeight;
     #endif
+  #elif defined(MATERIAL_FARM_GROUND_SURFACE)
+    vec3 terrainNormalWS;
+    vec3 positionWS;
   #else
     #ifdef RENDERER_GRASS_ROCK_APPEARANCE
       vec4 rockAppearance;
@@ -208,6 +211,9 @@ Varyings grassCulledVaryings() {
     #ifndef SCENE_SURFACE_CLIMATE_DRY
       output.tipWeight = 0.0;
     #endif
+  #elif defined(MATERIAL_FARM_GROUND_SURFACE)
+    output.terrainNormalWS = vec3(0.0, 1.0, 0.0);
+    output.positionWS = vec3(0.0);
   #else
     #ifdef RENDERER_GRASS_ROCK_APPEARANCE
       output.rockAppearance = vec4(0.0);
@@ -360,6 +366,33 @@ Varyings GrassVertex(Attributes attributes) {
       output.tipWeight = tipWeight;
     #endif
     return output;
+  #elif defined(MATERIAL_FARM_GROUND_SURFACE)
+    vec4 worldPosition = renderer_ModelMat * vec4(attributes.POSITION, 1.0);
+    output.terrainNormalWS = normalize(mat3(renderer_NormalMat) * attributes.NORMAL);
+    output.positionWS = worldPosition.xyz / worldPosition.w;
+    output.positionCS = camera_VPMat * worldPosition;
+    #if SCENE_FOG_MODE != 0
+      output.positionVS = (camera_ViewMat * worldPosition).xyz;
+    #endif
+    #ifdef TERRAIN_PROJECT_GRASS_VERTEX_PROBE_VOLUME
+      vec3 probeIrradiance;
+      bool hasProbe = sampleProbeVolume(
+        output.positionWS,
+        output.terrainNormalWS,
+        normalize(camera_Position - output.positionWS),
+        probeIrradiance
+      );
+      output.probeIrradiance = probeIrradiance;
+      output.probeWeight = hasProbe ? 1.0 : 0.0;
+    #elif defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX)
+      output.probeIrradiance = vec3(0.0);
+      output.probeWeight = 0.0;
+    #endif
+    #if defined(NEED_CALCULATE_SHADOWS) && (SCENE_SHADOW_CASCADED_COUNT == 1)
+      output.shadowCoord = getShadowCoord(output.positionWS);
+    #endif
+    gl_Position = output.positionCS;
+    return output;
   #else
   #ifdef MATERIAL_GRASS_GROUND_SURFACE
     // A ground surface shares the grass palette and lighting, but has no blade deformation or distance collapse.
@@ -435,13 +468,21 @@ Varyings GrassVertex(Attributes attributes) {
   int carrierNormalMode = 2;
   #ifdef TERRAIN_PROJECT_GRASS_ROOT_VARYINGS
     reliefWeight = terrainProjectSurfaceReliefWeight(output.rootPositionWS);
-    if (dot(scene_SurfaceClimate, scene_SurfaceClimate) <= 0.0) {
+    #ifdef SCENE_SURFACE_CLIMATE_DRY
       if (reliefWeight >= 0.9999) {
         carrierNormalMode = 0;
       } else if (terrainProjectSurfaceReliefEnabled()) {
         carrierNormalMode = 1;
       }
-    }
+    #else
+      if (dot(scene_SurfaceClimate, scene_SurfaceClimate) <= 0.0) {
+        if (reliefWeight >= 0.9999) {
+          carrierNormalMode = 0;
+        } else if (terrainProjectSurfaceReliefEnabled()) {
+          carrierNormalMode = 1;
+        }
+      }
+    #endif
   #endif
 
   vec4 worldPosition = renderer_ModelMat * vec4(positionOS, 1.0);
@@ -628,11 +669,13 @@ void GrassFragment(Varyings input) {
       0.0,
       1.0
     );
-    terrainProjectApplySurfaceClimate(
-      surfaceData,
-      shadingNormal,
-      vec3(1.0, 0.0, material_GrassSurfaceSnowResponse.x)
-    );
+    #ifndef SCENE_SURFACE_CLIMATE_DRY
+      terrainProjectApplySurfaceClimate(
+        surfaceData,
+        shadingNormal,
+        vec3(1.0, 0.0, material_GrassSurfaceSnowResponse.x)
+      );
+    #endif
     #ifdef TERRAIN_PROJECT_GROUND_SHADOW_PCF
       float shadowAttenuation = sampleTerrainProjectGroundShadow(input, shadowPositionDx, shadowPositionDy);
     #else
@@ -831,26 +874,28 @@ void GrassFragment(Varyings input) {
   #ifdef RENDERER_GRASS_ROCK_APPEARANCE
     groundSnowResponse = mix(groundSnowResponse, input.rockAppearanceNormalSnow.w, input.rockAppearance.a);
   #endif
-  if (dot(scene_SurfaceClimate, scene_SurfaceClimate) > 0.0) {
-    float snowResponse = mix(
-      groundSnowResponse,
-      material_GrassSurfaceSnowResponse.w,
-      bladeAppearanceWeight
-    );
-    vec3 climateNormal = normalize(mix(
-      input.terrainNormalWS,
-      windFieldNormal,
-      bladeAppearanceWeight
-    ));
-    // Rain and retained puddles keep porous wetness uniform over the blade. Terrain owns the
-    // horizontal standing-water interface; the shared root band retains the same substrate
-    // colour, roughness, normal and snow response as the Terrain below it.
-    terrainProjectApplySurfaceClimate(
-      surfaceData,
-      climateNormal,
-      vec3(1.0, 0.0, snowResponse)
-    );
-  }
+  #ifndef SCENE_SURFACE_CLIMATE_DRY
+    if (dot(scene_SurfaceClimate, scene_SurfaceClimate) > 0.0) {
+      float snowResponse = mix(
+        groundSnowResponse,
+        material_GrassSurfaceSnowResponse.w,
+        bladeAppearanceWeight
+      );
+      vec3 climateNormal = normalize(mix(
+        input.terrainNormalWS,
+        windFieldNormal,
+        bladeAppearanceWeight
+      ));
+      // Rain and retained puddles keep porous wetness uniform over the blade. Terrain owns the
+      // horizontal standing-water interface; the shared root band retains the same substrate
+      // colour, roughness, normal and snow response as the Terrain below it.
+      terrainProjectApplySurfaceClimate(
+        surfaceData,
+        climateNormal,
+        vec3(1.0, 0.0, snowResponse)
+      );
+    }
+  #endif
   #ifdef TERRAIN_PROJECT_GROUND_SHADOW_PCF
     float shadowAttenuation = sampleTerrainProjectGroundShadow(input, shadowPositionDx, shadowPositionDy);
   #else

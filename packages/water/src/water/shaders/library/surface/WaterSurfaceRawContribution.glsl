@@ -175,15 +175,21 @@ WaterSurfaceResolvedRawContributionsV2 waterSurfaceResolveRawContributionsV2(
     clamp(reflection.environmentValidity, 0.0, 1.0)
   );
   resolved.reflectionRadiance = reflection.analyticSample;
-  if (policy.reflectionSource > 2.5) {
-    float ssrScale = clamp(policy.ssrCompositeIntensity, 0.0, 1.0);
-    float ssrBlend = clamp(reflection.ssrValidity * ssrScale, 0.0, 1.0);
-    resolved.reflectionRadiance =
-      environment * (1.0 - ssrBlend)
-      + reflection.ssrPremultipliedSample * ssrScale;
-  } else if (policy.reflectionSource > 0.5) {
-    resolved.reflectionRadiance = environment;
-  }
+  #ifdef CAMERA_ENABLE_SSR
+    if (policy.reflectionSource > 2.5) {
+      float ssrScale = clamp(policy.ssrCompositeIntensity, 0.0, 1.0);
+      float ssrBlend = clamp(reflection.ssrValidity * ssrScale, 0.0, 1.0);
+      resolved.reflectionRadiance =
+        environment * (1.0 - ssrBlend)
+        + reflection.ssrPremultipliedSample * ssrScale;
+    } else if (policy.reflectionSource > 0.5) {
+      resolved.reflectionRadiance = environment;
+    }
+  #else
+    if (policy.reflectionSource > 0.5) {
+      resolved.reflectionRadiance = environment;
+    }
+  #endif
   return resolved;
 }
 

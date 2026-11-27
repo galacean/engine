@@ -158,17 +158,28 @@ export function withSeedWorldInstanceEntranceVariants(
   );
 }
 
+const WATER_ENVIRONMENT_REFLECTION_SHADER_PATTERN = /^AIWorld\/(?:HeightfieldWater|Ocean|River)/;
+
 /** Secondary IBL is reachable wherever the scene already supplies a specular environment. */
 export function withSeedWorldIblBlendVariants(
   entries: readonly SeedWorldShaderVariantEntry[]
 ): readonly SeedWorldShaderVariantEntry[] {
   return normalizeSeedWorldShaderVariants(
-    entries.flatMap((entry) =>
-      entry.macros.some((macro) => macro.n === "SCENE_USE_SPECULAR_ENV") &&
-      !entry.macros.some((macro) => macro.n === "SCENE_USE_SPECULAR_ENV_BLEND")
-        ? [entry, { ...entry, macros: [...entry.macros, { n: "SCENE_USE_SPECULAR_ENV_BLEND" }] }]
-        : [entry]
-    )
+    entries.flatMap((entry) => {
+      if (!entry.macros.some((macro) => macro.n === "SCENE_USE_SPECULAR_ENV")) return [entry];
+      const extraMacros: SeedWorldShaderVariantMacro[] = [];
+      if (!entry.macros.some((macro) => macro.n === "SCENE_USE_SPECULAR_ENV_BLEND")) {
+        extraMacros.push({ n: "SCENE_USE_SPECULAR_ENV_BLEND" });
+      }
+      if (
+        entry.pi === 0 &&
+        WATER_ENVIRONMENT_REFLECTION_SHADER_PATTERN.test(entry.shader) &&
+        !entry.macros.some((macro) => macro.n === "MATERIAL_WATER_SECONDARY_ENVIRONMENT_REFLECTION")
+      ) {
+        extraMacros.push({ n: "MATERIAL_WATER_SECONDARY_ENVIRONMENT_REFLECTION" });
+      }
+      return extraMacros.length > 0 ? [entry, { ...entry, macros: [...entry.macros, ...extraMacros] }] : [entry];
+    })
   );
 }
 

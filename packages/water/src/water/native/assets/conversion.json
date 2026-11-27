@@ -272,17 +272,17 @@
     }
   },
   {
-    "source": "packages/terrain/src/data/seed-world/public/Shader/Water/lake-heightfield-high-hybrid-v2.76e0640adff3087b8db2dc0ed6833695564e1ed8c55dd95e72f49e3773292a36.shaderc",
+    "source": "packages/terrain/src/data/seed-world/public/Shader/Water/lake-heightfield-high-hybrid-v2.964f76d427db338d5d41a551c307ae2a2ae59316cef9a152b302e30e26a14ed6.shaderc",
     "target": "Water/Shaders/lake-heightfield-high-hybrid-v2.shaderc",
-    "sha256": "76e0640adff3087b8db2dc0ed6833695564e1ed8c55dd95e72f49e3773292a36",
-    "byteLength": 120729,
+    "sha256": "964f76d427db338d5d41a551c307ae2a2ae59316cef9a152b302e30e26a14ed6",
+    "byteLength": 125052,
     "type": "Shader"
   },
   {
-    "source": "packages/terrain/src/data/seed-world/public/Shader/Water/ocean-near-detailed.e970c69291fb15d8d866c031625aadfa4312e91a79e98ee4da9052654b238836.shaderc",
+    "source": "packages/terrain/src/data/seed-world/public/Shader/Water/ocean-near-detailed.aaff9f6370f81dd9b96638a070140846a4d48a208c0271c56e2f4670a1b31b2c.shaderc",
     "target": "Water/Shaders/ocean-near-detailed.shaderc",
-    "sha256": "e970c69291fb15d8d866c031625aadfa4312e91a79e98ee4da9052654b238836",
-    "byteLength": 105077,
+    "sha256": "aaff9f6370f81dd9b96638a070140846a4d48a208c0271c56e2f4670a1b31b2c",
+    "byteLength": 106443,
     "type": "Shader"
   }
 ]

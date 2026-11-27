@@ -4,17 +4,23 @@
       vec4 material_EnvironmentReflectionParameters;
       float material_EnvironmentFallbackIntensity;
       float material_EnvironmentReflectionMaximumMip;
+      #ifdef MATERIAL_WATER_ENVIRONMENT_BOX_PROJECTION
       vec4 material_EnvironmentReflectionProbePosition;
       vec4 material_EnvironmentReflectionBoxMinimum;
       vec4 material_EnvironmentReflectionBoxMaximum;
+      #endif
+      #ifdef MATERIAL_WATER_SECONDARY_ENVIRONMENT_REFLECTION
       samplerCube material_SecondaryReflectionCubeTexture;
       vec4 material_SecondaryEnvironmentReflectionParameters;
       float material_SecondaryEnvironmentReflectionMaximumMip;
+      #ifdef MATERIAL_WATER_ENVIRONMENT_BOX_PROJECTION
       vec4 material_SecondaryEnvironmentReflectionProbePosition;
       vec4 material_SecondaryEnvironmentReflectionBoxMinimum;
       vec4 material_SecondaryEnvironmentReflectionBoxMaximum;
-      float material_EnvironmentReflectionAvailable;
+      #endif
       float material_EnvironmentReflectionBlend;
+      #endif
+      float material_EnvironmentReflectionAvailable;
       #ifdef MATERIAL_WATER_LOCAL_ENVIRONMENT_REFLECTION
       samplerCube material_LocalReflectionCubeTexture;
       float material_LocalEnvironmentReflectionAvailable;

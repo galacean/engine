@@ -7,6 +7,7 @@ import type { BasketBatch } from "./HarvestBasketState";
 import { DEFAULT_HARVEST_SECONDS } from "../PlantHarvestEffect";
 
 const localShader = PLANT_HARVEST_SHADER.replace('Shader "Farming/HarvestDissolve"', 'Shader "Farming/BasketReveal"')
+  .replaceAll("sampler2D harvest_NoiseTexture;", "")
   .replaceAll("float harvest_Visibility;", "float basket_Elapsed; float basket_Duration;")
   .replaceAll(
     "float harvestDissolve(vec3 positionWS) {",

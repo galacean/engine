@@ -246,13 +246,17 @@ const HEIGHTFIELD_WATER_PLANAR_TRANSFORM_SHADER_FUNCTIONS = heightfieldPlanarTra
 const HEIGHTFIELD_SSR_RAIN_ROUGHNESS_STATEMENTS = `
         // Half-resolution SSRReceiver skips fine rain-ripple micro-normal fetches;
         // apply only the conservative spatial-average storm roughness delta (~25% ripple coverage).
+#ifdef SCENE_SURFACE_CLIMATE_DRY
+        float rainRippleSurfaceRoughness = clamp(material_Roughness, 0.0, 1.0);
+#else
         float rainRate = clamp(scene_WeatherState.x, 0.0, 1.0) * material_MicroNormalsEnabled;
         float rainRippleStormAmount = smoothstep(0.68, 1.0, rainRate);
         float rainRippleSurfaceRoughness = clamp(
           material_Roughness + rainRippleStormAmount * 0.02,
           material_Roughness,
           1.0
-        );`;
+        );
+#endif`;
 
 /** One normal pipeline for Forward, alpha-only depth and simplified half-res SSR receiver. */
 function surfaceNormalStatements(

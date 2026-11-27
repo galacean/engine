@@ -34,9 +34,13 @@ Pass "${shadow ? "ShadowCaster" : "DepthOnly"}" {
   #include "ShaderLibrary/Skin/BlendShape.glsl"
   #include "ShaderLibrary/PBR/VertexPBR.glsl"
   ${dissolve}
-  vec4 material_BaseColor;
-  sampler2D material_BaseTexture;
-  float material_AlphaCutoff;
+  #ifdef MATERIAL_IS_ALPHA_CUTOFF
+    vec4 material_BaseColor;
+    float material_AlphaCutoff;
+    #ifdef MATERIAL_HAS_BASETEXTURE
+      sampler2D material_BaseTexture;
+    #endif
+  #endif
   ${shadow ? "vec2 scene_ShadowBias; vec3 scene_LightDirection;" : ""}
   struct HarvestDepthVaryings { vec2 uv; vec3 positionWS; };
   HarvestDepthVaryings harvestDepthVertex(Attributes attr) {

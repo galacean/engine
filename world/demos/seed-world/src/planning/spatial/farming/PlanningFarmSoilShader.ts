@@ -17,13 +17,15 @@ export const PLANNING_FARM_SOIL_SHADER = SOIL_MOISTURE_SHADER.replace(
   .replace(
     "  initBSDFData(surfaceData, bsdfData);",
     `
-    // Use the geometric normal for the same terrain slope mask, preserving the soil's normal map below snow.
-    vec3 geometryNormal = vec3(0.0, 1.0, 0.0);
-    #ifdef RENDERER_HAS_NORMAL
-      geometryNormal = normalize(varyings.normalWS);
+    #ifndef SCENE_SURFACE_CLIMATE_DRY
+      // Use the geometric normal for the same terrain slope mask, preserving the soil's normal map below snow.
+      vec3 geometryNormal = vec3(0.0, 1.0, 0.0);
+      #ifdef RENDERER_HAS_NORMAL
+        geometryNormal = normalize(varyings.normalWS);
+      #endif
+      // Zero rain responses preserve farming's existing moisture appearance; the terrain owns every snow parameter.
+      terrainProjectApplySurfaceClimate(surfaceData, geometryNormal, vec3(0.0, 0.0, ${SEED_WORLD_GRASS_SNOW_RESPONSE}));
     #endif
-    // Zero rain responses preserve farming's existing moisture appearance; the terrain owns every snow parameter.
-    terrainProjectApplySurfaceClimate(surfaceData, geometryNormal, vec3(0.0, 0.0, ${SEED_WORLD_GRASS_SNOW_RESPONSE}));
     initBSDFData(surfaceData, bsdfData);`
   );
 

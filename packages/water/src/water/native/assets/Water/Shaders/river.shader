@@ -306,17 +306,23 @@ material_Water_renderState_blendMode("material_Water_renderState_blendMode", Enu
       vec4 material_EnvironmentReflectionParameters;
       float material_EnvironmentFallbackIntensity;
       float material_EnvironmentReflectionMaximumMip;
+      #ifdef MATERIAL_WATER_ENVIRONMENT_BOX_PROJECTION
       vec4 material_EnvironmentReflectionProbePosition;
       vec4 material_EnvironmentReflectionBoxMinimum;
       vec4 material_EnvironmentReflectionBoxMaximum;
+      #endif
+      #ifdef MATERIAL_WATER_SECONDARY_ENVIRONMENT_REFLECTION
       samplerCube material_SecondaryReflectionCubeTexture;
       vec4 material_SecondaryEnvironmentReflectionParameters;
       float material_SecondaryEnvironmentReflectionMaximumMip;
+      #ifdef MATERIAL_WATER_ENVIRONMENT_BOX_PROJECTION
       vec4 material_SecondaryEnvironmentReflectionProbePosition;
       vec4 material_SecondaryEnvironmentReflectionBoxMinimum;
       vec4 material_SecondaryEnvironmentReflectionBoxMaximum;
-      float material_EnvironmentReflectionAvailable;
+      #endif
       float material_EnvironmentReflectionBlend;
+      #endif
+      float material_EnvironmentReflectionAvailable;
       #ifdef MATERIAL_WATER_LOCAL_ENVIRONMENT_REFLECTION
       samplerCube material_LocalReflectionCubeTexture;
       float material_LocalEnvironmentReflectionAvailable;
@@ -448,6 +454,7 @@ material_Water_renderState_blendMode("material_Water_renderState_blendMode", Enu
         return mix(low, high, step(vec3(0.04045), color));
       }
 
+      #if defined(MATERIAL_WATER_ENVIRONMENT_BOX_PROJECTION) || defined(MATERIAL_WATER_LOCAL_ENVIRONMENT_REFLECTION)
       vec3 waterEnvironmentReflectionDirection(
         vec3 directionWS,
         vec3 positionWS,
@@ -480,16 +487,21 @@ material_Water_renderState_blendMode("material_Water_renderState_blendMode", Enu
         float projectedValid = step(0.00000001, dot(projectedDirection, projectedDirection));
         return mix(directionWS, projectedDirection, projectedValid);
       }
+      #endif
 
       vec3 sampleWaterDistantEnvironmentReflection(vec3 directionWS, vec3 positionWS, float roughness) {
-        vec3 originalDirectionWS = directionWS;
-        directionWS = waterEnvironmentReflectionDirection(
-          directionWS,
-          positionWS,
-          material_EnvironmentReflectionProbePosition,
-          material_EnvironmentReflectionBoxMinimum.xyz,
-          material_EnvironmentReflectionBoxMaximum.xyz
-        );
+        #ifdef MATERIAL_WATER_SECONDARY_ENVIRONMENT_REFLECTION
+          vec3 originalDirectionWS = directionWS;
+        #endif
+        #ifdef MATERIAL_WATER_ENVIRONMENT_BOX_PROJECTION
+          directionWS = waterEnvironmentReflectionDirection(
+            directionWS,
+            positionWS,
+            material_EnvironmentReflectionProbePosition,
+            material_EnvironmentReflectionBoxMinimum.xyz,
+            material_EnvironmentReflectionBoxMaximum.xyz
+          );
+        #endif
         vec2 rotation = material_EnvironmentReflectionParameters.xy;
         vec3 sampleDirection = vec3(
           rotation.x * directionWS.x + rotation.y * directionWS.z,
@@ -520,46 +532,52 @@ material_Water_renderState_blendMode("material_Water_renderState_blendMode", Enu
         #endif
         reflectedRadiance *= max(material_EnvironmentReflectionParameters.z, 0.0);
 
-        float secondaryWeight = clamp(material_EnvironmentReflectionBlend, 0.0, 1.0);
-        if (secondaryWeight > 0.0) {
-          vec3 secondaryDirection = waterEnvironmentReflectionDirection(
-            originalDirectionWS,
-            positionWS,
-            material_SecondaryEnvironmentReflectionProbePosition,
-            material_SecondaryEnvironmentReflectionBoxMinimum.xyz,
-            material_SecondaryEnvironmentReflectionBoxMaximum.xyz
-          );
-          vec2 secondaryRotation = material_SecondaryEnvironmentReflectionParameters.xy;
-          secondaryDirection = vec3(
-            secondaryRotation.x * secondaryDirection.x + secondaryRotation.y * secondaryDirection.z,
-            secondaryDirection.y,
-            -secondaryRotation.y * secondaryDirection.x + secondaryRotation.x * secondaryDirection.z
-          );
-          float secondaryMipLevel = clamp(roughness, 0.0, 1.0)
-            * max(material_SecondaryEnvironmentReflectionMaximumMip, 0.0);
-          #ifdef HAS_TEX_LOD
-            vec3 secondaryRadiance = textureCubeLodEXT(
-              material_SecondaryReflectionCubeTexture,
-              secondaryDirection,
-              secondaryMipLevel
-            ).rgb;
-          #else
-            vec3 secondaryRadiance = textureCube(
-              material_SecondaryReflectionCubeTexture,
-              secondaryDirection,
-              secondaryMipLevel
-            ).rgb;
-          #endif
-          #ifdef ENGINE_NO_SRGB
-            secondaryRadiance = mix(
-              secondaryRadiance,
-              waterEnvironmentSrgbToLinear(secondaryRadiance),
-              step(0.5, material_SecondaryEnvironmentReflectionParameters.w)
+        #ifdef MATERIAL_WATER_SECONDARY_ENVIRONMENT_REFLECTION
+          float secondaryWeight = clamp(material_EnvironmentReflectionBlend, 0.0, 1.0);
+          if (secondaryWeight > 0.0) {
+            #ifdef MATERIAL_WATER_ENVIRONMENT_BOX_PROJECTION
+              vec3 secondaryDirection = waterEnvironmentReflectionDirection(
+                originalDirectionWS,
+                positionWS,
+                material_SecondaryEnvironmentReflectionProbePosition,
+                material_SecondaryEnvironmentReflectionBoxMinimum.xyz,
+                material_SecondaryEnvironmentReflectionBoxMaximum.xyz
+              );
+            #else
+              vec3 secondaryDirection = originalDirectionWS;
+            #endif
+            vec2 secondaryRotation = material_SecondaryEnvironmentReflectionParameters.xy;
+            secondaryDirection = vec3(
+              secondaryRotation.x * secondaryDirection.x + secondaryRotation.y * secondaryDirection.z,
+              secondaryDirection.y,
+              -secondaryRotation.y * secondaryDirection.x + secondaryRotation.x * secondaryDirection.z
             );
-          #endif
-          secondaryRadiance *= max(material_SecondaryEnvironmentReflectionParameters.z, 0.0);
-          reflectedRadiance = mix(reflectedRadiance, secondaryRadiance, secondaryWeight);
-        }
+            float secondaryMipLevel = clamp(roughness, 0.0, 1.0)
+              * max(material_SecondaryEnvironmentReflectionMaximumMip, 0.0);
+            #ifdef HAS_TEX_LOD
+              vec3 secondaryRadiance = textureCubeLodEXT(
+                material_SecondaryReflectionCubeTexture,
+                secondaryDirection,
+                secondaryMipLevel
+              ).rgb;
+            #else
+              vec3 secondaryRadiance = textureCube(
+                material_SecondaryReflectionCubeTexture,
+                secondaryDirection,
+                secondaryMipLevel
+              ).rgb;
+            #endif
+            #ifdef ENGINE_NO_SRGB
+              secondaryRadiance = mix(
+                secondaryRadiance,
+                waterEnvironmentSrgbToLinear(secondaryRadiance),
+                step(0.5, material_SecondaryEnvironmentReflectionParameters.w)
+              );
+            #endif
+            secondaryRadiance *= max(material_SecondaryEnvironmentReflectionParameters.z, 0.0);
+            reflectedRadiance = mix(reflectedRadiance, secondaryRadiance, secondaryWeight);
+          }
+        #endif
         return reflectedRadiance * max(material_EnvironmentFallbackIntensity, 0.0);
       }
 
@@ -938,15 +956,21 @@ WaterSurfaceResolvedRawContributionsV2 waterSurfaceResolveRawContributionsV2(
     clamp(reflection.environmentValidity, 0.0, 1.0)
   );
   resolved.reflectionRadiance = reflection.analyticSample;
-  if (policy.reflectionSource > 2.5) {
-    float ssrScale = clamp(policy.ssrCompositeIntensity, 0.0, 1.0);
-    float ssrBlend = clamp(reflection.ssrValidity * ssrScale, 0.0, 1.0);
-    resolved.reflectionRadiance =
-      environment * (1.0 - ssrBlend)
-      + reflection.ssrPremultipliedSample * ssrScale;
-  } else if (policy.reflectionSource > 0.5) {
-    resolved.reflectionRadiance = environment;
-  }
+  #ifdef CAMERA_ENABLE_SSR
+    if (policy.reflectionSource > 2.5) {
+      float ssrScale = clamp(policy.ssrCompositeIntensity, 0.0, 1.0);
+      float ssrBlend = clamp(reflection.ssrValidity * ssrScale, 0.0, 1.0);
+      resolved.reflectionRadiance =
+        environment * (1.0 - ssrBlend)
+        + reflection.ssrPremultipliedSample * ssrScale;
+    } else if (policy.reflectionSource > 0.5) {
+      resolved.reflectionRadiance = environment;
+    }
+  #else
+    if (policy.reflectionSource > 0.5) {
+      resolved.reflectionRadiance = environment;
+    }
+  #endif
   return resolved;
 }
 

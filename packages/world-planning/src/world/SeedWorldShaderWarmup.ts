@@ -5,6 +5,7 @@ import {
   BoundingFrustum,
   type Camera,
   DepthTextureMode,
+  Downsampling,
   type Engine,
   type Entity,
   DirectLight,
@@ -1913,7 +1914,9 @@ function collectSeedWorldRendererVariantsInternal(
           !isXHigh &&
           supportsRendering &&
           (!hwFormatSupport || hwFormatSupport.call(runtimeHardware, colorPyramidFormat));
-        appendSsrPass(6, isXHigh ? [{ n: "SSR_COLOR_PYRAMID_FULL_RES" }] : undefined); // Pass 6: ColorPyramidPrefilter
+        const useFullResColorPyramidPrefilter =
+          isXHigh || (canReuseCurrentFrameColor && camera.opaqueTextureDownsampling === Downsampling.None);
+        appendSsrPass(6, useFullResColorPyramidPrefilter ? [{ n: "SSR_COLOR_PYRAMID_FULL_RES" }] : undefined); // Pass 6: ColorPyramidPrefilter
         if (isXHigh || !supportsColorPyramidHardwareMipmaps) {
           appendSsrPass(7); // Pass 7: ColorPyramidDownsample (XHigh mips 2..N, or software fallback)
         }

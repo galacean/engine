@@ -9,14 +9,16 @@ export const SOIL_MOISTURE_SHADER = pbr
   .replace(
     "vec4 renderer_OrganTint;",
     `
-    vec3 soil_Row0;
-    vec3 soil_Row1;
-    vec3 soil_Row2;
     vec4 soil_DryColor;
     vec4 soil_WetColor;
     vec2 soil_Roughness;
-    float soil_BoundaryProgress;
-    float soil_CultivationProgress;
+    #if !(defined(FARM_SOIL_BATCH) && defined(RENDERER_ENABLE_VERTEXCOLOR))
+      vec3 soil_Row0;
+      vec3 soil_Row1;
+      vec3 soil_Row2;
+      float soil_BoundaryProgress;
+      float soil_CultivationProgress;
+    #endif
     #ifdef FARM_SOIL_BATCH
       sampler2D soil_BatchCoverage;
       sampler2D soil_BatchStates;
@@ -82,17 +84,18 @@ export const SOIL_MOISTURE_SHADER = pbr
   .replace(
     /float organMembership = 0\.0;\s*#ifdef RENDERER_ENABLE_VERTEXCOLOR\s*organMembership = varyings\.organMask;[\s\S]*?#endif\s*SurfaceData surfaceData = getSurfaceData/,
     `
-    vec3 row0 = soil_Row0;
-    vec3 row1 = soil_Row1;
-    vec3 row2 = soil_Row2;
-    float cultivationProgress = soil_CultivationProgress;
-    float boundaryProgress = soil_BoundaryProgress;
     #if defined(FARM_SOIL_BATCH) && defined(RENDERER_ENABLE_VERTEXCOLOR)
-      row0 = varyings.soilRow0;
-      row1 = varyings.soilRow1;
-      row2 = varyings.soilRow2;
-      boundaryProgress = varyings.soilMeta.z;
-      cultivationProgress = varyings.soilMeta.w;
+      vec3 row0 = varyings.soilRow0;
+      vec3 row1 = varyings.soilRow1;
+      vec3 row2 = varyings.soilRow2;
+      float boundaryProgress = varyings.soilMeta.z;
+      float cultivationProgress = varyings.soilMeta.w;
+    #else
+      vec3 row0 = soil_Row0;
+      vec3 row1 = soil_Row1;
+      vec3 row2 = soil_Row2;
+      float cultivationProgress = soil_CultivationProgress;
+      float boundaryProgress = soil_BoundaryProgress;
     #endif
   #ifdef RENDERER_ENABLE_VERTEXCOLOR
     float opening = soilWorkReveal(varyings.positionWS.xz, cultivationProgress);

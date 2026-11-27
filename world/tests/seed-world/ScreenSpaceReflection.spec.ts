@@ -577,4 +577,56 @@ describe("ScreenSpaceReflection v2 (Node unit & shader compatibility)", () => {
     );
     expect(evaluated9Tap).toContain("1.0 / 9.0");
   });
+
+  it("verifies compile-time macro pruning in ScreenSpaceReflection (TemporalResolve, Prefilter) and SSRReceiver (OMIT_NORMAL, SSR_NEED_UV, opaque vertexAlpha)", () => {
+    const ssrShader = readCompiledShader("Lighting/ScreenSpaceReflection");
+    const passes = ssrShader.subShaders[0].passes;
+
+    // 1. Pass 5 (TemporalResolve): omits camera_SSRPrevInvProjMat/ViewMat when SSR_HIGH_VIRTUAL_REPROJECTION is off.
+    const temporalNoVirtual = ShaderMacroProcessor.evaluate(
+      passes[5].fragmentShaderInstructions,
+      new Map<string, string>([["GRAPHICS_API_WEBGL2", ""]])
+    );
+    expect(temporalNoVirtual).not.toContain("camera_SSRPrevInvProjMat");
+    expect(temporalNoVirtual).not.toContain("camera_SSRPrevInvViewMat");
+
+    // 2. Pass 6 (ColorPyramidPrefilter): omits karisWeight when SSR_COLOR_PYRAMID_FULL_RES is on.
+    const prefilterFull = ShaderMacroProcessor.evaluate(
+      passes[6].fragmentShaderInstructions,
+      new Map<string, string>([
+        ["GRAPHICS_API_WEBGL2", ""],
+        ["SSR_COLOR_PYRAMID_FULL_RES", ""]
+      ])
+    );
+    expect(prefilterFull).not.toContain("karisWeight");
+
+    // 3. SSRReceiver: consistent MATERIAL_OMIT_NORMAL handling + pruned uv/vertexAlpha/material_BaseTexture on opaque untextured materials.
+    const receiverShader = readCompiledShader("Pipeline/SSRReceiver");
+    const receiverPass = receiverShader.subShaders[0].passes[0];
+
+    const omitNormalMacros = new Map<string, string>([
+      ["GRAPHICS_API_WEBGL2", ""],
+      ["RENDERER_HAS_NORMAL", ""],
+      ["MATERIAL_OMIT_NORMAL", ""],
+      ["HAS_DERIVATIVES", ""]
+    ]);
+    const omitNormalVS = ShaderMacroProcessor.evaluate(receiverPass.vertexShaderInstructions, omitNormalMacros);
+    const omitNormalFS = ShaderMacroProcessor.evaluate(receiverPass.fragmentShaderInstructions, omitNormalMacros);
+    expect(omitNormalVS).not.toContain("normalWS");
+    expect(omitNormalFS).not.toContain("normalWS");
+    expect(omitNormalFS).toContain("dFdx (");
+
+    const opaqueBaseTexMacros = new Map<string, string>([
+      ["GRAPHICS_API_WEBGL2", ""],
+      ["RENDERER_HAS_NORMAL", ""],
+      ["RENDERER_ENABLE_VERTEXCOLOR", ""],
+      ["MATERIAL_HAS_BASETEXTURE", ""]
+    ]);
+    const opaqueVS = ShaderMacroProcessor.evaluate(receiverPass.vertexShaderInstructions, opaqueBaseTexMacros);
+    const opaqueFS = ShaderMacroProcessor.evaluate(receiverPass.fragmentShaderInstructions, opaqueBaseTexMacros);
+    expect(opaqueVS).not.toContain("vertexAlpha");
+    expect(opaqueFS).not.toContain("vertexAlpha");
+    expect(opaqueFS).not.toContain("material_BaseTexture");
+    expect(opaqueVS).not.toContain("material_TilingOffset");
+  });
 });

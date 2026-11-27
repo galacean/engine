@@ -40,12 +40,20 @@ Shader "Pipeline/SSRReceiver" {
       VertexShader = ssrReceiverVertex;
       FragmentShader = ssrReceiverFragment;
 
-      #if defined(RENDERER_HAS_NORMAL) && defined(RENDERER_HAS_TANGENT) && (defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE))
+      #if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL)
+        #define SSR_HAS_VERTEX_NORMAL
+      #endif
+
+      #if defined(SSR_HAS_VERTEX_NORMAL) && defined(RENDERER_HAS_TANGENT) && (defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE))
         #define NEED_VERTEX_TANGENT
       #endif
 
       #if defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE) || defined(MATERIAL_ENABLE_ANISOTROPY)
         #define NEED_TANGENT_SPACE
+      #endif
+
+      #if ((defined(MATERIAL_IS_ALPHA_CUTOFF) || defined(MATERIAL_IS_TRANSPARENT)) && defined(MATERIAL_HAS_BASETEXTURE)) || defined(MATERIAL_HAS_ROUGHNESS_METALLIC_TEXTURE) || defined(MATERIAL_HAS_NORMALTEXTURE) || (defined(NEED_TANGENT_SPACE) && !defined(NEED_VERTEX_TANGENT)) || (defined(MATERIAL_ENABLE_CLEAR_COAT) && (defined(MATERIAL_HAS_CLEAR_COAT_TEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_ROUGHNESS_TEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE))) || (defined(MATERIAL_ENABLE_ANISOTROPY) && defined(MATERIAL_HAS_ANISOTROPY_TEXTURE))
+        #define SSR_NEED_UV
       #endif
 
       #include "ShaderLibrary/Common/Common.glsl"
@@ -61,15 +69,23 @@ Shader "Pipeline/SSRReceiver" {
       float material_ScreenSpaceReflectionIntensity;
       vec4 camera_SSRParams;
 
-      vec4 material_TilingOffset;
-      vec4 material_BaseColor;
-      float material_AlphaCutoff;
-      float material_Roughness;
-      float material_NormalIntensity;
-
-      #ifdef MATERIAL_HAS_BASETEXTURE
-        sampler2D material_BaseTexture;
+      #if defined(SSR_NEED_UV) && defined(MATERIAL_NEED_TILING_OFFSET)
+        vec4 material_TilingOffset;
       #endif
+      #if defined(MATERIAL_IS_ALPHA_CUTOFF) || defined(MATERIAL_IS_TRANSPARENT)
+        vec4 material_BaseColor;
+        #ifdef MATERIAL_HAS_BASETEXTURE
+          sampler2D material_BaseTexture;
+        #endif
+      #endif
+      #ifdef MATERIAL_IS_ALPHA_CUTOFF
+        float material_AlphaCutoff;
+      #endif
+      float material_Roughness;
+      #if defined(MATERIAL_HAS_NORMALTEXTURE) || (defined(MATERIAL_ENABLE_CLEAR_COAT) && defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE))
+        float material_NormalIntensity;
+      #endif
+
       #ifdef MATERIAL_HAS_ROUGHNESS_METALLIC_TEXTURE
         sampler2D material_RoughnessMetallicTexture;
       #endif
@@ -99,12 +115,14 @@ Shader "Pipeline/SSRReceiver" {
       #endif
 
       struct Varyings {
-        vec2 uv;
-        #ifdef RENDERER_ENABLE_VERTEXCOLOR
+        #ifdef SSR_NEED_UV
+          vec2 uv;
+        #endif
+        #if defined(RENDERER_ENABLE_VERTEXCOLOR) && (defined(MATERIAL_IS_ALPHA_CUTOFF) || defined(MATERIAL_IS_TRANSPARENT))
           float vertexAlpha;
         #endif
         vec3 positionWS;
-        #ifdef RENDERER_HAS_NORMAL
+        #ifdef SSR_HAS_VERTEX_NORMAL
           vec3 normalWS;
           #ifdef NEED_VERTEX_TANGENT
             vec3 tangentWS;
@@ -153,7 +171,7 @@ Shader "Pipeline/SSRReceiver" {
         #ifdef RENDERER_HAS_SKIN
           mat4 skinMatrix = getSkinMatrix(attributes);
           position = skinMatrix * position;
-          #if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL)
+          #ifdef SSR_HAS_VERTEX_NORMAL
             mat3 skinNormalMatrix = INVERSE_MAT(mat3(skinMatrix));
             normal = normal * skinNormalMatrix;
             #ifdef NEED_VERTEX_TANGENT
@@ -162,7 +180,7 @@ Shader "Pipeline/SSRReceiver" {
           #endif
         #endif
 
-        #if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL)
+        #ifdef SSR_HAS_VERTEX_NORMAL
           mat3 normalMat = mat3(renderer_NormalMat);
           varyings.normalWS = normalize(normalMat * normal);
           #ifdef NEED_VERTEX_TANGENT
@@ -172,16 +190,18 @@ Shader "Pipeline/SSRReceiver" {
           #endif
         #endif
 
-        vec2 uv = vec2(0.0);
-        #ifdef RENDERER_HAS_UV
-          uv = attributes.TEXCOORD_0;
+        #ifdef SSR_NEED_UV
+          vec2 uv = vec2(0.0);
+          #ifdef RENDERER_HAS_UV
+            uv = attributes.TEXCOORD_0;
+          #endif
+          #ifdef MATERIAL_NEED_TILING_OFFSET
+            uv = uv * material_TilingOffset.xy + material_TilingOffset.zw;
+          #endif
+          varyings.uv = uv;
         #endif
-        #ifdef MATERIAL_NEED_TILING_OFFSET
-          uv = uv * material_TilingOffset.xy + material_TilingOffset.zw;
-        #endif
-        varyings.uv = uv;
 
-        #ifdef RENDERER_ENABLE_VERTEXCOLOR
+        #if defined(RENDERER_ENABLE_VERTEXCOLOR) && (defined(MATERIAL_IS_ALPHA_CUTOFF) || defined(MATERIAL_IS_TRANSPARENT))
           varyings.vertexAlpha = attributes.COLOR_0.a;
         #endif
 
@@ -196,7 +216,9 @@ Shader "Pipeline/SSRReceiver" {
           discard;
         }
 
-        vec2 uv = varyings.uv;
+        #ifdef SSR_NEED_UV
+          vec2 uv = varyings.uv;
+        #endif
 
         #if defined(MATERIAL_IS_ALPHA_CUTOFF) || defined(MATERIAL_IS_TRANSPARENT)
           float alpha = material_BaseColor.a;
@@ -223,7 +245,7 @@ Shader "Pipeline/SSRReceiver" {
           roughness *= texture2D(material_RoughnessMetallicTexture, uv).g;
         #endif
 
-        #ifdef RENDERER_HAS_NORMAL
+        #ifdef SSR_HAS_VERTEX_NORMAL
           vec3 geomNormal = normalize(varyings.normalWS);
         #elif defined(HAS_DERIVATIVES)
           vec3 geomNormal = normalize(cross(dFdx(varyings.positionWS), dFdy(varyings.positionWS))) * camera_ProjectionParams.x;

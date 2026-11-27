@@ -1,6 +1,7 @@
 #ifndef WATER_HEIGHTFIELD_RAIN_RIPPLE_INCLUDED
 #define WATER_HEIGHTFIELD_RAIN_RIPPLE_INCLUDED
 
+#ifndef SCENE_SURFACE_CLIMATE_DRY
       vec4 scene_WeatherState;
       float scene_WeatherTime;
       sampler2D scene_SurfaceRippleNormalAtlas;
@@ -56,5 +57,6 @@
           - macroNormalWS * dot(worldRippleSlope, macroNormalWS);
         return rainRippleSafeNormalize3(surfaceNormalWS + tangentRippleSlope, macroNormalWS);
       }
+#endif
 
 #endif

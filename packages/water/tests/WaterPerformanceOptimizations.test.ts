@@ -9,6 +9,8 @@ import {
   JSONAsset,
   Material,
   Shader,
+  ShaderMacro,
+  ShaderMacroCollection,
   Texture2D,
   Vector3,
   VertexAttribute,
@@ -55,6 +57,10 @@ import { WaterRenderContractCompiler } from "../src/water/compiler/surface/Water
 import { FARMLANDS_CAUSTICS_RESOURCE, FARMLANDS_WAVE_RESOURCE } from "../src/water/resources/river/FarmlandsWaterAssets";
 import { CameraWaterFeatureBroker } from "../src/water/runtime/optics/CameraWaterFeatureBroker";
 import { WaterReflectionBindingLifecycle } from "../src/water/runtime/optics/WaterReflectionBindingLifecycle";
+import {
+  applyWaterSurfaceReflectionBinding,
+  createWaterSurfaceOpticsBindingState
+} from "../src/water/runtime/optics/WaterSurfaceOpticsBinding";
 import { createWaterSurfaceAppearanceV2NormalStatements } from "../src/water/runtime/surface/WaterSurfaceAppearanceV2Shader";
 import { createHeightfieldWaterShaderSource } from "../src/water/runtime/heightfield/HeightfieldWaterMaterialFactory";
 import { applyWaterPatternUniformsV2, bindWaterSurfaceAppearanceV2Clock, updateWaterSurfaceAppearanceV2Clock } from "../src/water/runtime/surface/WaterSurfaceAppearanceV2UniformBinding";
@@ -1700,5 +1706,142 @@ describe("Water P0 + P1 performance optimizations", () => {
     expect(maxHeightDiff).toBeLessThan(1e-12);
     expect(awayCount).toBeGreaterThan(7_000);
     expect(minAwayDot).toBeGreaterThanOrEqual(0.9999);
+  });
+
+  it("prunes rain ripples, secondary cubemap, box projection, and non-SSR branch at compile time and toggles optics macros accurately", async () => {
+    const engine = await WebGLEngine.create({
+      canvas: document.createElement("canvas"),
+      shaderCompiler: new ShaderCompiler()
+    });
+    const lakeShader = Shader.create(lakeShaderSource.replace("Water/Lake.v1", "WaterMacroPruneTest/Lake"));
+    const oceanShader = Shader.create(oceanShaderSource.replace("Water/Ocean.v1", "WaterMacroPruneTest/Ocean"));
+    try {
+      const lakeForwardPass = lakeShader.subShaders[0].passes[0];
+      const lakeSsrPass = lakeShader.subShaders[0].passes[1];
+      const oceanForwardPass = oceanShader.subShaders[0].passes[0];
+
+      const makeMacros = (names: readonly string[]) => {
+        const collection = new ShaderMacroCollection();
+        collection.enable(ShaderMacro.getByName("GRAPHICS_API_WEBGL2"));
+        for (const name of names) collection.enable(ShaderMacro.getByName(name));
+        return collection;
+      };
+
+      const lakeWetWithSecondary = lakeForwardPass._getShaderProgram(
+        engine,
+        makeMacros(["MATERIAL_WATER_SECONDARY_ENVIRONMENT_REFLECTION", "MATERIAL_WATER_ENVIRONMENT_BOX_PROJECTION"])
+      );
+      const lakeDrySteady = lakeForwardPass._getShaderProgram(engine, makeMacros(["SCENE_SURFACE_CLIMATE_DRY"]));
+      const lakeDrySsr = lakeForwardPass._getShaderProgram(
+        engine,
+        makeMacros(["SCENE_SURFACE_CLIMATE_DRY", "CAMERA_ENABLE_SSR"])
+      );
+      const lakeSsrReceiverDry = lakeSsrPass._getShaderProgram(engine, makeMacros(["SCENE_SURFACE_CLIMATE_DRY"]));
+      const oceanSteady = oceanForwardPass._getShaderProgram(engine, makeMacros([]));
+      const oceanWithSecondary = oceanForwardPass._getShaderProgram(
+        engine,
+        makeMacros(["MATERIAL_WATER_SECONDARY_ENVIRONMENT_REFLECTION", "MATERIAL_WATER_ENVIRONMENT_BOX_PROJECTION"])
+      );
+
+      expect(lakeWetWithSecondary.isValid).toBe(true);
+      expect(lakeDrySteady.isValid).toBe(true);
+      expect(lakeDrySsr.isValid).toBe(true);
+      expect(lakeSsrReceiverDry.isValid).toBe(true);
+      expect(oceanSteady.isValid).toBe(true);
+      expect(oceanWithSecondary.isValid).toBe(true);
+
+      // Dry + no secondary cubemap saves 2 active fragment texture units on Lake (rain atlas + secondary cubemap).
+      expect(lakeWetWithSecondary.activeTextureCount - lakeDrySteady.activeTextureCount).toBe(2);
+      // No secondary cubemap saves 1 active fragment texture unit on Ocean.
+      expect(oceanWithSecondary.activeTextureCount - oceanSteady.activeTextureCount).toBe(1);
+
+      // Verify applyWaterSurfaceReflectionBinding toggles the new macros cleanly.
+      const mat = new Material(engine, lakeShader);
+      const state = createWaterSurfaceOpticsBindingState();
+      const dummyCube = new Texture2D(engine, 1, 1) as unknown as import("@galacean/engine").TextureCube;
+      const baseLobe = {
+        texture: dummyCube,
+        ownership: "borrowed" as const,
+        rotationDegrees: 0,
+        exposure: 1,
+        intensity: 1,
+        colorSpace: "linear" as const,
+        hdr: false,
+        maximumMipLevel: 0
+      };
+      try {
+        applyWaterSurfaceReflectionBinding(mat.shaderData, state, "high", {
+          requestedSource: "probe",
+          resolvedSource: "probe",
+          requestedMode: "probe",
+          resolvedMode: "probe",
+          composition: "environment",
+          environment: {
+            providerId: "test",
+            revision: 1,
+            role: "distant-environment",
+            primary: baseLobe,
+            secondaryWeight: 0
+          }
+        });
+        expect(
+          mat.shaderData._macroCollection.isEnable(
+            ShaderMacro.getByName("MATERIAL_WATER_SECONDARY_ENVIRONMENT_REFLECTION")
+          )
+        ).toBe(false);
+        expect(
+          mat.shaderData._macroCollection.isEnable(ShaderMacro.getByName("MATERIAL_WATER_ENVIRONMENT_BOX_PROJECTION"))
+        ).toBe(false);
+
+        applyWaterSurfaceReflectionBinding(mat.shaderData, state, "high", {
+          requestedSource: "probe",
+          resolvedSource: "probe",
+          requestedMode: "probe",
+          resolvedMode: "probe",
+          composition: "environment",
+          environment: {
+            providerId: "test",
+            revision: 2,
+            role: "distant-environment",
+            primary: {
+              ...baseLobe,
+              projection: {
+                mode: "box",
+                probePosition: [0, 1, 0],
+                boxMinimum: [-10, -10, -10],
+                boxMaximum: [10, 10, 10]
+              }
+            },
+            secondary: baseLobe,
+            secondaryWeight: 0
+          }
+        });
+        expect(
+          mat.shaderData._macroCollection.isEnable(
+            ShaderMacro.getByName("MATERIAL_WATER_SECONDARY_ENVIRONMENT_REFLECTION")
+          )
+        ).toBe(true);
+        expect(
+          mat.shaderData._macroCollection.isEnable(ShaderMacro.getByName("MATERIAL_WATER_ENVIRONMENT_BOX_PROJECTION"))
+        ).toBe(true);
+
+        applyWaterSurfaceReflectionBinding(mat.shaderData, state, "high", undefined);
+        expect(
+          mat.shaderData._macroCollection.isEnable(
+            ShaderMacro.getByName("MATERIAL_WATER_SECONDARY_ENVIRONMENT_REFLECTION")
+          )
+        ).toBe(false);
+        expect(
+          mat.shaderData._macroCollection.isEnable(ShaderMacro.getByName("MATERIAL_WATER_ENVIRONMENT_BOX_PROJECTION"))
+        ).toBe(false);
+      } finally {
+        mat.destroy(true);
+        (dummyCube as unknown as Texture2D).destroy(true);
+      }
+    } finally {
+      lakeShader.destroy();
+      oceanShader.destroy();
+      engine.destroy();
+    }
   });
 });
