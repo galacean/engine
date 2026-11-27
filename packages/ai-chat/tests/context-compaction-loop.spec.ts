@@ -55,7 +55,8 @@ it("persists repeated compaction with new Tool receipts and fresh prefix while c
 
 it("protocol retries consume each response once and never resurrect pre-compaction history", async () => {
   request.mockResolvedValueOnce(tool("a"));
-  request.mockResolvedValueOnce({ content: "", toolCalls: [], finishReason: "stop", contextCompaction: compact(3) });
+  request.mockResolvedValueOnce({ content: "", toolCalls: [], finishReason: "stop", contextCompaction: compact(3),
+    error: { code: "MODEL_EMPTY_OUTPUT", message: "模型没有返回 Tool Call 或最终回复" } });
   request.mockResolvedValueOnce({ ...tool("b"), contextCompaction: compact(1, "retry summary") });
   request.mockResolvedValueOnce(final());
   const loop = createTestAgentLoop({ tools: [], definition });
@@ -68,6 +69,7 @@ it("protocol retries consume each response once and never resurrect pre-compacti
   expect(messages(3)[5]).toMatchObject({ toolCallId: "b" });
   expect(result.steps[1].attempts).toHaveLength(2);
   expect(result.steps[1].attempts[0].contextCompaction?.status).toBe("compacted");
+  expect(result.steps[1].attempts[0].errorCode).toBe("MODEL_EMPTY_OUTPUT");
   expect(result.steps[1].attempts[1].contextCompaction?.replacement?.summary).toBe("retry summary");
 });
 
