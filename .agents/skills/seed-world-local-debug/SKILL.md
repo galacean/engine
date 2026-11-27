@@ -13,7 +13,7 @@ description: 准备 Engine、flash-app 壳和 ASAP 的 Seed World 本地 LLM 联
 正式闪应用的 AI 对话要求壳 SDK 同时提供 `window.lingguang.ai.seedWorldStream` 和 `window.lingguang.ai.seedWorldStop`。
 Engine 在发送前检查这两个方法，缺少任意一个就报“当前环境没有注入 Seed World 专用流式接口”。
 完整联调需要 [ASAPlat/flash-app](https://code.alipay.com/ASAPlat/flash-app) 的读取权限。缺少权限时向仓库维护者申请。
-壳 #279 的来源分支是 `codex/seed-world-action-probe`。
+完整联调需选用包含 Seed World 专用 SDK（壳 PR #279）的壳分支；若需对比特定远端引用，给 `preview.py` 传入 `--shell-source`。
 在[环境准备](references/prepare.md#5-壳仓库和-sdk)构建配套 SDK，按[启动与验收](references/start.md#壳-sdk-回归)运行壳仓库自带的浏览器回归。
 用 `scripts/serve-shell.mjs` 启动 Engine 和本地壳，再给 `preview.py` 传入同一个 `--shell-root`。只需排查 Engine/ASAP 时，显式选择 `--direct`。
 
@@ -22,12 +22,9 @@ Engine 在发送前检查这两个方法，缺少任意一个就报“当前环�
 1. **环境准备**：首次使用、缺依赖或切换基线时，完整阅读 [环境准备](references/prepare.md)，按用户机器上的实际路径准备。
 2. **启动调试**：环境已就绪时，完整阅读 [启动与验收](references/start.md)，启动服务、生成地址并完成最小链路核验。
 
-默认 Engine 来源是 `git@github.com:galacean/engine.git` 的远端 `codex/seed-world-action-probe`。
-默认 ASAP 来源是 `git@code.alipay.com:recneptune-tenants/asap-service.git` 的远端 `codex/seed-world-dedicated-action`。
-该分支对应 ASAP PR #13282，提供 Seed World 专用 action。
-确认 PR 已合并且 `master` 包含本 Skill 所需的模型路由与协议后，再更新默认 ASAP 来源。
+默认 Engine 来源是 `git@github.com:galacean/engine.git` 的远端 `experimental/engine-next`。
+默认 ASAP 来源是 `git@code.alipay.com:recneptune-tenants/asap-service.git` 的远端 `master`（已合入提供 Seed World 专用 action 的 PR #13282）。
 默认 ASAP 分支只在这里写明；其他文件引用这里。
-最近一次核对的 ASAP、壳、SDK 和 Engine 版本见[本地联调版本记录](references/prepare.md#2026-11-26-本地联调版本记录)。
 启动时获取所选远端分支，记录本次实际 HEAD、同步差距和工作树状态。
 用户明确要调试未提交改动时保留它们，并在交付中说明，不宣称它们是干净远端代码。
 

@@ -188,11 +188,11 @@ export async function requestAsapChat(options: AsapChatOptions, localApi?: SeedW
       return await requestWithinTransportTimeout(
         options.signal,
         async (signal) => {
-          if (!localApi && isLocalPreview()) {
-            return requestStreamThroughCandyJar(params, signal, inspectProgress, options.signal);
-          }
           const ai = localApi ?? window.lingguang?.ai;
           if (!ai?.seedWorldStream || !ai.seedWorldStop) {
+            if (!localApi && isLocalPreview()) {
+              return requestStreamThroughCandyJar(params, signal, inspectProgress, options.signal);
+            }
             throw new Error("当前环境没有注入 Seed World 专用流式接口");
           }
           // Published SDKs can put the code only in onEvent, then reject with a
@@ -412,8 +412,7 @@ function requestLocalStop(candyJar: CandyJarApi, identity: { sessionId: string; 
       },
       (value) => {
         try {
-          const result = isRecord(value) && typeof value.content === "string" ? JSON.parse(value.content) : value;
-          if (!isRecord(result) || result.success !== true) failed();
+          checkStopReceipt(value);
         } catch {
           failed();
         }

@@ -312,3 +312,110 @@ it("reports a missing dedicated SDK without invoking another API", async () => {
     .rejects.toThrow("Seed World 专用流式接口");
   expect(legacy).not.toHaveBeenCalled();
 });
+
+it("prefers injected dedicated shell SDK over CandyJar on localhost", async () => {
+  const controller = new AbortController();
+  const candyJarCall = vi.fn();
+  const stop = vi.fn(async () => ({ success: true, status: "accepted" }));
+  const send = vi.fn(async (request: any) => seedWorldResponse(request, {
+    content: "from shell sdk",
+    toolCalls: [],
+    finishReason: "stop"
+  }));
+  vi.stubGlobal("window", {
+    location: { hostname: "localhost" },
+    document: new EventTarget(),
+    CandyJar: { call: candyJarCall },
+    lingguang: { ai: { seedWorldStream: send, seedWorldStop: stop } }
+  });
+
+  const result = await requestAsapChat({
+    messages: [],
+    tools: [],
+    debugMode: false,
+    signal: controller.signal
+  });
+  expect(result.content).toBe("from shell sdk");
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(candyJarCall).not.toHaveBeenCalled();
+});
+
+it("falls back to CandyJar on localhost when dedicated shell SDK is not injected", async () => {
+  const document = new EventTarget();
+  const candyJarCall = vi.fn((_method: string, action: string, payload: any) => {
+    if (action !== "remoteStreamSkill") return;
+    const request = JSON.parse(payload.extInfo.payload).params;
+    const response = seedWorldResponse(request, {
+      content: "from candyjar",
+      toolCalls: [],
+      finishReason: "stop"
+    });
+    queueMicrotask(() => document.dispatchEvent(Object.assign(
+      new Event("CandyJar.FlashApp.OnRemoteStreamUpdate"),
+      {
+        detail: {
+          htmlFragment: {
+            success: true,
+            content: response.content,
+            hasNext: false,
+            extInfo: { debugStreamRequestId: request.streamResponseNonce }
+          }
+        }
+      }
+    )));
+  });
+  vi.stubGlobal("window", {
+    location: { hostname: "localhost" },
+    document,
+    CandyJar: { call: candyJarCall },
+    lingguang: { ai: { streamChat: vi.fn() } }
+  });
+
+  const result = await requestAsapChat({
+    messages: [],
+    tools: [],
+    debugMode: false,
+    signal: new AbortController().signal
+  });
+  expect(result.content).toBe("from candyjar");
+  expect(candyJarCall).toHaveBeenCalledTimes(1);
+  expect(candyJarCall.mock.calls[0][1]).toBe("remoteStreamSkill");
+});
+
+it.each([
+  { status: "not_found", shouldWarn: true },
+  { status: "accepted", shouldWarn: false }
+])("handles local CandyJar stopChat receipt status=$status consistently with checkStopReceipt", async ({ status, shouldWarn }) => {
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  try {
+    vi.stubGlobal("window", {
+      location: { hostname: "localhost" },
+      document: new EventTarget(),
+      CandyJar: {
+        call: (_method: string, action: string, _payload: any, onSuccess?: (value: unknown) => void) => {
+          if (action === "remoteSkill") {
+            onSuccess?.({ content: JSON.stringify({ success: true, status }) });
+          }
+        }
+      }
+    });
+
+    const controller = new AbortController();
+    const pending = requestAsapChat({
+      messages: [],
+      tools: [],
+      debugMode: false,
+      signal: controller.signal
+    });
+    await Promise.resolve();
+    controller.abort();
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+    if (shouldWarn) {
+      expect(warn).toHaveBeenCalledWith("ASAP stopChat 未确认受理；前端已停止接收结果。");
+    } else {
+      expect(warn).not.toHaveBeenCalled();
+    }
+  } finally {
+    warn.mockRestore();
+  }
+});

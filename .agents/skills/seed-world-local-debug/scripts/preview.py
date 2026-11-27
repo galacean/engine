@@ -75,9 +75,10 @@ def main():
     parser.add_argument("--frontend-port", type=port_number, help="direct preview port (default 4173); shell development uses 5173")
     parser.add_argument("--backend-port", type=port_number, default=8082)
     parser.add_argument("--uid", default="seed-world-local-debug")
-    parser.add_argument("--engine-source", default="origin/codex/seed-world-action-probe",
+    parser.add_argument("--engine-source", default="origin/experimental/engine-next",
                         help="ref the Engine checkout is compared with")
     parser.add_argument("--asap-source", help="ref the ASAP checkout is compared with (default: its upstream)")
+    parser.add_argument("--shell-source", help="ref the flash-app checkout is compared with (default: its upstream)")
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     shell_url = "http://localhost:5173/__seed_world_shell/index.html" if args.shell_root else None
@@ -87,7 +88,7 @@ def main():
     if args.frontend_port == args.backend_port:
         parser.error("frontend and backend must use different ports")
     try:
-        shell = checkout(args.shell_root, "src/lib/AppLoader.ts", "origin/codex/seed-world-action-probe") if args.shell_root else None
+        shell = checkout(args.shell_root, "src/lib/AppLoader.ts", args.shell_source) if args.shell_root else None
         engine = checkout(args.engine_root, "world/vite.config.mjs", args.engine_source)
         asap = checkout(args.asap_root, "web/app.py", args.asap_source)
     except (ValueError, subprocess.CalledProcessError) as error:

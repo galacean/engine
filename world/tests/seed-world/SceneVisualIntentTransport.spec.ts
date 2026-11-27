@@ -1,4 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
+import { ASAP_MODEL_ROUND_TIMEOUT_MS } from "@galacean/engine-ai-chat/ai-chat/asap-chat";
 import { requestSceneGenerationChat } from "../../demos/seed-world/dev/scene-visual-intent/SceneVisualIntentTransport";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -30,4 +31,19 @@ it("round-trips a standalone scene generation through the dedicated ASAP stream"
   });
   expect(result.toolCalls[0].id).toBe("scene-1");
   expect(fetchStream).toHaveBeenCalledTimes(1);
+});
+
+it("rejects modelTimeoutMs exceeding ASAP_MODEL_ROUND_TIMEOUT_MS instead of silently clamping", async () => {
+  vi.stubGlobal("window", { location: { hostname: "127.0.0.1" } });
+  const fetchStream = vi.fn();
+  vi.stubGlobal("fetch", fetchStream);
+  await expect(requestSceneGenerationChat({
+    localAsapOrigin: "http://127.0.0.1:8082",
+    modelTimeoutMs: ASAP_MODEL_ROUND_TIMEOUT_MS + 1,
+    messages: [{ role: "user", content: "Generate a scene" }],
+    tools: [],
+    debugMode: true,
+    signal: new AbortController().signal
+  })).rejects.toThrow(`modelTimeoutMs 必须是不超过 ${ASAP_MODEL_ROUND_TIMEOUT_MS} 的正整数`);
+  expect(fetchStream).not.toHaveBeenCalled();
 });

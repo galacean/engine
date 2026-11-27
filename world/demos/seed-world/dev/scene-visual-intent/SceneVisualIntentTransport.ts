@@ -1,5 +1,10 @@
 import type { AgentMessage, AgentModelToolDefinition, AgentRunOptions } from "@galacean/engine-ai-chat/ai-chat/agent-types";
-import { requestAsapChat, type AsapChatResult, type SeedWorldAiApi } from "@galacean/engine-ai-chat/ai-chat/asap-chat";
+import {
+  ASAP_MODEL_ROUND_TIMEOUT_MS,
+  requestAsapChat,
+  type AsapChatResult,
+  type SeedWorldAiApi
+} from "@galacean/engine-ai-chat/ai-chat/asap-chat";
 
 /** Debug options belong to this demo, never to the shared Seed World Agent. */
 export type SceneGenerationRunOptions = AgentRunOptions & {
@@ -19,7 +24,9 @@ export async function requestSceneGenerationChat(options: SceneGenerationChatOpt
   if (localAsapOrigin === undefined) return requestAsapChat(params);
   const origin = validateLocalAsapOrigin(localAsapOrigin);
   const timeoutMs = modelTimeoutMs ?? 25_000;
-  if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2 ** 31 - 1 - 5_000) throw new Error("modelTimeoutMs 必须是正安全整数");
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > ASAP_MODEL_ROUND_TIMEOUT_MS) {
+    throw new Error(`modelTimeoutMs 必须是不超过 ${ASAP_MODEL_ROUND_TIMEOUT_MS} 的正整数`);
+  }
   return requestAsapChat({ ...params, timeoutMs }, createLocalApi(origin));
 }
 

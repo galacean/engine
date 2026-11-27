@@ -8,9 +8,9 @@
 
 | 仓库 | 来源 | 默认远端分支 |
 | --- | --- | --- |
-| Engine | `git@github.com:galacean/engine.git` | `codex/seed-world-action-probe` |
+| Engine | `git@github.com:galacean/engine.git` | `experimental/engine-next` |
 | ASAP | `git@code.alipay.com:recneptune-tenants/asap-service.git` | 见 [SKILL.md](../SKILL.md) 的默认 ASAP 来源 |
-| flash-app | `git@code.alipay.com:ASAPlat/flash-app.git` | `codex/seed-world-action-probe`（壳 #279） |
+| flash-app | `git@code.alipay.com:ASAPlat/flash-app.git` | 仓库默认分支（需包含壳 PR #279；未合入时按 PR 指定分支） |
 
 三个仓库的 clone、fetch、分支和 worktree 操作使用原生 Git。
 ASAP 的 PR 查询等平台操作使用 `antcode`，不要用 `gh`；只做 Git 同步不要求安装 antcode。
@@ -20,7 +20,7 @@ ASAP 的 PR 查询等平台操作使用 `antcode`，不要用 `gh`；只做 Git 
 
 ```bash
 # 分别在对应仓库执行；目录由用户选择，分支已存在时先检查而非覆盖。
-git worktree add -b codex/seed-world-local-debug /chosen/path/engine-debug origin/codex/seed-world-action-probe
+git worktree add -b codex/seed-world-local-debug /chosen/path/engine-debug origin/experimental/engine-next
 git worktree add -b codex/seed-world-local-debug /chosen/path/asap-debug origin/<默认 ASAP 远端分支>
 ```
 
@@ -29,18 +29,6 @@ git worktree add -b codex/seed-world-local-debug /chosen/path/asap-debug origin/
 ASAP 基线变化后，按第 3 节重新安装依赖，并按第 4 节检查本地配置。
 后续更新用 fetch 后 fast-forward；有分叉或未提交改动时停下说明，不自动丢弃或合并。
 记录 fetch 时间和各仓库 HEAD；未 fetch 时不能称“远端最新”。
-
-### 2026-11-26 本地联调版本记录
-
-下表记录当次完整壳预览使用的工作树，后续启动仍用 `preview.py --check` 核对实际 HEAD 和未提交改动。
-
-| 仓库 | 本地 HEAD | 当次状态 |
-| --- | --- | --- |
-| ASAP（#13282 分支） | `43671da5b78cd4830cc76da5412bf32a9f2d4509` | 比远端 `b93b0251b53a` 领先 5 个提交，工作树有未提交改动 |
-| flash-app 壳（#279） | `fb699d59cfdd95f8017cef80b2fd270c6594c7f9` | 工作树干净，与远端一致 |
-| Engine | `392cfed7f8866661cc29b33ee6d1b980838b6d04` | HEAD 与远端一致，启动使用了未提交的 Engine 和 skill 改动 |
-
-本次从壳 HEAD 重建的 SDK 与本地 HTTP 服务返回的 SDK 字节一致，SHA-256 为 `52c34297e5c9d369b04f5fd7ea4d8b6bd97d9577da1bfea1fae362cc07d7d139`。
 
 ## 2. Engine 环境
 
@@ -102,7 +90,8 @@ ASAP 的 `biz/seed_world_stream_agent/agent.py` 指定模型 `aisearch_dsv41flas
 已有 checkout 时复用对应工作树。首次获取执行以下命令，路径可以调整。
 
 ```bash
-git clone --branch codex/seed-world-action-probe git@code.alipay.com:ASAPlat/flash-app.git /chosen/path/flash-app
+git clone git@code.alipay.com:ASAPlat/flash-app.git /chosen/path/flash-app
+# 若壳 PR #279 尚未合入默认分支，再显式切换至对应分支
 cd /chosen/path/flash-app
 npm install
 npm run build:base

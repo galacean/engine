@@ -77,7 +77,7 @@ python3 "$SKILL_DIR/scripts/preview.py" \
 暂时只有本地源码和构建产物时，可先运行上面的壳 SDK 回归。要单独打开 Engine/ASAP 游戏预览，把 `--shell-root "$SHELL_ROOT"` 换成 `--direct`。
 脚本输出所选模式、参与仓库的版本及预览 URL。
 `behindSource` 大于 0 表示 checkout 缺少来源分支上已 fetch 的提交；先向用户说明缺少哪些提交，再决定是否更新。
-`behindSource` 为 `null` 表示找不到来源引用；用 `--engine-source` 或 `--asap-source` 指定。
+`behindSource` 为 `null` 表示找不到来源引用；用 `--engine-source`、`--asap-source` 或 `--shell-source` 指定。
 壳模式下，`mini_app_url` 指向游戏，`app_shell_url` 指向 flash-app 壳。直连模式才把两个参数都设为游戏地址。
 每次生成附带新的调试 revision，避免重复使用历史链接；revision 只是缓存标记，不是已验证产物身份。
 不传 `--check` 只生成，不发网络请求。
@@ -90,7 +90,7 @@ HTTP 失败时不要继续宣称可调试；查看对应终端。
 ## 最小真实验收
 
 在游戏 iframe 的 Network 中确认实际加载了选定版本的 SDK，在游戏上下文检查 `typeof window.lingguang?.ai?.seedWorldStream` 和 `typeof window.lingguang?.ai?.seedWorldStop` 均为 `"function"`。
-Engine 的 `asap-chat.ts` 当前会在 localhost 或 127.0.0.1 优先走 CandyJar。验收游戏 SDK 链路时，在壳的 `seedWorldStream` 和 `seedWorldStop` 设置断点，发送和停止应分别命中。只命中 CandyJar 时将结果记为直连验证。
+Engine 的 `asap-chat.ts` 会优先使用已注入的 `window.lingguang.ai.seedWorldStream` / `seedWorldStop`，仅在回环直连预览且未注入专用 SDK（如 `--direct`）时回退到 CandyJar。验收游戏 SDK 链路时，在壳的 `seedWorldStream` 和 `seedWorldStop` 设置断点，发送和停止应分别命中；若只命中 CandyJar，先核对壳 SDK 注入是否生效，并将结果记为直连验证。
 验收预发壳时，从目标闪应用进入游戏，记录壳 SDK 版本，发送一条只读指令并核对回复，再在下一条请求进行中点击停止并核对服务端收到同一会话的取消。
 
 1. 进入 3D 后打开 Agent Trace，先用指令编辑器输入“现在世界里是几点？”验证文本链路，排除 ASR 干扰。
