@@ -1,4 +1,5 @@
-import { AssetPromise, Camera, Layer, Script } from "@galacean/engine";
+import { WorldLayer } from "@galacean/engine-project/rendering/WorldLayer";
+import { AssetPromise, Camera, Script } from "@galacean/engine";
 import type { TerrainProjectAsset } from "@galacean/engine-terrain/terrain/project/TerrainProjectAsset";
 import { terrainRasterIndex } from "@galacean/engine-terrain/terrain/project/TerrainProjectCodec";
 import {
@@ -349,12 +350,12 @@ export class TerrainWaterRuntime extends Script {
         scene: this.scene!,
         camera: config.camera,
         root: this.entity,
-        waterLayer: Layer.Layer30,
+        waterLayer: WorldLayer.Water,
         cacheEntryLimit: 24,
         cacheBudgetBytes: 256 * 1024 * 1024,
         reflection: {
           cullingMask: config.camera.cullingMask,
-          waterLayerMask: Layer.Layer30
+          waterLayerMask: WorldLayer.Water
         }
       });
       this._host = host;

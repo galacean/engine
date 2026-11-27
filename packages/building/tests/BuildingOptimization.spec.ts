@@ -24,7 +24,7 @@ import {
   type Material
 } from "@galacean/engine";
 import { LightManager } from "../../core/src/lighting/LightManager";
-import { BUILDING_RENDER_LAYER } from "../src/building/runtime/BuildingRenderLayer";
+import { WorldLayer } from "@galacean/engine-project/rendering/WorldLayer";
 import { EffectiveSurface } from "../src/building/core/geometry";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { constructionAssets } from "./fixtures/constructionAssets";
@@ -439,7 +439,7 @@ describe("Building system optimization invariants", () => {
       expect(picks).toHaveLength(2);
       // The detailed, shadow and standalone far draws are separate children of this view.
       expect(
-        view.root.getComponentsIncludeChildren(MeshRenderer, []).every((r) => r.entity.layer === BUILDING_RENDER_LAYER)
+        view.root.getComponentsIncludeChildren(MeshRenderer, []).every((r) => r.entity.layer === WorldLayer.Building)
       ).toBe(true);
       const decBatch = picks.find((b) => b.count === 2)!;
       expect(decBatch).toBeDefined();
@@ -961,7 +961,7 @@ describe("Building system optimization invariants", () => {
       const renderers: MeshRenderer[] = [];
       proxy.root.getComponentsIncludeChildren(MeshRenderer, renderers);
       const boxRenderer = renderers.find((r) => r.entity.name.startsWith("GlobalProxyBoxes_"))!;
-      expect(boxRenderer.entity.layer).toBe(BUILDING_RENDER_LAYER);
+      expect(boxRenderer.entity.layer).toBe(WorldLayer.Building);
       const boxMat = boxRenderer.getMaterial()!;
 
       const cullProp = ShaderProperty.getByName("rasterStateCullMode");
@@ -1296,7 +1296,7 @@ describe("Building system optimization invariants", () => {
       const baseline = flagCount();
       for (let i = 0; i < 4; i++) {
         const resident = new EngineResidentScene(engine, parent);
-        expect(resident.root.layer).toBe(BUILDING_RENDER_LAYER);
+        expect(resident.root.layer).toBe(WorldLayer.Building);
         (resident as unknown as { bindCamera(c: Camera): void }).bindCamera(fakeCamera);
         resident.destroy();
       }
@@ -1433,7 +1433,7 @@ describe("Building system optimization invariants", () => {
       }));
       const slots = pool.root.getComponentsIncludeChildren(PointLight, []);
       expect(slots).toHaveLength(4);
-      expect(slots.every((slot) => slot.cullingMask === BUILDING_RENDER_LAYER && !slot.enabled)).toBe(true);
+      expect(slots.every((slot) => slot.cullingMask === WorldLayer.Building && !slot.enabled)).toBe(true);
 
       const render = (count: number, ownedMask: number, legacyMask = ownedMask) => {
         manager._updateShaderData(data);
@@ -1455,7 +1455,7 @@ describe("Building system optimization invariants", () => {
       render(1, 1);
       slots[0].cullingMask = Layer.Layer0;
       render(1, 1, 0);
-      slots[0].cullingMask = BUILDING_RENDER_LAYER;
+      slots[0].cullingMask = WorldLayer.Building;
       const external = scene.createRootEntity("External").addComponent(PointLight);
       for (const count of [2, 3, 4, 6]) {
         pool.update(lights.slice(0, count), camera, 1);

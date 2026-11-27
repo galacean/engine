@@ -9,7 +9,7 @@ import {
   type Camera,
   type Scene
 } from "@galacean/engine";
-import { BUILDING_RENDER_LAYER } from "./BuildingRenderLayer";
+import { WorldLayer } from "@galacean/engine-project/rendering/WorldLayer";
 import {
   ConstructionDecorationLightPolicy,
   DEFAULT_DECORATION_LIGHT_BUDGET,
@@ -72,7 +72,7 @@ export class ConstructionDecorationLights {
     for (let i = 0; i < budget; i++) {
       const emitter = this.root.createChild("slot-" + i).addComponent(PointLight);
       emitter.enabled = false;
-      emitter.cullingMask = BUILDING_RENDER_LAYER;
+      emitter.cullingMask = WorldLayer.Building;
       emitter.shadowType = ShadowType.None;
       emitter.color.set(0, 0, 0, 1);
       emitter.distance = 3.5;
@@ -197,7 +197,7 @@ export class ConstructionDecorationLights {
           index = (light as PointLight & { _lightIndex: number })._lightIndex;
         // The extra wall-light lobe also runs for slots beyond the engine light cap.
         const local =
-          (light.cullingMask & BUILDING_RENDER_LAYER) !== 0 && this.colors[slot * 4 + 3] > Math.fround(0.0001);
+          (light.cullingMask & WorldLayer.Building) !== 0 && this.colors[slot * 4 + 3] > Math.fround(0.0001);
         if (light.enabled && index >= 0 && index < count) {
           owned |= 1 << index;
           if (local) legacy |= 1 << index;

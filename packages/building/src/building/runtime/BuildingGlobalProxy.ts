@@ -1,4 +1,4 @@
-import { BUILDING_RENDER_LAYER } from "./BuildingRenderLayer";
+import { WorldLayer } from "@galacean/engine-project/rendering/WorldLayer";
 import {
   BoundingBox,
   Buffer,
@@ -520,7 +520,7 @@ export class BuildingGlobalProxy {
   private constructor(private readonly scene: Scene) {
     this.engine = scene.engine;
     this.root = scene.createRootEntity("Building global proxy");
-    this.root.layer = BUILDING_RENDER_LAYER;
+    this.root.layer = WorldLayer.Building;
     const sync = this.root.addComponent(GlobalProxyFlushScript);
     sync.owner = this;
     this.shader = getGlobalProxyShader();

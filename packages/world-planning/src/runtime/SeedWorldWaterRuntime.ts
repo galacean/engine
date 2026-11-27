@@ -1,5 +1,6 @@
+import { WorldLayer } from "@galacean/engine-project/rendering/WorldLayer";
 import { createFarmlandsWaterResourceFactories } from "@galacean/engine-water/water/resources/river/FarmlandsWaterRuntimeResources";
-import { Layer, type Camera, type Engine, type Entity, type Scene } from "@galacean/engine-core";
+import type { Camera, Engine, Entity, Scene } from "@galacean/engine-core";
 import {
   createRiverWaterBodyAsset,
   createRiverWaterBodyInstance,
@@ -157,14 +158,14 @@ export class SeedWorldWaterRuntime {
       scene: config.scene,
       camera: config.camera,
       root: config.root,
-      waterLayer: Layer.Layer30,
+      waterLayer: WorldLayer.Water,
       cacheEntryLimit: 24,
       cacheBudgetBytes: 256 * 1024 * 1024,
       maximumConcurrentBodyPreparations: 1,
       yieldBetweenBodyPreparationBatches: true,
       reflection: {
         cullingMask: config.camera.cullingMask,
-        waterLayerMask: Layer.Layer30
+        waterLayerMask: WorldLayer.Water
       }
     });
     this._heightfieldBackend = new HeightfieldWaterBackend({

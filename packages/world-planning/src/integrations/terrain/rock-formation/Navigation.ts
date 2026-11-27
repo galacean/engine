@@ -1,3 +1,4 @@
+import { WorldLayer } from "@galacean/engine-project/rendering/WorldLayer";
 import {
   CapsuleColliderShape,
   CharacterController,
@@ -15,7 +16,7 @@ import type {
 import { PLANNING_REFERENCE } from "../../../planning-data/PlanningReference.ts";
 
 /** Reserved physics layer for the player capsule; rendering layers and collision matrix are unchanged. */
-export const PLAYER_COLLISION_LAYER = Layer.Layer27;
+export const PLAYER_COLLISION_LAYER = WorldLayer.PlayerCollision;
 
 class RockNavigationDriver extends Script {
   synchronize?: () => void;

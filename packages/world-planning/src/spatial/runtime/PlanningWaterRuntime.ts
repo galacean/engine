@@ -1,10 +1,11 @@
+import { WorldLayer } from "@galacean/engine-project/rendering/WorldLayer";
 import { createImmutableWaterSnapshot } from "@galacean/engine-water/water/authoring/identity/WaterImmutableSnapshot";
 import {
   createRiverWaterBodyAsset,
   createRiverWaterBodyAssetAsync
 } from "@galacean/engine-water/water/authoring/river/RiverWaterBodyAuthoring";
 import { createFarmlandsWaterResourceFactories } from "@galacean/engine-water/water/resources/river/FarmlandsWaterRuntimeResources";
-import { Layer, Vector3, type Camera, type Engine, type Entity, type MeshRenderer } from "@galacean/engine";
+import { Vector3, type Camera, type Engine, type Entity, type MeshRenderer } from "@galacean/engine";
 import {
   SeedWorldArrayPickBatch,
   type SeedWorldPickVisitor
@@ -182,14 +183,14 @@ export class PlanningWaterRuntime {
     this.system.camera = options.camera;
     this.system.configureRuntime(
       {
-        waterLayer: Layer.Layer30,
+        waterLayer: WorldLayer.Water,
         cacheEntryLimit: 24,
         cacheBudgetBytes: 128 * 1024 * 1024,
         maximumConcurrentBodyPreparations: 4,
         yieldBetweenBodyPreparationBatches: true,
         reflection: {
           cullingMask: options.camera.cullingMask,
-          waterLayerMask: Layer.Layer30
+          waterLayerMask: WorldLayer.Water
         }
       },
       options.environmentReflection,

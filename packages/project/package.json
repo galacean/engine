@@ -47,6 +47,7 @@
     "./rendering/RestorableResources": "./src/rendering/RestorableResources.ts",
     "./rendering/SeedWorldPickBatch": "./src/rendering/SeedWorldPickBatch.ts",
     "./rendering/V2ViewGeometry": "./src/rendering/V2ViewGeometry.ts",
+    "./rendering/WorldLayer": "./src/rendering/WorldLayer.ts",
     "./rendering/runtime-pick-source": "./src/rendering/runtime-pick-source.ts"
   },
   "scripts": {},
