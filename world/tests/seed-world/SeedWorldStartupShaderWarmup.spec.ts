@@ -1909,4 +1909,11 @@ describe("animal presentation preparation", () => {
     await task;
     expect(order).toEqual(["masonry-flushed", "collect"]);
   });
+
+  it("gates ocean Water AOT .shaderc preloading and startup registration on continuous-land templates in SeedWorldDemo", () => {
+    const demoSource = readFileSync(new URL("../../demos/seed-world/SeedWorldDemo.ts", import.meta.url), "utf8");
+    expect(demoSource).toContain('WORLD_TEMPLATE_ART[requestedTemplateId]?.initialPlanning?.landMode !== "continuous"');
+    expect(demoSource).toContain('!file.virtualPath.startsWith("Shader/Water/ocean-")');
+    expect(demoSource).toContain('!profile.id.startsWith("ocean-")');
+  });
 });

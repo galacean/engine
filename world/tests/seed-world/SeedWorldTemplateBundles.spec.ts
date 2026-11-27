@@ -10,7 +10,9 @@ import {
   buildGzippedSwb1Pack,
   buildUncompressedSwb1Pack,
   classifySeedWorldTemplateMediaAsset,
+  isSeedWorldBuildingTextureAsset,
   isSeedWorldCommonRockLodAsset,
+  isSeedWorldExcludedCommonBinShader,
   previewCacheControlForPath,
   shardTemplateBundleEntries,
   stripPugcWasmSuffix,
@@ -18,6 +20,7 @@ import {
   templatesForSeedWorldMediaAsset
 } from "../../scripts/seed-world-template-bundles.mjs";
 import {
+  loadSeedWorldBuildingBinaryBundle,
   loadSeedWorldTemplateBinaryBundles,
   parseSeedWorldCommonBinaryBundle,
   registerSeedWorldPrefetchedFetchAssets,
@@ -25,11 +28,16 @@ import {
   resolveSeedWorldTemplateBinaryBundleUrls,
   uninstallSeedWorldFetchPrefetchInterceptor
 } from "../../demos/seed-world/src/SeedWorldCommonBinaryBundle";
+import {
+  loadSeedWorldProjectTextBundle,
+  releaseSeedWorldProjectTextBundle
+} from "../../demos/seed-world/src/SeedWorldProjectTextBundle";
 import { loadPlantJSON } from "@galacean/engine-vegetation/asset-assembly/ProceduralPlantResources";
 
 describe("seed-world-template-bundles", () => {
   afterEach(() => {
     releaseSeedWorldCommonBinaryBundle();
+    releaseSeedWorldProjectTextBundle();
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
@@ -79,6 +87,24 @@ describe("seed-world-template-bundles", () => {
       )
     ).toBe(true);
     expect(isSeedWorldCommonRockLodAsset("assets/hoe-077dcce8.glb")).toBe(false);
+
+    // Raw editor water `.shader` text files (398.9 KiB) are excluded from `seed-world-common-bin-bundle`
+    // because runtime uses precompiled `.shaderc` AOT binaries; VFX `.shader` files stay bundled.
+    for (const rawWaterShader of [
+      "packages/water/src/water/native/assets/Water/Shaders/lake.shader",
+      "packages/water/src/water/native/assets/Water/Shaders/river.shader",
+      "packages/water/src/water/native/assets/Water/Shaders/ocean.shader"
+    ]) {
+      expect(isSeedWorldExcludedCommonBinShader(rawWaterShader), rawWaterShader).toBe(true);
+    }
+    expect(
+      isSeedWorldExcludedCommonBinShader(
+        "packages/water/src/water/native/assets/Water/Shaders/S_VFX_TransparentAlpha_01.shader"
+      )
+    ).toBe(false);
+    expect(
+      isSeedWorldExcludedCommonBinShader("packages/water/src/water/native/assets/Water/Shaders/lake-heightfield.shaderc")
+    ).toBe(false);
 
     // Deferred starter farm props (6 GLBs + 16 prop-textures KTX2s, ~4.66 MiB) are excluded from startup SWB1
     // across ALL templates because `deferOffscreenProps: true` loads them on demand only when visible/approached.
@@ -152,18 +178,39 @@ describe("seed-world-template-bundles", () => {
       expect(classifySeedWorldTemplateMediaAsset(sharedVegPng), sharedVegPng).toBe("veg_proc_shared");
       expect(templatesForSeedWorldMediaAsset(sharedVegPng), sharedVegPng).toEqual([...SEED_WORLD_TEMPLATE_IDS]);
     }
-    for (const lushVegPng of [
+    for (const birchVegPng of [
       "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-birch-bark-256.png",
       "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-birchtree_leaf_01_summer-part-01-256.png"
     ]) {
-      expect(classifySeedWorldTemplateMediaAsset(lushVegPng), lushVegPng).toBe("veg_proc_lush");
-      expect(templatesForSeedWorldMediaAsset(lushVegPng), lushVegPng).toEqual([
+      expect(classifySeedWorldTemplateMediaAsset(birchVegPng), birchVegPng).toBe("veg_proc_birch");
+      expect(templatesForSeedWorldMediaAsset(birchVegPng), birchVegPng).toEqual([
         "original",
         "sakura-pearl",
         "emerald-forest",
+        "titan-wasteland",
         "oil-paint"
       ]);
     }
+    expect(
+      classifySeedWorldTemplateMediaAsset(
+        "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-grass_02_summer-part-01-256.png"
+      )
+    ).toBe("veg_proc_template_grass");
+    expect(
+      templatesForSeedWorldMediaAsset(
+        "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-grass_02_summer-part-01-256.png"
+      )
+    ).toEqual(["low-poly", "titan-wasteland"]);
+    expect(
+      classifySeedWorldTemplateMediaAsset(
+        "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-flowers_03-part-01-256.png"
+      )
+    ).toBe("veg_proc_desert_plume");
+    expect(
+      templatesForSeedWorldMediaAsset(
+        "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-flowers_03-part-01-256.png"
+      )
+    ).toEqual(["titan-wasteland"]);
 
     // Template-exclusive assets stay strictly in their owning template
     expect(templatesForSeedWorldMediaAsset("assets/pink-tree-4a81847b.glb")).toEqual(["sakura-pearl"]);
@@ -183,10 +230,15 @@ describe("seed-world-template-bundles", () => {
       "oil-paint"
     ]);
 
-    // Building textures stay strictly in building-bearing templates; broadleaf-bark also used by oil-paint; bridges only in original
-    expect(
-      templatesForSeedWorldMediaAsset("packages/building/src/building/assets/native/Textures/plaster_colors-neutral.ktx2")
-    ).toEqual(["original", "sakura-pearl", "emerald-forest", "oil-paint"]);
+    // Building textures are deduplicated into `seed-world-building-tex-bundle` (excluded from per-template SWB1);
+    // broadleaf-bark stays in lush/oil-paint templates; bridges only in original.
+    const buildingTexPath = "packages/building/src/building/assets/native/Textures/plaster_colors-neutral.ktx2";
+    expect(isSeedWorldBuildingTextureAsset(buildingTexPath)).toBe(true);
+    expect(isSeedWorldBuildingTextureAsset("packages/building/src/building/assets/native/Meshes/wall.mesh")).toBe(
+      false
+    );
+    expect(classifySeedWorldTemplateMediaAsset(buildingTexPath)).toBe("exclude_building_tex");
+    expect(templatesForSeedWorldMediaAsset(buildingTexPath)).toEqual([]);
     expect(
       templatesForSeedWorldMediaAsset("packages/terrain/src/data/seed-world/public/Texture/ead4b76b302d6762.ktx2")
     ).toEqual(["original", "sakura-pearl", "emerald-forest", "oil-paint"]);
@@ -255,6 +307,7 @@ describe("seed-world-template-bundles", () => {
 
   it("matches Flash App CDN bundle naming contract and resolves template manifests safely", () => {
     const flashAppBundleRe = /^assets\/seed-world-[a-z0-9-]+-bundle-[a-f0-9]+\.(?:bin|json)$/u;
+    expect(flashAppBundleRe.test("assets/seed-world-building-tex-bundle-deadbeef.bin")).toBe(true);
     for (const templateId of SEED_WORLD_TEMPLATE_IDS) {
       expect(flashAppBundleRe.test(`assets/seed-world-tpl-${templateId}-s0-bundle-deadbeef.bin`)).toBe(true);
     }
@@ -307,14 +360,24 @@ describe("seed-world-template-bundles", () => {
     ).toEqual(["original", "sakura-pearl", "oil-paint"]);
     for (const lushTreeJson of [
       "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_birchtree_01-structure.json",
-      "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_birchtree_02-structure.json",
-      "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_birchbush_04-structure.json",
-      "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_birchbush_03-structure.json"
+      "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_birchtree_02-structure.json"
     ]) {
       expect(templatesForSeedWorldJsonAsset(lushTreeJson), lushTreeJson).toEqual([
         "original",
         "sakura-pearl",
         "emerald-forest",
+        "oil-paint"
+      ]);
+    }
+    for (const birchBushJson of [
+      "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_birchbush_04-structure.json",
+      "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_birchbush_03-structure.json"
+    ]) {
+      expect(templatesForSeedWorldJsonAsset(birchBushJson), birchBushJson).toEqual([
+        "original",
+        "sakura-pearl",
+        "emerald-forest",
+        "titan-wasteland",
         "oil-paint"
       ]);
     }
@@ -455,6 +518,87 @@ describe("seed-world-template-bundles", () => {
       expect(baseFetch).toHaveBeenCalledTimes(3);
     } finally {
       uninstallSeedWorldFetchPrefetchInterceptor();
+      globalThis.fetch = savedGlobalFetch;
+    }
+  });
+
+  it("loads deduplicated building binary and building texture SWB1 bundles in parallel and merges entries", async () => {
+    const baseUrl = "https://example.test/assets/";
+    const distRootUrl = "https://example.test/";
+    const binPack = buildGzippedSwb1Pack([
+      { key: "packages/building/src/building/assets/native/Meshes/wall.mesh", buf: Buffer.from([1, 2, 3]) }
+    ]);
+    const texPack = buildUncompressedSwb1Pack([
+      {
+        key: "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/plaster.ktx2",
+        buf: Buffer.from([4, 5, 6, 7])
+      }
+    ]);
+    const fetchedUrls: string[] = [];
+    const merged = await loadSeedWorldBuildingBinaryBundle({
+      url: "./seed-world-building-bin-bundle-11111111.bin",
+      textureUrl: "./seed-world-building-tex-bundle-22222222.bin",
+      moduleBaseUrl: baseUrl,
+      distRootUrl,
+      fetchImpl: async (url) => {
+        const href = String(url);
+        fetchedUrls.push(href);
+        if (href.includes("building-bin-bundle")) return new Response(new Uint8Array(binPack));
+        if (href.includes("building-tex-bundle")) return new Response(new Uint8Array(texPack));
+        return new Response(null, { status: 404 });
+      }
+    });
+
+    expect(fetchedUrls).toEqual([
+      "https://example.test/assets/seed-world-building-bin-bundle-11111111.bin",
+      "https://example.test/assets/seed-world-building-tex-bundle-22222222.bin"
+    ]);
+    expect(merged?.get("https://example.test/packages/building/src/building/assets/native/Meshes/wall.mesh")).toEqual(
+      new Uint8Array([1, 2, 3])
+    );
+    expect(
+      merged?.get("https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/plaster.ktx2")
+    ).toEqual(new Uint8Array([4, 5, 6, 7]));
+  });
+
+  it("serves pruned project text bundle files through persistent fetch() interception across binary bundle release", async () => {
+    const baseFetch = vi.fn(async () => new Response("network", { status: 200 }));
+    const savedGlobalFetch = globalThis.fetch;
+    globalThis.fetch = baseFetch as unknown as typeof globalThis.fetch;
+    try {
+      const textBundlePayload = JSON.stringify({
+        "packages/terrain/src/data/seed-world/project.json": '{"scene":"main"}',
+        "packages/water/src/water/native/assets/conversion.json": '{"water":true}'
+      });
+      const loaded = await loadSeedWorldProjectTextBundle({
+        url: "./seed-world-project-text-bundle-deadbeef.json",
+        moduleBaseUrl: "https://example.test/assets/chunk.js",
+        distRootUrl: "https://example.test/",
+        fetchImpl: async () => new Response(textBundlePayload, { status: 200 })
+      });
+      expect(loaded?.size).toBe(2);
+
+      // Register a binary asset too, then release binary bundles as happens after scene reveal.
+      registerSeedWorldPrefetchedFetchAssets(
+        new Map<string, Uint8Array>([["https://example.test/assets/sample.ktx2", new Uint8Array([9, 8])]])
+      );
+      releaseSeedWorldCommonBinaryBundle();
+
+      // Binary entry was cleared (passes through to network), while text-bundle entries remain intercepted!
+      await fetch("https://example.test/assets/sample.ktx2");
+      expect(baseFetch).toHaveBeenCalledTimes(1);
+
+      const conversionRes = await fetch("https://example.test/packages/water/src/water/native/assets/conversion.json");
+      expect(conversionRes.headers.get("content-type")).toContain("application/json");
+      expect(await conversionRes.json()).toEqual({ water: true });
+      expect(baseFetch).toHaveBeenCalledTimes(1);
+
+      // Releasing the project text bundle restores the original globalThis.fetch cleanly.
+      releaseSeedWorldProjectTextBundle();
+      expect(globalThis.fetch).toBe(baseFetch);
+    } finally {
+      releaseSeedWorldCommonBinaryBundle();
+      releaseSeedWorldProjectTextBundle();
       globalThis.fetch = savedGlobalFetch;
     }
   });
