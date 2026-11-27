@@ -1334,6 +1334,7 @@ export async function mountSeedWorldDemo(
     navigation.enabled = false;
     navigation.setInputEnabled(false);
     navigation.movementSpeed = 4;
+    navigation.rotationSensitivity = 4;
     navigation.verticalMovementEnabled = false;
     navigation.setVerticalOffset(0);
     navigation.setEyeHeight(PLANNING_REFERENCE.actor.heightM);
