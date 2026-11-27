@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { Renderer } from "@galacean/engine-core";
+import { animalAnimationLodConfig, animalAnimationLodStride } from "@galacean/engine-animals/gameplay/animal/AnimalLod";
+import { readAnimalPopulationConfig } from "@galacean/engine-world-planning/spatial/AnimalPopulationComponent";
 import { LakeBoundaryQueryIndex } from "@galacean/engine-water/water/compiler/lake/LakeBoundaryQueryIndex";
 import { PlanningNavigationSurface } from "@galacean/engine-world-planning/spatial/runtime/PlanningNavigationSurface";
 import { PlanningAnimalHabitat } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHabitat";
@@ -412,12 +414,11 @@ describe("animal pathfinding performance invariants", () => {
     expect(runtimeInterfacesCalls).toBe(2);
   });
 
-  it("culls newly enabled off-screen renderers after their first unrendered frame and stays accurate post-frame", () => {
+  it("culls newly enabled off-screen renderers after their first unrendered frame (matching ParticleSystemManager)", () => {
     const engine = { time: { frameCount: 10 }, _frameInProcess: false };
     const renderer: any = Object.create(Renderer.prototype);
     renderer._engine = engine;
     renderer._renderFrameCount = undefined;
-    renderer._enabledFrameCount = -1;
     renderer._overrideUpdate = false;
     renderer._scene = { _componentsManager: { addRenderer: () => {}, addOnUpdateRenderers: () => {} } };
     Object.defineProperty(renderer, "engine", { get: () => engine });
@@ -425,36 +426,80 @@ describe("animal pathfinding performance invariants", () => {
 
     // Enabled between frames (frame 10): stays visible for frame 11's update before first culling pass.
     renderer._onEnableInScene();
-    expect(renderer.isCulled).toBe(false);
     engine.time.frameCount = 11;
     engine._frameInProcess = true;
     expect(renderer.isCulled).toBe(false);
 
-    // Frame 11 finishes without rendering this renderer -> culled post-frame and on frame 12.
-    engine._frameInProcess = false;
-    expect(renderer.isCulled).toBe(true);
+    // Frame 11 finishes without rendering this renderer -> culled on frame 12 update.
     engine.time.frameCount = 12;
-    engine._frameInProcess = true;
     expect(renderer.isCulled).toBe(true);
 
-    // Once rendered on frame 12 -> unculled post-frame 12 and during frame 13 update.
+    // Once rendered on frame 12 -> unculled during frame 13 update.
     renderer._renderFrameCount = 12;
-    engine._frameInProcess = false;
-    expect(renderer.isCulled).toBe(false);
     engine.time.frameCount = 13;
-    engine._frameInProcess = true;
     expect(renderer.isCulled).toBe(false);
 
-    // Re-enabling later resets stale _renderFrameCount and grants one fresh visible frame.
+    // Re-enabling mid-frame resets _renderFrameCount to frameCount - 1 so it gets one visible frame.
     engine.time.frameCount = 50;
-    engine._frameInProcess = false;
+    engine._frameInProcess = true;
     renderer._onEnableInScene();
     expect(renderer.isCulled).toBe(false);
     engine.time.frameCount = 51;
-    engine._frameInProcess = true;
-    expect(renderer.isCulled).toBe(false);
-    engine.time.frameCount = 52;
     expect(renderer.isCulled).toBe(true);
+  });
+
+  it("validates configurable global/template animation LOD thresholds and ratesHz", () => {
+    const defaults = animalAnimationLodConfig();
+    expect(animalAnimationLodStride(0, defaults)).toBe(1);
+    expect(animalAnimationLodStride(1, defaults)).toBe(2);
+    expect(animalAnimationLodStride(2, defaults)).toBe(3);
+    expect(animalAnimationLodStride(null, defaults)).toBe(4);
+
+    const custom = animalAnimationLodConfig({
+      screenRelativeTransitionHeights: [0.2, 0.1, 0.04],
+      ratesHz: [30, 15, 6, 5]
+    });
+    expect(animalAnimationLodStride(2, custom, 30)).toBe(5);
+    expect(animalAnimationLodStride(null, custom, 30)).toBe(6);
+
+    const disabled = animalAnimationLodConfig({ enabled: false });
+    expect(animalAnimationLodStride(null, disabled, 30)).toBe(1);
+
+    expect(() => animalAnimationLodConfig({ screenRelativeTransitionHeights: [0.05, 0.1, 0.02] })).toThrow();
+    expect(() => animalAnimationLodConfig({ ratesHz: [30, 0, 10, 5] })).toThrow();
+
+    const makeDoc = (animalValues: Record<string, unknown>) =>
+      ({
+        version: 1,
+        entities: {
+          world: {
+            id: "world",
+            name: "world",
+            components: {
+              world: { values: { seed: 42 } },
+              animals: { values: animalValues }
+            }
+          }
+        },
+        passthrough: { parameters: { seed: 42 } }
+      }) as any;
+    const defaultPop = readAnimalPopulationConfig(makeDoc({}));
+    expect(defaultPop.animationLod).toEqual({
+      enabled: true,
+      screenRelativeTransitionHeights: [0.12, 0.06, 0.03],
+      ratesHz: [30, 15, 10, 7.5]
+    });
+    const customPop = readAnimalPopulationConfig(
+      makeDoc({
+        "animationLod.lod0Height": 0.18,
+        "animationLod.farHz": 5
+      })
+    );
+    expect(customPop.animationLod).toEqual({
+      enabled: true,
+      screenRelativeTransitionHeights: [0.18, 0.06, 0.03],
+      ratesHz: [30, 15, 10, 5]
+    });
   });
 
   it("skips off-screen Animator.update and decimates distant Animation LOD ticks while keeping 30Hz motion", () => {

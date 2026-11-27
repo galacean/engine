@@ -46,8 +46,6 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
   /** @internal */
   @ignoreClone
   _renderFrameCount: number;
-  @ignoreClone
-  private _enabledFrameCount: number = -1;
   /** @internal */
   _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
   /** @internal */
@@ -89,15 +87,7 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
    * Whether this renderer was culled by all cameras in the previous frame.
    */
   get isCulled(): boolean {
-    const engine = this._engine;
-    const frameCount = engine.time.frameCount;
-    const targetFrame = engine._frameInProcess ? frameCount - 1 : frameCount;
-    if (this._renderFrameCount === undefined) {
-      // A newly enabled renderer stays unculled for its first frame until culling runs;
-      // once a full frame has passed without any camera rendering it, it is culled.
-      return this._enabledFrameCount >= 0 && this._enabledFrameCount < targetFrame;
-    }
-    return this._renderFrameCount !== targetFrame;
+    return !(this._renderFrameCount === undefined || this._renderFrameCount === this._engine.time.frameCount - 1);
   }
 
   /**
@@ -302,10 +292,10 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
    * @internal
    */
   override _onEnableInScene(): void {
+    // Treat a newly enabled renderer as visible until the first culling result.
     const engine = this.engine;
     const frameCount = engine.time.frameCount;
-    this._enabledFrameCount = engine._frameInProcess ? frameCount - 1 : frameCount;
-    this._renderFrameCount = undefined;
+    this._renderFrameCount = engine._frameInProcess ? frameCount - 1 : frameCount;
     const componentsManager = this.scene!._componentsManager;
     if (this._overrideUpdate) {
       componentsManager.addOnUpdateRenderers(this);

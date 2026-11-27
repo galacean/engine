@@ -39,6 +39,8 @@ import {
 } from "@galacean/engine-animals/gameplay/animal/AnimalAssetLibrary";
 import { ConfiguredAnimal } from "@galacean/engine-animals/gameplay/animal/ConfiguredAnimal";
 import {
+  animalAnimationLodConfig,
+  animalAnimationLodStride,
   projectAnimalSize,
   selectAnimalLod,
   type AnimalLodLevel
@@ -100,9 +102,6 @@ const ANIMAL_FIXED_STEP_SECONDS = 1 / 30;
 const CUTE_ZOO_PLAIN_APPEARANCE = Object.freeze({ ...CUTE_ZOO_TOON_APPEARANCE, outline: false });
 const OUTLINE_ZERO_DISTANCE = CUTE_ZOO_TOON_APPEARANCE.outlineFadeEnd ?? 0;
 const OUTLINE_OFF_HYSTERESIS_METERS = 0.25;
-// Screen-height coverage thresholds (projected diameter / viewport height, matching AnimalLod & rock LOD with 15% hysteresis):
-// LOD0 >= 12% -> 30Hz (stride 1), LOD1 6-12% -> 15Hz (stride 2), LOD2 3-6% -> 10Hz (stride 3), < 3% -> 7.5Hz (stride 4).
-const ANIM_LOD_SCREEN_HEIGHTS: readonly [number, number, number] = [0.12, 0.06, 0.03];
 
 /** Optional scene interactions; the observer camera remains independent of the physical player. */
 export interface PlanningAnimalInteractions {
@@ -207,6 +206,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
   private sampleCount = 0;
   private sampleCursor = 0;
   private interaction = animalInteractionConfig();
+  private animationLod = animalAnimationLodConfig();
   private previousPlayer?: { x: number; z: number };
   private simulationAccumulator = 0;
   private readonly dynamicObstacles = new Map<string, readonly PlanningAnimalDynamicObstacle[]>();
@@ -257,6 +257,17 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
   ): void {
     validateAnimalPopulationConfig(config);
     this.interaction = animalInteractionConfig(config.interaction);
+    const templateWildlife = templateAnimalPopulation(plan.parameters.worldTemplate?.id);
+    this.animationLod = animalAnimationLodConfig({
+      ...templateWildlife?.animationLod,
+      ...config.animationLod
+    });
+    if (this.population) {
+      for (const actor of this.population.actors) {
+        actor.animLodLevel = undefined;
+        if (!this.animationLod.enabled) actor.animal?.setAnimationLod(1, actor.birth.seed & 0xff);
+      }
+    }
     void this.interactions.food?.refresh();
     if (this.disposed) return;
     this.enabled = config.enabled;
@@ -265,7 +276,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
       this.errors = [];
       return;
     }
-    const templateHomeRadius = templateAnimalPopulation(plan.parameters.worldTemplate?.id)?.homeRadius;
+    const templateHomeRadius = templateWildlife?.homeRadius;
     config = this.library.resolvePopulationConfig({
       ...config,
       homeRadius:
@@ -2087,6 +2098,13 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
   ): void {
     const animal = actor.animal;
     if (!animal) return;
+    if (!this.animationLod.enabled) {
+      if (actor.animLodLevel !== 0) {
+        actor.animLodLevel = 0;
+        animal.setAnimationLod(1, actor.birth.seed & 0xff);
+      }
+      return;
+    }
     const pos = animal.position;
     const dx = pos.x - obsX;
     const dy = obsY !== undefined ? pos.y - obsY : 0;
@@ -2094,10 +2112,10 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
     const distance = Math.hypot(dx, dy, dz);
     const projectedHeight = projectAnimalSize(animal.boundingRadius * 2, distance, verticalFov, orthoSize);
     const prev: AnimalLodLevel = actor.animLodLevel === undefined ? 0 : actor.animLodLevel;
-    const next = selectAnimalLod(projectedHeight, ANIM_LOD_SCREEN_HEIGHTS, prev);
+    const next = selectAnimalLod(projectedHeight, this.animationLod.screenRelativeTransitionHeights, prev);
     if (actor.animLodLevel === undefined || next !== prev) {
       actor.animLodLevel = next;
-      const stride = next === null ? 4 : next + 1;
+      const stride = animalAnimationLodStride(next, this.animationLod, 1 / ANIMAL_FIXED_STEP_SECONDS);
       animal.setAnimationLod(stride, actor.birth.seed & 0xff);
     }
   }
@@ -2134,7 +2152,13 @@ function destroyPopulation(p: Population): void {
   p.queue.clear();
 }
 function populationKey(config: AnimalPopulationConfig): string {
-  return JSON.stringify({ ...config, activationDistance: 0, interaction: undefined, fireflies: undefined });
+  return JSON.stringify({
+    ...config,
+    activationDistance: 0,
+    interaction: undefined,
+    fireflies: undefined,
+    animationLod: undefined
+  });
 }
 function validAuthoringIdentity(value: unknown): value is string {
   return (

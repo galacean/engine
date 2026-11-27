@@ -15,6 +15,13 @@ export {
 } from "./AnimalAssetLibrary";
 export { readAnimalInstanceDocument, type AnimalInstanceDocument } from "./AnimalInstanceDocument";
 export {
+  DEFAULT_ANIMAL_ANIMATION_LOD,
+  animalAnimationLodConfig,
+  animalAnimationLodStride,
+  type AnimalAnimationLodConfig,
+  type AnimalLodLevel
+} from "./AnimalLod";
+export {
   createAnimalPopulationConfig,
   planAnimalPopulation,
   validateAnimalPopulationConfig,
