@@ -1,0 +1,196 @@
+packages/building/src/building/assets/native/Shaders/brick.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/brick_roof.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/decoration-stone.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/decoration.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/decoration_stone_frame.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/frame.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/glass.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/plaster.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/roof.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/sdf-brick.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/sdf-brick_clip.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/sdf-brick_roof.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/sdf-brick_roof_clip.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/wood.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/wood_roof.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/assets/native/Shaders/wooden-arch-frame.shaderc
+  h_171a11afaf879a 1
+packages/building/src/building/render/GridUnitKernel.ts
+  h_171a11afaf879a 41-65,67-72,74-100,102-105,107-197,200,222,225,247
+packages/building/src/building/runtime/BrickPackKernel.ts
+  h_171a11afaf879a 47-64,66-79,81-91,93-101,140,143,183
+packages/building/src/building/runtime/BuildingShaderLab.ts
+  h_171a11afaf879a 1-20,23-28,31-35,37-40,42-56,58-85,90-96,99-100,102-151,153-162,164-167,169-182,184-193,195-196,198-199,201-202,204-213,215-269,271,273,275-277,279-285,287-295,298-301,303-306,308-327,329-332,334-337,339-340,342-460,464-469,472,474-479,481-482,484-486,488-491,494-499,501-504,506-507,510-511,513-520,522,524-525,527,529-532,534-536,538-543,546-552,555-569,572,574-575,577-584,587-592,594
+packages/building/src/building/runtime/ConstructionSceneLighting.ts
+  h_171a11afaf879a 4,113-142,149-152,154,156-157
+packages/building/src/building/runtime/EngineRoofFeedback.ts
+  h_171a11afaf879a 42,46-47,51-89,125
+packages/building/src/building/shaders/native/brick.shader
+  h_171a11afaf879a 1-1047
+packages/building/src/building/shaders/native/brick_roof.shader
+  h_171a11afaf879a 1-1121
+packages/building/src/building/shaders/native/decoration-stone.shader
+  h_171a11afaf879a 1-875
+packages/building/src/building/shaders/native/decoration.shader
+  h_171a11afaf879a 1-589
+packages/building/src/building/shaders/native/decoration_stone_frame.shader
+  h_171a11afaf879a 1-793
+packages/building/src/building/shaders/native/frame.shader
+  h_171a11afaf879a 1-233
+packages/building/src/building/shaders/native/glass.shader
+  h_171a11afaf879a 1-524
+packages/building/src/building/shaders/native/plaster.shader
+  h_171a11afaf879a 1-600
+packages/building/src/building/shaders/native/roof.shader
+  h_171a11afaf879a 1-903
+packages/building/src/building/shaders/native/sdf-brick.shader
+  h_171a11afaf879a 1-1190
+packages/building/src/building/shaders/native/sdf-brick_clip.shader
+  h_171a11afaf879a 1-1205
+packages/building/src/building/shaders/native/sdf-brick_roof.shader
+  h_171a11afaf879a 1-1261
+packages/building/src/building/shaders/native/sdf-brick_roof_clip.shader
+  h_171a11afaf879a 1-1276
+packages/building/src/building/shaders/native/wood.shader
+  h_171a11afaf879a 1-681
+packages/building/src/building/shaders/native/wood_roof.shader
+  h_171a11afaf879a 1-752
+packages/building/src/building/shaders/native/wooden-arch-frame.shader
+  h_171a11afaf879a 1-553
+packages/building/tests/ConstructionSceneLightingCompiler.spec.ts
+  h_171a11afaf879a 3,55,69-70,82-83
+packages/core/src/shader/Shader.ts
+  h_171a11afaf879a 84,88-90,97,100,104,162-163,169-172,174-182,223-224,231-237
+packages/core/src/shader/ShaderPass.ts
+  h_171a11afaf879a 142-154,156-157,181-183,196-197,422-437,443-516,518-565,571,574-587,589-592,594,596-597,625-643
+packages/core/src/shader/WorldShaderInstructions.ts
+  h_171a11afaf879a 24-27,29-31
+packages/design/src/shader-compiler/IPrecompiledShader.ts
+  h_171a11afaf879a 20-21
+packages/design/src/shader-compiler/IShaderProgramSource.ts
+  h_171a11afaf879a 44-47
+packages/design/src/shader-compiler/IWebGPUShaderProgram.ts
+  h_171a11afaf879a 4,67-70,77-80,94-95
+packages/runtime-editor/src/runtime-inspection/runtime-pick-occlusion.ts
+  h_171a11afaf879a 28-30,56-58,61
+packages/shader-compiler/rollup.config.js
+  h_171a11afaf879a 63-64,66-70
+packages/shader-compiler/src/ShaderCompilation.ts
+  h_171a11afaf879a 50-51,59-69,71,74,77,81,85,89,93,95-134
+packages/shader-compiler/src/ShaderCompiler.ts
+  h_171a11afaf879a 109
+packages/shader-compiler/src/ShaderPrecompiler.ts
+  h_171a11afaf879a 124-126
+packages/shader-compiler/src/codeGen/CodeGenVisitor.ts
+  h_171a11afaf879a 195-197
+packages/shader-compiler/src/codeGen/WGSLTypes.ts
+  h_171a11afaf879a 1,3-5,7-8,11-25,27,36,41-54,56-57,60-152,155-161,167-172,175-176,181-182,184,190-191,196,200-242,248,307,315,320-339,357,369,390,394,397-398,404,406,409,413,423,427,431,436,441,445,453,460-461,481-485,488-491
+packages/shader-compiler/src/codeGen/WGSLVisitor.ts
+  h_171a11afaf879a 1-37,41-42,47-48,50,54-56,58,62-75,77-85,88-92,95-179,181-199,201-203,205-311,314-329,331,333-394,396-410,412-453,457-605,609-663,667-755,757-770,773,776-782,785-800,803-934,936-945,949-1000,1002-1044,1047-1074,1076,1079-1080,1083-1084,1087-1089,1091-1095,1098-1110,1112-1120,1122-1139,1141,1144-1183,1185-1200,1202-1204,1206-1207,1209-1214,1216-1222,1224-1231,1233-1287,1289-1296,1299-1323,1325-1327,1329-1337,1339-1343,1345-1347,1349-1359,1361-1366,1369-1377,1380-1403,1405,1407-1486,1488-1489,1492-1495,1497,1500-1543,1545-1556,1558-1587,1590-1595,1598-1627,1629-1631,1635-1637,1639-1713,1715-1771,1774-1777,1779-1781,1783-1792,1794-1799,1801-1825,1828-1841,1843,1845-1848,1850,1853-1871,1873-1879,1881-1884,1886-1889,1891-1894,1896-1915,1918-1920,1922-1927,1929-1934,1936-1939,1941-1942,1945-1987,1991-1992,1995-2043,2045-2053,2055-2058,2060-2066,2069-2103,2105,2107,2109-2123,2125-2184,2186-2188,2190,2192-2210,2213,2216,2218,2223,2231,2235,2239,2245-2259,2261,2263,2267-2270,2273,2282-2285,2289-2290,2292-2348,2351-2356,2358-2409,2412-2430,2432-2438,2441,2443,2447-2455,2457,2460,2462,2465-2468,2471-2472,2475-2477,2481,2483-2484,2493,2498,2505,2511-2513,2528,2533,2535,2539-2551,2563-2568,2570,2573-2596,2598,2601-2634,2636-2651,2654-2655,2657,2659-2668,2672-2673,2675-2680,2682-2687,2689,2692-2697,2701,2703-2705,2707-2709,2713-2718,2730-2731,2740-2750,2756,2763,2769,2774,2780,2782,2815,2817,2819,2821,2823,2825,2827-2828,2833,2841,2850-2854,2861-2869,2888-2889,2899-2900,2904-2905,2909-2910,2914-2915,2921,2923-2924,2934-2935,2939,2944,2948-2952,2960,2963,2970-2971,2974-2977,2985-2986,2989,2991,2995-3038,3047,3056-3118,3121-3122,3127-3350,3352-3367,3370-3390,3394-3483,3487-3495,3498-3499,3502-3507,3510-3512,3516-3541
+packages/shader-compiler/src/webgpu.ts
+  h_171a11afaf879a 1-6,8-17,19-49,52,58-72,74-76,78-81,84,86,88-91,93,98
+packages/shader-compiler/src/webgpu/SamplerBindings.ts
+  h_171a11afaf879a 46-97,103-107,109,112,115,118-119,121-128,130,132-134,136-147
+packages/shader-compiler/src/webgpu/WGSLProgramLinker.ts
+  h_171a11afaf879a 2-15,18-388,391-624,633-658,660-694,696-704,706-1148,1150-1208,1211-1260,1263-1405,1407-1409,1411,1413-1414,1416,1420,1423-1424,1426,1428-1429,1433,1436,1442-1443
+packages/shader-parser/src/common/enums/ShaderStage.ts
+  h_171a11afaf879a 4-5
+packages/shader-parser/src/ir/ShaderBuiltinSemantic.ts
+  h_171a11afaf879a 2,10-15,18-19
+packages/shader-parser/src/ir/ShaderCapability.ts
+  h_171a11afaf879a 1-16
+packages/shader-parser/src/ir/index.ts
+  h_171a11afaf879a 4
+packages/shader-parser/src/lalr/Utils.ts
+  h_171a11afaf879a 46-48
+packages/shader-parser/src/parser/AST.ts
+  h_171a11afaf879a 15,352-357,361-367,370-376,398-403,415-418,810-815,931-936,945,978-979,986-987,998-1001,1012-1013,1019-1024,1050-1056,1059-1065,1285-1289,1337-1342,1375-1380,1398-1401,1412-1413,1415,1431-1436,1539-1545,1563-1568,1585-1590,1599-1604,1616-1621,1633-1638,1647-1649,1652-1657,1666-1668,1671-1676,1685-1687,1690-1695,1707-1712,1724-1729,1741-1746,1754-1756,1759-1764,1876,1888,2022-2025,2050-2062,2091
+packages/shader-parser/src/parser/ICodeGenVisitor.ts
+  h_171a11afaf879a 30-49
+packages/shader-parser/src/parser/ParserSemanticValidation.ts
+  h_171a11afaf879a 433-436
+packages/shader-parser/src/parser/builtin/variables.ts
+  h_171a11afaf879a 36-37,39,41-47,60,74-134
+packages/shader-parser/src/parser/types.ts
+  h_171a11afaf879a 36-37,45-47,56
+packages/terrain/src/data/seed-world/project.json
+  h_171a11afaf879a 235,241,247,253
+packages/terrain/src/data/seed-world/public/Shader/Billboard.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Water/WaterAotManifest.7f27d04eb35cabcdf76b36d59e7d21943d7914feb72996bfa638aa52ff498271.json
+  h_171a11afaf879a 23,32-33,35-36,84-85,87-88,131-132,134-135
+packages/terrain/src/data/seed-world/public/Shader/Water/lake-heightfield-high-hybrid-v2.5ae4b18fe98fba7f98ecbe4b117b1316b15a1c0e8e8ae9d9b1e80719f48ddaea.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Water/ocean-far-graded.7fd11f67a73e127626023c9864e9c17f1b80cf48084cdc463f379339e6fb5eb4.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Water/ocean-near-detailed.6c2c7ec73265f3cf2d6dfd6d1a7d091a7ec0be19620aed22cc569217165b0c1e.shaderc
+  h_171a11afaf879a 1
+packages/water/scripts/prepare-builtin-shaders.mjs
+  h_171a11afaf879a 21,23,25,27-30,36-50,53
+packages/water/src/water/native/assets/Water/Shaders/builtin/lake.json
+  h_171a11afaf879a 1
+packages/water/src/water/native/assets/Water/Shaders/builtin/ocean.json
+  h_171a11afaf879a 1
+packages/water/src/water/native/assets/Water/Shaders/builtin/river.json
+  h_171a11afaf879a 1
+packages/water/src/water/native/assets/Water/Shaders/lake-heightfield-high-hybrid-v2.shaderc
+  h_171a11afaf879a 1
+packages/water/src/water/native/assets/Water/Shaders/ocean-near-detailed.shaderc
+  h_171a11afaf879a 1
+packages/water/src/water/native/assets/conversion.json
+  h_171a11afaf879a 275,277-278,282,284-285
+packages/water/src/water/runtime/ocean/OceanWaterRuntimeController.ts
+  h_171a11afaf879a 251-260,268-275,277-278
+packages/world-planning/src/runtime/SeedWorldForwardGrass.ts
+  h_171a11afaf879a 93-132,135-138,140-142,144-151,153-161,163-314,316-318,320-322,324,326,329,556
+tests/package-consumer/WebGPUDistribution.test.ts
+  h_171a11afaf879a 61,63-64,66-72,74-75
+tests/src/rhi-webgpu/NativeRendering.test.ts
+  h_171a11afaf879a 2-3,21-22,24,306-309,747-754,756-772,787
+tests/src/rhi-webgpu/ShaderPreparation.test.ts
+  h_171a11afaf879a 18,23-40,65,71-93
+tests/src/shader-compiler/ShaderLabWGSLConformance.test.ts
+  h_171a11afaf879a 5,385-620
+tests/src/shader-compiler/WebGPUBackend.test.ts
+  h_171a11afaf879a 30,32,35,38-43,56,74-76,79-81,89-97,106-112,122,126-132,161-165,170,173,178-179,213-220,222-225,391-394,396,401-413
+world/scripts/export-webgpu-shaders.mjs
+  h_171a11afaf879a 25-75,79-107,109-138,141-157,162-171,173-201,203-210,212-214,281
+world/scripts/webgpu/README.md
+  h_171a11afaf879a 3,5-9
+world/tests/seed-world/ScreenSpaceReflection.spec.ts
+  h_171a11afaf879a 16,494-506
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "54b9c7f269372182c8cfc981b9e4f3fbfdcc3de5",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

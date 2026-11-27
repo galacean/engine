@@ -1,0 +1,41 @@
+packages/building/src/building/runtime/BuildingWallAtlas.ts
+  s_c72f930c19d1f3::t_33e5e42a62338d 107,180
+  s_c72f930c19d1f3::t_6e46f92608ff63 29-42,45-46,51-59,66,70-72,82,95,100-106,108,123-127,136-146,149-156,159-160,165-175,177-179,181-201,203-207,209-219,221-229,233-241,243,245-248,250,267-268
+  s_c72f930c19d1f3::t_57833dcb1bf1e8 109
+world/demos/building-lighting-study/MasonryFixtures.ts
+  s_c72f930c19d1f3::t_6fb412a22ace6d 114-141,157-158,166
+packages/building/src/building/parts/README.md
+  s_c72f930c19d1f3::t_513b5b8638159e 35,39
+world/demos/building-lighting-study/main.ts
+  s_c72f930c19d1f3::t_6fb412a22ace6d 70,85-86
+world/demos/building-lighting-study/README.md
+  s_c72f930c19d1f3::t_6c7f4b7ff7503a 19
+  s_c72f930c19d1f3::t_6fb412a22ace6d 9,17
+world/demos/building-lighting-study/index.html
+  s_c72f930c19d1f3::t_6fb412a22ace6d 22,51
+packages/building/src/building/runtime/BuildingWallBakeBinding.ts
+  s_c72f930c19d1f3::t_be32c5ee96bc9b 23,124-129,136-140,144-146,148-149,219-242,257-261
+world/demos/building-lighting-study/StudyScene.ts
+  s_c72f930c19d1f3::t_6fb412a22ace6d 28,108,152-157,281
+packages/building/src/building/runtime/BuildingUnitWallUVFeedback.ts
+  s_c72f930c19d1f3::t_513b5b8638159e 19-23
+  s_c72f930c19d1f3::t_e8196abf2ab4fb 97,115-117,122,124
+packages/building/src/building/runtime/BuildingWallBakeUV.ts
+  s_c72f930c19d1f3::t_a789b0d3d876ee 5,34,42,50
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "84d6e580a54dc7048723c82efff6119c752b30fa",
+  "prompts": {},
+  "sessions": {
+    "s_c72f930c19d1f3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21604-5ead-7042-b751-c18d1813c1a0",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

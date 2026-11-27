@@ -1,0 +1,48 @@
+.agents/skills/seed-world-flash-publish/SKILL.md
+  s_91525d4231a2fc::t_58fdf3a10cf669 37,84,116
+  s_91525d4231a2fc::t_23de003103be44 34
+world/demos/seed-world/README.md
+  s_91525d4231a2fc::t_58fdf3a10cf669 128
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectSource.ts
+  s_91525d4231a2fc::t_c6ddc563f35397 68-69,161,168-169,172,264-266
+  s_91525d4231a2fc::t_6fc3f41b30206e 267-268
+world/tests/seed-world-storage/SharedWorldStorage.spec.ts
+  s_91525d4231a2fc::t_26a0e50aca4157 1325
+world/demos/seed-world/src/planning/spatial/SpatialEditor.ts
+  s_91525d4231a2fc::t_c6ddc563f35397 11,27,631-632,636-644
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectStorage.ts
+  s_91525d4231a2fc::t_c6ddc563f35397 9,13
+world/scripts/publish-seed-world-flash-apps.mjs
+  s_91525d4231a2fc::t_5c4671cf25a54a 67-90,97-98,100-101,103-112,572,666,695,697-698,703,711,742,759,769
+  s_91525d4231a2fc::t_c0408aa8cbe391 707-710
+world/demos/seed-world/base.js
+  s_91525d4231a2fc::t_c6ddc563f35397 10,16-17,19
+world/tests/seed-world/SeedWorldFlashApps.spec.ts
+  s_91525d4231a2fc::t_26a0e50aca4157 30-37,71-73,81-84,87-90,93,96,130,138,140-144,179,186,201-202,206-209,221-222,224-244,274-281,349,353,361,370
+world/demos/seed-world/SeedWorldProject.ts
+  s_91525d4231a2fc::t_c6ddc563f35397 196,201,259,264
+world/demos/seed-world/storage/SeedWorldStorageHost.ts
+  s_91525d4231a2fc::t_c6ddc563f35397 17,25-27,31-32,34,47-48,50,61,96
+world/demos/seed-world/FLASH_APP_PUBLISH.md
+  s_91525d4231a2fc::t_58fdf3a10cf669 86,90,133,152
+world/package.json
+  s_91525d4231a2fc::t_d008e2955653d1 17
+world/tests/seed-world/PlanningProjectInputs.spec.ts
+  s_91525d4231a2fc::t_751a3e0057a330 9,12,47-65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "54138460284133a81408d8dcd19eda0462f1fad1",
+  "prompts": {},
+  "sessions": {
+    "s_91525d4231a2fc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21794-62ee-7fb1-a0fe-f3b57c82ca14",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "cptbtptpbcptdtptp <njktsmshh@gmail.com>"
+    }
+  }
+}

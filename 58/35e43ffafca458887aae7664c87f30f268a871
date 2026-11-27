@@ -1,0 +1,109 @@
+.agents/skills/seed-world-llm-rsi/references/metrics-and-audit.md
+  s_a61a893a3e253a::t_6b6e8a67479284 29
+.agents/skills/seed-world-local-debug/SKILL.md
+  s_a61a893a3e253a::t_667c6c50cff392 11-14,19
+  s_a61a893a3e253a::t_6b6e8a67479284 25-27,36
+  s_a61a893a3e253a::t_df78e4a6e12d89 30-31
+  s_a61a893a3e253a::t_221ec9b0f66758 3,8,15-17,42,47
+  s_a61a893a3e253a::t_cf001dd121dc86 18,34-35
+.agents/skills/seed-world-local-debug/agents/openai.yaml
+  s_a61a893a3e253a::t_221ec9b0f66758 3-4
+world/demos/seed-world/dev/scene-visual-intent/SceneVisualIntentTransport.ts
+  s_a61a893a3e253a::t_7b7b22c3b281fc 1-2,18-19,21,23,45-51,56,59-60,62-73,78-91
+  s_a61a893a3e253a::t_53fa51f976690d 52-55,74-77
+  s_a61a893a3e253a::t_0b33e91327fd96 22,61
+packages/ai-chat/src/ai-chat/README.md
+  s_a61a893a3e253a::t_4a61494409b135 502
+  s_a61a893a3e253a::t_a37becacc0dfb8 176,436-438,633,635
+  s_a61a893a3e253a::t_6b6e8a67479284 434
+packages/ai-chat/tests/AIChatInbox.spec.ts
+  s_a61a893a3e253a::t_e404063482c665 84,203,205,207-217,297,303,388,392,395,398-400
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/run-benchmark.spec.ts
+  s_a61a893a3e253a::t_6b6e8a67479284 11-16,18,28,105-109,134-135,210
+  s_a61a893a3e253a::t_a37becacc0dfb8 1,219
+  s_a61a893a3e253a::t_4a61494409b135 7,17
+.agents/skills/seed-world-local-debug/scripts/preview.py
+  s_a61a893a3e253a::t_221ec9b0f66758 48-49,54,72,74,97-98,106-107
+  s_a61a893a3e253a::t_6b6e8a67479284 78
+  s_a61a893a3e253a::t_7fb7af47bf3a22 73,75,83-86,90,99,101-102
+packages/ai-chat/src/ai-chat/ai-chat-session.ts
+  s_a61a893a3e253a::t_e404063482c665 120-121,155
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/asap-8082-transport.ts
+  s_a61a893a3e253a::t_a37becacc0dfb8 18,21,189,201
+packages/ai-chat/tests/context-compaction-loop.spec.ts
+  s_a61a893a3e253a::t_e404063482c665 283
+.agents/skills/seed-world-llm-rsi/references/harness-and-pitfalls.md
+  s_a61a893a3e253a::t_6b6e8a67479284 12
+  s_a61a893a3e253a::t_4a61494409b135 14
+world/demos/seed-world/dev/scene-visual-intent/README.md
+  s_a61a893a3e253a::t_a37becacc0dfb8 59
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/seed-world-headless-fixture.ts
+  s_a61a893a3e253a::t_4a61494409b135 2070
+.agents/skills/seed-world-local-debug/references/prepare.md
+  s_a61a893a3e253a::t_df78e4a6e12d89 33-43
+  s_a61a893a3e253a::t_221ec9b0f66758 5,13,15,31,99,101-102,104-109,111,113-115,117
+  s_a61a893a3e253a::t_6b6e8a67479284 11,23,91,96-97
+  s_a61a893a3e253a::t_667c6c50cff392 93-95
+  s_a61a893a3e253a::t_d25e6ea29f4b8f 116
+  s_a61a893a3e253a::t_b2f31a2703fe6a 32,92,112
+packages/ai-chat/src/ai-chat/agent-loop.ts
+  s_a61a893a3e253a::t_e404063482c665 142,151,1255,1308
+.agents/skills/seed-world-llm-rsi/resources/llm-benchmark/benchmark-cases.ts
+  s_a61a893a3e253a::t_4a61494409b135 207-212,219
+packages/ai-chat/src/ai-chat/asap-chat.ts
+  s_a61a893a3e253a::t_a37becacc0dfb8 145,662
+  s_a61a893a3e253a::t_d288b6d3093ddc 72,74-76,78-80,82-84,94-96,105,133,146,154,165-169,191-192,194-196,204,208,224,227,236,283,294-295,299-300,309,335,367,445,447-448,453,455-456,459,673,675
+world/demos/seed-world/assistant/SeedWorldModel.ts
+  s_a61a893a3e253a::t_a37becacc0dfb8 1-2
+world/demos/seed-world/FLASH_APP_PUBLISH.md
+  s_a61a893a3e253a::t_a37becacc0dfb8 156-158,175
+packages/ai-chat/src/ai-chat/ai-chat.ts
+  s_a61a893a3e253a::t_e404063482c665 206
+  s_a61a893a3e253a::t_4a61494409b135 271-272
+.agents/skills/seed-world-local-debug/references/start.md
+  s_a61a893a3e253a::t_d25e6ea29f4b8f 17,21-23,26,30-31,53
+  s_a61a893a3e253a::t_667c6c50cff392 94-95
+  s_a61a893a3e253a::t_221ec9b0f66758 5,49-52,54-62,71,78,81,86,88,92-93,134
+  s_a61a893a3e253a::t_6b6e8a67479284 10,98,105,135-136
+  s_a61a893a3e253a::t_2c036ea4f1be13 12,15,27-29,73,76-77
+.agents/skills/seed-world-llm-rsi/SKILL.md
+  s_a61a893a3e253a::t_4a61494409b135 30
+world/demos/seed-world/README.md
+  s_a61a893a3e253a::t_a37becacc0dfb8 215-216,219
+world/tests/seed-world/AIChatSession.spec.ts
+  s_a61a893a3e253a::t_e404063482c665 246-247,268,270,275,284,286-289,291-292,319,342
+.agents/skills/seed-world-local-debug/scripts/serve-shell.mjs
+  s_a61a893a3e253a::t_64e39c09a23992 1-86
+packages/ai-chat/src/ai-chat/session-data.ts
+  s_a61a893a3e253a::t_2caa07b3dfb5fd 78
+packages/ai-chat/tests/SessionRecovery.spec.ts
+  s_a61a893a3e253a::t_f2332116d3ceb0 17-18,30,32
+packages/ai-chat/tests/context-compaction-transport.spec.ts
+  s_a61a893a3e253a::t_d7aef584a7a301 1,8,13,23,33,35,41-42,46-47,50,54-55,58
+packages/ai-chat/tests/context-metrics.spec.ts
+  s_a61a893a3e253a::t_851b4b40f4aa87 155,157,159
+packages/ai-chat/tests/model-retry-transport.spec.ts
+  s_a61a893a3e253a::t_2e89db3979aef4 1,12,18,21-22,31,34,51-52,63,82,84,109,124-127,146,159-160,171,183,206-207,209,222,228,232-236,238,255,259,263,284,304,307-314
+packages/ai-chat/tests/reasoning-continuation.spec.ts
+  s_a61a893a3e253a::t_f10c7769432fa1 1,16,19,31,35,41,43,69,78,84,86-87,89-90,94
+packages/ai-chat/tests/seed-world-response.ts
+  s_a61a893a3e253a::t_43d9bea7df04aa 1-6
+world/tests/seed-world/SceneVisualIntentTransport.spec.ts
+  s_a61a893a3e253a::t_b0b1181a649ad8 1-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5835e43ffafca458887aae7664c87f30f268a871",
+  "prompts": {},
+  "sessions": {
+    "s_a61a893a3e253a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20875-19df-7c71-be76-42bd2313456c",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

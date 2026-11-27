@@ -1,0 +1,20 @@
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 100-104,712,1017-1053,1055,1078,1080,1083,1089,1091-1093,1116-1121,2806-2808
+world/demos/seed-world/src/SeedWorldProjectTextBundle.ts
+  h_ddbf152d31b140 8-9,12,23-28,33-36,46-53,55-107,111-112,114,119,121
+world/tests/seed-world/SeedWorldStartupShaderWarmup.spec.ts
+  h_ddbf152d31b140 1919-1924
+world/tests/seed-world/SeedWorldTemplateBundles.spec.ts
+  h_ddbf152d31b140 606-777
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3ba2b8012293b4e21e2bc65145c9e3536513fa3c",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

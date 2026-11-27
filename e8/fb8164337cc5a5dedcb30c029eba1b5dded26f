@@ -1,0 +1,42 @@
+packages/core/src/physics/Rigidbody.ts
+  s_3754ebc6b108f2::t_e2f2a8b881cf87 964-971,973-974,993
+  s_3754ebc6b108f2::t_a81da2ddcf83f5 955-959,1000-1001
+packages/core/src/Script.ts
+  s_3754ebc6b108f2::t_50cabdd921208d 32,196,233,239-240,266-271,275-291,312-318
+  s_3754ebc6b108f2::t_999162771552c7 242
+packages/design/src/physics/IPhysicsScene.ts
+  s_3754ebc6b108f2::t_50cabdd921208d 93-94,96
+  s_3754ebc6b108f2::t_bcf8785a80ff68 3,8-15,78-83,137-138
+  s_3754ebc6b108f2::t_609dffe27706c5 140
+packages/core/src/physics/PhysicsScene.ts
+  s_3754ebc6b108f2::t_e2f2a8b881cf87 432-441,849-851,854-857,915,943,946,1042-1043
+  s_3754ebc6b108f2::t_50cabdd921208d 66-68,70,74-82,245-246,860-861,1000-1005,1010,1019,1050,1054-1057,1060,1062-1074,1076-1079,1081-1094,1098-1100
+  s_3754ebc6b108f2::t_4abf2f01a28b0d 83-84,1095-1096
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_3754ebc6b108f2::t_f3dd48ae5af388 5,282,284
+  s_3754ebc6b108f2::t_e2f2a8b881cf87 102,134-139,281,285-287,289,291-292,377-378,515,786
+  s_3754ebc6b108f2::t_50cabdd921208d 109,165,175,178,183,307,310-311,313-315,318-322,327,650-651,655,663-671,675-676,783-785
+  s_3754ebc6b108f2::t_036889fdbeb464 97-101,283,288,290,293
+packages/design/src/physics/IPhysicsEvents.ts
+  s_3754ebc6b108f2::t_713a6e41a78393 19,22-24
+tests/src/core/physics/PhysicsScene.test.ts
+  s_3754ebc6b108f2::t_1d6487542882ec 18,158-222,601-603,1037-1039,1048,1074-1078,1080-1089,1091,2073-2074,2076-2090,2092-2093,2096,2098,2101,2103-2104,2108,2110-2122,2927-2930,2937,2943-2944,2946,2958
+tests/src/core/physics/Rigidbody.test.ts
+  s_3754ebc6b108f2::t_1b961ee8ca4b3e 2619,2623,2627,2631,2636,2638,2653-2678,2680,2682-2684,2686-2687,2689-2690
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e8fb8164337cc5a5dedcb30c029eba1b5dded26f",
+  "prompts": {},
+  "sessions": {
+    "s_3754ebc6b108f2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a218cd-a576-7eb3-aadd-5c308d16914c",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

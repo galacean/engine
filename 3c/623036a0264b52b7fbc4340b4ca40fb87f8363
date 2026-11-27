@@ -1,0 +1,39 @@
+packages/project/src/rendering/shaders/SeedWorldLiquidGlass.shader
+  s_c72f930c19d1f3::t_24614cdcb7660e 284-289
+world/demos/seed-world/assistant/SeedWorldChatPanel.ts
+  s_c72f930c19d1f3::t_a006d8d549212e 83,85-86,393,402,1272,1274,1735,2169-2171,2185,2203-2205,2207-2209,2225,2418-2419,2430-2433,2435-2450,2463,2474,2561,2564,2611,2624
+world/demos/seed-world/assistant/SeedWorldVoiceHudShaders.ts
+  s_c72f930c19d1f3::t_db66e68d11d4de 12,25,31,36,40-41
+world/demos/seed-world/assistant/shaders/SeedWorldVoiceOrb.shader
+  s_c72f930c19d1f3::t_afaf358a364bd1 1-2,7-13,17,24-26,28-30,32,36-38,40,42,48,54-56,61,66-70,74-147,150-151,153,155,157,159,162,164-165,169-185,190-192,194-195,201-203,209,211-212,215,218-251,254-256,259-260,262-330,333-340,342-343,349-352,355-361,366-368,371-384
+world/demos/seed-world/src/SeedWorldCameraButton.ts
+  s_c72f930c19d1f3::t_b8f8c245f49dda 127,135,139,163,171-172,183-185,193-194
+world/demos/seed-world/src/SeedWorldPhotoWorkspace.ts
+  s_c72f930c19d1f3::t_bf0af05b118984 761-774,776-777,780-781,786-787,822
+world/migration/files.json
+  s_c72f930c19d1f3::t_3d8c0f95788f05 1582
+world/tests/seed-world-browser/MarkupButton.test.ts
+  s_c72f930c19d1f3::t_a2e35bc4eb9d30 7,9,17,25,27,35-36,38,43,47
+world/tests/seed-world-browser/SeedWorldPerfRegressions.test.ts
+  s_c72f930c19d1f3::t_c391e83e33ff45 7,9,13,20-24,554-570,584,586,589,626-627,653
+world/tests/seed-world-browser/VoiceHudGlass.test.ts
+  s_c72f930c19d1f3::t_bb3d70ab94828c 117,120
+world/tests/seed-world/SeedWorldVoiceHudController.spec.ts
+  s_c72f930c19d1f3::t_23160ad475a0cf 685,892,985,995,1019,1031
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3c623036a0264b52b7fbc4340b4ca40fb87f8363",
+  "prompts": {},
+  "sessions": {
+    "s_c72f930c19d1f3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21604-5ead-7042-b751-c18d1813c1a0",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

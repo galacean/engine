@@ -1,0 +1,19 @@
+packages/loader/src/gltf/parser/GLTFAnimationParser.ts
+  s_4cf4bd323b0d5f::t_c988eb696a31ef 87-89,92,94-95,100,105,109-128
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "394c4014f92f363171df5f65f6038fc73d44b404",
+  "prompts": {},
+  "sessions": {
+    "s_4cf4bd323b0d5f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21723-9665-7ee3-9bfe-c96d76924eae",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
