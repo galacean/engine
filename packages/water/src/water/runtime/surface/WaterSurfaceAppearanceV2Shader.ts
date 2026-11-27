@@ -125,6 +125,9 @@ export function createWaterSurfaceAppearanceV2UniformDeclarations(
   const depth = appearance.depthResponse;
   return renderWaterShaderTemplate(waterSurfaceAppearanceV2UniformsShaderTemplate, {
     HAS_CAUSTICS: Number(!!appearance.caustics),
+    HAS_ANIMATED_VORONOI_PATTERN: Number(
+      appearance.boundaryEffects.some((effect) => effect.pattern?.model === WaterPatternModelV2.AnimatedVoronoiF1)
+    ),
     HAS_MACRO_NORMAL_STRENGTH: Number(appearance.macroNormalStrength !== undefined),
     HAS_DIRECTIONAL_HIGHLIGHT: Number(appearance.directionalHighlight !== undefined),
     DETAIL_LAYER_COUNT: appearance.detailLayers.length,

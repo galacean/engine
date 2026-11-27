@@ -12,6 +12,8 @@ import {
   ShaderMacro,
   ShaderMacroCollection,
   Texture2D,
+  TextureFormat,
+  TextureWrapMode,
   Vector3,
   VertexAttribute,
   VertexElement,
@@ -64,6 +66,13 @@ import {
 import { createWaterSurfaceAppearanceV2NormalStatements } from "../src/water/runtime/surface/WaterSurfaceAppearanceV2Shader";
 import { createHeightfieldWaterShaderSource } from "../src/water/runtime/heightfield/HeightfieldWaterMaterialFactory";
 import { applyWaterPatternUniformsV2, bindWaterSurfaceAppearanceV2Clock, updateWaterSurfaceAppearanceV2Clock } from "../src/water/runtime/surface/WaterSurfaceAppearanceV2UniformBinding";
+import {
+  WATER_ANIMATED_VORONOI_CLOCK_PERIOD,
+  WATER_ANIMATED_VORONOI_TEXTURE_PROPERTY,
+  WATER_ANIMATED_VORONOI_TEXTURE_SIZE,
+  generatePeriodicVoronoiF1Pixels,
+  getSharedWaterAnimatedVoronoiTexture
+} from "../src/water/runtime/surface/WaterAnimatedVoronoiTexture";
 import { createWaterShaderModule, materializeWaterShaderModuleSource } from "../src/water/runtime/material/WaterShaderModule";
 import { withScopedWaterShaderAssemblyRegistry } from "../src/water/runtime/material/WaterShaderLibrary";
 import { LAKE_COMPILED_SURFACE_APPEARANCE_V2 } from "../src/water/presets/lake/index";
@@ -710,243 +719,58 @@ describe("Water P0 + P1 performance optimizations", () => {
     }
   });
 
-  it("matches brute-force Voronoi SignedBoundaryAddSaturate across >=10,000 samples (0.000000 error) and >85% 1-cell early exit at depth >= 2m", () => {
-    const f = Math.fround;
-    const fract = (x: number) => f(x - Math.floor(x));
-    const clamp = (x: number, lo: number, hi: number) => f(Math.min(hi, Math.max(lo, x)));
-
-    const candidate = (cellX: number, cellY: number, localX: number, localY: number, offX: number, offY: number, time: number) => {
-      const cx = f(cellX + offX);
-      const cy = f(cellY + offY);
-      const p0 = f(f(cx * f(127.1)) + f(cy * f(311.7)));
-      const p1 = f(f(cx * f(269.5)) + f(cy * f(183.3)));
-      const rx = fract(f(f(Math.sin(p0)) * f(43758.5453)));
-      const ry = fract(f(f(Math.sin(p1)) * f(43758.5453)));
-      const ax = f(f(f(Math.sin(f(time + f(rx * f(6.2831))))) * f(0.5)) + f(0.5));
-      const ay = f(f(f(Math.sin(f(time + f(ry * f(6.2831))))) * f(0.5)) + f(0.5));
-      const dx = f(f(localX - offX) - ax);
-      const dy = f(f(localY - offY) - ay);
-      return f(f(dx * dx) + f(dy * dy));
-    };
-
-    const bruteVoronoiOctave = (px: number, py: number, time: number) => {
-      const cellX = Math.floor(px);
-      const cellY = Math.floor(py);
-      const localX = fract(px);
-      const localY = fract(py);
-      let f1 = f(128.0);
-      for (let oy = -1; oy <= 1; oy++) {
-        for (let ox = -1; ox <= 1; ox++) {
-          f1 = Math.min(f1, candidate(cellX, cellY, localX, localY, ox, oy, time));
-        }
-      }
-      return clamp(f(f(0.707) * f(Math.sqrt(f1))), f(0), f(1));
-    };
-
-    const ORTHO_OFFSETS = [[-1, 0], [1, 0], [0, -1], [0, 1]] as const;
-    const DIAG_OFFSETS = [[-1, -1], [1, -1], [-1, 1], [1, 1]] as const;
-
-    const upperBoundedVoronoiOctave = (px: number, py: number, time: number, f1Max: number, stats: { cells: number; oneCellExits: number }) => {
-      const cellX = Math.floor(px);
-      const cellY = Math.floor(py);
-      const localX = fract(px);
-      const localY = fract(py);
-      stats.cells++;
-      let f1 = candidate(cellX, cellY, localX, localY, 0, 0, time);
-      if (f1 <= f1Max) {
-        stats.oneCellExits++;
-        return f(0);
-      }
-      for (const [ox, oy] of ORTHO_OFFSETS) {
-        stats.cells++;
-        f1 = Math.min(f1, candidate(cellX, cellY, localX, localY, ox, oy, time));
-      }
-      if (f1 <= f1Max) return f(0);
-      for (const [ox, oy] of DIAG_OFFSETS) {
-        stats.cells++;
-        f1 = Math.min(f1, candidate(cellX, cellY, localX, localY, ox, oy, time));
-      }
-      return clamp(f(f(0.707) * f(Math.sqrt(f1))), f(0), f(1));
-    };
-
-    const evalBruteFbm = (wx: number, wz: number, time: number, worldScale: number, timeRate: number, weights: readonly number[], lacunarity: number) => {
-      const t = f(time * timeRate);
-      let sum = f(0);
-      let wSum = f(0);
-      let scale = f(worldScale);
-      for (let i = 0; i < weights.length; i++) {
-        const w = f(weights[i]!);
-        wSum = f(wSum + w);
-        sum = f(sum + f(bruteVoronoiOctave(f(wx * scale), f(wz * scale), t) * w));
-        scale = f(scale * f(lacunarity));
-      }
-      return clamp(f(sum / wSum), f(0), f(1));
-    };
-
-    const evalBoundedFbm = (
-      wx: number,
-      wz: number,
-      time: number,
-      worldScale: number,
-      timeRate: number,
-      weights: readonly number[],
-      lacunarity: number,
-      pMax: number,
-      stats: { cells: number; oneCellExits: number }
-    ) => {
-      if (pMax >= 1) return f(0);
-      const eps = f(0.00001);
-      const t = f(time * timeRate);
-      let wSum = f(0);
-      for (let i = 0; i < weights.length; i++) wSum = f(wSum + f(weights[i]!));
-      const targetSum = f(f(pMax) * wSum);
-      let weightedPattern = f(0);
-      let scale = f(worldScale);
-      for (let i = 0; i < weights.length; i++) {
-        const w = f(weights[i]!);
-        let rest = f(0);
-        for (let j = i + 1; j < weights.length; j++) rest = f(rest + f(weights[j]!));
-        const vMax = w > 0 ? f(f(f(f(targetSum - weightedPattern) - rest) / w) - eps) : f(-1);
-        if (vMax >= 1) return f(0);
-        const ratio = f(vMax / f(0.707));
-        const f1Max = vMax > 0 ? f(ratio * ratio) : f(-1);
-        const v = w > 0 ? upperBoundedVoronoiOctave(f(wx * scale), f(wz * scale), t, f1Max, stats) : f(0);
-        if (vMax >= 0 && v <= vMax) return f(0);
-        weightedPattern = f(weightedPattern + f(w * v));
-        scale = f(scale * f(lacunarity));
-      }
-      return clamp(f(weightedPattern / wSum), f(0), f(1));
-    };
-
-    const bruteMask = (
-      rawNorm: number,
-      wx: number,
-      wz: number,
-      time: number,
-      worldScale: number,
-      timeRate: number,
-      weights: readonly number[],
-      lacunarity: number,
-      responseModel: "linear" | "power",
-      invertPattern: boolean,
-      exponent: number,
-      opacity: number
-    ) => {
-      const p = evalBruteFbm(wx, wz, time, worldScale, timeRate, weights, lacunarity);
-      const base = invertPattern ? f(f(1) - p) : p;
-      const response =
-        responseModel === "linear"
-          ? base
-          : f(Math.pow(Math.max(Math.abs(base), f(0.0001)), f(exponent)));
-      return f(clamp(f(f(1) - f(rawNorm) + response), f(0), f(1)) * f(opacity));
-    };
-
-    const optMask = (
-      rawNorm: number,
-      wx: number,
-      wz: number,
-      time: number,
-      worldScale: number,
-      timeRate: number,
-      weights: readonly number[],
-      lacunarity: number,
-      responseModel: "linear" | "power",
-      invertPattern: boolean,
-      exponent: number,
-      opacity: number,
-      stats: { cells: number; oneCellExits: number }
-    ) => {
-      const rn = f(rawNorm);
-      const op = f(opacity);
-      const exp = f(exponent);
-      if (responseModel === "linear") {
-        if (rn >= 2) return f(0);
-        if (rn <= 0) return op;
-        const p =
-          !invertPattern && rn > 1
-            ? evalBoundedFbm(wx, wz, time, worldScale, timeRate, weights, lacunarity, f(rn - f(1)), stats)
-            : evalBoundedFbm(wx, wz, time, worldScale, timeRate, weights, lacunarity, f(-1), stats);
-        const resp = invertPattern ? f(f(1) - p) : p;
-        return f(clamp(f(f(1) - rn + resp), f(0), f(1)) * op);
-      }
-      if (exp === 0) return f(clamp(f(f(2) - rn), f(0), f(1)) * op);
-      if (exp < 0) {
-        if (rn <= 1) return op;
-        let pMax = f(-1);
-        if (rn > 2) {
-          const baseReq = f(Math.pow(f(rn - f(1)), f(f(1) / exp)));
-          if (baseReq <= f(0.0001)) return f(0);
-          if (invertPattern) pMax = f(f(1) - baseReq);
-        }
-        const p = evalBoundedFbm(wx, wz, time, worldScale, timeRate, weights, lacunarity, pMax, stats);
-        const base = invertPattern ? f(f(1) - p) : p;
-        const resp = f(Math.pow(Math.max(Math.abs(base), f(0.0001)), exp));
-        return f(clamp(f(f(1) - rn + resp), f(0), f(1)) * op);
-      }
-      if (rn >= 2) return f(0);
-      if (rn <= 0) return op;
-      let pMax = f(-1);
-      if (!invertPattern && rn > 1) {
-        const baseMax = f(Math.pow(f(rn - f(1)), f(f(1) / exp)));
-        if (baseMax > f(0.0001)) pMax = baseMax;
-      }
-      const p = evalBoundedFbm(wx, wz, time, worldScale, timeRate, weights, lacunarity, pMax, stats);
-      const base = invertPattern ? f(f(1) - p) : p;
-      const resp = f(Math.pow(Math.max(Math.abs(base), f(0.0001)), exp));
-      return f(clamp(f(f(1) - rn + resp), f(0), f(1)) * op);
-    };
-
-    const combinations = [
-      { responseModel: "linear" as const, invertPattern: false, exponent: 1 },
-      { responseModel: "linear" as const, invertPattern: true, exponent: 1 },
-      { responseModel: "power" as const, invertPattern: false, exponent: -1.5 },
-      { responseModel: "power" as const, invertPattern: true, exponent: -1.5 },
-      { responseModel: "power" as const, invertPattern: false, exponent: 1.5 },
-      { responseModel: "power" as const, invertPattern: true, exponent: 1.5 },
-      { responseModel: "power" as const, invertPattern: true, exponent: 0 }
-    ];
-    const octaveConfigs = [[1], [0.6, 0.4], [0.5, 0.25, 0.125]];
-    const depths = [0.0, 0.05, 0.1791, 0.18, 0.25, 0.35, 0.5, 1.0, 1.5, 2.0, 3.0, 5.0, 10.0, 20.0];
-
-    let sampleCount = 0;
-    let maxError = 0;
-    const stats = { cells: 0, oneCellExits: 0 };
-
-    for (const combo of combinations) {
-      for (const weights of octaveConfigs) {
-        for (const depth of depths) {
-          for (let i = 0; i < 40; i++) {
-            const wx = (i * 1.37 - 20.5) * 0.73;
-            const wz = ((i * 7) % 19 - 9) * 0.61;
-            const time = (i % 5) * 0.87;
-            const rawNorm = depth / 0.1791;
-            const expected = bruteMask(rawNorm, wx, wz, time, 2.5, 1.0, weights, 2.0, combo.responseModel, combo.invertPattern, combo.exponent, 0.453);
-            const actual = optMask(rawNorm, wx, wz, time, 2.5, 1.0, weights, 2.0, combo.responseModel, combo.invertPattern, combo.exponent, 0.453, stats);
-            maxError = Math.max(maxError, Math.abs(actual - expected));
-            sampleCount++;
-          }
-        }
-      }
+  it("bakes a tileable 128x128 R8 Voronoi F1 texture, shares it per Engine, and wraps animated clock phase seamlessly at 64s", async () => {
+    const size = WATER_ANIMATED_VORONOI_TEXTURE_SIZE;
+    const pixels = generatePeriodicVoronoiF1Pixels();
+    expect(pixels.length).toBe(size * size);
+    let minVal = 255;
+    let maxVal = 0;
+    for (let i = 0; i < pixels.length; i++) {
+      if (pixels[i] < minVal) minVal = pixels[i];
+      if (pixels[i] > maxVal) maxVal = pixels[i];
     }
+    expect(minVal).toBeLessThan(20);
+    expect(maxVal).toBeGreaterThan(130);
 
-    expect(sampleCount).toBeGreaterThanOrEqual(10_000);
-    expect(maxError).toBe(0);
-
-    // Verify >85% 1-cell early exit at Lake depth >= 2m (3 octaves, invertPattern = true, exp = -1.5).
-    const lakeStats = { cells: 0, oneCellExits: 0 };
-    const lakeSamples = 1200;
-    for (let i = 0; i < lakeSamples; i++) {
-      const depth = 2.0 + (i % 9) * 0.5;
-      const wx = ((i * 37) % 251) * 0.19 - 24;
-      const wz = ((i * 53) % 257) * 0.17 - 21;
-      const time = (i % 13) * 0.43;
-      const rawNorm = depth / 0.1791;
-      const expected = bruteMask(rawNorm, wx, wz, time, 2.5, 1.0, [0.5, 0.25, 0.125], 2.0, "power", true, -1.5, 0.453);
-      const actual = optMask(rawNorm, wx, wz, time, 2.5, 1.0, [0.5, 0.25, 0.125], 2.0, "power", true, -1.5, 0.453, lakeStats);
-      expect(actual).toBe(expected);
+    // Periodic tiling continuity: opposing borders must transition smoothly without a seam jump.
+    let maxHorizSeamDiff = 0;
+    let maxVertSeamDiff = 0;
+    for (let i = 0; i < size; i++) {
+      maxHorizSeamDiff = Math.max(maxHorizSeamDiff, Math.abs(pixels[i * size] - pixels[i * size + (size - 1)]));
+      maxVertSeamDiff = Math.max(maxVertSeamDiff, Math.abs(pixels[i] - pixels[(size - 1) * size + i]));
     }
-    const oneCellRate = lakeStats.oneCellExits / lakeSamples;
-    expect(oneCellRate).toBeGreaterThan(0.85);
+    expect(maxHorizSeamDiff).toBeLessThan(28);
+    expect(maxVertSeamDiff).toBeLessThan(28);
+
+    const engine = await WebGLEngine.create({
+      canvas: document.createElement("canvas"),
+      shaderCompiler: new ShaderCompiler()
+    });
+    const material = new Material(engine, Shader.find("Unlit")!);
+    try {
+      const texA = getSharedWaterAnimatedVoronoiTexture(engine);
+      const texB = getSharedWaterAnimatedVoronoiTexture(engine);
+      expect(texA).toBe(texB);
+      expect(texA.width).toBe(size);
+      expect(texA.height).toBe(size);
+      expect(texA.format).toBe(TextureFormat.R8_UNorm);
+      expect(texA.wrapModeU).toBe(TextureWrapMode.Repeat);
+      expect(texA.wrapModeV).toBe(TextureWrapMode.Repeat);
+      expect(texA.mipmapCount).toBeGreaterThan(1);
+
+      material.shaderData.setFloat("material_SurfaceTimeOverride", -1);
+      bindWaterSurfaceAppearanceV2Clock(material, LAKE_COMPILED_SURFACE_APPEARANCE_V2, false);
+      expect(material.shaderData.getTexture(WATER_ANIMATED_VORONOI_TEXTURE_PROPERTY)).toBe(texA);
+
+      updateWaterSurfaceAppearanceV2Clock(material, 1.5);
+      const phaseAt1_5 = material.shaderData.getFloat("material_AppearanceV2Boundary1PatternTimeRate");
+      updateWaterSurfaceAppearanceV2Clock(material, 1.5 + WATER_ANIMATED_VORONOI_CLOCK_PERIOD);
+      const phaseWrapped = material.shaderData.getFloat("material_AppearanceV2Boundary1PatternTimeRate");
+      expect(phaseWrapped).toBeCloseTo(phaseAt1_5, 6);
+    } finally {
+      material.destroy(true);
+      engine.destroy();
+    }
   });
 
   it("verifies P0-2 and P0-3 shader optimizations across shipped builtin shaders and Seed World Water AOT artifacts", async () => {
@@ -960,8 +784,9 @@ describe("Water P0 + P1 performance optimizations", () => {
       expect(source, `${label}: NaN-safe timeRate guard`).toContain("!(timeRate > 0.0)");
       expect(source, `${label}: NaN-safe lacunarity guard`).toContain("!(lacunarity > 0.0)");
       expect(source, `${label}: Voronoi outer gate`).toContain("appearanceBoundaryGate1");
-      expect(source, `${label}: 1-cell upper-bounded Voronoi`).toContain("evaluateWaterAnimatedVoronoiF1UpperBounded");
-      expect(source, `${label}: center-first cell search`).toContain("waterAnimatedVoronoiF1UpperBounded");
+      expect(source, `${label}: baked 128x128 Voronoi texture`).toContain("material_AppearanceV2VoronoiTexture");
+      expect(source, `${label}: no procedural 3-octave Voronoi hash`).not.toContain("waterAnimatedVoronoiF1Hash");
+      expect(source, `${label}: no procedural 9-cell candidate search`).not.toContain("waterAnimatedVoronoiF1Candidate");
       expect(source, `${label}: zero-offset depth reuse`).toContain("refractionDepthDeltaUv");
       expect(source, `${label}: full-SSR cubemap skip`).toContain("sampleScreenSpaceReflectionRaw");
       expect(source, `${label}: full-SSR validity gate`).toContain("ssrCompositeScale < 0.9999");
@@ -1036,7 +861,8 @@ describe("Water P0 + P1 performance optimizations", () => {
       )
     );
     expect(lakeShaderc).not.toContain("waterAnimatedVoronoiF1IsFinite");
-    expect(lakeShaderc).toContain("evaluateWaterAnimatedVoronoiF1UpperBounded");
+    expect(lakeShaderc).toContain("material_AppearanceV2VoronoiTexture");
+    expect(lakeShaderc).not.toContain("waterAnimatedVoronoiF1Hash");
     expect(lakeShaderc).toContain("centeredOpaqueSampled");
     expect(lakeShaderc).toContain("sampleScreenSpaceReflectionRaw");
     expect(lakeShaderc).not.toContain("rainRippleVisibility");
@@ -1750,7 +1576,9 @@ describe("Water P0 + P1 performance optimizations", () => {
       expect(oceanSteady.isValid).toBe(true);
       expect(oceanWithSecondary.isValid).toBe(true);
 
-      // Dry + no secondary cubemap saves 2 active fragment texture units on Lake (rain atlas + secondary cubemap).
+      // Dry + no secondary cubemap saves 2 active fragment texture units on Lake (rain atlas + secondary cubemap),
+      // and stays well within WebGL2's 16 guaranteed fragment texture units even with the baked 128x128 Voronoi LUT.
+      expect(lakeDrySteady.activeTextureCount).toBeLessThanOrEqual(14);
       expect(lakeWetWithSecondary.activeTextureCount - lakeDrySteady.activeTextureCount).toBe(2);
       // No secondary cubemap saves 1 active fragment texture unit on Ocean.
       expect(oceanWithSecondary.activeTextureCount - oceanSteady.activeTextureCount).toBe(1);

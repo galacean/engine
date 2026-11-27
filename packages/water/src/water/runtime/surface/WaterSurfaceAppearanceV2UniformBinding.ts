@@ -18,6 +18,11 @@ import {
   getWaterSurfaceAppearanceV2BoundaryProperty,
   getWaterSurfaceAppearanceV2DepthProperty
 } from "./WaterSurfaceAppearanceV2Shader";
+import {
+  WATER_ANIMATED_VORONOI_CLOCK_PERIOD,
+  WATER_ANIMATED_VORONOI_TEXTURE_PROPERTY,
+  getSharedWaterAnimatedVoronoiTexture
+} from "./WaterAnimatedVoronoiTexture";
 
 export interface WaterSurfaceDepthResponseShaderData {
   setFloat(propertyName: string, value: number): void;
@@ -218,7 +223,10 @@ export function bindWaterSurfaceAppearanceV2Clock(
             {
               property: getWaterSurfaceAppearanceV2BoundaryProperty(index, "patternTimeRate"),
               rate: sanitizeFiniteNumber(effect.pattern.timeRate, 0),
-              period: effect.pattern.model === WaterPatternModelV2.AnimatedVoronoiF1 ? 2 * Math.PI : 289
+              period:
+                effect.pattern.model === WaterPatternModelV2.AnimatedVoronoiF1
+                  ? WATER_ANIMATED_VORONOI_CLOCK_PERIOD
+                  : 289
             }
           ]
         : []
@@ -227,6 +235,12 @@ export function bindWaterSurfaceAppearanceV2Clock(
     lastTime: Number.NaN,
     lastSpeed: Number.NaN
   });
+  if (appearance.boundaryEffects.some((effect) => effect.pattern?.model === WaterPatternModelV2.AnimatedVoronoiF1)) {
+    material.shaderData.setTexture(
+      WATER_ANIMATED_VORONOI_TEXTURE_PROPERTY,
+      getSharedWaterAnimatedVoronoiTexture(material.engine)
+    );
+  }
   updateWaterSurfaceAppearanceV2Clock(material, undefined, true);
 }
 

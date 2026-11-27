@@ -4,8 +4,8 @@ import waterAnimatedVoronoiF1ShaderTemplate from "../../shaders/library/surface/
 import { renderWaterShaderTemplate } from "../material/WaterShaderTemplate";
 
 /**
- * Generates one fixed-cost animated F1 module. The 3x3 cell search and active
- * octaves are unrolled so authoring cannot introduce data-dependent loops.
+ * Generates one fixed-cost animated F1 module backed by the shared 128x128 R8
+ * periodic Voronoi texture using dual-speed UV blending (2 texture taps, 0 sin/sqrt ALU).
  */
 export function createWaterAnimatedVoronoiF1ShaderFunctions(octaveCount: WaterContactFoamOctaveCount): string {
   return renderWaterShaderTemplate(waterAnimatedVoronoiF1ShaderTemplate, {

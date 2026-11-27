@@ -48,13 +48,7 @@
 #if {{PATTERN_MODEL}} == 0
             float appearanceBoundaryPattern{{INDEX}} = evaluateWaterContactFoamVoronoi( input.worldPosition.xz, {{PATTERN_TIME}}, {{PATTERN_WORLD_SCALE}}, {{PATTERN_TIME_RATE}}, {{PATTERN_WEIGHTS}}, {{PATTERN_LACUNARITY}} );
 #elif {{PATTERN_MODEL}} == 1
-#if {{INVERT_PATTERN}} == 0
-            float appearanceBoundaryPattern{{INDEX}} = appearanceBoundaryRawNorm{{INDEX}} > 1.0
-              ? evaluateWaterAnimatedVoronoiF1UpperBounded( input.worldPosition.xz, {{PATTERN_TIME}}, {{PATTERN_WORLD_SCALE}}, {{PATTERN_TIME_RATE}}, {{PATTERN_WEIGHTS}}, {{PATTERN_LACUNARITY}}, appearanceBoundaryRawNorm{{INDEX}} - 1.0 )
-              : evaluateWaterAnimatedVoronoiF1( input.worldPosition.xz, {{PATTERN_TIME}}, {{PATTERN_WORLD_SCALE}}, {{PATTERN_TIME_RATE}}, {{PATTERN_WEIGHTS}}, {{PATTERN_LACUNARITY}} );
-#else
             float appearanceBoundaryPattern{{INDEX}} = evaluateWaterAnimatedVoronoiF1( input.worldPosition.xz, {{PATTERN_TIME}}, {{PATTERN_WORLD_SCALE}}, {{PATTERN_TIME_RATE}}, {{PATTERN_WEIGHTS}}, {{PATTERN_LACUNARITY}} );
-#endif
 #else
             float appearanceBoundaryPattern{{INDEX}} = evaluateWaterShorelineBreakerBand( appearanceBoundaryField{{INDEX}}, input.worldPosition.xz, {{PATTERN_TIME}}, {{PATTERN_WORLD_SCALE}}, {{PATTERN_TIME_RATE}}, {{PATTERN_WEIGHTS}}, {{PATTERN_LACUNARITY}} );
 #endif
@@ -73,7 +67,6 @@
             if (appearanceBoundaryRawNorm{{INDEX}} <= 1.0) {
               appearanceBoundaryMask{{INDEX}} = {{PATTERN_OPACITY}};
             } else {
-              float appearanceBoundaryPMax{{INDEX}} = -1.0;
               bool appearanceBoundaryAlwaysZero{{INDEX}} = false;
               if (appearanceBoundaryRawNorm{{INDEX}} > 2.0) {
                 float appearanceBoundaryBaseReq{{INDEX}} = pow(
@@ -83,11 +76,6 @@
                 if (appearanceBoundaryBaseReq{{INDEX}} <= 0.0001) {
                   appearanceBoundaryAlwaysZero{{INDEX}} = true;
                 }
-#if {{INVERT_PATTERN}} == 1 && {{PATTERN_MODEL}} == 1
-                else {
-                  appearanceBoundaryPMax{{INDEX}} = 1.0 - appearanceBoundaryBaseReq{{INDEX}};
-                }
-#endif
               }
               if (appearanceBoundaryAlwaysZero{{INDEX}}) {
                 appearanceBoundaryMask{{INDEX}} = 0.0;
@@ -95,13 +83,7 @@
 #if {{PATTERN_MODEL}} == 0
                 float appearanceBoundaryPattern{{INDEX}} = evaluateWaterContactFoamVoronoi( input.worldPosition.xz, {{PATTERN_TIME}}, {{PATTERN_WORLD_SCALE}}, {{PATTERN_TIME_RATE}}, {{PATTERN_WEIGHTS}}, {{PATTERN_LACUNARITY}} );
 #elif {{PATTERN_MODEL}} == 1
-#if {{INVERT_PATTERN}} == 1
-                float appearanceBoundaryPattern{{INDEX}} = appearanceBoundaryPMax{{INDEX}} >= 0.0
-                  ? evaluateWaterAnimatedVoronoiF1UpperBounded( input.worldPosition.xz, {{PATTERN_TIME}}, {{PATTERN_WORLD_SCALE}}, {{PATTERN_TIME_RATE}}, {{PATTERN_WEIGHTS}}, {{PATTERN_LACUNARITY}}, appearanceBoundaryPMax{{INDEX}} )
-                  : evaluateWaterAnimatedVoronoiF1( input.worldPosition.xz, {{PATTERN_TIME}}, {{PATTERN_WORLD_SCALE}}, {{PATTERN_TIME_RATE}}, {{PATTERN_WEIGHTS}}, {{PATTERN_LACUNARITY}} );
-#else
                 float appearanceBoundaryPattern{{INDEX}} = evaluateWaterAnimatedVoronoiF1( input.worldPosition.xz, {{PATTERN_TIME}}, {{PATTERN_WORLD_SCALE}}, {{PATTERN_TIME_RATE}}, {{PATTERN_WEIGHTS}}, {{PATTERN_LACUNARITY}} );
-#endif
 #else
                 float appearanceBoundaryPattern{{INDEX}} = evaluateWaterShorelineBreakerBand( appearanceBoundaryField{{INDEX}}, input.worldPosition.xz, {{PATTERN_TIME}}, {{PATTERN_WORLD_SCALE}}, {{PATTERN_TIME_RATE}}, {{PATTERN_WEIGHTS}}, {{PATTERN_LACUNARITY}} );
 #endif
@@ -119,28 +101,10 @@
             } else if (appearanceBoundaryRawNorm{{INDEX}} <= 0.0) {
               appearanceBoundaryMask{{INDEX}} = {{PATTERN_OPACITY}};
             } else {
-              float appearanceBoundaryPMax{{INDEX}} = -1.0;
-#if {{INVERT_PATTERN}} == 0 && {{PATTERN_MODEL}} == 1
-              if (appearanceBoundaryRawNorm{{INDEX}} > 1.0) {
-                float appearanceBoundaryBaseMax{{INDEX}} = pow(
-                  appearanceBoundaryRawNorm{{INDEX}} - 1.0,
-                  1.0 / appearanceBoundaryPatternExp{{INDEX}}
-                );
-                if (appearanceBoundaryBaseMax{{INDEX}} > 0.0001) {
-                  appearanceBoundaryPMax{{INDEX}} = appearanceBoundaryBaseMax{{INDEX}};
-                }
-              }
-#endif
 #if {{PATTERN_MODEL}} == 0
               float appearanceBoundaryPattern{{INDEX}} = evaluateWaterContactFoamVoronoi( input.worldPosition.xz, {{PATTERN_TIME}}, {{PATTERN_WORLD_SCALE}}, {{PATTERN_TIME_RATE}}, {{PATTERN_WEIGHTS}}, {{PATTERN_LACUNARITY}} );
 #elif {{PATTERN_MODEL}} == 1
-#if {{INVERT_PATTERN}} == 0
-              float appearanceBoundaryPattern{{INDEX}} = appearanceBoundaryPMax{{INDEX}} >= 0.0
-                ? evaluateWaterAnimatedVoronoiF1UpperBounded( input.worldPosition.xz, {{PATTERN_TIME}}, {{PATTERN_WORLD_SCALE}}, {{PATTERN_TIME_RATE}}, {{PATTERN_WEIGHTS}}, {{PATTERN_LACUNARITY}}, appearanceBoundaryPMax{{INDEX}} )
-                : evaluateWaterAnimatedVoronoiF1( input.worldPosition.xz, {{PATTERN_TIME}}, {{PATTERN_WORLD_SCALE}}, {{PATTERN_TIME_RATE}}, {{PATTERN_WEIGHTS}}, {{PATTERN_LACUNARITY}} );
-#else
               float appearanceBoundaryPattern{{INDEX}} = evaluateWaterAnimatedVoronoiF1( input.worldPosition.xz, {{PATTERN_TIME}}, {{PATTERN_WORLD_SCALE}}, {{PATTERN_TIME_RATE}}, {{PATTERN_WEIGHTS}}, {{PATTERN_LACUNARITY}} );
-#endif
 #else
               float appearanceBoundaryPattern{{INDEX}} = evaluateWaterShorelineBreakerBand( appearanceBoundaryField{{INDEX}}, input.worldPosition.xz, {{PATTERN_TIME}}, {{PATTERN_WORLD_SCALE}}, {{PATTERN_TIME_RATE}}, {{PATTERN_WEIGHTS}}, {{PATTERN_LACUNARITY}} );
 #endif

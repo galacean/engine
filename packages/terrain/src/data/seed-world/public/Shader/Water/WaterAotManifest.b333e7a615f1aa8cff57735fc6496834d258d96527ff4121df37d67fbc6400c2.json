@@ -20,7 +20,7 @@
   "budgets": {
     "maximumProfileArtifactBytes": 600000,
     "maximumTotalArtifactBytes": 1200000,
-    "actualTotalArtifactBytes": 275609
+    "actualTotalArtifactBytes": 270033
   },
   "profiles": [
     {
@@ -29,11 +29,11 @@
       "variantKey": "heightfield:appearanceVariantKey=surface-appearance-v2%3Aed93d4a81a01602d;depthSource=hybrid-optional-scene-depth;quality=high;surfaceAppearance=1;surfaceAppearanceVersion=2;waveSlotCount=0",
       "sourcePath": "source/Shader/Water/LakeHeightfieldHighHybrid.shader",
       "virtualPath": "Shader/Water/lake-heightfield-high-hybrid-v2.shaderc",
-      "path": "public/Shader/Water/lake-heightfield-high-hybrid-v2.964f76d427db338d5d41a551c307ae2a2ae59316cef9a152b302e30e26a14ed6.shaderc",
-      "cacheKey": "964f76d427db338d5d41a551c307ae2a2ae59316cef9a152b302e30e26a14ed6",
-      "materializedSourceSha256": "3593ee9cfe6945ed5d0e41816773882c4e56ff6ba8da8057e8c03fc3c82eb50a",
-      "artifactSha256": "964f76d427db338d5d41a551c307ae2a2ae59316cef9a152b302e30e26a14ed6",
-      "artifactBytes": 125052,
+      "path": "public/Shader/Water/lake-heightfield-high-hybrid-v2.b438276dfb401388445d4a1e956839b763e4426ef457c9a0f74643690d2bdf35.shaderc",
+      "cacheKey": "b438276dfb401388445d4a1e956839b763e4426ef457c9a0f74643690d2bdf35",
+      "materializedSourceSha256": "ef4063a70e4930217cffb400d5f6210c1aa414602cd4056e3c9daa6c8f95cf77",
+      "artifactSha256": "b438276dfb401388445d4a1e956839b763e4426ef457c9a0f74643690d2bdf35",
+      "artifactBytes": 119476,
       "passTopology": [
         [
           {
@@ -72,7 +72,7 @@
         "operation": "water-aot-gles300-v1",
         "source": "packages/water/src/world/SeedWorldWaterShaderAotProfiles.ts",
         "compilerPackage": "@galacean/engine-shader-compiler/src/ShaderPrecompiler.ts",
-        "inputArtifactSha256": "964f76d427db338d5d41a551c307ae2a2ae59316cef9a152b302e30e26a14ed6"
+        "inputArtifactSha256": "b438276dfb401388445d4a1e956839b763e4426ef457c9a0f74643690d2bdf35"
       }
     },
     {

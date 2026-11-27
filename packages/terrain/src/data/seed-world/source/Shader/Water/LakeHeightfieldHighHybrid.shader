@@ -106,6 +106,7 @@ Shader "AIWorld/HeightfieldWaterSurfaceAppearanceV2ed93d4a81a01602dHybridHigh0" 
       sampler2D material_LocalMapTexture;
 #ifndef WATER_SURFACE_APPEARANCE_V2_UNIFORMS_INCLUDED
 #define WATER_SURFACE_APPEARANCE_V2_UNIFORMS_INCLUDED
+      sampler2D material_AppearanceV2VoronoiTexture;
       float material_AppearanceV2Detail0Enabled;
       float material_AppearanceV2Detail1Enabled;
       float material_AppearanceV2DetailEnabled;
@@ -789,61 +790,6 @@ float waterSurfaceAppearanceV2RefractionValidity(
 #ifndef WATER_ANIMATED_VORONOI_F1_INCLUDED
 #define WATER_ANIMATED_VORONOI_F1_INCLUDED
 
-vec2 waterAnimatedVoronoiF1Hash(vec2 cell) {
-  vec2 projected = vec2(
-    dot(cell, vec2(127.1, 311.7)),
-    dot(cell, vec2(269.5, 183.3))
-  );
-  return fract(sin(projected) * 43758.5453);
-}
-
-float waterAnimatedVoronoiF1Candidate(
-  vec2 cell,
-  vec2 localPosition,
-  vec2 cellOffset,
-  float time
-) {
-  vec2 randomOffset = waterAnimatedVoronoiF1Hash(cell + cellOffset);
-  vec2 animatedOffset = sin(time + randomOffset * 6.2831) * 0.5 + 0.5;
-  vec2 delta = localPosition - cellOffset - animatedOffset;
-  return dot(delta, delta);
-}
-
-float waterAnimatedVoronoiF1(vec2 position, float time) {
-  vec2 cell = floor(position);
-  vec2 localPosition = fract(position);
-  // Center cell first, then 4 orthogonal and 4 diagonal neighbors (commutative min).
-  float f1 = waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, 0.0), time);
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, 0.0), time));
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(1.0, 0.0), time));
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, -1.0), time));
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, 1.0), time));
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, -1.0), time));
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(1.0, -1.0), time));
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, 1.0), time));
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(1.0, 1.0), time));
-  return clamp(0.707 * sqrt(f1), 0.0, 1.0);
-}
-
-float waterAnimatedVoronoiF1UpperBounded(vec2 position, float time, float f1Max) {
-  vec2 cell = floor(position);
-  vec2 localPosition = fract(position);
-  // Center-first exact early exit: since f1 can only decrease across min(), f1 <= f1Max
-  // already proves final F1 <= f1Max. Negative f1Max disables early exit.
-  float f1 = waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, 0.0), time);
-  if (f1 <= f1Max) return 0.0;
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, 0.0), time));
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(1.0, 0.0), time));
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, -1.0), time));
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(0.0, 1.0), time));
-  if (f1 <= f1Max) return 0.0;
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, -1.0), time));
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(1.0, -1.0), time));
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(-1.0, 1.0), time));
-  f1 = min(f1, waterAnimatedVoronoiF1Candidate(cell, localPosition, vec2(1.0, 1.0), time));
-  return clamp(0.707 * sqrt(f1), 0.0, 1.0);
-}
-
 float evaluateWaterAnimatedVoronoiF1(
   vec2 worldPositionXz,
   float surfaceTime,
@@ -864,86 +810,20 @@ float evaluateWaterAnimatedVoronoiF1(
     return 0.0;
   }
   float animatedTime = surfaceTime * timeRate;
-  float weightedPattern = 0.0;
-  if (octaveWeights.x > 0.0) {
-    weightedPattern += waterAnimatedVoronoiF1(
-      worldPositionXz * worldScale,
-      animatedTime
-    ) * octaveWeights.x;
-  }
-    if (octaveWeights.y > 0.0) {
-      weightedPattern += waterAnimatedVoronoiF1(
-        worldPositionXz * worldScale * lacunarity,
-        animatedTime
-      ) * octaveWeights.y;
-    }
-    if (octaveWeights.z > 0.0) {
-      weightedPattern += waterAnimatedVoronoiF1(
-        worldPositionXz * worldScale * lacunarity * lacunarity,
-        animatedTime
-      ) * octaveWeights.z;
-    }
-  return clamp(weightedPattern / weightSum, 0.0, 1.0);
-}
-
-float evaluateWaterAnimatedVoronoiF1UpperBounded(
-  vec2 worldPositionXz,
-  float surfaceTime,
-  float worldScale,
-  float timeRate,
-  vec3 octaveWeights,
-  float lacunarity,
-  float pMax
-) {
-    float weightSum = octaveWeights.x + octaveWeights.y + octaveWeights.z;
-    bool validWeights = octaveWeights.x >= 0.0 && octaveWeights.y >= 0.0 && octaveWeights.z >= 0.0;
-  if (
-    !(worldScale > 0.0)
-    || !(timeRate > 0.0)
-    || !(lacunarity > 0.0)
-    || !validWeights
-    || !(weightSum > 0.0)
-  ) {
-    return 0.0;
-  }
-  if (pMax >= 1.0) return 0.0;
-  const float eps = 0.00001;
-  float animatedTime = surfaceTime * timeRate;
-  float targetSum = pMax * weightSum;
-  float w0 = octaveWeights.x;
-    float rest0 = octaveWeights.y + octaveWeights.z;
-  float v0Max = (w0 > 0.0) ? ((targetSum - rest0) / w0 - eps) : -1.0;
-  if (v0Max >= 1.0) return 0.0;
-  float f1Max0 = (v0Max > 0.0) ? ((v0Max / 0.707) * (v0Max / 0.707)) : -1.0;
-  float v0 = (w0 > 0.0)
-    ? waterAnimatedVoronoiF1UpperBounded(worldPositionXz * worldScale, animatedTime, f1Max0)
-    : 0.0;
-  if (v0Max >= 0.0 && v0 <= v0Max) return 0.0;
-  float weightedPattern = w0 * v0;
-    float w1 = octaveWeights.y;
-      float rest1 = octaveWeights.z;
-    float v1Max = (w1 > 0.0) ? ((targetSum - weightedPattern - rest1) / w1 - eps) : -1.0;
-    if (v1Max >= 1.0) return 0.0;
-    float f1Max1 = (v1Max > 0.0) ? ((v1Max / 0.707) * (v1Max / 0.707)) : -1.0;
-    float v1 = (w1 > 0.0)
-      ? waterAnimatedVoronoiF1UpperBounded(worldPositionXz * worldScale * lacunarity, animatedTime, f1Max1)
-      : 0.0;
-    if (v1Max >= 0.0 && v1 <= v1Max) return 0.0;
-    weightedPattern += w1 * v1;
-    float w2 = octaveWeights.z;
-    float v2Max = (w2 > 0.0) ? ((targetSum - weightedPattern) / w2 - eps) : -1.0;
-    if (v2Max >= 1.0) return 0.0;
-    float f1Max2 = (v2Max > 0.0) ? ((v2Max / 0.707) * (v2Max / 0.707)) : -1.0;
-    float v2 = (w2 > 0.0)
-      ? waterAnimatedVoronoiF1UpperBounded(
-          worldPositionXz * worldScale * lacunarity * lacunarity,
-          animatedTime,
-          f1Max2
-        )
-      : 0.0;
-    if (v2Max >= 0.0 && v2 <= v2Max) return 0.0;
-    weightedPattern += w2 * v2;
-  return clamp(weightedPattern / weightSum, 0.0, 1.0);
+  // Shared 128x128 R8 periodic Voronoi tile spans 8 cells (1 / 8 = 0.125 UV per world cell).
+  // Dual-speed UV velocities are exact multiples of 1 / 64 for seamless 64s clock wrapping.
+  vec2 baseUv = (worldPositionXz * worldScale) * 0.125;
+  float sampleA = texture2D(
+    material_AppearanceV2VoronoiTexture,
+    baseUv + animatedTime * vec2(0.03125, 0.015625)
+  ).r;
+  vec2 rotatedBaseUv = vec2(-baseUv.y, baseUv.x);
+      float fineWeight = (octaveWeights.y + octaveWeights.z) / weightSum;
+    float sampleB = texture2D(
+      material_AppearanceV2VoronoiTexture,
+      rotatedBaseUv * lacunarity + animatedTime * vec2(-0.015625, -0.03125)
+    ).r;
+    return clamp(mix(sampleA, sampleB, fineWeight), 0.0, 1.0);
 }
 
 #endif
@@ -2106,7 +1986,6 @@ float waterSurface_waveCrest = max(input.waveOffset, 0.0);
             if (appearanceBoundaryRawNorm1 <= 1.0) {
               appearanceBoundaryMask1 = material_AppearanceV2Boundary1PatternOpacity;
             } else {
-              float appearanceBoundaryPMax1 = -1.0;
               bool appearanceBoundaryAlwaysZero1 = false;
               if (appearanceBoundaryRawNorm1 > 2.0) {
                 float appearanceBoundaryBaseReq1 = pow(
@@ -2116,16 +1995,11 @@ float waterSurface_waveCrest = max(input.waveOffset, 0.0);
                 if (appearanceBoundaryBaseReq1 <= 0.0001) {
                   appearanceBoundaryAlwaysZero1 = true;
                 }
-                else {
-                  appearanceBoundaryPMax1 = 1.0 - appearanceBoundaryBaseReq1;
-                }
               }
               if (appearanceBoundaryAlwaysZero1) {
                 appearanceBoundaryMask1 = 0.0;
               } else {
-                float appearanceBoundaryPattern1 = appearanceBoundaryPMax1 >= 0.0
-                  ? evaluateWaterAnimatedVoronoiF1UpperBounded( input.worldPosition.xz, material_AppearanceV2Boundary1PatternTimeRate, material_AppearanceV2Boundary1PatternWorldScale, 1.0, material_AppearanceV2Boundary1PatternWeights, material_AppearanceV2Boundary1PatternLacunarity, appearanceBoundaryPMax1 )
-                  : evaluateWaterAnimatedVoronoiF1( input.worldPosition.xz, material_AppearanceV2Boundary1PatternTimeRate, material_AppearanceV2Boundary1PatternWorldScale, 1.0, material_AppearanceV2Boundary1PatternWeights, material_AppearanceV2Boundary1PatternLacunarity );
+                float appearanceBoundaryPattern1 = evaluateWaterAnimatedVoronoiF1( input.worldPosition.xz, material_AppearanceV2Boundary1PatternTimeRate, material_AppearanceV2Boundary1PatternWorldScale, 1.0, material_AppearanceV2Boundary1PatternWeights, material_AppearanceV2Boundary1PatternLacunarity );
                 float appearanceBoundaryPatternResponse1 = pow(max(abs(1.0 - appearanceBoundaryPattern1), 0.0001), appearanceBoundaryPatternExp1);
                 appearanceBoundaryMask1 = clamp(1.0 - appearanceBoundaryRawNorm1 + appearanceBoundaryPatternResponse1, 0.0, 1.0) * material_AppearanceV2Boundary1PatternOpacity;
               }
@@ -2136,7 +2010,6 @@ float waterSurface_waveCrest = max(input.waveOffset, 0.0);
             } else if (appearanceBoundaryRawNorm1 <= 0.0) {
               appearanceBoundaryMask1 = material_AppearanceV2Boundary1PatternOpacity;
             } else {
-              float appearanceBoundaryPMax1 = -1.0;
               float appearanceBoundaryPattern1 = evaluateWaterAnimatedVoronoiF1( input.worldPosition.xz, material_AppearanceV2Boundary1PatternTimeRate, material_AppearanceV2Boundary1PatternWorldScale, 1.0, material_AppearanceV2Boundary1PatternWeights, material_AppearanceV2Boundary1PatternLacunarity );
               float appearanceBoundaryPatternResponse1 = pow(max(abs(1.0 - appearanceBoundaryPattern1), 0.0001), appearanceBoundaryPatternExp1);
               appearanceBoundaryMask1 = clamp(1.0 - appearanceBoundaryRawNorm1 + appearanceBoundaryPatternResponse1, 0.0, 1.0) * material_AppearanceV2Boundary1PatternOpacity;
@@ -2493,6 +2366,7 @@ closureInput.coastalAlpha = appearanceCoastalAlpha;
       sampler2D material_LocalMapTexture;
 #ifndef WATER_SURFACE_APPEARANCE_V2_UNIFORMS_INCLUDED
 #define WATER_SURFACE_APPEARANCE_V2_UNIFORMS_INCLUDED
+      sampler2D material_AppearanceV2VoronoiTexture;
       float material_AppearanceV2Detail0Enabled;
       float material_AppearanceV2Detail1Enabled;
       float material_AppearanceV2DetailEnabled;

@@ -6,6 +6,9 @@
       vec4 material_AppearanceV2CausticsResponse;
       vec2 material_AppearanceV2CausticsParallax;
 #endif
+#if {{HAS_ANIMATED_VORONOI_PATTERN}} == 1
+      sampler2D material_AppearanceV2VoronoiTexture;
+#endif
       float material_AppearanceV2Detail0Enabled;
       float material_AppearanceV2Detail1Enabled;
       float material_AppearanceV2DetailEnabled;
