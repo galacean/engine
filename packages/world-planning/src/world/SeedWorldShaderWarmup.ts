@@ -1344,10 +1344,8 @@ function collectSeedWorldRendererVariantsInternal(
   )._hardwareRenderer;
   const isWebGPU = runtimeHardware?.backend === RHIBackend.WebGPU;
   const buildingLights = options.buildingPointLights;
-  // On WebGPU async PSO prewarming runs in parallel off-main-thread during loading, so warm the full
-  // decoration light budget [1..4] to eliminate t=2.4s wall-lantern activation hitches in villages.
   const additionalPointLightCounts =
-    options.additionalPointLightCounts ?? (buildingLights?.hasLights ? (isWebGPU ? [1, 2, 3, 4] : [1]) : undefined);
+    options.additionalPointLightCounts ?? (buildingLights?.hasLights ? [1] : undefined);
   const lightManager = scene._lightManager;
   const rawCapacity =
     ((lightManager as unknown as { _pointData?: { color: Float32Array } })?._pointData?.color.length ?? 0) / 3;

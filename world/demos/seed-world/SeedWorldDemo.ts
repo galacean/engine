@@ -3465,7 +3465,6 @@ export async function mountSeedWorldDemo(
     timed("warmupPopulationDetails (startup)", () => publication!.current?.world.warmupPopulationDetails());
 
     shaderAudit?.setPhase("startup-warmup");
-    const isWebGPUBackend = engine!.graphicsBackend === RHIBackend.WebGPU;
     let {
       report: startupWarmupReport,
       deferredShaderVariants,
@@ -3483,12 +3482,9 @@ export async function mountSeedWorldDemo(
       lifetimeSignal: editorLifetime.signal,
       progress,
       timed,
-      // On WebGPU, complete full async PSO warmup (primary + offscreen + secondary) before Loading finishes
-      // so initial 360° orbit and exploration never hitch on post-ready shader/pipeline compilation.
-      deferSecondary: isWebGPUBackend ? false : undefined,
-      deferSecondaryCollection: !isWebGPUBackend,
+      deferSecondaryCollection: true,
       includeMasonryDither: false,
-      precompileCoreMasonry: isWebGPUBackend,
+      precompileCoreMasonry: false,
       getDynamicPresentationRevision: () => {
         const masonry = publication?.current?.masonry;
         return masonry ? `${masonry.presentationRevision}:${masonry.metrics.profileUnits}` : undefined;
@@ -3760,36 +3756,6 @@ export async function mountSeedWorldDemo(
           suppressAutoBoot: autoBenchRequested || autoAblateRequested
         });
       }
-    }
-    let webgpuCapturePrewarmed = false;
-    if (isWebGPUBackend && precompileShaders && !disposed && !editorLifetime.signal.aborted) {
-      await timed("webgpu.preReadyCaptureWarmup", async () => {
-        const [{ SeedWorldLassoPanel }] = await Promise.all([
-          import("./src/SeedWorldLassoPanel.ts"),
-          pickPreparation!.flush(editorLifetime.signal).catch(() => undefined),
-          worldPicker!.prewarmShaders(editorLifetime.signal).catch(() => undefined)
-        ]);
-        if (disposed || editorLifetime.signal.aborted) return;
-        lassoPanel = new SeedWorldLassoPanel(
-          viewSnapshots!,
-          (frozen) => {
-            lassoFrozen = frozen;
-            const enabled = ready && !disposed && assistantInputEnabled && !frozen;
-            if (restoreMasonryView) {
-              orbit.enabled = enabled;
-              navigation.enabled = false;
-              navigation.setInputEnabled(false);
-            } else if (debugSidebar) debugSidebar.setInputEnabled(enabled);
-            else {
-              navigation.enabled = enabled;
-              navigation.setInputEnabled(enabled);
-            }
-          },
-          { engine: engine!, canvas, worldCamera: camera }
-        );
-        await lassoPanel.prewarm();
-        webgpuCapturePrewarmed = true;
-      });
     }
     if (disposed || editorLifetime.signal.aborted) return;
     loading.hidden = true;
@@ -4346,36 +4312,33 @@ export async function mountSeedWorldDemo(
       });
     }
     void (async () => {
-      let preparingLasso = lassoPanel;
-      if (!preparingLasso) {
-        const [, { SeedWorldLassoPanel }] = await Promise.all([
-          capturePathWarmup,
-          import("./src/SeedWorldLassoPanel.ts")
-        ]);
-        if (disposed) return;
-        preparingLasso = lassoPanel = new SeedWorldLassoPanel(
-          preparingViews,
-          (frozen) => {
-            lassoFrozen = frozen;
-            const enabled = ready && !disposed && assistantInputEnabled && !frozen;
-            if (restoreMasonryView) {
-              orbit.enabled = enabled;
-              navigation.enabled = false;
-              navigation.setInputEnabled(false);
-            } else if (debugSidebar) debugSidebar.setInputEnabled(enabled);
-            else {
-              navigation.enabled = enabled;
-              navigation.setInputEnabled(enabled);
-            }
-          },
-          { engine: engine!, canvas, worldCamera: camera }
-        );
-      }
+      const [, { SeedWorldLassoPanel }] = await Promise.all([
+        capturePathWarmup,
+        import("./src/SeedWorldLassoPanel.ts")
+      ]);
+      if (disposed) return;
+      const preparingLasso = (lassoPanel = new SeedWorldLassoPanel(
+        preparingViews,
+        (frozen) => {
+          lassoFrozen = frozen;
+          const enabled = ready && !disposed && assistantInputEnabled && !frozen;
+          if (restoreMasonryView) {
+            orbit.enabled = enabled;
+            navigation.enabled = false;
+            navigation.setInputEnabled(false);
+          } else if (debugSidebar) debugSidebar.setInputEnabled(enabled);
+          else {
+            navigation.enabled = enabled;
+            navigation.setInputEnabled(enabled);
+          }
+        },
+        { engine: engine!, canvas, worldCamera: camera }
+      ));
       if (eagerCapturePathWarmup) {
         await timed("lassoPanel.prepare", () => preparingLasso.prepare());
         await timed("farmingInteraction.prepare", () => farmingHost?.runtime?.prepareInteraction());
         await timed("pickPreparation.flush #2", () => preparingPicks.flush(editorLifetime.signal));
-      } else if (!webgpuCapturePrewarmed) {
+      } else {
         // Preload lightweight markup UI + capture blit shaders shortly after world ready (without waiting
         // behind 70+ offscreen exploration shaders), then drain deferred pick shaders once bgWarmupDone settles.
         const earlyPrewarmTimer = window.setTimeout(() => {
