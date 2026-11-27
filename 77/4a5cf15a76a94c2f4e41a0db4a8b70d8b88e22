@@ -1,0 +1,46 @@
+packages/terrain/src/data/seed-world/project.json
+  h_a3c79ce84ffdc2 235,241,253
+packages/terrain/src/data/seed-world/public/Shader/Water/WaterAotManifest.bc82da4b96796ff63758108c1adfffa683a32bc32411de9dcfb8ab8b6658da23.json
+  h_a3c79ce84ffdc2 23,32-36,75,84-88,122
+packages/terrain/src/data/seed-world/public/Shader/Water/lake-heightfield-high-hybrid-v2.47a151e1df8613a9a7fffb1b66873ea1fd1eff6053dc17fac38d7ef86e847dd7.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/seed-world/public/Shader/Water/ocean-near-detailed.c92c6c82169f2906cce5437a069785494239ee0382eb827f391aae3133c0666a.shaderc
+  h_a3c79ce84ffdc2 1
+packages/water/src/water/native/assets/Water/Shaders/builtin/lake.json
+  h_a3c79ce84ffdc2 1
+packages/water/src/water/native/assets/Water/Shaders/builtin/ocean.json
+  h_a3c79ce84ffdc2 1
+packages/water/src/water/native/assets/Water/Shaders/builtin/river.json
+  h_a3c79ce84ffdc2 1
+packages/water/src/water/native/assets/Water/Shaders/builtin/sources.json
+  h_a3c79ce84ffdc2 2-4
+packages/water/src/water/native/assets/Water/Shaders/lake-heightfield-high-hybrid-v2.shaderc
+  h_a3c79ce84ffdc2 1
+packages/water/src/water/native/assets/Water/Shaders/ocean-near-detailed.shaderc
+  h_a3c79ce84ffdc2 1
+packages/water/src/water/native/assets/conversion.json
+  h_a3c79ce84ffdc2 275,277-278,282,284-285
+packages/water/src/water/runtime/heightfield/HeightfieldWaterMaterialFactory.ts
+  h_a3c79ce84ffdc2 20,272-274,475,596-600
+packages/water/src/water/runtime/surface/WaterSurfaceAppearanceV2Shader.ts
+  h_a3c79ce84ffdc2 222,233
+packages/water/src/water/shaders/heightfield/ForwardPass.glsl
+  h_a3c79ce84ffdc2 98,100,135-138,158-159,170,172
+packages/water/src/water/shaders/heightfield/SSRReceiver.glsl
+  h_a3c79ce84ffdc2 67,69,129,131
+packages/water/src/water/shaders/library/surface/WaterSurfaceAppearanceV2NormalDetail.glsl
+  h_a3c79ce84ffdc2 11,58
+packages/water/tests/WaterPerformanceOptimizations.test.ts
+  h_a3c79ce84ffdc2 812-815,901-916
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "774a5cf15a76a94c2f4e41a0db4a8b70d8b88e22",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
