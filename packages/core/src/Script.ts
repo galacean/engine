@@ -230,15 +230,13 @@ export class Script extends Component {
     }
 
     this._entity._addScript(this);
-    const physics = this.scene!.physics;
-    physics._addActiveScript(1);
     if (
       this.onCollisionEnter !== prototype.onCollisionEnter ||
       this.onCollisionExit !== prototype.onCollisionExit ||
       this.onCollisionStay !== prototype.onCollisionStay
     ) {
       this._hasContactEvents = true;
-      physics._addContactEventConsumer(1);
+      this.scene!.physics._addContactEventConsumer(1);
     }
   }
 
@@ -264,11 +262,9 @@ export class Script extends Component {
     }
 
     this._entity._removeScript(this);
-    const physics = this.scene!.physics;
-    physics._addActiveScript(-1);
     if (this._hasContactEvents) {
       this._hasContactEvents = false;
-      physics._addContactEventConsumer(-1);
+      this.scene!.physics._addContactEventConsumer(-1);
     }
   }
 

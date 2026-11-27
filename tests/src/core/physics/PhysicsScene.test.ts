@@ -216,6 +216,50 @@ describe("Physics Test", () => {
       }
     );
 
+    it("delivers Enter after a sibling moves the receiver to another scene during onDisable", () => {
+      const start = performance.now();
+      const clock = vi.spyOn(performance, "now").mockReturnValue(start);
+      const source = enginePhysX.sceneManager.activeScene;
+      const destination = new Scene(enginePhysX);
+      enginePhysX.sceneManager.addScene(destination);
+      destination.physics.fixedTimeStep = 1 / 64;
+
+      try {
+        enginePhysX.update();
+        const parent = source.createRootEntity();
+        const sensor = parent.createChild();
+        const onEnter = vi.fn();
+        sensor.addComponent(
+          class extends Script {
+            override onTriggerEnter(other: Collider, self: Collider): void {
+              onEnter(other, self);
+            }
+          }
+        );
+        parent.createChild().addComponent(
+          class extends Script {
+            override onDisable(): void {
+              destination.addRootEntity(sensor);
+            }
+          }
+        );
+
+        parent.isActive = false;
+        expect(sensor.scene).toBe(destination);
+        const trigger = sensor.addComponent(BoxCollider);
+        trigger.isTrigger = true;
+        const probe = destination.createRootEntity();
+        probe.addComponent(Rigidbody).isKinematic = true;
+        const collider = probe.addComponent(BoxCollider);
+        clock.mockReturnValue(start + 1000 / 64);
+        enginePhysX.update();
+
+        expect(onEnter).toHaveBeenCalledExactlyOnceWith(collider, trigger);
+      } finally {
+        clock.mockRestore();
+      }
+    });
+
     it("compacts scripts after a trigger callback disables itself and throws", () => {
       const clock = vi.spyOn(performance, "now");
       const start = performance.now();
@@ -760,6 +804,31 @@ describe("Physics Test", () => {
       expect(physicsScene.raycastAll(new Ray(new Vector3(), direction), outer)).toBe(true);
       expect(outer.map((hit) => hit.entity?.name).sort()).toEqual(["outer0", "outer1"]);
       expect(inner.map((hit) => hit.entity?.name).sort()).toEqual(["inner0", "inner1"]);
+    });
+
+    it("releases scene-owned multi-hit query snapshots on garbage collection and destruction", () => {
+      const scene = new Scene(enginePhysX);
+      enginePhysX.sceneManager.addScene(scene);
+      const physics = scene.physics;
+      const storage = physics as unknown as { _raycastSnapshots?: unknown[] };
+      for (const x of [2, 4]) {
+        const target = scene.createRootEntity();
+        target.transform.position.x = x;
+        target.addComponent(BoxCollider);
+      }
+
+      const ray = new Ray(new Vector3(), new Vector3(1, 0, 0));
+      const results: HitResult[] = [];
+      expect(physics.raycastAll(ray, results)).toBe(true);
+      expect(results).toHaveLength(2);
+      expect(storage._raycastSnapshots).toHaveLength(1);
+      enginePhysX.resourceManager.gc();
+      expect(storage._raycastSnapshots).toBeUndefined();
+
+      expect(physics.raycastAll(ray, results)).toBe(true);
+      expect(storage._raycastSnapshots).toHaveLength(1);
+      scene.destroy();
+      expect(storage._raycastSnapshots).toBeUndefined();
     });
 
     it("keeps a retained hit when clearing a duplicate tail reenters raycastAll", () => {

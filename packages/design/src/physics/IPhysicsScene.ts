@@ -75,10 +75,9 @@ export interface IPhysicsScene {
   /**
    * Collect buffered collision and trigger events for the completed step.
    * @remarks Call once per step, after reading the new poses from physics.
-   * @param reportTriggerStay - Include unchanged overlaps for Stay listeners.
    * @returns Borrowed event records for immediate dispatch, including rediscovered pairs after shape changes.
    */
-  updateEvents(reportTriggerStay: boolean): IPhysicsEvents;
+  updateEvents(): IPhysicsEvents;
 
   /**
    * Get whether two collision layers can collide with each other.

@@ -106,7 +106,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private _iterShapeId = 0;
 
   private _activeTriggers: TriggerEvent[] = [];
-  private _changedTriggers: TriggerEvent[] = [];
   private readonly _physicsEvents = {
     contactEvents: [] as ContactEvent[],
     contactEventCount: 0,
@@ -162,7 +161,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         const existing = pairs[big];
         if (existing) {
           // Treat a rediscovered pair as a continuous overlap.
-          this._queueTrigger(existing, PhysicsEventState.Stay);
+          existing._pendingState = PhysicsEventState.Stay;
           return;
         }
         let event = this._triggerEventPool.pop();
@@ -172,15 +171,14 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         } else {
           event = new TriggerEvent(small, big);
         }
-        event._activeIndex = this._activeTriggers.length;
         pairs[big] = event;
         this._activeTriggers.push(event);
-        this._queueTrigger(event, PhysicsEventState.Enter);
+        event._pendingState = PhysicsEventState.Enter;
       },
       onTriggerEnd: (shape0ID: number, shape1ID: number) => {
         const pairs = this._eventMap[Math.min(shape0ID, shape1ID)];
         const big = Math.max(shape0ID, shape1ID);
-        this._queueTrigger(pairs[big]!, PhysicsEventState.Exit);
+        pairs[big]!._pendingState = PhysicsEventState.Exit;
         delete pairs[big];
       }
     };
@@ -285,27 +283,21 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   /**
    * {@inheritDoc IPhysicsScene.updateEvents }
    */
-  updateEvents(reportTriggerStay: boolean): IPhysicsEvents {
+  updateEvents(): IPhysicsEvents {
     const physicsEvents = this._physicsEvents;
     const triggerEvents = physicsEvents.triggerEvents;
-    const changed = this._changedTriggers;
-    const source = reportTriggerStay ? this._activeTriggers : changed;
+    const active = this._activeTriggers;
     let count = 0;
-    for (let i = 0; i < source.length; ) {
-      const event = source[i];
-      event._queued = false;
-      const state = (event.state = event._pendingState);
+    for (let i = 0; i < active.length; ) {
+      const event = active[i];
       triggerEvents[count++] = event;
-      if (state === PhysicsEventState.Exit) {
-        this._retireTrigger(event);
-        // Active storage swaps its last pair into the removed slot.
-        if (reportTriggerStay) continue;
+      if ((event.state = event._pendingState) === PhysicsEventState.Exit) {
+        this._retireTrigger(event, i);
       } else {
         event._pendingState = PhysicsEventState.Stay;
+        i++;
       }
-      i++;
     }
-    changed.length = 0;
     triggerEvents.length = count;
     return physicsEvents;
   }
@@ -453,7 +445,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       if (liveColliders[event.shape0Id] && liveColliders[event.shape1Id]) {
         i++;
       } else {
-        this._retireTrigger(event);
+        this._retireTrigger(event, i);
       }
     }
     this._triggerEventPool.length = 0;
@@ -594,11 +586,11 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       const second = changes.get(event.shape1Id);
       if (first === ShapeChange.Removed || second === ShapeChange.Removed) {
         event._receiver0 = event._receiver1 = undefined;
-        this._retireTrigger(event);
+        this._retireTrigger(event, i);
         continue;
       } else if (first !== undefined || second !== undefined) {
         // Start with an exit and let PhysX restore the stay if it reports the pair again.
-        this._queueTrigger(event, PhysicsEventState.Exit);
+        event._pendingState = PhysicsEventState.Exit;
       }
       i++;
     }
@@ -606,21 +598,10 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     changes.clear();
   }
 
-  private _queueTrigger(event: TriggerEvent, state: PhysicsEventState): void {
-    if (!event._queued) {
-      event._queued = true;
-      this._changedTriggers.push(event);
-    }
-    event._pendingState = state;
-  }
-
-  private _retireTrigger(event: TriggerEvent): void {
+  private _retireTrigger(event: TriggerEvent, index: number): void {
     const activeTriggers = this._activeTriggers;
     const last = activeTriggers.pop()!;
-    if (last !== event) {
-      last._activeIndex = event._activeIndex;
-      activeTriggers[last._activeIndex] = last;
-    }
+    if (last !== event) activeTriggers[index] = last;
     this._triggerEventPool.push(event);
     const pairs = this._eventMap[event.shape0Id];
     if (pairs[event.shape1Id] === event) delete pairs[event.shape1Id];
@@ -725,8 +706,6 @@ class TriggerEvent implements ITriggerEvent {
   state: PhysicsEventState;
   _receiver0?: unknown;
   _receiver1?: unknown;
-  _activeIndex: number;
-  _queued = false;
   _pendingState: PhysicsEventState;
 
   constructor(
