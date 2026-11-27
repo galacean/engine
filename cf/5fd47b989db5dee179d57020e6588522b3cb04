@@ -1,0 +1,21 @@
+packages/ai-chat/src/ai-chat/asr.ts
+  s_a61a893a3e253a::t_6b3471d1c9d53c 693,703-704
+packages/ai-chat/tests/asr-runtime-discovery.spec.ts
+  s_a61a893a3e253a::t_35d66d83db4866 1-60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "cf5fd47b989db5dee179d57020e6588522b3cb04",
+  "prompts": {},
+  "sessions": {
+    "s_a61a893a3e253a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20875-19df-7c71-be76-42bd2313456c",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
