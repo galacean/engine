@@ -1,12 +1,7 @@
 import { bindBuildingWall } from "./BuildingWallBakeBinding";
 import { bindBuildingFilament, type BuildingLampMaterials } from "./BuildingLampShaderBinding";
-import { partitionWallReceiverUnits } from "./BuildingUnitWallUVFeedback";
-import {
-  BuildingUnitWallUV,
-  residentWallUvVertex,
-  residentWallUvFragment,
-  restoreUnitTemplateBuffer
-} from "./BuildingUnitWallUV";
+import { partitionWallReceiverUnits } from "./BuildingWallBakeUV";
+import { BuildingUnitWallUV, residentWallUvVertex, residentWallUvFragment } from "./BuildingUnitWallUV";
 import type { BuildingWallBakeBinding, BuildingWallBakeBindings } from "./BuildingWallBakeBinding";
 import { MountedDecorationRenderer } from "./MountedDecorationRenderer";
 import { RigidDecorationRenderer, type RigidDecorationBinding } from "./RigidDecorationRenderer";
@@ -322,7 +317,7 @@ interface UnitDrawLod {
   lists: Texture2D[];
   words: Uint32Array[];
   fades: Buffer[];
-  wallUV?: BuildingUnitWallUV[];
+  wallUV?: { projection: BuildingUnitWallUV; instances: { data: Float32Array; buffer: Buffer }[] };
   partition?: Uint32Array;
   forced: number;
   active: boolean;
@@ -485,10 +480,7 @@ export class EngineResidentScene {
       const create = async () => {
         const raw = await this.asset!(name);
         this.metrics.uploadBytes += raw.byteLength;
-        return restoreUnitTemplateBuffer(
-          new Buffer(this.engine, kind, new Uint8Array(raw), BufferUsage.Static, false),
-          raw
-        );
+        return restoreBuffer(new Buffer(this.engine, kind, new Uint8Array(raw), BufferUsage.Static, false), raw);
       };
       p = create().then((r) => {
         this.metrics.residentBytes += r.byteLength;
@@ -647,21 +639,25 @@ export class EngineResidentScene {
           for (let i = 0; i < 2; i++) {
             if (!dirtyList[i]) continue;
             const c = counts[i]!;
-            if (lod.wallUV) {
-              const bytes = lod.wallUV[i].update(ids[i], fades[i], c);
-              this.metrics.lodUploadBytes += bytes;
-              this.metrics.uploadBytes += bytes;
-              continue;
-            }
             draw.meshes[i].instanceCount = c;
-            if (c > 0) {
+            if (!c) continue;
+            let bytes: number;
+            if (lod.wallUV) {
+              const { data, buffer } = lod.wallUV.instances[i];
+              for (let j = 0; j < c; j++) {
+                data[2 * j] = ids[i][j];
+                data[2 * j + 1] = fades[i][j];
+              }
+              buffer.setData(data, 0, 0, c * 2);
+              bytes = c * 8 + lod.wallUV.projection.update(i, ids[i], c);
+            } else {
               lod.words[i].set(ids[i].subarray(0, c));
               lod.lists[i].setPixelBuffer(lod.words[i]);
               lod.fades[i].setData(fades[i], 0, 0, c);
-              const bytes = lod.words[i].byteLength + c * 4;
-              this.metrics.lodUploadBytes += bytes;
-              this.metrics.uploadBytes += bytes;
+              bytes = lod.words[i].byteLength + c * 4;
             }
+            this.metrics.lodUploadBytes += bytes;
+            this.metrics.uploadBytes += bytes;
           }
           setRendererMacro(draw.renderer, MACRO_MASONRY_DITHER, lod.lodFade < 1 || lod.selector.hasHighFade);
           if (draw.lodRenderer) {
@@ -1174,7 +1170,6 @@ export class EngineResidentScene {
       meshes.push(medium);
     }
     if (restoreFeedback) restoreResource(mesh, restoreFeedback);
-    const captureVertex = vertex;
     if (hasWallUV && isUnit) vertex = residentWallUvVertex(vertex, d.family);
     const fragment = residentFragment(hasWallUV ? residentWallUvFragment(entrance.fragment) : entrance.fragment);
     let unitFades: Buffer[] | undefined;
@@ -1337,7 +1332,7 @@ export class EngineResidentScene {
           new Buffer(this.engine, BufferBindFlag.VertexBuffer, geom.isBevel, BufferUsage.Static, false),
           geom.isBevel
         );
-        const idxBuf = restoreUnitTemplateBuffer(
+        const idxBuf = restoreBuffer(
           new Buffer(this.engine, BufferBindFlag.IndexBuffer, geom.indices, BufferUsage.Static, false),
           geom.indices
         );
@@ -1406,32 +1401,37 @@ export class EngineResidentScene {
     if (isUnit) {
       if (!d.indirection) throw Error("Missing native material-unit indirection");
       const selector = unitSelector!;
-      let unitWallUV: BuildingUnitWallUV[] | undefined;
-      if (wallBinding && d.unitPartition) {
-        unitWallUV = [material, lowMaterial!].map((native, i) => {
-          const rows = this.own(
-            new BuildingUnitWallUV(
-              this.engine,
-              meshes[i],
-              captureVertex,
-              d.family,
-              native,
-              wallBinding!,
-              selector.bounds,
-              d.unitPartition!
-            )
-          );
-          meshes[i] = rows.mesh;
-          this.metrics.residentBytes += rows.byteLength;
-          this.metrics.uploadBytes += rows.byteLength;
-          return rows;
-        });
-        renderer.mesh = meshes[0];
-        lodRenderer!.mesh = meshes[1];
-      }
       const lists: Texture2D[] = [],
         words: Uint32Array[] = [];
-      if (!unitWallUV) {
+      let wallUV: UnitDrawLod["wallUV"];
+      if (wallBinding && d.unitPartition) {
+        const partition = d.unitPartition;
+        const projection = this.own(new BuildingUnitWallUV(this.engine, wallBinding, selector.bounds, partition));
+        const instances = meshes.map((mesh, level) => {
+          // Lit siblings share the template buffers. Each needs its own compact visible IDs
+          // and fades, since the native list texture is shared with its unlit sibling.
+          const data = new Float32Array(partition.length * 2);
+          const buffer = this.own(
+            restoreBuffer(new Buffer(this.engine, BufferBindFlag.VertexBuffer, data, BufferUsage.Dynamic, false), data)
+          );
+          const binding = mesh.vertexBufferBindings.length;
+          mesh.setVertexBufferBinding(buffer, 8, binding);
+          mesh.setVertexElements([
+            ...mesh.vertexElements,
+            new VertexElement("masonryUnitID", 0, VertexElementFormat.Float, binding, 1),
+            new VertexElement("masonryUnitFade", 4, VertexElementFormat.Float, binding, 1)
+          ]);
+          projection.attach(mesh, level);
+          mesh.instanceCount = 0;
+          return { buffer, data };
+        });
+        projection.bind(renderer.shaderData);
+        projection.bind(lodRenderer!.shaderData);
+        const bytes = projection.byteLength + instances.reduce((sum, row) => sum + row.buffer.byteLength, 0);
+        this.metrics.residentBytes += bytes;
+        this.metrics.uploadBytes += bytes;
+        wallUV = { projection, instances };
+      } else {
         const highList = resources.get(d.indirection)!;
         const lowList = this.own(
           new Texture2D(this.engine, highList.width, highList.height, TextureFormat.R32G32B32A32_UInt, false, false)
@@ -1451,7 +1451,7 @@ export class EngineResidentScene {
         lists,
         words,
         fades: unitFades ?? [],
-        wallUV: unitWallUV,
+        wallUV,
         partition: d.unitPartition,
         forced: -1,
         active: renderer.enabled,
@@ -1601,12 +1601,9 @@ export class EngineResidentScene {
           triangles += (mesh.instanceCount * mesh.subMesh!.count) / 3;
         }
         const selected = d.unitLod?.selector.selection.length;
-        full +=
-          ((selected ?? d.meshes[0].instanceCount) *
-            (d.unitLod?.wallUV?.[0].baseIndexCount ?? d.meshes[0].subMesh!.count)) /
-          3;
+        full += ((selected ?? d.meshes[0].instanceCount) * d.meshes[0].subMesh!.count) / 3;
         const low = d.meshes[d.meshes.length - 1];
-        medium += ((selected ?? low.instanceCount) * (d.unitLod?.wallUV?.[1].baseIndexCount ?? low.subMesh!.count)) / 3;
+        medium += ((selected ?? low.instanceCount) * low.subMesh!.count) / 3;
       }
     this.metrics.triangles = triangles;
     this.metrics.fullTriangles = full;

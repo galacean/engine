@@ -1,4 +1,4 @@
-import type { BuildingWallBakeBinding } from "./BuildingWallBakeBinding";
+import type { BuildingWallBakeBinding, BuildingWallBakeTexture } from "./BuildingWallBakeBinding";
 
 type Vec4 = [number, number, number, number];
 export interface WallUvProjection {
@@ -94,4 +94,55 @@ export function createWallUvProjector(binding: BuildingWallBakeBinding): WallUvP
   };
   projectors.set(binding, projector);
   return projector;
+}
+
+/** Native unit topology stays intact. A conservative sphere identifies units whose
+ * triangles may cross a packed tile edge. Those units use a shared, independently
+ * clamped chart, so the UV stays affine even along a plank longer than its light patch. */
+export function partitionWallReceiverUnits(
+  binding: BuildingWallBakeBinding,
+  bounds: Float32Array,
+  radii: Float32Array
+): { dark: Uint32Array; lit: { ids: Uint32Array; binding: BuildingWallBakeBinding }[] } {
+  const projector = createWallUvProjector(binding);
+  const groups = new Map<BuildingWallBakeBinding, Map<BuildingWallBakeTexture, number[]>>();
+  const dark: number[] = [];
+  for (let i = 0; i < radii.length; i++) {
+    const x = bounds[4 * i],
+      y = bounds[4 * i + 1],
+      z = bounds[4 * i + 2],
+      r = radii[i];
+    const chart = projector.select(x, y, z, 0, 0, 0);
+    const u = chart.u[0] * x + chart.u[2] * z + chart.u[3],
+      ru = r * Math.hypot(chart.u[0], chart.u[2]);
+    const v = chart.v[1] * y + chart.v[3],
+      rv = r * Math.abs(chart.v[1]);
+    const [u0, v0, u1, v1] = chart.bounds;
+    if (r <= 0 || chart === projector.black || u + ru < u0 || u - ru > u1 || v + rv < v0 || v - rv > v1) {
+      dark.push(i);
+      continue;
+    }
+    const crosses = !chart.unbounded && (u - ru < u0 || u + ru > u1 || v - rv < v0 || v + rv > v1);
+    // A facade with one contributing emitter retains the native single-tap draw,
+    // including its own black-bordered crop for long units crossing the patch.
+    const source = binding.singleReceiver?.(chart.chartIndex);
+    const receiver = source?.binding ?? binding;
+    const texture = crosses
+      ? receiver.texture.isolatedChart(source?.sourceChart ?? chart.chartIndex)
+      : receiver.texture;
+    let textures = groups.get(receiver);
+    if (!textures) groups.set(receiver, (textures = new Map()));
+    let ids = textures.get(texture);
+    if (!ids) textures.set(texture, (ids = []));
+    ids.push(i);
+  }
+  return {
+    dark: Uint32Array.from(dark),
+    lit: Array.from(groups, ([source, textures]) =>
+      Array.from(textures, ([texture, ids]) => ({
+        ids: Uint32Array.from(ids),
+        binding: texture === source.texture ? source : { ...source, texture }
+      }))
+    ).flat()
+  };
 }

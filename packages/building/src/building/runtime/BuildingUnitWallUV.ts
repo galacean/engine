@@ -1,225 +1,176 @@
 import {
   Buffer,
   BufferBindFlag,
-  BufferMesh,
   BufferUsage,
-  IndexFormat,
+  Vector2,
+  Vector3,
+  Vector4,
   VertexElement,
   VertexElementFormat,
+  type BufferMesh,
   type Engine,
-  type Material
+  type ShaderData
 } from "@galacean/engine";
-import { restoreBuffer, restoreResource } from "@galacean/engine-project/rendering/RestorableResources";
-import type { BuildingWallBakeBinding } from "./BuildingWallBakeBinding";
-import { bakeUnitWallUV } from "./BuildingUnitWallUVFeedback";
-import { constructionLampControlGLSL } from "./ConstructionLanternShader";
+import { restoreBuffer } from "@galacean/engine-project/rendering/RestorableResources";
+import { createWallUvProjector, type BuildingWallBakeBinding, type WallUvProjection } from "./BuildingWallBakeBinding";
 import wallBake from "./BuildingWallBake.glsl?raw";
+import { constructionLampControlGLSL } from "./ConstructionLanternShader";
 
-const bufferSources = new WeakMap<Buffer, Uint8Array>();
-/** Keep the same immutable input that the device-restoration recipe already owns. */
-export function restoreUnitTemplateBuffer(buffer: Buffer, data: ArrayBuffer | ArrayBufferView) {
-  bufferSources.set(
-    buffer,
-    ArrayBuffer.isView(data) ? new Uint8Array(data.buffer, data.byteOffset, data.byteLength) : new Uint8Array(data)
-  );
-  return restoreBuffer(buffer, data);
-}
-function templateBytes(buffer: Buffer) {
-  const bytes = buffer.readable ? buffer.data : bufferSources.get(buffer);
-  if (!bytes) throw Error("Building lightmap needs the readable native unit mesh");
-  return bytes;
+const plane = "renderer_WallUnitPlane";
+const face = "renderer_WallUnitFace";
+const dark = "renderer_WallUnitDark";
+const limits = "renderer_WallUnitBounds";
+const sharedChart = "RENDERER_MASONRY_UNIT_SHARED_CHART";
+const clampToChart = "RENDERER_MASONRY_UNIT_CLAMP";
+
+interface ProjectionStream {
+  buffer: Buffer;
+  data: Float32Array;
+  previous: (Float32Array | undefined)[];
 }
 
-/** Static, original-ID-indexed geometry for the units inside the light footprint.
- * The native shader still deforms and shades the original template. Each lightmap UV
- * arrives directly as an ordinary vertex attribute. Culling only edits indices/fades. */
+/** Each native instance projects its deformed vertices into one facade chart. A
+ * draw on one chart needs only uniforms; mixed charts follow the visible ID list. */
 export class BuildingUnitWallUV {
-  readonly mesh: BufferMesh;
-  readonly baseIndexCount: number;
   byteLength = 0;
-  private readonly buffers: Buffer[] = [];
-  private readonly originalIndices: Uint32Array;
-  private readonly vertices: number;
-  private readonly offsets: Int32Array;
-  private readonly ids: Int32Array;
-  private readonly weights: Float32Array;
-  private readonly indices: Uint32Array;
-  private readonly indexBuffer: Buffer;
-  private readonly fades: Float32Array;
-  private readonly fadeBuffer: Buffer;
+  private readonly rows = new Map<number, Float32Array>();
+  private readonly stride: number;
+  private readonly shared?: Float32Array;
+  private readonly streams: ProjectionStream[] = [];
 
   constructor(
-    engine: Engine,
-    template: BufferMesh,
-    source: string,
-    family: string,
-    material: Material,
+    private readonly engine: Engine,
     binding: BuildingWallBakeBinding,
-    bounds: Float32Array,
-    unitIDs: Uint32Array
+    centers: Float32Array,
+    private readonly ids: Uint32Array
   ) {
-    const mesh = (this.mesh = new BufferMesh(engine));
-    try {
-      const elements = template.vertexElements.filter((e) => e.instanceStepRate === 0);
-      const pos = template.vertexBufferBindings[elements[0].bindingIndex]!;
-      const vertices = (this.vertices = pos.buffer.byteLength / pos.stride);
-      if (!Number.isInteger(vertices) || vertices <= 0) throw Error("Invalid unit template vertex count");
-      const ib = template.indexBufferBinding!;
-      const bytes = templateBytes(ib.buffer),
-        indexWidth = [1, 2, 4][ib.format];
-      const indexView = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-      this.baseIndexCount = template.subMesh!.count;
-      this.originalIndices = Uint32Array.from({ length: this.baseIndexCount }, (_, i) => {
-        const j = (template.subMesh!.start + i) * indexWidth;
-        return indexWidth === 1
-          ? indexView.getUint8(j)
-          : indexWidth === 2
-            ? indexView.getUint16(j, true)
-            : indexView.getUint32(j, true);
-      });
-      const alloc = (flag: BufferBindFlag, data: ArrayBufferView, usage = BufferUsage.Static) => {
-        const buffer = new Buffer(engine, flag, data, usage, false);
-        this.buffers.push(buffer);
-        this.byteLength += data.byteLength;
-        return restoreBuffer(buffer, data);
-      };
-      const copies = new Map<Buffer, Buffer>();
-      const bindingIndices = new Map<number, number>();
-      const attributes = elements.map((e) => {
-        let index = bindingIndices.get(e.bindingIndex);
-        if (index === undefined) {
-          index = mesh.vertexBufferBindings.length;
-          const from = template.vertexBufferBindings[e.bindingIndex]!;
-          let to = copies.get(from.buffer);
-          if (!to) {
-            const byteLength = vertices * from.stride;
-            const buffer = new Buffer(
-              engine,
-              BufferBindFlag.VertexBuffer,
-              byteLength * unitIDs.length,
-              BufferUsage.Static,
-              false
-            );
-            this.buffers.push(buffer);
-            this.byteLength += buffer.byteLength;
-            const upload = () => {
-              buffer.copyFromBuffer(from.buffer, 0, 0, byteLength);
-              // GLES copyBufferSubData permits disjoint ranges of the same vertex buffer.
-              // Double the populated prefix so initialization takes log2(unitCount) copies.
-              for (let filled = byteLength; filled < buffer.byteLength; filled *= 2) {
-                buffer.copyFromBuffer(buffer, 0, filled, Math.min(filled, buffer.byteLength - filled));
-              }
-            };
-            upload();
-            to = restoreResource(buffer, upload);
-            copies.set(from.buffer, to);
-          }
-          mesh.setVertexBufferBinding(to, from.stride, index);
-          bindingIndices.set(e.bindingIndex, index);
-        }
-        return new VertexElement(e.attribute, e.offset, e.format, index);
-      });
-      const count = unitIDs.length * vertices;
-      const originalID = new Float32Array(count);
-      this.offsets = new Int32Array(bounds.length / 4).fill(-1);
-      unitIDs.forEach((id, i) => {
-        originalID.fill(id, i * vertices, (i + 1) * vertices);
-        this.offsets[id] = i;
-      });
-      const add = (name: string, buffer: Buffer, stride: number, fmt: VertexElementFormat) => {
-        const index = mesh.vertexBufferBindings.length;
-        mesh.setVertexBufferBinding(buffer, stride, index);
-        attributes.push(new VertexElement(name, 0, fmt, index));
-      };
-      add("masonryUnitID", alloc(BufferBindFlag.VertexBuffer, originalID), 4, VertexElementFormat.Float);
-      this.fades = new Float32Array(count).fill(1);
-      this.fadeBuffer = alloc(BufferBindFlag.VertexBuffer, this.fades, BufferUsage.Dynamic);
-      add("masonryUnitFade", this.fadeBuffer, 4, VertexElementFormat.Float);
-      const uv = bakeUnitWallUV(engine, template, source, family, material, binding, bounds, vertices, unitIDs);
-      this.buffers.push(uv);
-      this.byteLength += uv.byteLength;
-      add("masonryLightmapUV", uv, 8, VertexElementFormat.Vector2);
-      mesh.setVertexElements(attributes);
-      this.indices = new Uint32Array(unitIDs.length * this.baseIndexCount);
-      this.indexBuffer = alloc(BufferBindFlag.IndexBuffer, this.indices, BufferUsage.Dynamic);
-      mesh.setIndexBufferBinding(this.indexBuffer, IndexFormat.UInt32);
-      mesh.addSubMesh(0, 0);
-      mesh.instanceCount = 1;
-      mesh.bounds.copyFrom(template.bounds);
-      this.ids = new Int32Array(unitIDs.length).fill(-1);
-      this.weights = new Float32Array(unitIDs.length).fill(1);
-    } catch (error) {
-      this.destroy();
-      throw error;
+    this.stride = binding.texture.unbounded ? 9 : 13;
+    const projector = createWallUvProjector(binding);
+    const charts = new Map<WallUvProjection, Float32Array>();
+    for (const id of ids) {
+      const c = 4 * id;
+      if (id > 0xffffff || c + 2 >= centers.length) throw Error("Invalid wall projection instance ID");
+      const chart = projector.select(centers[c], centers[c + 1], centers[c + 2], 0, 0, 0);
+      let row = charts.get(chart);
+      if (!row) {
+        row = new Float32Array(this.stride);
+        row.set([
+          chart.u[0],
+          chart.u[2],
+          chart.u[3],
+          chart.v[3],
+          chart.v[1],
+          chart.normal[0],
+          chart.normal[2],
+          ...chart.darkUV
+        ]);
+        if (!binding.texture.unbounded) row.set(chart.bounds, 9);
+        charts.set(chart, row);
+      }
+      this.rows.set(id, row);
+    }
+    if (charts.size === 1) {
+      this.shared = this.rows.get(ids[0]);
+      this.rows.clear();
     }
   }
 
-  update(ids: Uint32Array, weights: Float32Array, count: number): number {
-    let first = count,
-      last = -1,
-      bytes = 0;
-    // The original-ID slots are sorted by the partitioner; upload contiguous changed
-    // fade runs. Geometry and UV buffers stay immutable when a camera moves.
-    let fadeStart = -1,
-      fadeEnd = -1;
-    const flushFades = () => {
-      if (fadeStart < 0) return;
-      const start = fadeStart * this.vertices,
-        length = (fadeEnd - fadeStart + 1) * this.vertices;
-      this.fadeBuffer.setData(this.fades, start * 4, start, length);
-      bytes += length * 4;
-      fadeStart = fadeEnd = -1;
-    };
-    for (let i = 0; i < count; i++) {
-      const id = ids[i],
-        slot = this.offsets[id];
-      if (slot < 0) throw Error("A wall UV unit was selected outside its lightmap partition");
-      if (this.ids[i] !== id) {
-        this.ids[i] = id;
-        first = Math.min(first, i);
-        last = i;
-        const base = slot * this.vertices;
-        for (let k = 0; k < this.baseIndexCount; k++)
-          this.indices[i * this.baseIndexCount + k] = base + this.originalIndices[k];
-      }
-      const weight = weights[i];
-      if (this.weights[slot] !== weight) {
-        this.weights[slot] = weight;
-        const offset = slot * this.vertices;
-        this.fades.fill(weight, offset, offset + this.vertices);
-        if (slot !== fadeEnd + 1) flushFades();
-        if (fadeStart < 0) fadeStart = slot;
-        fadeEnd = slot;
-      }
-    }
-    flushFades();
-    if (last >= first) {
-      const start = first * this.baseIndexCount,
-        length = (last - first + 1) * this.baseIndexCount;
-      this.indexBuffer.setData(this.indices, start * 4, start, length);
-      bytes += length * 4;
-    }
-    this.mesh.subMesh!.count = count * this.baseIndexCount;
-    return bytes;
+  bind(data: ShaderData) {
+    if (this.stride === 13) data.enableMacro(clampToChart);
+    else data.disableMacro(clampToChart);
+    if (this.shared) {
+      data.enableMacro(sharedChart);
+      data.setVector4(plane, new Vector4().copyFromArray(this.shared));
+      data.setVector3(face, new Vector3().copyFromArray(this.shared, 4));
+      data.setVector2(dark, new Vector2().copyFromArray(this.shared, 7));
+      if (this.stride === 13) data.setVector4(limits, new Vector4().copyFromArray(this.shared, 9));
+    } else data.disableMacro(sharedChart);
   }
+
+  attach(mesh: BufferMesh, level: number) {
+    if (this.shared) return;
+    const data = new Float32Array(this.ids.length * this.stride);
+    const buffer = restoreBuffer(
+      new Buffer(this.engine, BufferBindFlag.VertexBuffer, data, BufferUsage.Dynamic, false),
+      data
+    );
+    this.streams[level] = { data, buffer, previous: new Array(this.ids.length) };
+    this.byteLength += data.byteLength;
+    const slot = mesh.vertexBufferBindings.length;
+    mesh.setVertexBufferBinding(buffer, this.stride * 4, slot);
+    const elements = [
+      ...mesh.vertexElements,
+      new VertexElement(plane, 0, VertexElementFormat.Vector4, slot, 1),
+      new VertexElement(face, 16, VertexElementFormat.Vector3, slot, 1),
+      new VertexElement(dark, 28, VertexElementFormat.Vector2, slot, 1)
+    ];
+    if (this.stride === 13) elements.push(new VertexElement(limits, 36, VertexElementFormat.Vector4, slot, 1));
+    mesh.setVertexElements(elements);
+  }
+
+  update(level: number, ids: Uint32Array, count: number): number {
+    if (this.shared) return 0;
+    const { data, buffer, previous } = this.streams[level];
+    let first = count,
+      last = -1;
+    for (let i = 0; i < count; i++) {
+      const row = this.rows.get(ids[i]);
+      if (!row) throw Error("Visible unit outside wall projection partition");
+      if (previous[i] === row) continue;
+      previous[i] = row;
+      data.set(row, i * this.stride);
+      first = Math.min(first, i);
+      last = i;
+    }
+    if (last < first) return 0;
+    const offset = first * this.stride,
+      length = (last - first + 1) * this.stride;
+    buffer.setData(data, offset * 4, offset, length);
+    return length * 4;
+  }
+
   destroy() {
-    this.mesh.destroy();
-    for (const b of this.buffers) b.destroy();
+    for (const stream of this.streams) stream?.buffer.destroy();
   }
 }
 
 export function residentWallUvVertex(source: string, unitFamily?: string) {
+  let input = "layout(location=13) in vec2 masonryLightmapUV;";
+  let uv = "";
   if (unitFamily) {
-    // The expanded geometry carries the original source identity even after LOD reordering.
+    // The instance stream contains original IDs even after the LOD selector reorders it.
     const read = unitFamily === "brick" ? "read_material_data_instance_list" : "read_nani_instance_indirection_buffer";
     const re = new RegExp("uint " + read + "\\s*\\(int \\w+\\)\\s*\\{[^}]*\\}");
     if (!re.test(source)) throw Error("Missing native unit indirection: " + read);
     source =
       "in highp float masonryUnitID;\n" + source.replace(re, "uint " + read + "(int i){return uint(masonryUnitID);}");
+    input = `
+#ifdef ${sharedChart}
+  #define MASONRY_PROJECTION_INPUT uniform
+#else
+  #define MASONRY_PROJECTION_INPUT in
+#endif
+MASONRY_PROJECTION_INPUT highp vec4 ${plane};
+MASONRY_PROJECTION_INPUT highp vec3 ${face};
+MASONRY_PROJECTION_INPUT highp vec2 ${dark};
+#ifdef ${clampToChart}
+MASONRY_PROJECTION_INPUT highp vec4 ${limits};
+#endif
+`;
+    uv = `
+  highp vec3 masonryPosition = ${unitFamily === "brick" ? "v2" : "v0"};
+  highp vec3 masonryNormal = normalize(v1);
+  highp vec2 masonryLightmapUV = vec2(dot(${plane}.xy, masonryPosition.xz) + ${plane}.z,
+                                      ${face}.x * masonryPosition.y + ${plane}.w);
+  #ifdef ${clampToChart}
+    masonryLightmapUV = clamp(masonryLightmapUV, ${limits}.xy, ${limits}.zw);
+  #endif
+  if (!(abs(masonryNormal.y) < 0.75 && dot(masonryNormal.xz, ${face}.yz) >= 0.12)) masonryLightmapUV = ${dark};
+`;
   }
   return (
     `
-layout(location=13) in vec2 masonryLightmapUV;
+${input}
 out highp vec2 v_masonryLightmapUV;
 #ifdef RENDERER_MASONRY_WALL_LAYOUT
 out highp vec4 v_masonryWallColorLayer;
@@ -233,6 +184,7 @@ ${wallBake.replaceAll("texture2D(", "texture(")}
     source.replace(
       "original_main();",
       `original_main();
+${uv}
 #ifdef RENDERER_MASONRY_WALL_LAYOUT
   #ifdef RENDERER_MASONRY_WALL_OVERLAP
     v_masonryWallExtra = masonryWallProject(masonryLightmapUV,v_masonryLightmapUV,v_masonryWallColorLayer,v_masonryWallBounds);
