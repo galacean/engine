@@ -1,0 +1,27 @@
+packages/vegetation/README.md
+  s_147482a53e9f64::t_dc65d5453b7082 5-6
+packages/terrain/src/shaders/shared/Lighting.glsl
+  s_147482a53e9f64::t_0563f90de7a6e5 88,92
+  s_147482a53e9f64::t_7856c0b24eb411 21-44,87,89,103
+packages/terrain/src/shaders/vegetation/VegetationEvaluation.glsl
+  s_147482a53e9f64::t_7856c0b24eb411 232-233
+world/tests/seed-world-browser/TreeCanopyShadow.test.ts
+  s_147482a53e9f64::t_7856c0b24eb411 1-38,40-46,62-67,72-101
+  s_147482a53e9f64::t_0563f90de7a6e5 39,47-61,68-71
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2b0467730d8e1d6c58fb39367417668fa316a314",
+  "prompts": {},
+  "sessions": {
+    "s_147482a53e9f64": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2068a-0f66-7261-874f-d518cb87d5f4",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "鸿岳 <owen.wjh@alipay.com>"
+    }
+  }
+}

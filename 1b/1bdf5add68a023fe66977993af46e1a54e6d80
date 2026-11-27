@@ -1,0 +1,26 @@
+packages/animals/src/gameplay/animal/AnimalLod.ts
+  h_171a11afaf879a 4-56
+packages/animals/src/gameplay/animal/AnimalPopulation.ts
+  h_171a11afaf879a 3,47-48,162
+packages/animals/src/gameplay/animal/index.ts
+  h_171a11afaf879a 17-23
+packages/core/src/Renderer.ts
+  h_171a11afaf879a 90,295,298
+packages/world-planning/src/spatial/AnimalPopulationComponent.ts
+  h_171a11afaf879a 12-16,28-32,146-173,249-268,329-330,463-495
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime.ts
+  h_171a11afaf879a 42-43,209,260-270,279,2101-2107,2115,2118,2155-2161
+world/tests/seed-world/AnimalPathfindingPerfInvariants.spec.ts
+  h_171a11afaf879a 3-4,417,433,437,442,444,451-504
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1b1bdf5add68a023fe66977993af46e1a54e6d80",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

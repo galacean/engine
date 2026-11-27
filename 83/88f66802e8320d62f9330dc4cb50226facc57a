@@ -1,0 +1,23 @@
+packages/core/src/particle/ParticleTransformFeedbackSimulator.ts
+  s_3d75e2853b6874::t_1eed52af66183b 2-3,5-6,9,11,19-132,135,142-143,155-160,163-168,173-176,180,182,195-214,223-244,267-306,315,329,331,333,336,340-356
+packages/design/src/shader-compiler/IWebGPUShaderProgram.ts
+  s_3d75e2853b6874::t_78fa822210f244 116
+packages/shader/src/ShaderLibrary/Particle/ParticleFeedbackCore.glsl
+  s_3d75e2853b6874::t_03049a0f6a4a77 1-413
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8388f66802e8320d62f9330dc4cb50226facc57a",
+  "prompts": {},
+  "sessions": {
+    "s_3d75e2853b6874": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21b15-c2a9-7d82-a657-74613efe42ec",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

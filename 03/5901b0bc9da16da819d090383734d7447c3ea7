@@ -1,0 +1,36 @@
+world/tests/seed-world/SeedWorldRendererWarmup.spec.ts
+  s_c72f930c19d1f3::t_7b3765a19e2560 4,460-464,501-504,518-520,523-526,2336-2338
+  s_c72f930c19d1f3::t_4b1a45be48ef45 7,465-467,482-494,500,517
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  s_c72f930c19d1f3::t_edadb39ac4919b 825,836-837,841
+  s_c72f930c19d1f3::t_4b1a45be48ef45 819-820
+  s_c72f930c19d1f3::t_fc356f371405e3 154-156,818,821,824,829-831,847-854,1476,1489
+  s_c72f930c19d1f3::t_7b3765a19e2560 822-823
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  s_c72f930c19d1f3::t_f00d5959810484 1652,1657,1671,1677,1683-1686,1754,1809
+packages/world-planning/tests/NativeBuildingLifetime.spec.ts
+  s_c72f930c19d1f3::t_1000990100e1a4 105,111,128,134,137,146,163,165-166,168,170-172,178-193
+  s_c72f930c19d1f3::t_9fb242b3085740 173,176
+world/demos/seed-world/SeedWorldDemo.ts
+  s_c72f930c19d1f3::t_248b8e596c6141 2863
+world/demos/seed-world/src/SeedWorldStartupShaderWarmup.ts
+  s_c72f930c19d1f3::t_f9a31a1506f765 17,314,350,374,602
+world/tests/seed-world/SeedWorldStartupShaderWarmup.spec.ts
+  s_c72f930c19d1f3::t_eade329b0f1fc4 4,25-26,168,204,209,230,254,276,312,525,543,1240,1327
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "035901b0bc9da16da819d090383734d7447c3ea7",
+  "prompts": {},
+  "sessions": {
+    "s_c72f930c19d1f3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21604-5ead-7042-b751-c18d1813c1a0",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

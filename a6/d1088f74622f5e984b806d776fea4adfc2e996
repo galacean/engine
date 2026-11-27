@@ -1,0 +1,31 @@
+packages/shader-compiler/src/codeGen/GLES300.ts
+  s_c72f930c19d1f3::t_ff6e5592dea201 53-54
+packages/shader-parser/src/lexer/Lexer.ts
+  s_3d75e2853b6874::t_2d1f90b9019dca 1105-1116,1145-1222
+tests/src/rhi-webgpu/ComputeShader.test.ts
+  s_c72f930c19d1f3::t_6a97dca567e53d 520-975
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a6d1088f74622f5e984b806d776fea4adfc2e996",
+  "prompts": {},
+  "sessions": {
+    "s_3d75e2853b6874": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21b15-c2a9-7d82-a657-74613efe42ec",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    },
+    "s_c72f930c19d1f3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21604-5ead-7042-b751-c18d1813c1a0",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

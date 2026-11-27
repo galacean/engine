@@ -1,0 +1,18 @@
+packages/water/src/world/SeedWorldWaterStartupShaders.ts
+  h_ddbf152d31b140 3-15,17
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 1028,1057-1060
+world/tests/seed-world/SeedWorldStartupShaderWarmup.spec.ts
+  h_ddbf152d31b140 1913,1917-1937
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0525c8da94d771971b99d3b145d3c603d5069586",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

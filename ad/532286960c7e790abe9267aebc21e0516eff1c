@@ -1,0 +1,14 @@
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_c385727b10f40c 756-757,760-762
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ad532286960c7e790abe9267aebc21e0516eff1c",
+  "prompts": {},
+  "humans": {
+    "h_c385727b10f40c": {
+      "author": "shensi.zxd <shensi.zxd@antgroup.com>"
+    }
+  }
+}
