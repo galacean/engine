@@ -2,7 +2,7 @@ import { resolveObjectURL } from "node:buffer";
 import { createRequire } from "node:module";
 import { createServer, type ServerResponse } from "node:http";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import ts from "typescript";
@@ -622,14 +622,24 @@ describe("@galacean/engine-rhi-null in Node without browser globals", () => {
   });
 });
 
-it("installs and resolves @galacean/engine-rhi-null and @galacean/engine independently of the workspace", () => {
+it("installs and resolves the headless engine and its PhysX runtime independently of the workspace", () => {
   const directory = mkdtempSync(join(tmpdir(), "engine-headless-consumer-"));
   const repository = resolve(__dirname, "../..");
   const tarballs = join(directory, "tarballs");
   mkdirSync(tarballs);
   try {
     const dependencies: Record<string, string> = {};
-    for (const name of ["math", "design", "core", "shader", "rhi-webgl", "rhi-null", "loader", "galacean"]) {
+    for (const name of [
+      "math",
+      "design",
+      "core",
+      "shader",
+      "rhi-webgl",
+      "rhi-null",
+      "loader",
+      "galacean",
+      "physics-physx"
+    ]) {
       const cwd = join(repository, "packages", name);
       const pkg = JSON.parse(readFileSync(join(cwd, "package.json"), "utf8"));
       execFileSync("pnpm", ["pack", "--pack-destination", tarballs], { cwd, stdio: "pipe" });
@@ -646,22 +656,49 @@ it("installs and resolves @galacean/engine-rhi-null and @galacean/engine indepen
       encoding: "utf8"
     });
     expect(install.status, install.stdout + install.stderr).toBe(0);
-    for (const mode of ["require", "import"]) {
-      const loadEngine = mode === "require" ? 'require("@galacean/engine")' : 'await import("@galacean/engine")';
-      const loadNull =
-        mode === "require" ? 'require("@galacean/engine-rhi-null")' : 'await import("@galacean/engine-rhi-null")';
-      const script = `const { HeadlessEngine } = ${loadNull};
-        const { PrimitiveMesh, PBRMaterial } = ${loadEngine};
-        Promise.resolve(HeadlessEngine.create()).then(engine => {
+    const physXPackage = join(directory, "node_modules/@galacean/engine-physics-physx");
+    expect(existsSync(join(physXPackage, "libs"))).toBe(false);
+    const runtimeFiles = ["", ".simd"].flatMap((variant) =>
+      ["js", "mjs", "wasm"].map((extension) => `physx.release${variant}.${extension}`)
+    );
+    expect(readdirSync(join(physXPackage, "dist/libs")).sort()).toEqual(runtimeFiles.sort());
+    for (const [load, runtime] of [
+      ["require", "WebAssembly"],
+      ["await import", "WebAssemblySIMD"]
+    ]) {
+      const script = `const { HeadlessEngine } = ${load}("@galacean/engine-rhi-null");
+        const { BoxCollider, PBRMaterial, PrimitiveMesh, Ray, Rigidbody, Vector3 } = ${load}("@galacean/engine");
+        const { PhysXPhysics, PhysXRuntimeMode } = ${load}("@galacean/engine-physics-physx");
+        HeadlessEngine.create({ physics: new PhysXPhysics(PhysXRuntimeMode.${runtime}) }).then(async engine => {
           if (PrimitiveMesh.createCuboid(engine, 2, 4, 6).bounds.max.y !== 2) throw Error("bounds");
           if (new PBRMaterial(engine).shader.name !== "PBR") throw Error("shader");
+          const scene = engine.sceneManager.activeScene;
+          scene.createRootEntity().addComponent(BoxCollider);
+          if (!scene.physics.raycast(new Ray(new Vector3(0, 0, 2), new Vector3(0, 0, -1)))) throw Error("raycast");
+          const { Vector3: ModuleVector3 } = await import("@galacean/engine-math/dist/module.js");
+          const platform = scene.createRootEntity();
+          const body = platform.addComponent(Rigidbody);
+          body.isKinematic = true;
+          platform.addComponent(BoxCollider);
+          const target = new ModuleVector3(7, 0, 0);
+          if (target instanceof Vector3) throw Error("expected separate math package entry points");
+          body.move(target);
+          if (!scene.physics.raycast(new Ray(new Vector3(7, 2, 0), new Vector3(0, -1, 0)), 4)) {
+            throw Error("mixed-module kinematic move");
+          }
           engine.destroy();
+          console.log("Physics package consumer completed");
         }).catch(error => { console.error(error); process.exitCode = 1; });`;
-      const probe = spawnSync(process.execPath, [...(mode === "import" ? ["--input-type=module"] : []), "-e", script], {
-        cwd: directory,
-        encoding: "utf8"
-      });
+      const probe = spawnSync(
+        process.execPath,
+        [...(load === "require" ? [] : ["--input-type=module"]), "-e", script],
+        {
+          cwd: directory,
+          encoding: "utf8"
+        }
+      );
       expect(probe.status, probe.stdout + probe.stderr).toBe(0);
+      expect(probe.stdout).toContain("Physics package consumer completed");
     }
     const source = join(directory, "consumer.ts");
     writeFileSync(

@@ -1,3 +1,5 @@
+import { PhysicsMaterialCombineMode } from "./enums/PhysicsMaterialCombineMode";
+
 /**
  * Physics material properties supplied by the engine.
  */
@@ -5,12 +7,13 @@ export interface IPhysicsMaterialProperties {
   readonly staticFriction: number;
   readonly dynamicFriction: number;
   readonly bounciness: number;
-  readonly frictionCombine: number;
-  readonly bounceCombine: number;
+  readonly frictionCombine: PhysicsMaterialCombineMode;
+  readonly bounceCombine: PhysicsMaterialCombineMode;
 }
 
 /**
- * Interface of physics material.
+ * Native physics material.
+ * @remarks Updating material properties must affect shapes and character controllers currently bound to this material.
  */
 export interface IPhysicsMaterial {
   /**
@@ -35,16 +38,16 @@ export interface IPhysicsMaterial {
    * Set the bounciness combine mode.
    * @param value - The combine mode
    */
-  setBounceCombine(value: number): void;
+  setBounceCombine(value: PhysicsMaterialCombineMode): void;
 
   /**
    * Set the friction combine mode.
    * @param value - The combine mode
    */
-  setFrictionCombine(value: number): void;
+  setFrictionCombine(value: PhysicsMaterialCombineMode): void;
 
   /**
-   * Decrements the reference count of a material and releases it if the new reference count is zero.
+   * Release the native physics material.
    */
   destroy(): void;
 }

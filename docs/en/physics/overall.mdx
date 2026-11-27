@@ -25,9 +25,19 @@ const engine = await WebGLEngine.create({
 });
 ```
 
+The UMD, ESM, and CommonJS entries load the packaged runtime from `./libs/` beside the entry file. When self-hosting, copy `dist/libs/` alongside that file.
+
+In 2.0, direct npm imports and URLs on npm mirrors such as jsDelivr use `@galacean/engine-physics-physx/dist/libs/*`. The Galacean CDN serves `dist/` as the version root, so its runtime URLs use `<version>/libs/*`.
+
+In Vite development, add `@galacean/engine-physics-physx` to `optimizeDeps.exclude` so the assets resolve relative to the package.
+
+Dedicated module Workers and Node.js use the packaged `.mjs` loader by default. Web pages and classic Workers use the `.js` loader. A classic Worker loading UMD with `importScripts()` requires an explicit loader URL.
+
+To host the runtime separately, set `wasmModeUrl` for standard WASM and `wasmSIMDModeUrl` for SIMD in the second constructor argument. Keep the `.wasm` from the same release beside its loader.
+
 ## Backend Notes
 
-PhysX provides complete physics functionality and high-performance simulation. It requires WebAssembly; `Auto` runtime mode only selects between SIMD and non-SIMD WebAssembly builds. Choosing the PhysX backend adds about 2.5 MB of wasm/js runtime files, which can affect package size and initialization speed.
+PhysX requires WebAssembly. `Auto` selects SIMD when supported and otherwise uses the standard build. Startup loads one JavaScript loader and its matching WASM binary, about 2.5 MiB for the standard build or 3.0 MiB for SIMD before compression.
 
 | Feature                        | physics-physx |
 | ------------------------------ | ------------- |
@@ -41,10 +51,8 @@ PhysX provides complete physics functionality and high-performance simulation. I
 ### Colliders
 
 - [Collider Overview](/en/docs/physics/collider/overview)
-  - [DynamicCollider](/en/docs/physics/collider/dynamicCollider) - Freely moving physical objects
-  - [StaticCollider](/en/docs/physics/collider/staticCollider) - Fixed physical objects in the scene
+  - [Rigidbody](/en/docs/physics/collider/rigidbody) - Puts Colliders under physics control
   - [CharacterController](/en/docs/physics/collider/characterController) - Collider dedicated to character control
-  - [ColliderShape](/en/docs/physics/collider/colliderShape) - Shape definition for colliders
 
 ### Joint System
 

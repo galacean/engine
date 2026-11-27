@@ -44,13 +44,14 @@ The position of the physics update in the entire update process can be referred 
 The execution order when the PhysicsScene is updated:
 
 1. Execute user logic in `onPhysicsUpdate`
-2. `callColliderOnUpdate` synchronizes the modified [Entity](/apis/core/#Entity) `Transform` data to the physics collider
-3. Update the PhysicsScene
-4. `callColliderOnLateUpdate` synchronizes the updated positions of all [colliders](/en/docs/physics/collider/overview) to the corresponding `Entity`
+2. Apply pending component changes: modified [Entity](/apis/core/#Entity) `Transform` data, [Collider](/en/docs/physics/collider/overview) ownership and properties are synchronized to the physics backend
+3. Simulate one fixed step
+4. Write the simulated poses of all enabled [Rigidbodies](/en/docs/physics/collider/rigidbody) back to their `Entity`
+5. Dispatch collision and trigger events
 
 ## Setting Scene Gravity
 
-The PhysicsScene allows customization of gravity direction and magnitude. Gravity affects all [dynamic colliders](/en/docs/physics/collider/dynamicCollider) with gravity enabled in the scene.
+The PhysicsScene allows customization of gravity direction and magnitude. Gravity affects all [Rigidbodies](/en/docs/physics/collider/rigidbody) with gravity enabled in the scene.
 
 ```typescript
 // Get the gravity value of the PhysicsScene

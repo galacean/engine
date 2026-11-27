@@ -4,18 +4,18 @@
  */
 import {
   WebGLEngine,
-  SphereColliderShape,
-  DynamicCollider,
-  BoxColliderShape,
+  SphereCollider,
+  Rigidbody,
+  BoxCollider,
   Vector3,
   MeshRenderer,
   PointLight,
   PrimitiveMesh,
   Camera,
   Script,
-  StaticCollider,
-  ColliderShape,
+  Collider,
   PBRMaterial,
+  PhysicsMaterial,
   AmbientLight,
   AssetType,
   BlinnPhongMaterial,
@@ -44,15 +44,14 @@ function addBox(rootEntity: Entity, cubeSize: number, x: number, y: number, z: n
     boxMtl.baseColor.set(0, 1, 0, 1.0);
   }
 
-  const physicsBox = new BoxColliderShape();
+  const physicsBox = boxEntity.addComponent(BoxCollider);
   physicsBox.size = new Vector3(cubeSize, cubeSize, cubeSize);
-  physicsBox.getInstanceMaterial().staticFriction = 0.1;
-  physicsBox.getInstanceMaterial().dynamicFriction = 0.2;
-  physicsBox.getInstanceMaterial().bounciness = 1;
+  const boxMaterial = new PhysicsMaterial(rootEntity.engine);
+  boxMaterial.staticFriction = 0.1;
+  boxMaterial.dynamicFriction = 0.2;
+  boxMaterial.bounciness = 1;
+  physicsBox.material = boxMaterial;
   physicsBox.isTrigger = true;
-
-  const boxCollider = boxEntity.addComponent(StaticCollider);
-  boxCollider.addShape(physicsBox);
   return boxEntity;
 }
 
@@ -91,15 +90,16 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
   sphereRenderer.mesh = PrimitiveMesh.createSphere(engine, radius);
   sphereRenderer.setMaterial(sphereMtl);
 
-  const physicsSphere = new SphereColliderShape();
+  const physicsSphere = sphereEntity.addComponent(SphereCollider);
   physicsSphere.radius = radius;
-  physicsSphere.getInstanceMaterial().staticFriction = 0.1;
-  physicsSphere.getInstanceMaterial().dynamicFriction = 0.2;
-  physicsSphere.getInstanceMaterial().bounciness = 1;
+  const sphereMaterial = new PhysicsMaterial(engine);
+  sphereMaterial.staticFriction = 0.1;
+  sphereMaterial.dynamicFriction = 0.2;
+  sphereMaterial.bounciness = 1;
+  physicsSphere.material = sphereMaterial;
 
-  const sphereCollider = sphereEntity.addComponent(DynamicCollider);
-  sphereCollider.isKinematic = true;
-  sphereCollider.addShape(physicsSphere);
+  const sphereBody = sphereEntity.addComponent(Rigidbody);
+  sphereBody.isKinematic = true;
 
   rootEntity.addComponent(MeshRenderer);
 
@@ -122,17 +122,17 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
 
   // Collision Detection
   class CollisionScript extends Script {
-    onTriggerExit(other: ColliderShape) {
+    onTriggerExit(other: Collider) {
       (<BlinnPhongMaterial>sphereRenderer.getMaterial()).baseColor.set(1, 1, 1, 1.0);
     }
 
-    onTriggerEnter(other: ColliderShape) {
+    onTriggerEnter(other: Collider) {
       (sphereRenderer.getMaterial() as BlinnPhongMaterial).baseColor = (
-        other.collider.entity.getComponent(MeshRenderer)?.getMaterial() as PBRMaterial
+        other.entity.getComponent(MeshRenderer)?.getMaterial() as PBRMaterial
       ).baseColor;
     }
 
-    onTriggerStay(other: ColliderShape) {}
+    onTriggerStay(other: Collider) {}
   }
 
   sphereEntity.addComponent(CollisionScript);

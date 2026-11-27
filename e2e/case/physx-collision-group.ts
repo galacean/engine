@@ -4,38 +4,22 @@
  */
 import {
   WebGLEngine,
-  SphereColliderShape,
-  DynamicCollider,
-  BoxColliderShape,
+  SphereCollider,
+  Rigidbody,
+  BoxCollider,
   Vector3,
   MeshRenderer,
   PointLight,
   PrimitiveMesh,
   Camera,
-  Script,
-  StaticCollider,
-  ColliderShape,
   PBRMaterial,
+  PhysicsMaterial,
   Entity,
   Layer
 } from "@galacean/engine";
 
-import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
+import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
-
-class CheckScript extends Script {
-  onTriggerEnter(other: ColliderShape) {
-    console.log("onTriggerEnter", other);
-    // Change color to green when collision occurs
-    (this.entity.getComponent(MeshRenderer).getMaterial() as PBRMaterial).baseColor.set(0, 1, 0, 1);
-  }
-
-  onContactEnter(other: ColliderShape) {
-    console.log("onContactEnter", other);
-    // Change color to green when collision occurs
-    (this.entity.getComponent(MeshRenderer).getMaterial() as PBRMaterial).baseColor.set(0, 1, 0, 1);
-  }
-}
 
 // Create a sphere with physics
 function createPhysicsSphere(
@@ -59,16 +43,14 @@ function createPhysicsSphere(
   sphereRenderer.setMaterial(sphereMtl);
 
   // Add physics
-  const physicsSphere = new SphereColliderShape();
+  const physicsSphere = sphereEntity.addComponent(SphereCollider);
   physicsSphere.radius = radius;
-  physicsSphere.getInstanceMaterial().bounciness = 0.8;
+  const spherePhysicsMaterial = new PhysicsMaterial(rootEntity.engine);
+  spherePhysicsMaterial.bounciness = 0.8;
+  physicsSphere.material = spherePhysicsMaterial;
+  physicsSphere.collisionLayer = collisionLayer;
 
-  const sphereCollider = sphereEntity.addComponent(DynamicCollider);
-  sphereCollider.collisionLayer = collisionLayer;
-  sphereEntity.addComponent(CheckScript);
-  sphereCollider.addShape(physicsSphere);
-
-  return sphereEntity;
+  sphereEntity.addComponent(Rigidbody);
 }
 
 WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engine) => {
@@ -111,32 +93,15 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
   groundRenderer.setMaterial(groundMtl);
 
   // Physics for the ground cube
-  const groundCollider = groundEntity.addComponent(StaticCollider);
-  const groundShape = new BoxColliderShape();
-  groundShape.size = cubeSize;
-  groundCollider.addShape(groundShape);
-
+  const groundCollider = groundEntity.addComponent(BoxCollider);
+  groundCollider.size = cubeSize;
   groundCollider.collisionLayer = Layer.Layer3;
 
   // 创建可以碰撞的红色球体
-  const sphere1 = createPhysicsSphere(
-    rootEntity,
-    "RedSphere",
-    new Vector3(-2, 5, 0),
-    0.5,
-    new Vector3(1, 0, 0),
-    Layer.Layer1
-  );
+  createPhysicsSphere(rootEntity, "RedSphere", new Vector3(-2, 5, 0), 0.5, new Vector3(1, 0, 0), Layer.Layer1);
 
   // 创建可以穿透的蓝色球体
-  const sphere2 = createPhysicsSphere(
-    rootEntity,
-    "BlueSphere",
-    new Vector3(2, 5, 0),
-    0.5,
-    new Vector3(0, 0, 1),
-    Layer.Layer2
-  );
+  createPhysicsSphere(rootEntity, "BlueSphere", new Vector3(2, 5, 0), 0.5, new Vector3(0, 0, 1), Layer.Layer2);
 
   scene.physics.setColliderLayerCollision(Layer.Layer2, Layer.Layer3, false);
 

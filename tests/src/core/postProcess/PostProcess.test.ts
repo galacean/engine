@@ -5,9 +5,13 @@ import {
   BloomDownScaleMode,
   BloomEffect,
   Camera,
+  CharacterController,
   Engine,
   Entity,
+  Logger,
+  MeshCollider,
   MeshRenderer,
+  PlaneCollider,
   PostProcess,
   PostProcessEffect,
   PostProcessEffectBoolParameter,
@@ -15,9 +19,10 @@ import {
   PostProcessPass,
   PrimitiveMesh,
   RenderTarget,
+  Rigidbody,
   Scene,
-  SphereColliderShape,
-  StaticCollider,
+  Script,
+  SphereCollider,
   Texture2D,
   TextureFormat,
   TonemappingEffect,
@@ -390,10 +395,8 @@ describe("PostProcess", () => {
       const radius = 5;
       pp2.isGlobal = false;
       pp2.blendDistance = radius;
-      const collider = postEntity.addComponent(StaticCollider);
-      const physicsBox = new SphereColliderShape();
-      physicsBox.radius = radius;
-      collider.addShape(physicsBox);
+      const collider = postEntity.addComponent(SphereCollider);
+      collider.radius = radius;
 
       // Inside
       cameraEntity.transform.position.set(radius / 2, 0, 0);
@@ -438,6 +441,82 @@ describe("PostProcess", () => {
       cameraEntity.transform.position.set(radius + pp2.blendDistance, 0, 0);
       engine.update();
       expect(bloomBlend.intensity.value).to.equal(MathUtil.lerp(intensity1, intensity2, 0));
+
+      collider.center.set(radius * 2, 0, 0);
+      engine.update();
+      expect(bloomBlend.intensity.value).to.equal(intensity2);
+      collider.enabled = false;
+      Logger.enable();
+      const volumeWarning = vi.spyOn(Logger, "warn");
+      try {
+        engine.update();
+        expect(bloomBlend.intensity.value).to.equal(intensity1);
+        expect(volumeWarning).not.toHaveBeenCalled();
+
+        const emptyVolumeEntity = scene.createRootEntity("empty-local-volume");
+        try {
+          const emptyVolume = emptyVolumeEntity.addComponent(PostProcess);
+          emptyVolume.isGlobal = false;
+          engine.update();
+          expect(volumeWarning).toHaveBeenCalledTimes(1);
+        } finally {
+          emptyVolumeEntity.destroy();
+        }
+      } finally {
+        volumeWarning.mockRestore();
+        Logger.disable();
+      }
+      collider.enabled = true;
+      collider.center.set(0, 0, 0);
+
+      const secondCollider = postEntity.addComponent(SphereCollider);
+      secondCollider.radius = 1;
+      const moveBeforeRender = cameraEntity.addComponent(
+        class extends Script {
+          override onBeginRender(): void {
+            secondCollider.center.set(radius * 2, 0, 0);
+          }
+        }
+      );
+      engine.update();
+      expect(bloomBlend.intensity.value).to.equal(intensity2);
+      moveBeforeRender.destroy();
+      secondCollider.enabled = false;
+      engine.update();
+      expect(bloomBlend.intensity.value).to.equal(intensity1);
+
+      // Disabled Rigidbodies and active unsupported colliders must not produce warnings on each update.
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      try {
+        const body = postEntity.addComponent(Rigidbody);
+        body.isKinematic = true;
+        cameraEntity.transform.position.set(radius / 2, 0, 0);
+        engine.update();
+        expect(bloomBlend.intensity.value).to.equal(intensity2);
+        body.enabled = false;
+        engine.update();
+        expect(bloomBlend.intensity.value).to.equal(intensity1);
+        expect(warnSpy).not.toHaveBeenCalled();
+        expect(errorSpy).not.toHaveBeenCalled();
+
+        body.destroy();
+        collider.enabled = false;
+        const plane = postEntity.addComponent(PlaneCollider);
+        const controller = postEntity.addComponent(CharacterController);
+        const meshCollider = postEntity.addComponent(MeshCollider);
+        meshCollider.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 2, { keepMeshData: true });
+        engine.update();
+        expect(bloomBlend.intensity.value).to.equal(intensity1);
+        expect(warnSpy).not.toHaveBeenCalled();
+        expect(errorSpy).not.toHaveBeenCalled();
+        plane.destroy();
+        controller.destroy();
+        meshCollider.destroy();
+      } finally {
+        warnSpy.mockRestore();
+        errorSpy.mockRestore();
+      }
 
       engine.destroy();
     }

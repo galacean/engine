@@ -1,4 +1,4 @@
-import { IInputOptions, IPhysics, IPhysicsManager, IShaderCompiler, IXRDevice } from "@galacean/engine-design";
+import { IInputOptions, IPhysics, IShaderCompiler, IXRDevice } from "@galacean/engine-design";
 import { CharRenderInfo } from "./2d/text/CharRenderInfo";
 import { Font } from "./2d/text/Font";
 import { BasicResources } from "./BasicResources";
@@ -18,7 +18,7 @@ import { ResourceManager } from "./asset/ResourceManager";
 import { EngineObject, EventDispatcher, Logger, Time } from "./base";
 import { InputManager } from "./input";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
-import { ColliderShape } from "./physics/shape/ColliderShape";
+import { Collider } from "./physics/Collider";
 import { PostProcessPass } from "./postProcess/PostProcessPass";
 import { PostProcessUberPass } from "./postProcess/PostProcessUberPass";
 import { Shader } from "./shader/Shader";
@@ -47,7 +47,7 @@ export class Engine extends EventDispatcher {
   /** @internal Conversion of space units to pixel units for 2D. */
   static _pixelsPerUnit: number = 100;
   /** @internal */
-  static _physicalObjectsMap: Record<number, ColliderShape> = {};
+  static _physicalObjectsMap: Record<number, Collider> = {};
   /** @internal */
   static _nativePhysics: IPhysics;
 
@@ -73,8 +73,6 @@ export class Engine extends EventDispatcher {
   _processingPendingDestroys = false;
   /** @internal */
   _physicsInitialized: boolean = false;
-  /** @internal */
-  _nativePhysicsManager: IPhysicsManager;
   /** @internal */
   _hardwareRenderer: IHardwareRenderer;
   /** @internal */
@@ -617,9 +615,6 @@ export class Engine extends EventDispatcher {
     }
   }
 
-  /**
-   * @internal
-   */
   protected _initialize(configuration: EngineConfiguration): Promise<this> {
     const { shaderCompiler, physics } = configuration;
 
@@ -646,7 +641,6 @@ export class Engine extends EventDispatcher {
             Engine._nativePhysics = physics;
             BasicResources._initializePhysics();
           }
-          this._nativePhysicsManager = physics.createPhysicsManager();
           this._physicsInitialized = true;
           return this;
         })
@@ -711,7 +705,7 @@ export class Engine extends EventDispatcher {
     this._renderElementPool.garbageCollection();
     this._textRenderElementPool.garbageCollection();
     this._renderContext.garbageCollection();
-    const scenes = this._sceneManager._scenes.getLoopArray();
+    const scenes = this._sceneManager._allCreatedScenes;
     for (let i = 0, n = scenes.length; i < n; i++) {
       scenes[i]?.physics?._gc();
     }

@@ -1,15 +1,15 @@
 import { WebGLEngine } from "@galacean/engine";
 import {
-  BoxColliderShape,
-  DynamicCollider,
+  BoxCollider,
+  Collider,
   Entity,
   HitResult,
   Layer,
-  MeshColliderShape,
+  MeshCollider,
   ModelMesh,
   PhysicsScene,
   PrimitiveMesh,
-  StaticCollider
+  Rigidbody
 } from "@galacean/engine-core";
 import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -20,77 +20,63 @@ describe("Mesh collider collision layers", () => {
   let physics: PhysicsScene;
   let mesh: ModelMesh;
   let root: Entity;
-  let shape: MeshColliderShape;
+  let collider: MeshCollider;
 
   beforeAll(async () => {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: createPhysics() });
     physics = engine.sceneManager.activeScene.physics;
-    mesh = PrimitiveMesh.createCuboid(engine, 10, 1, 10, {
-      keepMeshData: true,
-      widthSegments: 1,
-      heightSegments: 1,
-      depthSegments: 1
-    });
+    mesh = PrimitiveMesh.createCuboid(engine, 10, 1, 10, { keepMeshData: true });
   });
 
   afterAll(() => engine.destroy());
 
-  describe.each([
-    ["static", StaticCollider],
-    ["kinematic", DynamicCollider]
-  ] as const)("%s", (_, ColliderType) => {
+  describe.each(["static", "kinematic"] as const)("%s", (bodyType) => {
     describe.each([
-      "mesh before attachment",
+      "mesh before first query",
       "delayed mesh",
       "mesh cleared and restored",
       "convex to triangle",
       "triangle to convex",
-      "cloned collider",
-      "transferred shape"
+      "cloned collider"
     ])("%s", (scenario) => {
       beforeEach(() => {
         root = engine.sceneManager.activeScene.createRootEntity("layered-mesh");
-        const collider = root.addComponent(ColliderType);
-        if (collider instanceof DynamicCollider) {
-          collider.isKinematic = true;
+        if (bodyType === "kinematic") {
+          root.addComponent(Rigidbody).isKinematic = true;
         }
+        collider = root.addComponent(MeshCollider);
         collider.collisionLayer = Layer.Layer3;
-        // @ts-expect-error MeshColliderShape inherits the protected ColliderShape constructor.
-        shape = new MeshColliderShape();
-        shape.isConvex = scenario === "convex to triangle";
-        if (scenario !== "delayed mesh") {
-          shape.mesh = mesh;
+        collider.convex = scenario === "convex to triangle";
+        const face = new Vector3(0, 0.5, 0);
+
+        if (scenario === "delayed mesh") {
+          expect(physics.overlapSphereAll(face, 0.1)).toHaveLength(0);
+        } else {
+          collider.mesh = mesh;
+          const hits = physics.overlapSphereAll(face, 0.1, Layer.Layer3);
+          expect(hits).toHaveLength(1);
+          expect(hits[0]).toBe(collider);
         }
-        collider.addShape(shape);
 
         switch (scenario) {
           case "delayed mesh":
-            shape.mesh = mesh;
+            collider.mesh = mesh;
             break;
           case "mesh cleared and restored":
-            shape.mesh = null;
-            shape.mesh = mesh;
+            collider.mesh = null;
+            expect(physics.overlapSphereAll(face, 0.1)).toHaveLength(0);
+            collider.mesh = mesh;
             break;
           case "convex to triangle":
           case "triangle to convex":
-            shape.isConvex = !shape.isConvex;
+            collider.convex = !collider.convex;
             break;
           case "cloned collider": {
             const clone = root.clone();
             root.destroy();
             root = clone;
             engine.sceneManager.activeScene.addRootEntity(root);
-            shape = root.getComponent(ColliderType).shapes[0] as MeshColliderShape;
-            break;
-          }
-          case "transferred shape": {
-            collider.collisionLayer = Layer.Layer4;
-            const target = root.createChild("target").addComponent(ColliderType);
-            if (target instanceof DynamicCollider) {
-              target.isKinematic = true;
-            }
-            target.collisionLayer = Layer.Layer3;
-            target.addShape(shape);
+            collider = root.getComponent(MeshCollider);
             break;
           }
         }
@@ -101,7 +87,7 @@ describe("Mesh collider collision layers", () => {
         physics.setColliderLayerCollision(Layer.Layer3, Layer.Layer4, true);
       });
 
-      it("uses the collider layer for every scene query", () => {
+      it("uses the Collider's layer for every scene query", () => {
         const origin = new Vector3(0, 3, 0);
         const direction = new Vector3(0, -1, 0);
         const ray = new Ray(origin, direction);
@@ -113,20 +99,28 @@ describe("Mesh collider collision layers", () => {
           const expected = layer === Layer.Layer3;
           const hit = new HitResult();
           const hits: HitResult[] = [];
-          expect.soft(physics.raycast(ray, 10, layer, hit)).toBe(expected);
-          expect.soft(hit.shape).toBe(expected ? shape : null);
-          expect.soft(physics.raycastAll(ray, 10, layer, hits)).toBe(expected);
-          expect.soft(hits.map((hit) => hit.shape)).toEqual(expected ? [shape] : []);
-          expect.soft(physics.boxCast(origin, halfExtents, direction, orientation, 10, layer)).toBe(expected);
-          expect.soft(physics.sphereCast(origin, 0.25, direction, 10, layer)).toBe(expected);
-          expect.soft(physics.capsuleCast(origin, 0.25, 1, direction, orientation, 10, layer)).toBe(expected);
-          expect
-            .soft(physics.overlapBoxAll(overlapCenter, halfExtents, orientation, layer))
-            .toEqual(expected ? [shape] : []);
-          expect.soft(physics.overlapSphereAll(overlapCenter, 0.25, layer)).toEqual(expected ? [shape] : []);
-          expect
-            .soft(physics.overlapCapsuleAll(overlapCenter, 0.25, 1, orientation, layer))
-            .toEqual(expected ? [shape] : []);
+          expect(physics.raycast(ray, 10, layer, hit)).toBe(expected);
+          expect(hit.collider).toBe(expected ? collider : null);
+          expect(physics.raycastAll(ray, 10, layer, hits)).toBe(expected);
+          expect(hits).toHaveLength(expected ? 1 : 0);
+          if (expected) {
+            expect(hits[0].collider).toBe(collider);
+          }
+          expect(physics.boxCast(origin, halfExtents, direction, orientation, 10, layer)).toBe(expected);
+          expect(physics.sphereCast(origin, 0.25, direction, 10, layer)).toBe(expected);
+          expect(physics.capsuleCast(origin, 0.25, 1.5, direction, orientation, 10, layer)).toBe(expected);
+
+          const overlaps: Collider[][] = [
+            physics.overlapBoxAll(overlapCenter, halfExtents, orientation, layer),
+            physics.overlapSphereAll(overlapCenter, 0.25, layer),
+            physics.overlapCapsuleAll(overlapCenter, 0.25, 1.5, orientation, layer)
+          ];
+          for (const result of overlaps) {
+            expect(result).toHaveLength(expected ? 1 : 0);
+            if (expected) {
+              expect(result[0]).toBe(collider);
+            }
+          }
         }
       });
 
@@ -134,12 +128,10 @@ describe("Mesh collider collision layers", () => {
         physics.setColliderLayerCollision(Layer.Layer3, Layer.Layer4, enabled);
         const fallingBox = root.createChild("falling-box");
         fallingBox.transform.setPosition(0, 3, 0);
-        const collider = fallingBox.addComponent(DynamicCollider);
-        collider.collisionLayer = Layer.Layer4;
-        collider.addShape(new BoxColliderShape());
+        fallingBox.addComponent(Rigidbody);
+        fallingBox.addComponent(BoxCollider).collisionLayer = Layer.Layer4;
 
         for (let i = 0; i < 90; i++) {
-          // @ts-ignore
           physics._update(1 / 60);
         }
 

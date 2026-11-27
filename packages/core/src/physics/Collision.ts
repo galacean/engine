@@ -1,45 +1,41 @@
 import { ContactPoint } from "./ContactPoint";
-import { ColliderShape } from "./shape";
+import { Collider } from "./Collider";
 import { ICollision } from "@galacean/engine-design";
 
 /**
- * Collision information between two shapes when they collide.
+ * Contact data reported to a script during a collision callback.
+ * @remarks The physics scene reuses this object. Read it during the callback and copy any values needed afterward.
  */
 export class Collision {
+  /** The Collider on the other side of this contact pair. */
+  collider: Collider;
+  /** The receiving Collider (on this Entity or owned by its Rigidbody). Contact normals and impulses are oriented from {@link collider} toward this Collider. */
+  selfCollider: Collider;
+
   /** @internal */
   _nativeCollision: ICollision;
 
-  /** The target shape be collided. */
-  shape: ColliderShape;
-
-  /**
-   * Count of contact points.
-   */
+  /** The number of contact points in this callback. */
   get contactCount(): number {
     return this._nativeCollision.contactCount;
   }
 
   /**
-   * Get contact points.
-   * @param outContacts - The result of contact points
-   * @returns The actual count of contact points
-   *
-   * @remarks To optimize performance, the engine does not modify the length of the array you pass.
-   * You need to obtain the actual number of contact points from the function's return value.
+   * Copies contact points into the supplied array.
+   * @param outContacts - Output array. Existing contact objects are reused, and the array grows as needed.
+   * @returns The number of entries written. Entries beyond this count are left unchanged.
    */
   getContacts(outContacts: ContactPoint[]): number {
     const nativeCollision = this._nativeCollision;
-    const factor = this.shape.id === nativeCollision.shape1Id ? 1 : -1;
-    const nativeContactPoints = nativeCollision.getContacts();
-    const length = nativeContactPoints.size();
+    const length = nativeCollision.contactCount;
+    const invert = this.selfCollider._id !== nativeCollision.shape0Id;
     for (let i = 0; i < length; i++) {
-      const nativeContractPoint = nativeContactPoints.get(i);
-
       const contact = (outContacts[i] ||= new ContactPoint());
-      contact.position.copyFrom(nativeContractPoint.position);
-      contact.normal.copyFrom(nativeContractPoint.normal).scale(factor);
-      contact.impulse.copyFrom(nativeContractPoint.impulse).scale(factor);
-      contact.separation = nativeContractPoint.separation;
+      nativeCollision.getContact(i, contact);
+      if (invert) {
+        contact.normal.scale(-1);
+        contact.impulse.scale(-1);
+      }
     }
     return length;
   }

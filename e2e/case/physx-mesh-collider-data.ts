@@ -9,15 +9,14 @@ import {
   PointLight,
   Camera,
   Script,
-  StaticCollider,
-  DynamicCollider,
+  Rigidbody,
   PBRMaterial,
   AmbientLight,
   AssetType,
   Entity,
   Color,
   ModelMesh,
-  MeshColliderShape
+  MeshCollider
 } from "@galacean/engine";
 import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
@@ -75,12 +74,7 @@ function createWavyTerrain(engine: WebGLEngine, rootEntity: Entity) {
   // Create mesh (shared for physics and visual)
   const terrainMesh = createTerrainMesh(engine, gridSize, scale);
 
-  // Create MeshColliderShape (triangle mesh for static)
-  const meshShape = new MeshColliderShape();
-  meshShape.mesh = terrainMesh;
-
-  const collider = entity.addComponent(StaticCollider);
-  collider.addShape(meshShape);
+  entity.addComponent(MeshCollider).mesh = terrainMesh;
   const renderer = entity.addComponent(MeshRenderer);
   renderer.mesh = terrainMesh;
 
@@ -175,12 +169,10 @@ function createConvexObject(
   ]);
   physicsMesh.uploadData(false);
 
-  const meshShape = new MeshColliderShape();
-  meshShape.isConvex = true;
-  meshShape.mesh = physicsMesh;
-
-  const collider = entity.addComponent(DynamicCollider);
-  collider.addShape(meshShape);
+  const meshCollider = entity.addComponent(MeshCollider);
+  meshCollider.convex = true;
+  meshCollider.mesh = physicsMesh;
+  entity.addComponent(Rigidbody);
 
   // Visual mesh
   const tetraMesh = createTetrahedronMesh(engine, size);

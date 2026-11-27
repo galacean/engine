@@ -86,7 +86,7 @@ if (scene.physics.raycast(ray, Number.MAX_VALUE, Layer.Everything, hitResult)) {
   console.log(`Hit distance: ${hitResult.distance}`);
   console.log(`Hit point: ${hitResult.point.toString()}`);
   console.log(`Hit normal: ${hitResult.normal.toString()}`);
-  console.log(`Hit shape: ${hitResult.shape.constructor.name}`);
+  console.log(`Hit collider: ${hitResult.collider.constructor.name}`);
 }
 ```
 
@@ -203,7 +203,7 @@ scene.physics.raycastAll(ray, 100, Layer.Everything, hits);
 // Copy values that must survive the next query. hits.slice() still shares the result objects.
 const saved = hits.map((hit) => ({
   entity: hit.entity,
-  shape: hit.shape,
+  collider: hit.collider,
   distance: hit.distance,
   point: hit.point.clone(),
   normal: hit.normal.clone()
@@ -261,7 +261,7 @@ class RaycastManager {
 
 1. **Collider Requirements** - Entity must add [collider components](/en/docs/physics/collider/overview) to be detected by raycasting
 2. **Ray Direction** - Ray direction vector should be a normalized unit vector
-3. **Same Distance Handling** - When a ray hits multiple [collider shapes](/en/docs/physics/collider/colliderShape) at the same distance, it returns the Entity of the first added collider shape
+3. **Hit Target** - `hitResult.collider` is the Collider that was hit and `hitResult.entity` is that Collider's own Entity; a Collider on a child Entity reports the child, not the Entity of its Rigidbody
 4. **World Coordinate System** - Ray origin and direction are based on world coordinates
 
 ## Comparison with Other Query Methods

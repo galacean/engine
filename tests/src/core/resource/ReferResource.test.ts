@@ -7,6 +7,7 @@ import {
   Font,
   FontStyle,
   Material,
+  MeshRenderer,
   ModelMesh,
   PBRMaterial,
   ReferResource,
@@ -165,6 +166,29 @@ describe("ReferResource", () => {
     expect(indexBuffer.destroyed).eq(true);
     if (blendShapeTexture) expect(blendShapeTexture.destroyed).eq(true);
     for (const buffer of blendShapeBuffers) expect(buffer.destroyed).eq(true);
+  });
+
+  it("keeps a live mesh's buffer writable when a renderer replaces a forcibly destroyed mesh", () => {
+    const entity = engine.sceneManager.activeScene!.createRootEntity();
+    const renderer = entity.addComponent(MeshRenderer);
+    const original = new ModelMesh(engine);
+    const replacement = new ModelMesh(engine);
+    const vertices = new Float32Array([0, 1, 2]);
+    const buffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices);
+    original.setVertexBufferBinding(buffer, 12);
+    replacement.setVertexBufferBinding(buffer, 12);
+
+    renderer.mesh = original;
+    original.destroy(true);
+    const clone = entity.clone();
+    expect(original.refCount).toBe(0);
+    clone.destroy();
+
+    renderer.mesh = replacement;
+    engine.resourceManager.gc();
+    expect(buffer.refCount).toBe(1);
+    buffer.setData(vertices);
+    entity.destroy();
   });
 
   it("releases previous BlendShape GPU hosts cleanly across mode switches and clearBlendShapes()", () => {

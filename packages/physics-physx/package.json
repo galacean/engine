@@ -15,6 +15,7 @@
   "jsdelivr": "dist/browser.min.js",
   "debug": "src/index.ts",
   "types": "types/index.d.ts",
+  "assetDirectory": "libs",
   "scripts": {
     "b:types": "tsc"
   },
@@ -26,7 +27,6 @@
   },
   "files": [
     "dist/**/*",
-    "libs/**/*",
     "types/**/*"
   ],
   "devDependencies": {

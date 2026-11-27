@@ -1,785 +1,1308 @@
 import { createPhysics } from "../../utils/physics";
 import {
-  Engine,
+  AnimationClip,
+  AnimationVector3Curve,
+  Animator,
+  AnimatorController,
+  AnimatorControllerLayer,
+  AnimatorLayerBlendingMode,
+  BoxCollider,
   CharacterController,
-  Entity,
-  ControllerNonWalkableMode,
-  BoxColliderShape,
-  StaticCollider,
-  CapsuleColliderShape,
-  PlaneColliderShape,
-  DynamicCollider,
-  Script,
+  Collider,
   ControllerCollisionFlag,
+  ControllerNonWalkableMode,
+  Entity,
+  HitResult,
+  Keyframe,
   Layer,
-  ColliderShapeUpAxis,
-  MeshColliderShape
+  PhysicsScene,
+  PlaneCollider,
+  Rigidbody,
+  Scene,
+  Script,
+  Transform,
+  WrapMode
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
-import { describe, beforeAll, beforeEach, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-describe("CharacterController", function () {
-  let engine: Engine;
-  let rootEntity: Entity;
-  let roleEntity: Entity;
+describe("CharacterController", () => {
+  let engine: WebGLEngine;
+  let root: Entity;
+  let role: Entity;
+  let controller: CharacterController;
+  let physics: PhysicsScene;
 
-  function addPlane(position: Vector3, rotation: Quaternion): Entity {
-    const planeEntity = rootEntity.createChild();
-
-    planeEntity.transform.position = position;
-    planeEntity.transform.rotationQuaternion = rotation;
-
-    const physicsPlane = new PlaneColliderShape();
-    const planeCollider = planeEntity.addComponent(StaticCollider);
-    planeCollider.addShape(physicsPlane);
-
-    return planeEntity;
-  }
-
-  function addBox(cubeSize: Vector3, type: typeof DynamicCollider | typeof StaticCollider, pos: Vector3) {
-    const boxEntity = rootEntity.createChild("BoxEntity");
-    boxEntity.transform.setPosition(pos.x, pos.y, pos.z);
-
-    const physicsBox = new BoxColliderShape();
-    physicsBox.getInstanceMaterial().dynamicFriction = 0;
-    physicsBox.getInstanceMaterial().staticFriction = 0;
-    physicsBox.size = cubeSize;
-    const boxCollider = boxEntity.addComponent(type);
-    boxCollider.addShape(physicsBox);
-    return boxEntity;
-  }
-
-  function formatValue(value: number) {
-    return Math.round(value * 100000) / 100000;
-  }
-
-  class MoveScript extends Script {
-    distancePerStep = new Vector3();
-    fallAccumulateTime = 0;
-    yAxisMove = new Vector3();
-    onPhysicsUpdate(): void {
-      const controller = this.entity.getComponent(CharacterController);
-      const { fixedTimeStep } = engine.sceneManager.activeScene.physics;
-      const flag = controller.move(this.distancePerStep, 0.0001, fixedTimeStep);
-
-      const physicsManager = this.engine.sceneManager.activeScene.physics;
-      physicsManager.gravity = new Vector3(0, -9.8, 0);
-      const gravity = physicsManager.gravity;
-      this.fallAccumulateTime += fixedTimeStep;
-
-      if (flag & ControllerCollisionFlag.Down) {
-        this.fallAccumulateTime = 0;
-      } else {
-        const { yAxisMove } = this;
-        yAxisMove.set(0, gravity.y * fixedTimeStep * this.fallAccumulateTime, 0);
-        controller.move(yAxisMove, 0.0001, fixedTimeStep);
-      }
-    }
-
-    moveTo(pos: Vector3, step: number = 2): void {
-      this.distancePerStep = pos.subtract(this.entity.transform.position).scale(1 / step);
-    }
-  }
-
-  beforeAll(async function () {
+  beforeAll(async () => {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: createPhysics() });
-
-    rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
+    physics = engine.sceneManager.activeScene.physics;
   });
 
   beforeEach(() => {
-    rootEntity.clearChildren();
-    roleEntity = rootEntity.createChild("role");
-    const moveScript = roleEntity.addComponent(MoveScript);
-    const controller = roleEntity.addComponent(CharacterController);
-    controller.addShape(new BoxColliderShape());
-    const ground = addPlane(new Vector3(), new Quaternion());
+    root = engine.sceneManager.activeScene.createRootEntity("controllers");
+    role = root.createChild("role");
+    controller = role.addComponent(CharacterController);
+    addPlane(new Vector3(), new Quaternion());
   });
 
-  it("constructor", () => {
-    // Test that the constructor works correctly.
-    const controller = roleEntity.getComponent(CharacterController);
-    expect(controller.stepOffset).eq(0.5);
-    expect(controller.nonWalkableMode).eq(ControllerNonWalkableMode.PreventClimbing);
-    expect(controller.upDirection).deep.include({ x: 0, y: 1, z: 0 });
-    expect(controller.slopeLimit).eq(45);
+  afterEach(() => {
+    vi.restoreAllMocks();
+    root.destroy();
+    engine.resourceManager.gc();
   });
 
-  it("addShape and removeShape", () => {
-    // Test that addShape works correctly if add more shapes.
-    const controller = roleEntity.getComponent(CharacterController);
-    try {
-      controller.addShape(new BoxColliderShape());
-    } catch (err) {
-      expect(err).eq("only allow single shape on controller!");
-      expect(controller.shapes.length).eq(1);
+  afterAll(() => engine.destroy());
+
+  function addPlane(position: Vector3, rotation: Quaternion): Entity {
+    const entity = root.createChild("plane");
+    entity.transform.position = position;
+    entity.transform.rotationQuaternion = rotation;
+    entity.addComponent(PlaneCollider);
+    return entity;
+  }
+
+  function addBox(size: Vector3, position: Vector3): BoxCollider {
+    const box = root.createChild("box").addComponent(BoxCollider);
+    box.size = size;
+    box.entity.transform.position = position;
+    return box;
+  }
+
+  function move(displacement: Vector3): number {
+    return controller.move(displacement, 0.0001, physics.fixedTimeStep);
+  }
+
+  function directionClip(...directions: Vector3[]): AnimationClip {
+    const clip = new AnimationClip("tilt");
+    const curve = new AnimationVector3Curve();
+    directions.forEach((direction, time) => {
+      const key = new Keyframe<Vector3>();
+      key.time = time;
+      key.value = direction;
+      curve.addKey(key);
+    });
+    clip.addCurveBinding("role", CharacterController, "upDirection", curve);
+    return clip;
+  }
+
+  function update(count = 1): void {
+    for (let i = 0; i < count; i++) physics._update(physics.fixedTimeStep);
+  }
+
+  function walkTo(position: Vector3, steps: number): void {
+    const displacement = position
+      .clone()
+      .subtract(role.transform.position)
+      .scale(1 / steps);
+    let fallingTime = 0;
+    for (let i = 0; i < steps; i++) {
+      const flags = move(displacement);
+      if (flags & ControllerCollisionFlag.Down) fallingTime = 0;
+      else {
+        fallingTime += physics.fixedTimeStep;
+        move(new Vector3(0, -9.8 * physics.fixedTimeStep * fallingTime, 0));
+      }
     }
+  }
 
-    // Test that removeShape works correctly if remove the shape.
-    const shape = controller.shapes[0];
-    controller.removeShape(shape);
-    expect(controller.shapes.length).eq(0);
-
-    controller.addShape(new BoxColliderShape());
-    // Test that clearShapes works correctly if clear the shapes.
-    controller.clearShapes();
-    expect(controller.shapes.length).eq(0);
-
-    controller.addShape(new BoxColliderShape());
-    expect(controller.shapes.length).eq(1);
+  it("defaults to inline capsule geometry and standard movement settings", () => {
+    const capsule = root.createChild("capsule").addComponent(CharacterController);
+    expect(capsule.contactOffset).toBe(0.02);
+    expect(capsule.radius).toBe(0.5);
+    expect(capsule.height).toBe(2);
+    expect(capsule.stepOffset).toBe(0.5);
+    expect(capsule.nonWalkableMode).toBe(ControllerNonWalkableMode.PreventClimbing);
+    expect(capsule.upDirection.x).toBe(0);
+    expect(capsule.upDirection.y).toBe(1);
+    expect(capsule.upDirection.z).toBe(0);
+    expect(capsule.slopeLimit).toBe(45);
   });
 
-  it("rejects unsupported shapes before assigning an owner", () => {
-    const controller = roleEntity.getComponent(CharacterController);
-    controller.clearShapes();
-    const shape = new MeshColliderShape();
+  it("clones authored capsule dimensions and syncs subsequent mutations on the clone", () => {
+    controller.radius = 0.5;
+    controller.height = 4;
+    const clone = role.clone();
+    clone.transform.setPosition(3, 3, 0);
+    root.addChild(clone);
+    const cloneController = clone.getComponent(CharacterController);
+    const ray = new Ray(new Vector3(4, 3, -3), new Vector3(0, 0, 1));
+    const hit = new HitResult();
 
-    expect(() => controller.addShape(shape as unknown as BoxColliderShape)).toThrow();
-    expect(controller.shapes).toHaveLength(0);
-    expect(shape.collider).toBeFalsy();
-
-    shape._destroy();
+    expect(cloneController.height).toBe(4);
+    expect(physics.raycast(ray, 6)).toBe(false);
+    cloneController.radius = 1.5;
+    expect(controller.radius).toBe(0.5);
+    expect(physics.raycast(ray, 6, hit)).toBe(true);
+    expect(hit.collider).toBe(cloneController);
   });
 
-  it("shape position", () => {
-    const controller = roleEntity.getComponent(CharacterController);
-    controller.clearShapes();
-
-    const boxColliderShape = new BoxColliderShape();
-    controller.addShape(boxColliderShape);
-    boxColliderShape.position = new Vector3(0, 2, -1);
-
-    // Test that set collider shape position works correctly.
-    expect(boxColliderShape.position).deep.include({ x: 0, y: 2, z: -1 });
+  it("writes the world position immediately when moved under a transformed parent", () => {
+    root.transform.setPosition(10, 20, 30);
+    root.transform.setScale(2, 2, 2);
+    role.transform.setPosition(1, 5, 2);
+    move(new Vector3(0, 0, 1));
+    expect(role.transform.worldPosition.x).toBeCloseTo(12);
+    expect(role.transform.worldPosition.y).toBeCloseTo(30);
+    expect(role.transform.worldPosition.z).toBeCloseTo(35);
+    expect(role.transform.position.z).toBeCloseTo(2.5);
+    update(2);
+    expect(role.transform.worldPosition.z).toBeCloseTo(35);
   });
 
-  it("move", () => {
-    const controller = roleEntity.getComponent(CharacterController);
-    controller.move(new Vector3(0, 0, 1), 0.0001, 0.1);
-    expect(roleEntity.transform.position.z).eq(1);
+  it("moves during a real physics script callback", () => {
+    role.transform.setPosition(0, 2, 0);
+    class Movement extends Script {
+      override onPhysicsUpdate(): void {
+        this.entity.getComponent(CharacterController).move(new Vector3(0, 0, 0.25), 0.0001, physics.fixedTimeStep);
+      }
+    }
+    role.addComponent(Movement);
+    engine.update();
+    const start = role.transform.position.z;
+    update(4);
+    expect(role.transform.position.z).toBeCloseTo(start + 1);
   });
 
-  it.each([true, false])("scene-query participation %s preserves controller collisions", (enabled) => {
-    roleEntity.transform.setPosition(0, 2, 0);
-    const wall = addBox(new Vector3(10, 10, 1), StaticCollider, new Vector3(0, 2, 2));
-    wall.getComponent(StaticCollider).shapes[0].isSceneQuery = enabled;
-    const physics = engine.sceneManager.activeScene.physics;
-    physics._update(1 / 60);
-
-    const ray = new Ray(new Vector3(0, 5, 0), new Vector3(0, 0, 1));
-    expect(physics.raycastAll(ray)).eq(enabled);
-    const controller = roleEntity.getComponent(CharacterController);
-    const flags = controller.move(new Vector3(0, 0, 4), 0.0001, 1 / 60);
-    expect(flags & ControllerCollisionFlag.Sides).eq(ControllerCollisionFlag.Sides);
-    expect(roleEntity.transform.position.z).closeTo(0.98, 0.0001);
-  });
-
-  it("upDirection", () => {
-    const controller = roleEntity.getComponent(CharacterController);
-
-    controller.upDirection = controller.upDirection;
-    expect(controller.upDirection).deep.include({ x: 0, y: 1, z: 0 });
-    let flag = controller.move(new Vector3(0, 0, 1), 0.0001, 0.1);
-    expect(flag).eq(ControllerCollisionFlag.Down);
-
+  it("updates upDirection before and after the first move", () => {
+    expect(move(new Vector3(0, 0, 1)) & ControllerCollisionFlag.Down).toBe(ControllerCollisionFlag.Down);
     controller.upDirection = new Vector3(0, -1, 0);
-    flag = controller.move(new Vector3(0, 0, 1), 0.0001, 0.1);
-
-    expect(flag).eq(ControllerCollisionFlag.Up);
+    expect(move(new Vector3(0, 0, 1)) & ControllerCollisionFlag.Up).toBe(ControllerCollisionFlag.Up);
+    controller.upDirection = { x: 0, y: 1, z: 0 };
+    // Move down first so the controller has a ground contact for the sideways probe.
+    expect(move(new Vector3(0, -0.1, 0)) & ControllerCollisionFlag.Down).toBe(ControllerCollisionFlag.Down);
   });
 
-  it("contactOffset", () => {
-    const controller = roleEntity.getComponent(CharacterController);
-
-    expect(controller.shapes[0].contactOffset).eq(0.02);
-    controller.move(new Vector3(0, 0, 0.1), 0.0001, 1);
-    controller.move(new Vector3(0, 0, 0.1), 0.0001, 1);
-    engine.update();
-    expect(formatValue(roleEntity.transform.position.y)).eq(0.52);
-
-    controller.shapes[0].contactOffset = 1;
-    controller.move(new Vector3(0, 0, 0.1), 0.0001, 1);
-    controller.move(new Vector3(0, 0, 0.1), 0.0001, 1);
-    engine.update();
-    expect(formatValue(roleEntity.transform.position.y)).eq(1.5);
+  it("applies contactOffset to the collision skin immediately", () => {
+    move(new Vector3(0, 0, 0.1));
+    move(new Vector3(0, 0, 0.1));
+    expect(role.transform.position.y).toBeCloseTo(1.02, 5);
+    controller.contactOffset = 1;
+    move(new Vector3(0, 0, 0.1));
+    move(new Vector3(0, 0, 0.1));
+    expect(role.transform.position.y).toBeCloseTo(2.0, 5);
   });
 
-  it("preserves contactOffset when the native controller is recreated", () => {
-    const controller = roleEntity.getComponent(CharacterController);
-    controller.shapes[0].contactOffset = 0.3;
-
-    controller.enabled = false;
-    controller.enabled = true;
-    controller.move(new Vector3(0, 0, 0.1), 0.0001, 1);
-    controller.move(new Vector3(0, 0, 0.1), 0.0001, 1);
-    engine.update();
-
-    expect(formatValue(roleEntity.transform.position.y)).eq(0.8);
+  it.each([false, true])("rejects invalid contactOffset without changing its value (live=%s)", (live) => {
+    controller.contactOffset = 0.3;
+    if (live) move(new Vector3(0, 0, 0.1));
+    for (const value of [-1, 0, 1e-40, 1e39, NaN, Infinity, -Infinity]) {
+      expect(() => (controller.contactOffset = value)).toThrow();
+      expect(controller.contactOffset).toBe(0.3);
+    }
+    move(new Vector3(0, 0, 0.1));
+    move(new Vector3(0, 0, 0.1));
+    expect(role.transform.position.y).toBeCloseTo(1.3, 5);
   });
 
-  it("rejects zero contactOffset before attaching the shape", () => {
-    const controller = roleEntity.getComponent(CharacterController);
-    controller.clearShapes();
-    const shape = new BoxColliderShape();
-    shape.contactOffset = 0;
-
-    expect(() => controller.addShape(shape)).toThrowError("CharacterController contactOffset must be positive.");
-    expect(controller.shapes).toHaveLength(0);
-    expect(shape.collider).toBeFalsy();
-
-    shape._destroy();
+  it.each([false, true])("rejects trigger mode before and after synchronization (live=%s)", (live) => {
+    if (live) move(new Vector3(0, 0, 1));
+    expect(() => (controller.isTrigger = true)).toThrow();
+    controller.isTrigger = false;
+    expect(controller.isTrigger).toBe(false);
   });
 
-  it("preserves contactOffset when transferring a shape to a rigid collider", () => {
-    roleEntity.isActive = false;
-    const controllerEntity = rootEntity.createChild("offsetController");
-    controllerEntity.transform.setPosition(100, 100, 0);
-    const controller = controllerEntity.addComponent(CharacterController);
-    const shape = new BoxColliderShape();
-    controller.addShape(shape);
-    shape.contactOffset = 0.3;
-
-    const rigidEntity = rootEntity.createChild("offsetRigidCollider");
-    rigidEntity.transform.setPosition(100, 100, 0);
-    const rigidCollider = rigidEntity.addComponent(StaticCollider);
-    rigidCollider.addShape(shape);
-
-    const probe = rootEntity.createChild("offsetProbe");
-    probe.transform.setPosition(100, 101.2, 0);
-    const probeCollider = probe.addComponent(DynamicCollider);
-    probeCollider.useGravity = false;
-    const probeShape = new BoxColliderShape();
-    probeCollider.addShape(probeShape);
-
-    class ContactScript extends Script {
-      collided = false;
-
-      onCollisionEnter(): void {
-        this.collided = true;
-      }
+  it("validates finite stepOffset and clamps effective step height to scaled capsule total height", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    for (const invalid of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+      expect(() => (controller.stepOffset = invalid)).toThrow();
+      expect(controller.stepOffset).toBe(0.5);
     }
 
-    const script = probe.addComponent(ContactScript);
-    try {
-      engine.sceneManager.activeScene.physics._update(1 / 60);
-      expect(controller.shapes).toHaveLength(0);
-      expect(shape.collider).toBe(rigidCollider);
-      expect(shape.contactOffset).toBe(0.3);
-      expect(script.collided).toBe(true);
-    } finally {
-      controllerEntity.destroy();
-      rigidEntity.destroy();
-      probe.destroy();
-    }
+    role.transform.setPosition(0, 2, 0);
+    controller.radius = 0.25;
+    controller.height = 1.0;
+    const hit = new HitResult();
+    const ray = new Ray(new Vector3(0, 2, 5), new Vector3(0, 0, -1));
+    const canHitController = () => physics.raycast(ray, 10, hit) && hit.collider === controller;
+
+    controller.stepOffset = 1.5;
+    expect(controller.stepOffset).toBe(1.5);
+    expect(canHitController()).toBe(true);
+    expect(error).not.toHaveBeenCalled();
+
+    // Default radius=0.5, height=2, stepOffset=0.5 scaled by 0.2 has total height 0.4:
+    // stays active with effective step height clamped to 0.4, then restores 0.5 when scaled back to 1.
+    addBox(new Vector3(1, 0.46, 1), new Vector3(0, 0.23, 2));
+    controller.radius = 0.5;
+    controller.height = 2;
+    controller.stepOffset = 0.5;
+    role.transform.setScale(0.2, 0.2, 0.2);
+    role.transform.setPosition(0, 0.22, 0);
+    expect(physics.overlapSphereAll(new Vector3(0, 0.22, 0), 0.1).includes(controller)).toBe(true);
+    walkTo(new Vector3(0, 0.22, 3), 6);
+    expect(controller.stepOffset).toBe(0.5);
+    expect(role.transform.position.z).toBeLessThan(1.5);
+    expect(error).not.toHaveBeenCalled();
+
+    role.transform.setScale(1, 1, 1);
+    role.transform.setPosition(0, 1.02, 0);
+    walkTo(new Vector3(0, 1.02, 3), 2);
+    expect(role.transform.position.z).toBeCloseTo(3, 4);
   });
 
-  it.each([true, false])("keeps contactOffset when invalid input is rejected (enabled=%s)", (enabled) => {
-    const controller = roleEntity.getComponent(CharacterController);
-    controller.enabled = enabled;
-    const shape = controller.shapes[0];
-    shape.contactOffset = 0.3;
-
-    for (const value of [0, NaN, Infinity, -Infinity]) {
-      const message = Number.isFinite(value)
-        ? "CharacterController contactOffset must be positive."
-        : "ColliderShape contactOffset must be finite.";
-      expect(() => (shape.contactOffset = value)).toThrowError(message);
-      expect(shape.contactOffset).toBe(0.3);
-    }
+  it("reports unsupported getClosestPoint without changing its output", () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const closest = new Vector3(1, 2, 3);
+    expect(controller.getClosestPoint(new Vector3(), closest)).toBe(-1);
+    expect(errors).toHaveBeenCalledOnce();
+    expect(closest.x).toBe(1);
+    expect(closest.y).toBe(2);
+    expect(closest.z).toBe(3);
   });
 
-  it("slopeLimit notPass", () => {
-    const { fixedTimeStep } = engine.sceneManager.activeScene.physics;
-    const moveScript = roleEntity.getComponent(MoveScript);
-    const controller = roleEntity.getComponent(CharacterController);
-    expect(controller.slopeLimit).eq(45);
-    controller.slopeLimit = 0;
-    const slope = addPlane(new Vector3(0, 0, 2), new Quaternion().rotateX(-Math.PI / 4));
-    moveScript.moveTo(new Vector3(0, 0, 3), 50);
-    // @ts-ignore
-    engine.sceneManager.activeScene._componentsManager.callScriptOnStart();
-    // @ts-ignore
-    engine.sceneManager.activeScene.physics._update(fixedTimeStep * 50);
-    expect(formatValue(roleEntity.transform.position.z)).not.eq(3);
+  it("scales inline total height, radius, and center by world scale", () => {
+    controller.center = new Vector3(0, 1, 0);
+    role.transform.setScale(2, 3, 4);
+    role.transform.setPosition(0, 10, 0);
+    const flags = move(new Vector3(0, -20, 0));
+    expect(flags & ControllerCollisionFlag.Down).toBe(ControllerCollisionFlag.Down);
+    expect(role.transform.position.y).toBeCloseTo(0.02, 4);
+    controller.center.y = 0;
+    role.transform.setPosition(0, 10, 0);
+    move(new Vector3(0, -20, 0));
+    expect(role.transform.position.y).toBeCloseTo(3.02, 4);
+
+    // Non-uniform total-height rule: max(height * scaleY, 2 * scaledRadius)
+    controller.radius = 1;
+    controller.height = 4;
+    role.transform.setScale(1.5, 1, 1.5);
+    role.transform.setPosition(0, 10, 0);
+    move(new Vector3(0, -20, 0));
+    expect(role.transform.position.y).toBeCloseTo(2.02, 4);
+
+    role.transform.setScale(1, 3, 1);
+    role.transform.setPosition(0, 20, 0);
+    move(new Vector3(0, -40, 0));
+    expect(role.transform.position.y).toBeCloseTo(6.02, 4);
+
+    controller.radius = 0.5;
+    controller.height = 2;
+    role.transform.setScale(1, 1, 1);
+    role.transform.setPosition(0, 10, 0);
+    move(new Vector3(0, -20, 0));
+    expect(role.transform.position.y).toBeCloseTo(1.02, 4);
   });
 
-  it("slopeLimit pass", () => {
-    const { fixedTimeStep } = engine.sceneManager.activeScene.physics;
-    const moveScript = roleEntity.getComponent(MoveScript);
-    const controller = roleEntity.getComponent(CharacterController);
-    expect(controller.slopeLimit).eq(45);
-    const slope = addPlane(new Vector3(0, 0, 2), new Quaternion().rotateX(-Math.PI / 4));
-    moveScript.moveTo(new Vector3(0, 0, 3), 50);
-    // @ts-ignore
-    engine.sceneManager.activeScene._componentsManager.callScriptOnStart();
-    // @ts-ignore
-    engine.sceneManager.activeScene.physics._update(fixedTimeStep * 50);
-    expect(formatValue(roleEntity.transform.position.z)).eq(3);
+  it("changes capsule radius and total height after creation", () => {
+    role.transform.setPosition(0, 10, 0);
+    move(new Vector3(0, -20, 0));
+    expect(role.transform.position.y).toBeCloseTo(1.02, 4);
+    controller.radius = 1;
+    controller.height = 6;
+    role.transform.setPosition(0, 10, 0);
+    move(new Vector3(0, -20, 0));
+    expect(role.transform.position.y).toBeCloseTo(3.02, 4);
   });
 
-  it("stepOffset notPass", () => {
-    const { fixedTimeStep } = engine.sceneManager.activeScene.physics;
-    const moveScript = roleEntity.getComponent(MoveScript);
-    const controller = roleEntity.getComponent(CharacterController);
-    expect(controller.stepOffset).eq(0.5);
-
-    const box = addBox(new Vector3(1, 1, 1), StaticCollider, new Vector3(0, 0.5, 3));
-    moveScript.moveTo(new Vector3(0, 0, 3));
-    // @ts-ignore
-    engine.sceneManager.activeScene.physics._update(fixedTimeStep * 2);
-    expect(formatValue(roleEntity.transform.position.z)).not.eq(3);
-    expect(roleEntity.transform.position.y).lessThan(1);
-  });
-
-  it("stepOffset pass", () => {
-    const { fixedTimeStep } = engine.sceneManager.activeScene.physics;
-    const moveScript = roleEntity.getComponent(MoveScript);
-    const controller = roleEntity.getComponent(CharacterController);
-    expect(controller.stepOffset).eq(0.5);
-
-    const box = addBox(new Vector3(1, 1, 1), StaticCollider, new Vector3(0, 0.5, 3));
-
-    controller.stepOffset = 1;
-    moveScript.moveTo(new Vector3(0, 0, 3));
-    // @ts-ignore
-    engine.sceneManager.activeScene._componentsManager.callScriptOnStart();
-    // @ts-ignore
-    engine.sceneManager.activeScene.physics._update(fixedTimeStep * 2);
-    expect(formatValue(roleEntity.transform.position.z)).eq(3);
-    expect(roleEntity.transform.position.y).greaterThan(1);
-  });
-
-  it("nonWalkableMode PreventClimbing", () => {
-    const { fixedTimeStep } = engine.sceneManager.activeScene.physics;
-    const slope = addPlane(new Vector3(0, 0, 2), new Quaternion().rotateX(-Math.PI / 4));
-    const controller = roleEntity.getComponent(CharacterController);
-    controller.slopeLimit = 1;
-    expect(controller.nonWalkableMode).eq(ControllerNonWalkableMode.PreventClimbing);
-    const moveScript = roleEntity.getComponent(MoveScript);
-    moveScript.moveTo(new Vector3(0, 0.02, 3), 50);
-    // @ts-ignore
-    engine.sceneManager.activeScene._componentsManager.callScriptOnStart();
-    // @ts-ignore
-    engine.sceneManager.activeScene.physics._update(fixedTimeStep * 50);
-    expect(roleEntity.transform.position.y).greaterThan(1);
-  });
-
-  it("nonWalkableMode PreventClimbingAndForceSliding", () => {
-    const { fixedTimeStep } = engine.sceneManager.activeScene.physics;
-    const slope = addPlane(new Vector3(0, 0, 2), new Quaternion().rotateX(-Math.PI / 4));
-    const controller = roleEntity.getComponent(CharacterController);
-    controller.slopeLimit = 1;
-    expect(controller.nonWalkableMode).eq(ControllerNonWalkableMode.PreventClimbing);
-    controller.nonWalkableMode = ControllerNonWalkableMode.PreventClimbingAndForceSliding;
-    const moveScript = roleEntity.getComponent(MoveScript);
-    moveScript.moveTo(new Vector3(0, 0.02, 3), 50);
-    // @ts-ignore
-    engine.sceneManager.activeScene._componentsManager.callScriptOnStart();
-    // @ts-ignore
-    engine.sceneManager.activeScene.physics._update(fixedTimeStep * 50);
-    expect(roleEntity.transform.position.y).lessThan(1);
-  });
-
-  it("update shape data when disabled", () => {
-    const controller = roleEntity.getComponent(CharacterController);
-    controller.enabled = false;
-    controller.clearShapes();
-
-    const boxColliderShape = new BoxColliderShape();
-    controller.addShape(boxColliderShape);
-    boxColliderShape.size = new Vector3(1, 1, 1);
-    expect(boxColliderShape.size).deep.include({ x: 1, y: 1, z: 1 });
-
-    controller.clearShapes();
-    const capsuleColliderShape = new CapsuleColliderShape();
-    controller.addShape(capsuleColliderShape);
-    capsuleColliderShape.contactOffset = 0.1;
-    capsuleColliderShape.radius = 0.2;
-    capsuleColliderShape.height = 1;
-
-    controller.enabled = true;
-
-    expect(capsuleColliderShape.contactOffset).eq(0.1);
-    expect(capsuleColliderShape.radius).eq(0.2);
-    expect(capsuleColliderShape.height).eq(1);
-  });
-
-  it("clone", () => {
-    const newRole = roleEntity.clone();
-    roleEntity.isActive = false;
-    rootEntity.addChild(newRole);
-    const { fixedTimeStep } = engine.sceneManager.activeScene.physics;
-    const moveScript = newRole.getComponent(MoveScript);
-    const controller = newRole.getComponent(CharacterController);
-    expect(controller.slopeLimit).eq(45);
-    const slope = addPlane(new Vector3(0, 0, 2), new Quaternion().rotateX(-Math.PI / 4));
-    moveScript.moveTo(new Vector3(0, 0, 3), 50);
-    // @ts-ignore
-    engine.sceneManager.activeScene._componentsManager.callScriptOnStart();
-    // @ts-ignore
-    engine.sceneManager.activeScene.physics._update(fixedTimeStep * 50);
-    expect(formatValue(newRole.transform.position.z)).eq(3);
-  });
-
-  it("inActive modification", function () {
-    roleEntity.isActive = false;
-    const controller = roleEntity.getComponent(CharacterController);
-    controller.stepOffset = 1;
-    controller.slopeLimit = 1;
-    controller.nonWalkableMode = ControllerNonWalkableMode.PreventClimbingAndForceSliding;
-    controller.upDirection = new Vector3(0, -1, 0);
-    controller.move(new Vector3(0, 0, 1), 0.0001, 0.1);
-    roleEntity.isActive = true;
-    controller.move(new Vector3(0, 0, 1), 0.0001, 0.1);
-    expect(roleEntity.transform.position.z).eq(1);
-    roleEntity.isActive = false;
-    controller.destroy();
-  });
-
-  it("collision group", () => {
-    const controller = roleEntity.getComponent(CharacterController);
-
-    const obstacleEntity = rootEntity.createChild("obstacle");
-    obstacleEntity.transform.position = new Vector3(0, 0, 2);
-
-    const obstacleCollider = obstacleEntity.addComponent(StaticCollider);
-    const triggerShape = new BoxColliderShape();
-    triggerShape.size = new Vector3(1, 1, 1);
-    triggerShape.isTrigger = true;
-    obstacleCollider.addShape(triggerShape);
-
-    class TriggerDetectionScript extends Script {
-      triggerEntered = false;
-
-      onTriggerEnter() {
-        this.triggerEntered = true;
-      }
-
-      reset() {
-        this.triggerEntered = false;
-      }
-    }
-
-    const triggerScript = obstacleEntity.addComponent(TriggerDetectionScript);
-
-    roleEntity.layer = Layer.Layer1;
-    obstacleEntity.layer = Layer.Layer2;
-
-    controller.move(new Vector3(0, 0, 2), 0.0001, 0.1);
-
-    // @ts-ignore
-    engine.sceneManager.activeScene.physics._update(1);
-
-    expect(triggerScript.triggerEntered).toBe(true);
-
-    roleEntity.transform.position = new Vector3(0, 0, 0);
-    triggerScript.reset();
-
-    engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, false);
-
-    controller.move(new Vector3(0, 0, 2), 0.0001, 0.1);
-
-    // @ts-ignore
-    engine.sceneManager.activeScene.physics._update(1);
-
-    expect(triggerScript.triggerEntered).toBe(false);
-
-    // 恢复默认设置
-    engine.sceneManager.activeScene.physics.setColliderLayerCollision(1, 2, true);
-  });
-
-  it("should handle manual collision group setting with trigger", () => {
-    const controller = roleEntity.getComponent(CharacterController);
-
-    const obstacleEntity = rootEntity.createChild("obstacle");
-    obstacleEntity.transform.position = new Vector3(0, 0, 2);
-
-    const obstacleCollider = obstacleEntity.addComponent(StaticCollider);
-    const triggerShape = new BoxColliderShape();
-    triggerShape.size = new Vector3(1, 1, 1);
-    triggerShape.isTrigger = true;
-    obstacleCollider.addShape(triggerShape);
-
-    class TriggerDetectionScript extends Script {
-      triggerEntered = false;
-
-      onTriggerEnter() {
-        this.triggerEntered = true;
-      }
-
-      reset() {
-        this.triggerEntered = false;
-      }
-    }
-
-    const triggerScript = obstacleEntity.addComponent(TriggerDetectionScript);
-
-    roleEntity.layer = Layer.Layer1;
-    obstacleEntity.layer = Layer.Layer2;
-
-    controller.move(new Vector3(0, 0, 2), 0.0001, 0.1);
-
-    // @ts-ignore
-    engine.sceneManager.activeScene.physics._update(1);
-
-    expect(triggerScript.triggerEntered).toBe(true);
-
-    roleEntity.transform.position = new Vector3(0, 0, 0);
-    triggerScript.reset();
-
-    controller.collisionLayer = Layer.Layer10;
-
-    engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer10, Layer.Layer2, false);
-
-    controller.move(new Vector3(0, 0, 2), 0.0001, 0.1);
-
-    // @ts-ignore
-    engine.sceneManager.activeScene.physics._update(1);
-
-    expect(triggerScript.triggerEntered).toBe(false);
-
-    engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer10, Layer.Layer2, true);
-
-    // 恢复默认设置
-    engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, true);
-  });
-
-  it("keep entity position when disabled", () => {
-    roleEntity.transform.position = new Vector3(0, 0, 3);
-    // @ts-ignore
-    engine.sceneManager.activeScene.physics._update(1);
-    const controller = roleEntity.getComponent(CharacterController);
-    controller.enabled = false;
-    controller.enabled = true;
-    // @ts-ignore
-    controller._syncWorldPositionFromPhysicalSpace();
-    expect(roleEntity.transform.position.z).eq(3);
-  });
-
-  it("CapsuleColliderShape upAxis warning message", () => {
-    const controller = roleEntity.getComponent(CharacterController);
-    controller.clearShapes();
-
-    const capsuleShape = new CapsuleColliderShape();
-    controller.addShape(capsuleShape);
-
-    // Mock console.warn to capture warning messages
-    const originalWarn = console.warn;
-    let warningMessage = "";
-    console.warn = (message: string) => {
-      warningMessage = message;
-    };
-
-    try {
-      // Trigger the warning by setting upAxis when controller has shapes
-      capsuleShape.upAxis = ColliderShapeUpAxis.X;
-
-      // Verify the warning message has correct grammar and format
-      expect(warningMessage).to.include(
-        "Capsule character controller `upAxis` is not supported in PhysX and will be ignored"
-      );
-    } finally {
-      // Restore original console.warn
-      console.warn = originalWarn;
-    }
-  });
-
-  it("BoxColliderShape rotation warning message", () => {
-    const controller = roleEntity.getComponent(CharacterController);
-    controller.clearShapes();
-
-    const boxShape = new BoxColliderShape();
-    controller.addShape(boxShape);
-
-    // Mock console.warn to capture warning messages
-    const originalWarn = console.warn;
-    let warningMessage = "";
-    console.warn = (message: string) => {
-      warningMessage = message;
-    };
-
-    try {
-      // Trigger the warning by setting rotation when controller has shapes
-      boxShape.rotation = new Vector3(0, 45, 0);
-
-      // Verify the warning message has correct grammar and format
-      expect(warningMessage).to.include(
-        "Box character controller `rotation` is not supported in PhysX and will be ignored"
-      );
-    } finally {
-      // Restore original console.warn
-      console.warn = originalWarn;
-    }
-  });
-
-  it("PhysXCharacterController Box rotation warning on controller creation", () => {
-    const controller = roleEntity.getComponent(CharacterController);
-    controller.clearShapes();
-
-    // Mock console.warn to capture warning messages
-    const originalWarn = console.warn;
-    let warningMessage = "";
-    console.warn = (message: string) => {
-      warningMessage = message;
-    };
-
-    try {
-      const boxShape = new BoxColliderShape();
-      // Set rotation before adding to controller to trigger warning during controller creation
-      boxShape.rotation = new Vector3(45, 0, 0);
-
-      // This should trigger the warning in PhysXCharacterController._createPXController
-      controller.addShape(boxShape);
-
-      // Verify the warning message has correct grammar and format
-      expect(warningMessage).to.include(
-        "Box character controller `rotation` is not supported in PhysX and will be ignored"
-      );
-    } finally {
-      // Restore original console.warn
-      console.warn = originalWarn;
-    }
-  });
-
-  it("CapsuleColliderShape rotation warning message on controller creation", () => {
-    const controller = roleEntity.getComponent(CharacterController);
-    controller.clearShapes();
-
-    // Mock console.warn to capture warning messages
-    const originalWarn = console.warn;
-    let warningMessage = "";
-    console.warn = (message: string) => {
-      warningMessage = message;
-    };
-
-    try {
-      const capsuleShape = new CapsuleColliderShape();
-      // Set rotation before adding to controller to trigger warning during controller creation
-      capsuleShape.rotation = new Vector3(45, 0, 0);
-
-      // This should trigger the warning in PhysXCharacterController._createPXController
-      controller.addShape(capsuleShape);
-
-      // Verify the warning message has correct grammar and format
-      expect(warningMessage).to.include(
-        "Capsule character controller `rotation` is not supported in PhysX and will be ignored"
-      );
-    } finally {
-      // Restore original console.warn
-      console.warn = originalWarn;
-    }
-  });
-
-  it("PhysXCharacterController Capsule upAxis warning on controller creation", () => {
-    const controller = roleEntity.getComponent(CharacterController);
-    controller.clearShapes();
-
-    // Mock console.warn to capture warning messages
-    const originalWarn = console.warn;
-    let warningMessage = "";
-    console.warn = (message: string) => {
-      warningMessage = message;
-    };
-
-    try {
-      const capsuleShape = new CapsuleColliderShape();
-      capsuleShape.upAxis = ColliderShapeUpAxis.X;
-
-      // This should trigger the warning in PhysXCharacterController._createPXController
-      controller.addShape(capsuleShape);
-
-      // Verify the warning message has correct grammar and format
-      expect(warningMessage).to.include(
-        "Capsule character controller `upAxis` is not supported in PhysX and will be ignored"
-      );
-    } finally {
-      // Restore original console.warn
-      console.warn = originalWarn;
-    }
-  });
-
-  it("BoxColliderShape size update affects collision detection", () => {
-    const { fixedTimeStep } = engine.sceneManager.activeScene.physics;
-    const controller = roleEntity.getComponent(CharacterController);
-    controller.clearShapes();
-
-    // Create a box shape with initial size
-    const boxShape = new BoxColliderShape();
-    boxShape.size = new Vector3(1, 2, 1); // Initial size: width=1, height=2, depth=1
-    controller.addShape(boxShape);
-
-    // Create an obstacle at a specific position that would collide if the controller is wide enough
-    const obstacleEntity = rootEntity.createChild("obstacle");
-    obstacleEntity.transform.position = new Vector3(1.2, 1, 0); // Positioned to the right
-    const obstacleCollider = obstacleEntity.addComponent(StaticCollider);
-    const obstacleShape = new BoxColliderShape();
-    obstacleShape.size = new Vector3(1, 2, 1);
-    obstacleCollider.addShape(obstacleShape);
-
-    // Position the character controller at origin
-    roleEntity.transform.position = new Vector3(0, 1, 0);
-
-    // Try to move right - should not collide with initial narrow width (0.5 half-width)
-    const moveDistance = new Vector3(1, 0, 0);
-    controller.move(moveDistance, 0.0001, fixedTimeStep);
-    const positionAfterFirstMove = roleEntity.transform.position.x;
-
-    // Reset position
-    roleEntity.transform.position = new Vector3(0, 1, 0);
-
-    // Now increase the box size to make it wider
-    boxShape.size = new Vector3(3, 2, 1); // Wider: width=3, height=2, depth=1 (half-width=1.5)
-
-    // Try to move right again - should now collide due to increased width
-    controller.move(moveDistance, 0.0001, fixedTimeStep);
-    const positionAfterSecondMove = roleEntity.transform.position.x;
-
-    // The character should move less distance (or not at all) when the box is wider due to collision
-    expect(positionAfterSecondMove).toBeLessThan(positionAfterFirstMove);
-  });
-
-  it("BoxColliderShape height update affects step ability", () => {
-    const { fixedTimeStep } = engine.sceneManager.activeScene.physics;
-    const controller = roleEntity.getComponent(CharacterController);
+  it("updates capsule height to block passage under a low ceiling", () => {
+    addBox(new Vector3(5, 0.4, 1), new Vector3(0, 1.5, 2));
     controller.stepOffset = 0.1;
-    controller.clearShapes();
+    controller.radius = 0.3;
+    controller.height = 1.0;
+    role.transform.setPosition(0, 0.52, 0);
+    move(new Vector3(0, 0, 3));
+    expect(role.transform.position.z).toBeCloseTo(3, 4);
+    controller.height = 2.0;
+    role.transform.setPosition(0, 1.02, 0);
+    move(new Vector3(0, 0, 3));
+    expect(role.transform.position.z).toBeLessThan(1.25);
+  });
 
-    // Create a box shape with initial size
-    const boxShape = new BoxColliderShape();
-    boxShape.size = new Vector3(1, 1, 1); // Initial height=1 (half-height=0.5)
-    controller.addShape(boxShape);
+  it.each([1, 45])("uses slopeLimit %s to control climbing", (limit) => {
+    physics.overlapSphereAll(new Vector3(0, 5, 0), 0.1);
+    controller.slopeLimit = limit;
+    role.transform.setPosition(0, 1.02, 0);
+    // Keep the slope below the limit to avoid a rounding-dependent result.
+    addPlane(new Vector3(0, 0, 2), new Quaternion().rotateX((-40 * Math.PI) / 180));
+    walkTo(new Vector3(0, 1.02, 3), 50);
+    if (limit === 45) expect(role.transform.position.z).toBeCloseTo(3, 5);
+    else expect(role.transform.position.z).toBeLessThan(2);
+  });
 
-    // Create a low step that only a short character can pass under
-    const stepEntity = rootEntity.createChild("step");
-    stepEntity.transform.position = new Vector3(0, 1.5, 2);
-    const stepCollider = stepEntity.addComponent(StaticCollider);
-    const stepShape = new BoxColliderShape();
-    stepShape.size = new Vector3(5, 0.4, 1); // Low horizontal barrier
-    stepCollider.addShape(stepShape);
+  it.each([0.5, 1])("uses stepOffset %s to control stepping over an obstacle", (offset) => {
+    physics.overlapSphereAll(new Vector3(0, 5, 0), 0.1);
+    controller.stepOffset = offset;
+    role.transform.setPosition(0, 1.02, 0);
+    addBox(new Vector3(1, 1, 1), new Vector3(0, 0.5, 3));
+    walkTo(new Vector3(0, 1.02, 3), 2);
+    if (offset === 1) {
+      expect(role.transform.position.z).toBeCloseTo(3, 5);
+      expect(role.transform.position.y).toBeGreaterThan(1.5);
+    } else {
+      expect(role.transform.position.z).toBeLessThan(2);
+      expect(role.transform.position.y).toBeLessThan(1.5);
+    }
+    controller.stepOffset = -1;
+    expect(controller.stepOffset).toBe(0);
+  });
 
-    // Position the character controller at origin
-    roleEntity.transform.position = new Vector3(0, 0.5, 0);
+  it.each([ControllerNonWalkableMode.PreventClimbing, ControllerNonWalkableMode.PreventClimbingAndForceSliding])(
+    "applies nonWalkableMode %s on steep slopes",
+    (mode) => {
+      physics.overlapSphereAll(new Vector3(0, 5, 0), 0.1);
+      controller.slopeLimit = 1;
+      controller.nonWalkableMode = mode;
+      role.transform.setPosition(0, 4, 4);
+      addPlane(new Vector3(0, 0, 2), new Quaternion().rotateX(-Math.PI / 4));
+      for (let i = 0; i < 40; i++) move(new Vector3(0, -0.1, 0));
+      if (mode === ControllerNonWalkableMode.PreventClimbing) expect(role.transform.position.y).toBeGreaterThan(2.5);
+      else expect(role.transform.position.y).toBeLessThan(1.5);
+    }
+  );
 
-    // Try to move forward - should pass under with short height
-    const moveDistance = new Vector3(0, 0, 3);
-    controller.move(moveDistance, 0.0001, fixedTimeStep);
-    const zPositionWithShortHeight = roleEntity.transform.position.z;
-    console.log(roleEntity.transform.position, zPositionWithShortHeight);
+  it.each(["enabled", "active"])("preserves position and settings after %s re-entry", (state) => {
+    controller.contactOffset = 0.3;
+    controller.center.set(0, 0.2, 0);
+    role.transform.setPosition(0, 2, 3);
+    move(new Vector3(0, -3, 0));
+    expect(role.transform.position.y).toBeCloseTo(1.1, 4);
+    if (state === "enabled") controller.enabled = false;
+    else role.isActive = false;
+    expect(move(new Vector3(0, 0, 10))).toBe(0);
+    expect(role.transform.position.z).toBe(3);
+    expect(physics.overlapSphereAll(new Vector3(0, 1.3, 3), 0.1)).toHaveLength(0);
+    controller.stepOffset = 0.2;
+    controller.slopeLimit = 30;
+    controller.nonWalkableMode = ControllerNonWalkableMode.PreventClimbingAndForceSliding;
+    if (state === "enabled") controller.enabled = true;
+    else role.isActive = true;
+    expect(physics.overlapSphereAll(new Vector3(0, 1.3, 3), 0.1)[0]).toBe(controller);
+    move(new Vector3(0, 0, 1));
+    expect(role.transform.position.z).toBeCloseTo(4);
+    expect(role.transform.position.y).toBeCloseTo(1.1, 4);
+    expect(controller.contactOffset).toBe(0.3);
+    expect(controller.stepOffset).toBe(0.2);
+    expect(controller.slopeLimit).toBe(30);
+    expect(controller.nonWalkableMode).toBe(ControllerNonWalkableMode.PreventClimbingAndForceSliding);
+  });
 
-    // Reset position
-    roleEntity.transform.position = new Vector3(0, 0.5, 0);
+  it("keeps the character controller queryable only in its current scene", () => {
+    const destination = new Scene(engine);
+    engine.sceneManager.addScene(destination);
+    role.transform.setPosition(0, 5, 0);
+    controller.center.set(1, 0, 0);
+    controller.collisionLayer = Layer.Layer6;
+    const ray = new Ray(new Vector3(1, 5, 5), new Vector3(0, 0, -1));
+    const hit = new HitResult();
 
-    // @ts-ignore
-    engine.sceneManager.activeScene.physics._update(1);
-    // Now increase the box height to make it taller
-    boxShape.size = new Vector3(1, 2, 1); // Taller: height=2 (half-height=1)
+    try {
+      expect(physics.raycast(ray, 10, Layer.Layer6, hit)).toBe(true);
+      expect(hit.collider).toBe(controller);
 
-    // Try to move forward again - should now be blocked by the low ceiling
-    controller.move(moveDistance, 0.0001, fixedTimeStep);
-    const zPositionWithTallHeight = roleEntity.transform.position.z;
+      destination.addRootEntity(role);
+      expect(physics.raycast(ray, 10, Layer.Layer6)).toBe(false);
+      expect(destination.physics.raycast(ray, 10, Layer.Layer6, hit)).toBe(true);
+      expect(hit.collider).toBe(controller);
+      expect(controller.move(new Vector3(0, 0, 1), 0.001, destination.physics.fixedTimeStep)).toBe(
+        ControllerCollisionFlag.None
+      );
+      expect(role.transform.worldPosition.z).toBeCloseTo(1);
 
-    // The taller character should move less distance due to collision with ceiling
-    expect(zPositionWithTallHeight).toBeLessThan(zPositionWithShortHeight);
+      root.addChild(role);
+      expect(destination.physics.raycast(ray, 10, Layer.Layer6)).toBe(false);
+      expect(physics.raycast(ray, 10, Layer.Layer6, hit)).toBe(true);
+      expect(hit.collider).toBe(controller);
+    } finally {
+      destination.destroy();
+    }
+  });
+
+  it("keeps poses when character Transform hooks query another controller", () => {
+    const other = root.createChild("other");
+    other.transform.setPosition(20, 5, 0);
+    other.addComponent(CharacterController).collisionLayer = Layer.Layer7;
+    const otherRay = new Ray(new Vector3(20, 5, 5), new Vector3(0, 0, -1));
+    let queryOnScale = false;
+    let queryOnMove = false;
+    const character = new Entity(
+      engine,
+      "character",
+      class extends Transform {
+        override get lossyWorldScale(): Vector3 {
+          if (queryOnScale) {
+            queryOnScale = false;
+            expect(physics.raycast(otherRay, 10, Layer.Layer7)).toBe(true);
+          }
+          return super.lossyWorldScale;
+        }
+
+        override get worldPosition(): Vector3 {
+          return super.worldPosition;
+        }
+
+        override set worldPosition(value: Vector3) {
+          if (queryOnMove) {
+            queryOnMove = false;
+            other.transform.setPosition(21, 5, 0);
+            otherRay.origin.x = 21;
+            expect(physics.raycast(otherRay, 10, Layer.Layer7)).toBe(true);
+          }
+          super.worldPosition = value;
+        }
+      }
+    );
+    root.addChild(character);
+    character.transform.setPosition(4, 5, 0);
+    const cc = character.addComponent(CharacterController);
+    cc.collisionLayer = Layer.Layer6;
+
+    queryOnScale = true;
+    expect(physics.raycast(new Ray(new Vector3(4, 5, 5), new Vector3(0, 0, -1)), 10, Layer.Layer6)).toBe(true);
+    expect(queryOnScale).toBe(false);
+
+    queryOnMove = true;
+    expect(cc.move(new Vector3(1, 0, 0), 0.001, physics.fixedTimeStep)).toBe(ControllerCollisionFlag.None);
+    expect(queryOnMove).toBe(false);
+    expect(character.transform.worldPosition.x).toBeCloseTo(5);
+  });
+
+  it("applies geometry edited while disabled on re-entry", () => {
+    role.transform.setPosition(0, 10, 0);
+    move(new Vector3(0, 0, 1));
+    controller.enabled = false;
+    controller.radius = 0.2;
+    controller.height = 1.4;
+    controller.contactOffset = 0.1;
+    controller.enabled = true;
+    move(new Vector3(0, -20, 0));
+    expect(role.transform.position.y).toBeCloseTo(0.8, 4);
+    expect(role.transform.position.z).toBeCloseTo(1);
+  });
+
+  it("clones inline geometry and movement settings independently", () => {
+    controller.center.set(0, 0.2, 0);
+    controller.contactOffset = 0.1;
+    controller.radius = 0.2;
+    controller.height = 1.4;
+    controller.stepOffset = 0.2;
+    controller.slopeLimit = 30;
+    controller.nonWalkableMode = ControllerNonWalkableMode.PreventClimbingAndForceSliding;
+    const clone = role.clone();
+    root.addChild(clone);
+    clone.transform.setPosition(10, 10, 0);
+    const copy = clone.getComponent(CharacterController);
+    expect(copy).not.toBe(controller);
+    expect(copy.center).not.toBe(controller.center);
+    expect(copy.upDirection).toEqual(controller.upDirection);
+    expect(copy.contactOffset).toBe(0.1);
+    expect(copy.radius).toBe(0.2);
+    expect(copy.height).toBe(1.4);
+    expect(copy.stepOffset).toBe(0.2);
+    expect(copy.slopeLimit).toBe(30);
+    expect(copy.nonWalkableMode).toBe(ControllerNonWalkableMode.PreventClimbingAndForceSliding);
+    copy.move(new Vector3(0, -20, 0), 0.0001, physics.fixedTimeStep);
+    expect(clone.transform.position.y).toBeCloseTo(0.6, 4);
+    copy.center.y = 3;
+    copy.radius = 0.4;
+    copy.height = 3;
+    expect(controller.center.y).toBe(0.2);
+    expect(controller.radius).toBe(0.2);
+    expect(controller.height).toBe(1.4);
+  });
+
+  it.each([Layer.Layer1, Layer.Layer10])("filters controller triggers using collisionLayer %s", (layer) => {
+    controller.collisionLayer = layer;
+    role.transform.setPosition(0, 1.02, 0);
+    const trigger = addBox(new Vector3(1, 1, 1), new Vector3(0, 0.6, 2));
+    trigger.collisionLayer = Layer.Layer2;
+    trigger.isTrigger = true;
+    class TriggerRecorder extends Script {
+      onTriggerEnter = vi.fn();
+      onTriggerExit = vi.fn();
+    }
+    const recorder = trigger.entity.addComponent(TriggerRecorder);
+    move(new Vector3(0, 0, 2));
+    // Trigger detection sees the proxy pose on the step after PhysX applies the kinematic target.
+    update(2);
+    expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
+    role.transform.setPosition(0, 1.02, 0);
+    update(2);
+    expect(recorder.onTriggerExit).toHaveBeenCalledOnce();
+    physics.setColliderLayerCollision(layer, Layer.Layer2, false);
+    try {
+      move(new Vector3(0, 0, 2));
+      update(2);
+      expect(recorder.onTriggerEnter).toHaveBeenCalledOnce();
+    } finally {
+      physics.setColliderLayerCollision(layer, Layer.Layer2, true);
+    }
+  });
+
+  it("recovers at the updated position after invalid geometry without unrelated setter error spam", () => {
+    const entity = root.createChild("recovering-controller");
+    entity.transform.setPosition(0, 5, 0);
+    const cc = entity.addComponent(CharacterController);
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    cc.radius = 0;
+    physics._update(physics.fixedTimeStep);
+    expect(errors).not.toHaveBeenCalled();
+
+    cc.collisionLayer = Layer.Layer3;
+    expect(errors).not.toHaveBeenCalled();
+
+    entity.transform.setPosition(8, 2, 0);
+    cc.radius = 0.5;
+
+    const hit = new HitResult();
+    expect(physics.raycast(new Ray(new Vector3(8, 10, 0), new Vector3(0, -1, 0)), 20, Layer.Layer3, hit)).toBe(true);
+    expect(hit.collider === cc).toBe(true);
+    expect(hit.point.x).toBeCloseTo(8, 3);
+    expect(physics.raycast(new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0)), 20, Layer.Layer3)).toBe(false);
+  });
+
+  it("normalizes upDirection and retains it on a zero vector assignment", () => {
+    controller.upDirection = { x: 0, y: 2, z: 0 };
+    expect(controller.upDirection).toMatchObject({ x: 0, y: 1, z: 0 });
+
+    controller.upDirection = { x: 0, y: 0, z: 0 };
+    expect(controller.upDirection.y).toBe(1);
+
+    role.transform.setPosition(0, 3, 0);
+    const flags = move(new Vector3(0, -5, 0));
+    expect(Boolean(flags & ControllerCollisionFlag.Down)).toBe(true);
+    expect(role.transform.position.y).toBeCloseTo(1.02, 2);
+  });
+
+  it("clamps slopeLimit to [0, 90] and rejects non-finite values", () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    controller.slopeLimit = 120;
+    expect(controller.slopeLimit).toBe(90);
+    controller.slopeLimit = -10;
+    expect(controller.slopeLimit).toBe(0);
+    controller.slopeLimit = 90;
+
+    controller.enabled = false;
+    controller.enabled = true;
+    expect(errors).not.toHaveBeenCalled();
+
+    role.transform.setPosition(0, 2, 0);
+    const flags = move(new Vector3(0, -4, 0));
+    expect(Boolean(flags & ControllerCollisionFlag.Down)).toBe(true);
+
+    expect(() => {
+      controller.slopeLimit = NaN;
+    }).toThrow();
+    expect(() => {
+      controller.slopeLimit = Infinity;
+    }).toThrow();
+  });
+
+  it("ignores move calls after destroy while the entity stays active", () => {
+    controller.destroy();
+    expect(controller.destroyed).toBe(true);
+    expect(move(new Vector3(1, 0, 0))).toBe(0);
+  });
+
+  it("applies a full up-direction animation key to the live capsule", () => {
+    role.transform.setPosition(0, 10, 0);
+    controller.height = 9;
+    move(new Vector3(0, 0, 0.02));
+    const original = controller.upDirection;
+    directionClip(new Vector3(2, 0, 0)).sampleAnimation(root, 0);
+    const flags = move(new Vector3(0, -20, 0));
+    expect(flags & ControllerCollisionFlag.Sides).toBeTruthy();
+    expect(role.transform.worldPosition.y).toBeCloseTo(0.52, 2);
+    expect(controller.upDirection).toMatchObject({ x: 1, y: 0, z: 0 });
+    expect(original).toMatchObject({ x: 0, y: 1, z: 0 });
+  });
+
+  it.each([
+    { mode: AnimatorLayerBlendingMode.Override, x: 2 / Math.sqrt(5), z: 1 / Math.sqrt(5) },
+    { mode: AnimatorLayerBlendingMode.Additive, x: Math.SQRT1_2, z: Math.SQRT1_2 }
+  ])("blends upDirection from the current base layer and holds the last key (mode=$mode)", ({ mode, x, z }) => {
+    const animator = root.addComponent(Animator);
+    const animatorController = new AnimatorController(engine);
+    const base = new AnimatorControllerLayer("base");
+    const tilt = new AnimatorControllerLayer("tilt");
+    animatorController.addLayer(base);
+    animatorController.addLayer(tilt);
+    base.stateMachine.addState("forward").clip = directionClip(new Vector3(0, 0, 1));
+    tilt.weight = 0.5;
+    tilt.blendingMode = mode;
+    const state = tilt.stateMachine.addState("lean");
+    state.clip = directionClip(new Vector3(), new Vector3(2, 0, 0));
+    state.wrapMode = WrapMode.Once;
+    animator.animatorController = animatorController;
+    animator.play("forward", 0);
+    animator.play("lean", 1);
+    engine.update();
+
+    for (let i = 0; i < 2; i++) {
+      animator.update(1);
+      expect(controller.upDirection.x).toBeCloseTo(x);
+      expect(controller.upDirection.z).toBeCloseTo(z);
+    }
+  });
+
+  it("returns a read-only up direction snapshot", () => {
+    const { upDirection } = controller;
+    controller.upDirection = new Vector3(1, 0, 0);
+    expect(upDirection.y).toBe(1);
+    expect(controller.upDirection.x).toBe(1);
+  });
+
+  it("updates scene queries immediately when teleported via entity transform or center", () => {
+    role.transform.setPosition(0, 2, 0);
+    const hit = new HitResult();
+    expect(physics.raycast(new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0)), 20, Layer.Everything, hit)).toBe(
+      true
+    );
+    expect(hit.collider).toBe(controller);
+
+    // Teleport without stepping simulation: queries must immediately reflect the new pose
+    role.transform.setPosition(12, 2, 0);
+    expect(physics.overlapSphereAll(new Vector3(12, 2, 0), 0.1)).toContain(controller);
+    expect(physics.overlapSphereAll(new Vector3(0, 2, 0), 0.1)).not.toContain(controller);
+
+    controller.center = new Vector3(0, 3, 0);
+    expect(physics.overlapSphereAll(new Vector3(12, 5, 0), 0.1)).toContain(controller);
+    expect(physics.overlapSphereAll(new Vector3(12, 2, 0), 0.1)).not.toContain(controller);
+  });
+
+  it("clamps negative dimensions, rejects non-finite scalars, and detaches cleanly on zero dimensions or scale", () => {
+    for (const invalid of [NaN, Infinity, -Infinity]) {
+      expect(() => (controller.radius = invalid)).toThrow();
+      expect(() => (controller.height = invalid)).toThrow();
+    }
+    controller.radius = -1;
+    controller.height = -2;
+    expect(controller.radius).toBe(0);
+    expect(controller.height).toBe(0);
+
+    controller.radius = 0.5;
+    controller.height = 2;
+    role.transform.setPosition(0, 2, 0);
+    expect(physics.overlapSphereAll(new Vector3(0, 2, 0), 0.1).includes(controller)).toBe(true);
+
+    // Zero radial scale detaches cleanly; zero axial scale (1, 0, 1) degenerates to a sphere of radius 0.5
+    role.transform.setScale(0, 1, 0);
+    expect(physics.overlapSphereAll(new Vector3(0, 2, 0), 0.1).includes(controller)).toBe(false);
+    expect(move(new Vector3(2, 0, 0))).toBe(0);
+    expect(role.transform.position.x).toBe(0);
+
+    role.transform.setScale(1, 0, 1);
+    expect(physics.overlapSphereAll(new Vector3(0, 2, 0), 0.1).includes(controller)).toBe(true);
+    role.transform.setPosition(0, 5, 0);
+    move(new Vector3(0, -20, 0));
+    expect(role.transform.position.y).toBeCloseTo(0.52, 4);
+
+    role.transform.setScale(1, 1, 1);
+    role.transform.setPosition(0, 2, 0);
+    expect(physics.overlapSphereAll(new Vector3(0, 2, 0), 0.1).includes(controller)).toBe(true);
+    move(new Vector3(2, 0, 0));
+    expect(role.transform.position.x).toBeCloseTo(2, 4);
+
+    // height <= 2 * radius degenerates to a sphere of radius 0.5 (resting at y ≈ 0.52 with stepOffset <= 2 * radius)
+    controller.height = 1;
+    role.transform.setPosition(2, 5, 0);
+    move(new Vector3(0, -20, 0));
+    expect(role.transform.position.y).toBeCloseTo(0.52, 4);
+    update();
+    expect(physics.overlapSphereAll(new Vector3(2, 0.52, 0), 0.1).includes(controller)).toBe(true);
+    expect(physics.raycast(new Ray(new Vector3(2, 1.2, 5), new Vector3(0, 0, -1)), 10)).toBe(false);
+
+    // stepOffset above sphere total height is clamped silently on sync instead of ejecting the controller.
+    const stepErrors = vi.spyOn(console, "error").mockImplementation(() => {});
+    controller.stepOffset = 1.01;
+    expect(physics.overlapSphereAll(new Vector3(2, 0.52, 0), 0.1).includes(controller)).toBe(true);
+    expect(controller.stepOffset).toBe(1.01);
+    expect(stepErrors).not.toHaveBeenCalled();
+    controller.stepOffset = 0.5;
+    stepErrors.mockRestore();
+
+    controller.height = 0.2;
+    role.transform.setPosition(2, 5, 0);
+    move(new Vector3(0, -20, 0));
+    expect(role.transform.position.y).toBeCloseTo(0.52, 4);
+
+    controller.height = 2;
+    role.transform.setPosition(2, 5, 0);
+    move(new Vector3(0, -20, 0));
+    expect(role.transform.position.y).toBeCloseTo(1.02, 4);
+    update();
+    expect(physics.raycast(new Ray(new Vector3(2, 1.4, 5), new Vector3(0, 0, -1)), 10)).toBe(true);
+    move(new Vector3(1, 0, 0));
+    expect(role.transform.position.x).toBeCloseTo(3, 4);
+  });
+
+  describe("move() collision layer and matrix filtering", () => {
+    afterEach(() => {
+      physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, true);
+      physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer3, true);
+      physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer4, true);
+    });
+
+    it("filters static and dynamic colliders and invalidates cached obstacles on matrix or layer change", () => {
+      controller.collisionLayer = Layer.Layer1;
+      role.transform.setPosition(0, 2, 0);
+
+      const staticWall = addBox(new Vector3(1, 4, 4), new Vector3(2, 2, 0));
+      staticWall.collisionLayer = Layer.Layer2;
+      const dynEntity = root.createChild("dyn-wall");
+      dynEntity.transform.setPosition(5, 2, 0);
+      const dynWall = dynEntity.addComponent(BoxCollider);
+      dynWall.size = new Vector3(1, 4, 4);
+      dynWall.collisionLayer = Layer.Layer3;
+      dynEntity.addComponent(Rigidbody).isKinematic = true;
+
+      // Initially blocked by static wall at x = 2 (stops near 2 - 0.5 - 0.5 - 0.02 = 0.98)
+      const hitStatic = move(new Vector3(4, 0, 0));
+      expect(Boolean(hitStatic & ControllerCollisionFlag.Sides)).toBe(true);
+      expect(role.transform.position.x).toBeCloseTo(0.98, 2);
+
+      // Disable Layer1 <-> Layer2: must pass through static wall and stop at dynamic wall (x = 5 -> ~3.98)
+      physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, false);
+      const hitDyn = move(new Vector3(6, 0, 0));
+      expect(Boolean(hitDyn & ControllerCollisionFlag.Sides)).toBe(true);
+      expect(role.transform.position.x).toBeCloseTo(3.98, 2);
+
+      physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer3, false);
+      move(new Vector3(4, 0, 0));
+      expect(role.transform.position.x).toBeCloseTo(7.98, 2);
+
+      // Re-enable Layer1 <-> Layer2 and move back: static wall must block again (cache invalidated)
+      physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, true);
+      move(new Vector3(-10, 0, 0));
+      expect(role.transform.position.x).toBeCloseTo(3.02, 2);
+    });
+
+    it("filters compound Rigidbody child colliders independently by layer and never blocks on triggers", () => {
+      controller.collisionLayer = Layer.Layer1;
+      role.transform.setPosition(0, 2, 0);
+
+      // Enable the layer pair to isolate trigger behavior from layer filtering.
+      const triggerWall = addBox(new Vector3(1, 4, 4), new Vector3(1.5, 2, 0));
+      triggerWall.collisionLayer = Layer.Layer1;
+      triggerWall.isTrigger = true;
+      class TriggerRecorder extends Script {
+        onTriggerEnter = vi.fn();
+      }
+      const triggerRecorder = triggerWall.entity.addComponent(TriggerRecorder);
+
+      // Compound kinematic Rigidbody with two child colliders on different layers
+      const compound = root.createChild("compound");
+      compound.addComponent(Rigidbody).isKinematic = true;
+      const firstChild = compound.createChild("passable");
+      firstChild.transform.setPosition(3, 2, 0);
+      const firstCol = firstChild.addComponent(BoxCollider);
+      firstCol.size = new Vector3(1, 4, 4);
+      firstCol.collisionLayer = Layer.Layer2;
+      const secondChild = compound.createChild("solid");
+      secondChild.transform.setPosition(6, 2, 0);
+      const secondCol = secondChild.addComponent(BoxCollider);
+      secondCol.size = new Vector3(1, 4, 4);
+      secondCol.collisionLayer = Layer.Layer3;
+
+      physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, false);
+      const flags = move(new Vector3(10, 0, 0));
+      expect(Boolean(flags & ControllerCollisionFlag.Sides)).toBe(true);
+      // Passed through trigger at 1.5 and Layer2 child at 3, stopped at Layer3 child at 6 (~4.98)
+      expect(role.transform.position.x).toBeCloseTo(4.98, 2);
+
+      // Walk back into trigger to verify triggers still fire events
+      role.transform.setPosition(0, 2, 0);
+      move(new Vector3(1.5, 0, 0));
+      update(2);
+      expect(triggerRecorder.onTriggerEnter).toHaveBeenCalled();
+    });
+
+    it("filters controller-vs-controller collisions using collisionLayer and the layer matrix", () => {
+      controller.collisionLayer = Layer.Layer1;
+      role.transform.setPosition(0, 2, 0);
+
+      const otherEntity = root.createChild("other-cct");
+      otherEntity.transform.setPosition(3, 2, 0);
+      const otherCC = otherEntity.addComponent(CharacterController);
+      otherCC.collisionLayer = Layer.Layer4;
+
+      otherCC.move(new Vector3(0, 0, 0), 0.0001, physics.fixedTimeStep);
+
+      // Enabled layer pair -> blocked before x = 3 (radius 0.5 + 0.5 + contactOffset 0.02 + 0.02)
+      const blockedFlags = move(new Vector3(5, 0, 0));
+      expect(Boolean(blockedFlags & ControllerCollisionFlag.Sides)).toBe(true);
+      expect(role.transform.position.x).toBeLessThan(2.1);
+
+      physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer4, false);
+      role.transform.setPosition(0, 2, 0);
+      move(new Vector3(6, 0, 0));
+      expect(role.transform.position.x).toBeCloseTo(6, 2);
+
+      // Re-enable and change otherCC layer to Layer2 with Layer1<->Layer2 disabled -> still passes through
+      physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer4, true);
+      physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, false);
+      otherCC.collisionLayer = Layer.Layer2;
+      role.transform.setPosition(0, 2, 0);
+      move(new Vector3(6, 0, 0));
+      expect(role.transform.position.x).toBeCloseTo(6, 2);
+    });
+  });
+
+  it("validates upDirection, float32 bounds, negative move args, and clean failed-creation recovery", () => {
+    for (const invalid of [new Vector3(NaN, 1, 1), new Vector3(1, Infinity, 1), new Vector3(1, 1, -Infinity)]) {
+      expect(() => (controller.upDirection = invalid)).toThrow();
+    }
+    expect(controller.upDirection.y).toBeCloseTo(1, 5);
+
+    // A zero assignment keeps the last valid up direction in both the component and PhysX.
+    controller.upDirection = new Vector3(0, 1, 0);
+    controller.upDirection = new Vector3(0, 0, 0);
+    expect(controller.upDirection.y).toBeCloseTo(1, 5);
+
+    role.transform.setPosition(0, 5, 0);
+    controller.height = 1e-40;
+    expect(move(new Vector3(0, -20, 0)) & ControllerCollisionFlag.Down).toBe(ControllerCollisionFlag.Down);
+    expect(role.transform.position.y).toBeCloseTo(0.52, 4);
+
+    controller.radius = 1e-40;
+    expect(move(new Vector3(1, 0, 0))).toBe(0);
+    controller.radius = 1e40;
+    expect(move(new Vector3(1, 0, 0))).toBe(0);
+    controller.radius = 0.5;
+    controller.height = 1e40;
+    expect(move(new Vector3(1, 0, 0))).toBe(0);
+    controller.height = 2;
+    controller.radius = 0.5;
+    role.transform.setPosition(0, 2, 0);
+
+    // Invalid move arguments must leave the position unchanged.
+    expect(controller.move(new Vector3(1, 0, 0), -0.1, physics.fixedTimeStep)).toBe(0);
+    expect(controller.move(new Vector3(1, 0, 0), 0.0001, -1)).toBe(0);
+
+    // Move the Entity before recovery to detect reuse of the stale native pose.
+    const recoverEntity = root.createChild("recover-cct");
+    recoverEntity.transform.setPosition(0, 5, 0);
+    const recoverCC = recoverEntity.addComponent(CharacterController);
+    recoverCC.radius = 0; // invalid (zero radius detaches controller cleanly)
+
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(recoverCC.move(new Vector3(0, -0.1, 0), 0.0001, physics.fixedTimeStep)).toBe(0);
+    expect(errors).not.toHaveBeenCalled();
+
+    recoverEntity.transform.setPosition(7, 4, -2);
+    recoverCC.collisionLayer = Layer.Layer3;
+    recoverCC.nonWalkableMode = ControllerNonWalkableMode.PreventClimbingAndForceSliding;
+    recoverCC.upDirection = new Vector3(0, 1, 0);
+    expect(errors).not.toHaveBeenCalled();
+
+    recoverCC.radius = 0.5;
+    recoverCC.move(new Vector3(0, 0, 0), 0.0001, physics.fixedTimeStep);
+    expect(errors).not.toHaveBeenCalled();
+    expect(recoverCC.nonWalkableMode).toBe(ControllerNonWalkableMode.PreventClimbingAndForceSliding);
+    expect(recoverEntity.transform.position.x).toBeCloseTo(7, 4);
+    expect(recoverEntity.transform.position.y).toBeCloseTo(4, 4);
+    expect(recoverEntity.transform.position.z).toBeCloseTo(-2, 4);
+
+    const hit = new HitResult();
+    expect(physics.raycast(new Ray(new Vector3(7, 8, -2), new Vector3(0, -1, 0)), 10, Layer.Layer3, hit)).toBe(true);
+    expect(hit.collider).toBe(recoverCC);
+  });
+
+  it("updates proxy actor orientation immediately on live upDirection changes", () => {
+    const entity = root.createChild("asymmetric-cct");
+    entity.transform.setPosition(0, 0, 0);
+    const cc = entity.addComponent(CharacterController);
+    // Capsule spans [-2, 2] along upDirection with radial extent [-1, 1].
+    cc.radius = 1;
+    cc.height = 4;
+    cc.stepOffset = 0.2;
+    cc.upDirection = new Vector3(0, 1, 0);
+
+    const hit = new HitResult();
+    // With up = +Y: Y extent is [-2, 2], X extent is [-1, 1]
+    expect(physics.raycast(new Ray(new Vector3(0, 1.5, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(true);
+    expect(hit.collider).toBe(cc);
+    expect(physics.raycast(new Ray(new Vector3(1.5, 0, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(false);
+
+    // Live upDirection change to +X swaps halfHeight (2) onto world X and radius (1) onto world Y immediately
+    cc.upDirection = new Vector3(1, 0, 0);
+    expect(physics.raycast(new Ray(new Vector3(1.5, 0, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(true);
+    expect(hit.collider).toBe(cc);
+    expect(physics.raycast(new Ray(new Vector3(0, 1.5, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(false);
+
+    const up = cc.upDirection;
+    cc.upDirection = { x: 2, y: 0, z: 0 };
+    cc.upDirection = { x: 0, y: 0, z: 0 };
+    expect(cc.upDirection).toBe(up);
+
+    // Stepping checks that the queued kinematic target matches the immediate pose.
+    physics._update(physics.fixedTimeStep);
+    expect(physics.raycast(new Ray(new Vector3(1.5, 0, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(true);
+    expect(hit.collider).toBe(cc);
+    expect(physics.raycast(new Ray(new Vector3(0, 1.5, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(false);
+
+    const clone = entity.clone();
+    try {
+      const clonedController = clone.getComponent(CharacterController);
+      expect(clonedController.upDirection).toBe(cc.upDirection);
+      expect(() => Object.assign(clonedController.upDirection, { x: 0 })).toThrow(TypeError);
+      clonedController.upDirection = { x: 0, y: 1, z: 0 };
+      expect(cc.upDirection.x).toBe(1);
+    } finally {
+      clone.destroy();
+    }
+
+    expect(() => (cc.upDirection = { x: NaN, y: 0, z: 0 })).toThrow();
+    expect(cc.upDirection).toBe(up);
+    expect(physics.raycast(new Ray(new Vector3(1.5, 0, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(true);
+    expect(hit.collider).toBe(cc);
+    expect(physics.raycast(new Ray(new Vector3(0, 1.5, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(false);
+  });
+
+  it("syncs sub-1e-6 scale, position, and center edits without dropping updates", () => {
+    const tinyScaleEntity = root.createChild("tiny-scale-cct");
+    tinyScaleEntity.transform.setPosition(0, 10, 0);
+    tinyScaleEntity.transform.setScale(1e-6, 1e-6, 1e-6);
+    const tinyScaleCC = tinyScaleEntity.addComponent(CharacterController);
+    tinyScaleCC.radius = 0.5e6;
+    tinyScaleCC.height = 2e6;
+    tinyScaleCC.contactOffset = 0.01;
+    tinyScaleCC.collisionLayer = Layer.Layer5;
+
+    const hit = new HitResult();
+    const edgeRay = new Ray(new Vector3(0.6, 10, 5), new Vector3(0, 0, -1));
+    expect(physics.raycast(edgeRay, 10, Layer.Layer5, hit)).toBe(false);
+
+    // Delta 5e-7 < 1e-6: world radius grows from 0.5 to 0.75
+    tinyScaleEntity.transform.setScale(1.5e-6, 1.5e-6, 1.5e-6);
+    expect(physics.raycast(edgeRay, 10, Layer.Layer5, hit)).toBe(true);
+    expect(hit.collider).toBe(tinyScaleCC);
+
+    // Simultaneous -2^-21 translation + +2^-21 center edit on a narrow capsule keeps the exact world center
+    const shift = 2 ** -21;
+    const shiftEntity = root.createChild("sub-eps-shift-cct");
+    shiftEntity.transform.setPosition(0, 20, 0);
+    const shiftCC = shiftEntity.addComponent(CharacterController);
+    shiftCC.radius = 2e-7;
+    shiftCC.height = 1;
+    shiftCC.center.set(1, 0, 0);
+    shiftCC.contactOffset = 1e-7;
+    shiftCC.collisionLayer = Layer.Layer6;
+
+    const centerRay = new Ray(new Vector3(1, 20, 5), new Vector3(0, 0, -1));
+    expect(physics.raycast(centerRay, 10, Layer.Layer6, hit)).toBe(true);
+    expect(hit.collider).toBe(shiftCC);
+
+    shiftEntity.transform.setPosition(-shift, 20, 0);
+    expect(physics.raycast(centerRay, 10, Layer.Layer6, hit)).toBe(false);
+
+    shiftCC.center.set(1 + shift, 0, 0);
+    expect(physics.raycast(centerRay, 10, Layer.Layer6, hit)).toBe(true);
+    expect(hit.collider).toBe(shiftCC);
+  });
+
+  it("publishes a pose edit that keeps the center unchanged after move, before the next step", () => {
+    role.transform.setPosition(0, 2, 0);
+    const ray = new Ray(new Vector3(0, 2, 5), new Vector3(0, 0, -1));
+    const hit = new HitResult();
+    const hitsController = (x: number): boolean => {
+      ray.origin.x = x;
+      return physics.raycast(ray, hit) && hit.collider === controller;
+    };
+
+    expect(hitsController(0)).toBe(true);
+    move(new Vector3(4, 0, 0));
+    const x = role.transform.worldPosition.x;
+    expect(x).toBeCloseTo(4, 5);
+    expect(hitsController(x)).toBe(false);
+
+    role.transform.worldPosition.x = x + 1;
+    controller.center.x = -1;
+
+    expect(hitsController(0)).toBe(false);
+    expect(hitsController(x)).toBe(true);
+  });
+
+  it("uses the authored position and center before composing the native controller pose", () => {
+    const entity = engine.sceneManager.activeScene.createRootEntity("offset-controller");
+    try {
+      const x = 2 ** 23;
+      entity.transform.setPosition(x, 10, 0);
+      const cc = entity.addComponent(CharacterController);
+      cc.radius = 0.05;
+      cc.height = 1;
+      cc.stepOffset = 0.05;
+      cc.contactOffset = 0.01;
+      cc.center.x = -x;
+      cc.collisionLayer = Layer.Layer6;
+      const hit = new HitResult();
+      const hits = (x: number) =>
+        physics.raycast(new Ray(new Vector3(x, 10, 5), new Vector3(0, 0, -1)), 10, Layer.Layer6, hit) &&
+        hit.collider === cc;
+
+      expect(hits(0)).toBe(true);
+      entity.transform.position.x += 0.25;
+      expect(hits(0)).toBe(false);
+      expect(hits(0.25)).toBe(true);
+      cc.center.x += 0.25;
+      expect(hits(0.25)).toBe(false);
+      expect(hits(0.5)).toBe(true);
+    } finally {
+      entity.destroy();
+    }
+  });
+
+  it("recovers controller queries after scaling radial axes back from zero", () => {
+    const entity = engine.sceneManager.activeScene.createRootEntity("controller-rescale");
+    try {
+      entity.transform.setPosition(0, 10, 0);
+      entity.transform.setScale(0, 1, 0);
+      const cc = entity.addComponent(CharacterController);
+      cc.radius = 0.25;
+      cc.height = 1.5;
+      cc.stepOffset = 1.5 + 2 ** -23;
+      cc.collisionLayer = Layer.Layer6;
+      const hit = new HitResult();
+      const ray = new Ray(new Vector3(0, 10, 5), new Vector3(0, 0, -1));
+      expect(physics.raycast(ray, 10, Layer.Layer6, hit)).toBe(false);
+
+      entity.transform.setScale(1, 1 + 2 ** -23, 1);
+      expect(physics.raycast(ray, 10, Layer.Layer6, hit)).toBe(true);
+      expect(hit.collider).toBe(cc);
+    } finally {
+      entity.destroy();
+    }
+  });
+
+  it("rejects invalid whole-vector assignments while preserving the prior native orientation", () => {
+    const entity = root.createChild("nan-up-cct");
+    entity.transform.setPosition(0, 0, 0);
+    const cc = entity.addComponent(CharacterController);
+    cc.radius = 1;
+    cc.height = 4;
+    cc.stepOffset = 0.2;
+    cc.upDirection = new Vector3(1, 0, 0);
+
+    expect(() => (cc.upDirection = new Vector3(Number.NaN, 0, 0))).toThrow();
+    expect([cc.upDirection.x, cc.upDirection.y, cc.upDirection.z]).toEqual([1, 0, 0]);
+
+    const hit = new HitResult();
+    expect(physics.raycast(new Ray(new Vector3(1.5, 0, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(true);
+    expect(hit.collider).toBe(cc);
+    expect(physics.raycast(new Ray(new Vector3(0, 1.5, 5), new Vector3(0, 0, -1)), 10, hit)).toBe(false);
+  });
+
+  it("remains unowned by sibling or ancestor Rigidbodies and dispatches trigger events to its own Entity", () => {
+    const ancestor = root.createChild("ancestor");
+    ancestor.addComponent(BoxCollider);
+    const ancestorBody = ancestor.addComponent(Rigidbody);
+    ancestorBody.isKinematic = true;
+    let ancestorTriggers = 0;
+    ancestor.addComponent(
+      class extends Script {
+        override onTriggerEnter(): void {
+          ancestorTriggers++;
+        }
+      }
+    );
+
+    const zone = root.createChild("zone").addComponent(BoxCollider);
+    zone.size.set(4, 4, 4);
+    zone.isTrigger = true;
+    zone.entity.transform.setPosition(5, 2, 0);
+
+    const child = ancestor.createChild("child-cct");
+    child.transform.setPosition(5, 2, 0);
+    const siblingBody = child.addComponent(Rigidbody);
+    siblingBody.isKinematic = true;
+    const cc = child.addComponent(CharacterController);
+    const enters: [Collider, Collider][] = [];
+    child.addComponent(
+      class extends Script {
+        override onTriggerEnter(other: Collider, self: Collider): void {
+          enters.push([other, self]);
+        }
+      }
+    );
+
+    expect(cc.attachedRigidbody).toBeNull();
+    cc.move(new Vector3(0.5, 0, 0), 0.001, physics.fixedTimeStep);
+    expect(child.transform.worldPosition.x).toBeCloseTo(5.5, 3);
+    expect(ancestor.transform.worldPosition.x).toBe(0);
+
+    physics._update(physics.fixedTimeStep);
+    expect(enters).toEqual([[zone, cc]]);
+    expect(ancestorTriggers).toBe(0);
+  });
+
+  it("mirrors center offsets across negative Entity scale while keeping radius and height positive", () => {
+    const entity = root.createChild("mirrored-cct");
+    entity.transform.setScale(-2, 2, 1);
+    const cc = entity.addComponent(CharacterController);
+    cc.radius = 0.5;
+    cc.height = 2;
+    cc.center.set(1, 1, 0);
+    cc.collisionLayer = Layer.Layer6;
+
+    const hit = new HitResult();
+    expect(physics.raycast(new Ray(new Vector3(-2, 10, 0), new Vector3(0, -1, 0)), 20, Layer.Layer6, hit)).toBe(true);
+    expect(hit.collider).toBe(cc);
+    // PhysX PxController scales its query proxy half-extents by default scaleCoeff (0.8): 2 + (1 + 1) * 0.8 = 3.6.
+    expect(hit.point.y).toBeCloseTo(3.6, 3);
+    expect(physics.raycast(new Ray(new Vector3(2, 10, 0), new Vector3(0, -1, 0)), 20, Layer.Layer6)).toBe(false);
+  });
+
+  it("detaches cleanly on non-finite or Float32-overflowing pose and recovers without toggling enabled", () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const entity = root.createChild("invalid-pose-cct");
+    entity.transform.setPosition(0, 2, 0);
+    const cc = entity.addComponent(CharacterController);
+    cc.collisionLayer = Layer.Layer5;
+
+    // First attach with NaN center must neither register nor emit native creation errors.
+    cc.center.x = NaN;
+    expect(physics.overlapSphereAll(new Vector3(0, 2, 0), 1, Layer.Layer5)).toEqual([]);
+    expect(cc.move(new Vector3(1, 0, 0), 0.001, physics.fixedTimeStep)).toBe(ControllerCollisionFlag.None);
+    expect(entity.transform.position.x).toBe(0);
+
+    cc.center.x = 0;
+    expect(physics.overlapSphereAll(new Vector3(0, 2, 0), 1, Layer.Layer5)).toContain(cc);
+    cc.move(new Vector3(1, 0, 0), 0.001, physics.fixedTimeStep);
+    expect(entity.transform.position.x).toBeCloseTo(1, 3);
+
+    // Live NaN center while attached must detach cleanly and preserve the valid transform position.
+    cc.center.x = NaN;
+    expect(cc.move(new Vector3(1, 0, 0), 0.001, physics.fixedTimeStep)).toBe(ControllerCollisionFlag.None);
+    expect(Number.isFinite(entity.transform.position.x)).toBe(true);
+    expect(entity.transform.position.x).toBeCloseTo(1, 3);
+    expect(physics.overlapSphereAll(new Vector3(1, 2, 0), 1, Layer.Layer5)).not.toContain(cc);
+
+    cc.center.x = 0;
+    expect(physics.overlapSphereAll(new Vector3(1, 2, 0), 1, Layer.Layer5)).toContain(cc);
+    cc.move(new Vector3(1, 0, 0), 0.001, physics.fixedTimeStep);
+    expect(entity.transform.position.x).toBeCloseTo(2, 3);
+
+    // Float32-overflowing pose while attached must also detach and recover once restored.
+    cc.center.x = 1e39;
+    expect(cc.move(new Vector3(1, 0, 0), 0.001, physics.fixedTimeStep)).toBe(ControllerCollisionFlag.None);
+    expect(entity.transform.position.x).toBeCloseTo(2, 3);
+    expect(physics.overlapSphereAll(new Vector3(2, 2, 0), 1, Layer.Layer5)).not.toContain(cc);
+
+    cc.center.x = 0;
+    expect(physics.overlapSphereAll(new Vector3(2, 2, 0), 1, Layer.Layer5)).toContain(cc);
+    cc.move(new Vector3(1, 0, 0), 0.001, physics.fixedTimeStep);
+    expect(entity.transform.position.x).toBeCloseTo(3, 3);
+    expect(errors).not.toHaveBeenCalled();
+  });
+
+  it("skips transform writeback and resync churn when move leaves worldPosition unchanged", () => {
+    const child = role.createChild("mesh");
+    role.transform.setPosition(0, 1.5, 0);
+    // Land on the ground plane and settle once so the entity and child transforms are clean.
+    expect(move(new Vector3(0, -2, 0)) & ControllerCollisionFlag.Down).toBeTruthy();
+    expect(move(new Vector3(0, -0.1, 0)) & ControllerCollisionFlag.Down).toBeTruthy();
+    update();
+    role.transform.worldMatrix;
+    child.transform.worldMatrix;
+
+    const settledY = role.transform.worldPosition.y;
+    const roleDispatch = vi.spyOn(role._updateFlagManager, "dispatch");
+    const childDispatch = vi.spyOn(child._updateFlagManager, "dispatch");
+    const syncSpy = vi.spyOn(controller, "_sync");
+
+    expect(move(new Vector3(0, -0.1, 0)) & ControllerCollisionFlag.Down).toBeTruthy();
+    expect(move(new Vector3(0, 0, 0))).toBe(ControllerCollisionFlag.None);
+    update();
+
+    expect(role.transform.worldPosition.y).toBe(settledY);
+    expect(roleDispatch).not.toHaveBeenCalled();
+    expect(childDispatch).not.toHaveBeenCalled();
+    expect(syncSpy).not.toHaveBeenCalled();
+
+    // Subsequent actual motion and direct transform teleport still publish and sync normally.
+    move(new Vector3(1, 0, 0));
+    expect(role.transform.worldPosition.x).toBeCloseTo(1, 4);
+    expect(roleDispatch).toHaveBeenCalled();
+
+    role.transform.setPosition(5, 2, 0);
+    expect(physics.overlapSphereAll(new Vector3(5, 2, 0), 0.2)).toContain(controller);
+  });
+
+  it("preserves capsule dimensions under mirrored ancestors with rotation", () => {
+    const parent = root.createChild("mirrored-rotated-parent");
+    parent.transform.setScale(-1, 1, 1);
+    const child = parent.createChild("mirrored-rotated-cct");
+    const cc = child.addComponent(CharacterController);
+    cc.radius = 0.5;
+    cc.height = 2;
+    cc.stepOffset = 1.5;
+    cc.collisionLayer = Layer.Layer6;
+
+    const hit = new HitResult();
+    for (const yAngle of [45, 44.9999]) {
+      child.transform.setRotation(0, yAngle, 0);
+      expect(physics.raycast(new Ray(new Vector3(0.25, 0, 5), new Vector3(0, 0, -1)), 10, Layer.Layer6, hit)).toBe(
+        true
+      );
+      expect(hit.collider).toBe(cc);
+    }
+
+    child.transform.setRotation(0, 0, 45);
+    expect(physics.raycast(new Ray(new Vector3(0, 0.6, 5), new Vector3(0, 0, -1)), 10, Layer.Layer6, hit)).toBe(true);
+    expect(hit.collider).toBe(cc);
+    expect(physics.raycast(new Ray(new Vector3(0, 0.9, 5), new Vector3(0, 0, -1)), 10, Layer.Layer6)).toBe(false);
+
+    // Effective stepOffset (1.5 > 2 * radius = 1.0) relies on the uncollapsed Z-rotated capsule height.
+    addBox(new Vector3(2, 1.2, 2), new Vector3(1.6, 0.6, 0)).collisionLayer = Layer.Layer5;
+    child.transform.setPosition(0, 1, 0);
+    cc.move(new Vector3(1, -0.1, 0), 0.001, physics.fixedTimeStep);
+    expect(child.transform.worldPosition.y).toBeGreaterThan(2.0);
+  });
+
+  it("transforms local center with Entity rotation and mirrored ancestors while keeping capsule upright", () => {
+    const hit = new HitResult();
+
+    // Case A: Y +90 rotation moves local center (2, 0, 0) to world (0, 0, -2) and stays synced across move().
+    const yawEntity = root.createChild("yaw-center-cct");
+    yawEntity.transform.setPosition(0, 2, 0);
+    yawEntity.transform.setRotation(0, 90, 0);
+    const yawCC = yawEntity.addComponent(CharacterController);
+    yawCC.radius = 0.5;
+    yawCC.height = 2;
+    yawCC.center.set(2, 0, 0);
+    yawCC.collisionLayer = Layer.Layer6;
+
+    expect(physics.raycast(new Ray(new Vector3(0, 10, -2), new Vector3(0, -1, 0)), 20, Layer.Layer6, hit)).toBe(true);
+    expect(hit.collider).toBe(yawCC);
+    expect(physics.raycast(new Ray(new Vector3(2, 10, 0), new Vector3(0, -1, 0)), 20, Layer.Layer6)).toBe(false);
+
+    yawCC.move(new Vector3(1, 0, 0), 0.001, physics.fixedTimeStep);
+    expect(yawEntity.transform.worldPosition.x).toBeCloseTo(1, 4);
+    update();
+    expect(physics.raycast(new Ray(new Vector3(1, 10, -2), new Vector3(0, -1, 0)), 20, Layer.Layer6, hit)).toBe(true);
+    expect(hit.collider).toBe(yawCC);
+    expect(physics.raycast(new Ray(new Vector3(0, 10, -2), new Vector3(0, -1, 0)), 20, Layer.Layer6)).toBe(false);
+
+    // Case B: Z +90 tilt moves local center (0, 2, 0) to world (-2, 5, 0) while keeping capsule upright along +Y.
+    const tiltEntity = root.createChild("tilt-center-cct");
+    tiltEntity.transform.setPosition(0, 5, 0);
+    tiltEntity.transform.setRotation(0, 0, 90);
+    const tiltCC = tiltEntity.addComponent(CharacterController);
+    tiltCC.radius = 0.5;
+    tiltCC.height = 2;
+    tiltCC.center.set(0, 2, 0);
+    tiltCC.collisionLayer = Layer.Layer6;
+
+    expect(physics.raycast(new Ray(new Vector3(-2, 5.7, 5), new Vector3(0, 0, -1)), 10, Layer.Layer6, hit)).toBe(true);
+    expect(hit.collider).toBe(tiltCC);
+    expect(physics.raycast(new Ray(new Vector3(-2.7, 5, 5), new Vector3(0, 0, -1)), 10, Layer.Layer6)).toBe(false);
+
+    // Case C: Mirrored ancestor (-1, 1, 1) with Y +45 rotation preserves rotated center without collapsing X.
+    const mirrorParent = root.createChild("mirrored-center-parent");
+    mirrorParent.transform.setScale(-1, 1, 1);
+    const mirrorChild = mirrorParent.createChild("mirrored-center-cct");
+    mirrorChild.transform.setRotation(0, 45, 0);
+    const mirrorCC = mirrorChild.addComponent(CharacterController);
+    mirrorCC.radius = 0.5;
+    mirrorCC.height = 2;
+    mirrorCC.center.set(2, 0, 0);
+    mirrorCC.collisionLayer = Layer.Layer6;
+
+    expect(
+      physics.raycast(new Ray(new Vector3(-Math.SQRT2, 10, -Math.SQRT2), new Vector3(0, -1, 0)), 20, Layer.Layer6, hit)
+    ).toBe(true);
+    expect(hit.collider).toBe(mirrorCC);
+    expect(physics.raycast(new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0)), 20, Layer.Layer6)).toBe(false);
   });
 });

@@ -1,27 +1,17 @@
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXJoint } from "./PhysXJoint";
 import { ISpringJoint } from "@galacean/engine-design";
-import { PhysXCollider } from "../PhysXCollider";
-import { Vector3 } from "@galacean/engine";
+import { PhysXActor } from "../PhysXActor";
 
 /**
- * a joint that maintains an upper or lower bound (or both) on the distance between two points on different objects
+ * PhysX distance joint with a spring response.
  */
 export class PhysXSpringJoint extends PhysXJoint implements ISpringJoint {
-  constructor(physXPhysics: PhysXPhysics, collider: PhysXCollider) {
-    super(physXPhysics);
-    this._collider = collider;
-    this._pxJoint = physXPhysics._pxPhysics.createDistanceJoint(
-      null,
-      PhysXJoint._defaultVec,
-      PhysXJoint._defaultQuat,
-      collider._pxActor,
-      PhysXJoint._defaultVec,
-      PhysXJoint._defaultQuat
-    );
-    this._pxJoint.setDistanceJointFlag(2, true); // enable max distance;
-    this._pxJoint.setDistanceJointFlag(4, true); // enable min distance;
-    this._pxJoint.setDistanceJointFlag(8, true); // enable spring;
+  constructor(physXPhysics: PhysXPhysics, actor: PhysXActor, connectedActor: PhysXActor | null) {
+    super(physXPhysics, actor, connectedActor, "createDistanceJoint");
+    this._pxJoint.setDistanceJointFlag(2, true); // eMAX_DISTANCE_ENABLED
+    this._pxJoint.setDistanceJointFlag(4, true); // eMIN_DISTANCE_ENABLED
+    this._pxJoint.setDistanceJointFlag(8, true); // eSPRING_ENABLED
   }
 
   /**
@@ -35,7 +25,7 @@ export class PhysXSpringJoint extends PhysXJoint implements ISpringJoint {
    * {@inheritDoc ISpringJoint.setMaxDistance }
    */
   setMaxDistance(distance: number): void {
-    this._pxJoint.setMaxDistance(distance);
+    this._pxJoint.setMaxDistance(Math.min(distance, PhysXJoint._maxFloat32));
   }
 
   /**

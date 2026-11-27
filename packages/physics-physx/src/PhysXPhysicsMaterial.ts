@@ -1,4 +1,4 @@
-import { IPhysicsMaterial, IPhysicsMaterialProperties } from "@galacean/engine-design";
+import { IPhysicsMaterial, IPhysicsMaterialProperties, PhysicsMaterialCombineMode } from "@galacean/engine-design";
 import { PhysXPhysics } from "./PhysXPhysics";
 
 /**
@@ -40,14 +40,14 @@ export class PhysXPhysicsMaterial implements IPhysicsMaterial {
   /**
    * {@inheritDoc IPhysicsMaterial.setBounceCombine }
    */
-  setBounceCombine(value: number) {
+  setBounceCombine(value: PhysicsMaterialCombineMode) {
     this._pxMaterial.setRestitutionCombineMode(value);
   }
 
   /**
    * {@inheritDoc IPhysicsMaterial.setFrictionCombine }
    */
-  setFrictionCombine(value: number) {
+  setFrictionCombine(value: PhysicsMaterialCombineMode) {
     this._pxMaterial.setFrictionCombineMode(value);
   }
 

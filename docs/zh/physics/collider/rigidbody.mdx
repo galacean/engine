@@ -1,0 +1,244 @@
+---
+order: 1
+title: 刚体
+type: 物理
+label: Physics
+---
+
+刚体（[Rigidbody](/apis/core/#Rigidbody)）让所在实体受物理控制。它会响应重力、受力和碰撞，每次物理步进后把模拟得到的位姿写回实体。刚体本身没有形状：它拥有所在实体及其子孙实体上的[碰撞器](/docs/physics/collider/overview)，遇到嵌套的刚体时停止。
+
+## 规则
+
+- 一个实体最多只能有一个刚体，重复添加会抛出异常。
+- 碰撞器所在实体或其祖先中最近的刚体拥有该碰撞器。实体及其子实体上的多个碰撞器组成一个复合刚体。
+- 引擎按位姿写回开始时的层级顺序，先写父刚体，再写子刚体。需要本次物理步按新层级计算时，请在 `Script.onPhysicsUpdate()` 中换父节点。
+- 禁用刚体会让它及其拥有的所有碰撞器退出模拟和查询；这些碰撞器不会变成静态，各自的 `enabled` 值不变。
+- 移除（销毁）刚体后，它拥有的碰撞器会归属于更上层的祖先刚体；若没有祖先刚体，则变为静态。
+- [PlaneCollider](/apis/core/#PlaneCollider) 和 `convex = false` 的 [MeshCollider](/apis/core/#MeshCollider) 只能属于运动学刚体。当 `isKinematic` 为 `false` 时，这类碰撞器会输出控制台错误并移出模拟与查询，待刚体重新切回运动学后自动恢复。
+- [角色控制器](/docs/physics/collider/characterController)不会被任何刚体拥有。
+
+## 使用方法
+
+1. 选中目标实体，在检查器中添加 Rigidbody 组件。
+2. 在同一实体或子实体上添加碰撞器组件（例如 BoxCollider），调整它们的 `center` 和尺寸，使其与外观匹配。
+3. 根据需要调整刚体属性来改变物体的物理行为，各属性说明见下文。
+
+## 属性说明
+
+### 基础属性
+
+| 属性 | 描述 | 默认值 |
+| --- | --- | --- |
+| [**mass**](/apis/core/#Rigidbody-mass) | 刚体的质量。0 表示无限平动质量，自动惯量按单位质量计算。 | 1.0 |
+| [**useGravity**](/apis/core/#Rigidbody-useGravity) | 是否受重力影响 | true |
+| [**isKinematic**](/apis/core/#Rigidbody-isKinematic) | 是否为运动学刚体。物理不会移动运动学刚体，但它可以推动其他物体 | false |
+
+### 速度设置
+
+| 属性 | 描述 | 默认值 |
+| --- | --- | --- |
+| [**linearVelocity**](/apis/core/#Rigidbody-linearVelocity) | 线性速度向量（世界单位/秒） | (0,0,0) |
+| [**angularVelocity**](/apis/core/#Rigidbody-angularVelocity) | 角速度向量（弧度/秒） | (0,0,0) |
+| [**maxLinearVelocity**](/apis/core/#Rigidbody-maxLinearVelocity) | 求解前的线速度上限（世界单位/秒） | 1e16 |
+| [**maxAngularVelocity**](/apis/core/#Rigidbody-maxAngularVelocity) | 求解前的角速度上限（弧度/秒） | 100 |
+| [**maxDepenetrationVelocity**](/apis/core/#Rigidbody-maxDepenetrationVelocity) | 从穿透状态中分离时的最大速度 | 10 |
+
+### 阻尼
+
+| 属性 | 描述 | 默认值 |
+| --- | --- | --- |
+| [**linearDamping**](/apis/core/#Rigidbody-linearDamping) | 线性运动阻尼系数 | 0 |
+| [**angularDamping**](/apis/core/#Rigidbody-angularDamping) | 角速度阻尼系数 | 0.05 |
+
+### 质量/惯性张量
+
+| 属性 | 描述 | 默认值 |
+| --- | --- | --- |
+| [**centerOfMass**](/apis/core/#Rigidbody-centerOfMass) | 质心相对于变换原点的位置 | (0,0,0) |
+| [**automaticCenterOfMass**](/apis/core/#Rigidbody-automaticCenterOfMass) | 是否根据所拥有的碰撞器自动计算质心 | true |
+| [**inertiaTensor**](/apis/core/#Rigidbody-inertiaTensor) | 相对于质心的对角惯性张量 | (1,1,1) |
+| [**inertiaTensorRotation**](/apis/core/#Rigidbody-inertiaTensorRotation) | 惯性主轴相对于刚体旋转的只读快照。赋值时需传入完整四元数并自动归一化；零长度或非有限值会抛出异常。 | 单位四元数 |
+| [**automaticInertiaTensor**](/apis/core/#Rigidbody-automaticInertiaTensor) | 是否根据所拥有的碰撞器和质量自动计算惯性张量 | true |
+
+设置 `centerOfMass` 会关闭质心的自动计算。设置 `inertiaTensor` 或整值赋值 `inertiaTensorRotation` 会关闭两项惯性属性的自动计算，同时保留另一项的当前值。将对应开关设为 `true` 即可恢复自动计算。
+
+刚体进入活动物理场景后，可调用 `setDensity(density)`，根据所挂载的实体碰撞体体积计算质量。没有可用体积时返回 `false`。后续修改几何会保留算出的质量。如需按新体积重算，请再次调用此方法。
+
+### 性能优化设置
+
+| 属性 | 描述 | 默认值 |
+| --- | --- | --- |
+| [**sleepThreshold**](/apis/core/#Rigidbody-sleepThreshold) | 按质量归一化的能量阈值，低于此值时刚体进入休眠 | 0.005 |
+| [**solverIterations**](/apis/core/#Rigidbody-solverIterations) | 位置求解迭代次数 | 4 |
+| [**solverVelocityIterations**](/apis/core/#Rigidbody-solverVelocityIterations) | 速度求解迭代次数 | 1 |
+
+<Callout type="info">
+约束求解是物理引擎用来解决物体之间碰撞和约束的计算过程。每次迭代都会尝试调整物体的位置和速度，使其满足所有的物理约束（如碰撞、关节等）。
+- 迭代次数越多，物理表现越准确，但计算开销也越大
+- 迭代次数过少可能导致物体出现抖动或穿透
+- 建议根据实际需求平衡精度和性能：
+  - 一般物体：使用默认值 4
+  - 精确物理：可以增加到 6-8
+  - 性能优先：可以降低到 2-3
+</Callout>
+
+### 运动约束
+
+- [**constraints**](/apis/core/#Rigidbody-constraints)\
+  可以分别锁定物体沿世界 X、Y、Z 轴的平移和旋转。
+  ```typescript
+  // 锁定沿 Y 轴的移动和绕各轴的旋转。
+  rigidbody.constraints =
+    RigidbodyConstraints.FreezePositionY |
+    RigidbodyConstraints.FreezeRotation;
+  ```
+
+### 连续碰撞检测
+
+[`useCCD`](/apis/core/#Rigidbody-useCCD) 默认为 `false`。如果刚体可能在两个物理步之间穿过较薄的碰撞体，可以开启此选项。
+
+PhysX 对动态刚体使用线性扫掠，对运动学刚体使用推测式接触。动态刚体高速自转时，仍可能漏掉仅由两步之间的旋转产生的碰撞。
+
+## 公开方法
+
+| 方法名 | 描述 |
+| --- | --- |
+| [**setDensity**](/apis/core/#Rigidbody-setDensity) | 根据所挂载的实体碰撞体体积推导质量 |
+| [**applyForce**](/apis/core/#Rigidbody-applyForce) | 按指定模式在质心施加世界空间中的力 |
+| [**applyForceAtPosition**](/apis/core/#Rigidbody-applyForceAtPosition) | 在世界空间中的指定位置施加力或冲量 |
+| [**applyRelativeForce**](/apis/core/#Rigidbody-applyRelativeForce) | 按指定模式沿刚体局部轴在质心施加力 |
+| [**applyExplosionForce**](/apis/core/#Rigidbody-applyExplosionForce) | 施加按距离线性衰减的径向爆炸力 |
+| [**applyTorque**](/apis/core/#Rigidbody-applyTorque) | 按指定模式施加世界空间中的扭矩 |
+| [**applyRelativeTorque**](/apis/core/#Rigidbody-applyRelativeTorque) | 按指定模式绕刚体局部轴施加扭矩 |
+| [**getWorldCenterOfMass**](/apis/core/#Rigidbody-getWorldCenterOfMass) | 将世界坐标下的质心写入输出向量 |
+| [**getPointVelocity**](/apis/core/#Rigidbody-getPointVelocity) | 查询世界坐标中某点的世界空间速度 |
+| [**getRelativePointVelocity**](/apis/core/#Rigidbody-getRelativePointVelocity) | 查询刚体未缩放局部坐标中某点的世界空间速度 |
+| [**move**](/apis/core/#Rigidbody-move) | 把运动学刚体移动到指定位置和/或旋转，会影响路径上的其他刚体。场景查询立即使用运动学目标。要求 `isKinematic` 为 true |
+| [**sleep**](/apis/core/#Rigidbody-sleep) | 强制休眠 |
+| [**wakeUp**](/apis/core/#Rigidbody-wakeUp) | 唤醒刚体 |
+| [**isSleeping**](/apis/core/#Rigidbody-isSleeping) | 是否处于休眠状态 |
+
+`applyForce` 和 `applyTorque` 默认使用 `ForceMode.Force`。用 `ForceMode.Impulse` 施加一次线性冲量或角冲量，用 `ForceMode.VelocityChange` 直接改变速度，用 `ForceMode.Acceleration` 施加不受质量或惯性影响的加速度。
+
+`applyRelativeForce` 和 `applyRelativeTorque` 沿刚体的局部轴施力，支持相同的模式。`applyForceAtPosition` 在世界空间指定位置施加力或冲量，支持 `ForceMode.Force`（默认）和 `ForceMode.Impulse`。
+
+`applyExplosionForce` 对动态刚体施加按距离线性衰减的径向力。它用最近的碰撞体表面点计算力和力矩。爆心在碰撞体内或没有可用体积时，作用点取质心。半径为 0 时在任意距离施加完整强度，向上偏移只影响方向。
+
+## 脚本使用
+
+### 基础配置
+
+```typescript
+import { BoxCollider, Rigidbody } from "@galacean/engine";
+
+const rigidbody = entity.addComponent(Rigidbody);
+entity.addComponent(BoxCollider);
+
+rigidbody.mass = 1.0;
+rigidbody.useGravity = true;
+rigidbody.isKinematic = false;
+```
+
+### 运动控制
+
+在 `onPhysicsUpdate()` 中施加持续力和扭矩，使它们随固定物理步更新。在 `onUpdate()` 中处理跳跃按键并施加一次性冲量，每帧读取一次。
+
+```typescript
+import { ForceMode, Keys, Rigidbody, RigidbodyConstraints, Script, Vector3 } from "@galacean/engine";
+
+class PhysicsController extends Script {
+  private static readonly _force = new Vector3(0, 0, 10);
+  private static readonly _torque = new Vector3(0, 10, 0);
+  private static readonly _jumpImpulse = new Vector3(0, 5, 0);
+
+  private _rigidbody: Rigidbody;
+
+  onAwake() {
+    this._rigidbody = this.entity.getComponent(Rigidbody);
+    this._rigidbody.linearDamping = 0.1;
+    this._rigidbody.angularDamping = 0.1;
+    this._rigidbody.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
+  }
+
+  onPhysicsUpdate() {
+    const inputManager = this.engine.inputManager;
+    if (inputManager.isKeyHeldDown(Keys.KeyW)) {
+      this._rigidbody.applyForce(PhysicsController._force);
+    }
+    if (inputManager.isKeyHeldDown(Keys.KeyR)) {
+      this._rigidbody.applyTorque(PhysicsController._torque);
+    }
+  }
+
+  onUpdate() {
+    // 跳跃时保留水平速度。
+    if (this.engine.inputManager.isKeyDown(Keys.Space)) {
+      this._rigidbody.applyForce(PhysicsController._jumpImpulse, ForceMode.Impulse);
+    }
+  }
+}
+```
+
+### 运动学控制
+
+```typescript
+import { Rigidbody, Script, Vector3 } from "@galacean/engine";
+
+class Elevator extends Script {
+  private _rigidbody: Rigidbody;
+  private _position = new Vector3();
+  private _elapsedTime = 0;
+
+  onAwake() {
+    this._rigidbody = this.entity.getComponent(Rigidbody);
+    this._rigidbody.isKinematic = true;
+  }
+
+  onPhysicsUpdate() {
+    this._elapsedTime += this.scene.physics.fixedTimeStep;
+    this._rigidbody.move(this._position.set(0, Math.sin(this._elapsedTime) * 2, 0));
+  }
+}
+```
+
+### 休眠管理
+
+```typescript
+import { Keys, Rigidbody, Script } from "@galacean/engine";
+
+class SleepController extends Script {
+  private _rigidbody: Rigidbody;
+
+  onAwake() {
+    this._rigidbody = this.entity.getComponent(Rigidbody);
+    this._rigidbody.sleepThreshold = 0.005;
+  }
+
+  onUpdate() {
+    if (this._rigidbody.isSleeping()) {
+      console.log("物体已休眠");
+    }
+    if (this.engine.inputManager.isKeyDown(Keys.KeyS)) {
+      this._rigidbody.sleep();
+    }
+    if (this.engine.inputManager.isKeyDown(Keys.KeyW)) {
+      this._rigidbody.wakeUp();
+    }
+  }
+}
+```
+
+### 质量/惯性张量设置
+
+```typescript
+import { Rigidbody, Vector3 } from "@galacean/engine";
+
+// 默认根据所属碰撞器计算质心和惯性张量。
+const rigidbody = entity.addComponent(Rigidbody);
+rigidbody.mass = 1.0;
+
+// 赋值时会关闭对应的自动计算。
+const customRigidbody = otherEntity.addComponent(Rigidbody);
+customRigidbody.centerOfMass = new Vector3(0, 0.5, 0);
+customRigidbody.inertiaTensor = new Vector3(1, 1, 1);
+```

@@ -81,10 +81,10 @@ export class NormalMapController extends Script {
 
 ## Local post-processing requirements
 
-A local PostProcess takes its influence volume from enabled collider shapes on
+A local PostProcess takes its influence volume from enabled Colliders on
 the same Entity. The Camera and volume must share a physics-enabled Scene, the
 Camera's post-process path must be enabled, and the volume must contain an actual
 effect. A visual box alone does not establish a volume.
 
-Post-processing consumes the Collider's shapes; preserve their intended physical
+Post-processing consumes the Entity's Colliders; preserve their intended physical
 behavior. See [physics-setup.md](physics-setup.md).

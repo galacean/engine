@@ -1,8 +1,9 @@
+import { MathUtil } from "@galacean/engine-math";
 import { DataObject } from "../../base/DataObject";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 
 /**
- * JointLimits is used to limit the joints angle.
+ * The angular limits and spring settings of a hinge.
  */
 export class JointLimits extends DataObject {
   /** @internal */
@@ -49,12 +50,12 @@ export class JointLimits extends DataObject {
   }
 
   /**
-   * Distance inside the limit value at which the limit will be considered to be active by the solver.
-   * Default is the lesser of 0.1 radians, and 0.49 * (upperLimit - lowerLimit)
+   * How far inside a hard limit the solver starts enforcing it, in radians.
+   * @remarks Assign -1 to use 49% of the angular range, capped at 0.1 radians.
    */
   get contactDistance(): number {
     if (this._contactDistance === -1) {
-      return Math.min(0.1, 0.49 * (this._max - this._min));
+      return Math.min(0.1, 0.49 * MathUtil.degreeToRadian(this._max - this._min));
     }
     return this._contactDistance;
   }

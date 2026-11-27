@@ -11,14 +11,14 @@ Spring joints are used to maintain distance constraints between two objects by c
 
 1. Select the target entity and click the add component button in the inspector to add the SpringJoint component.
 <Callout type="info">
-When adding a joint component, make sure the target entity already has a `Dynamic Collider Component` attached. If not, the editor will automatically add a `Dynamic Collider Component` for you.
+A joint needs a [Rigidbody](/en/docs/physics/collider/rigidbody) on its entity. If there is none, one is added automatically when the joint is added.
 </Callout>
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Jy9kSaMDsJoAAAAAAAAAAAAAesJ_AQ/original" />
 
-2. Use the connectedCollider property of the component to set the target collider to connect to (if not needed, keep it as null, which means connecting to a point in world space).
+2. Use the connectedBody property of the component to set the target Rigidbody to connect to (if not needed, keep it as null, which means connecting to a point in world space).
 <Callout type="positive">
-If the target is a collider, the target entity needs to have a collider component (Dynamic Collider, Static Collider, Character Controller) attached.
+The connection target must be a [Rigidbody](/en/docs/physics/collider/rigidbody). To attach an object to something static, keep connectedBody as null and connect it to a point in world space.
 </Callout>
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*JRtfRoM1vS4AAAAAAAAAAAAAesJ_AQ/original" />
@@ -27,20 +27,20 @@ If the target is a collider, the target entity needs to have a collider componen
 
 ## Property Descriptions
 
-### Collider Settings
-- [**connectedCollider**](/apis/core/#SpringJoint-connectedCollider)  
-  Specifies the target collider to connect to. When set to null, the joint connects to a fixed point in world space, allowing you to fix the object at a specific position in space.
+### Connected Body
+- [**connectedBody**](/apis/core/#SpringJoint-connectedBody)\
+  Specifies the target Rigidbody to connect to. When set to null, the joint connects to a fixed point in world space, allowing you to fix the object at a specific position in space.
 
 ### Anchor Settings
 - [**anchor**](/apis/core/#SpringJoint-anchor)  
-  Defines the anchor point on the main collider using local coordinates. This point defines the connection position of the joint.
+  Defines the anchor point on the joint's own Rigidbody using local coordinates. This point defines the connection position of the joint.
 
 - [**connectedAnchor**](/apis/core/#SpringJoint-connectedAnchor)  
-  Defines the connection point position. Its meaning depends on the connectedCollider setting:
-  - When connectedCollider is null, it represents an absolute position in world space
-  - When connectedCollider is not null, it represents a relative position in the local space of the target collider
+  Defines the connection point position. Its meaning depends on the connectedBody setting:
+  - When connectedBody is null, it represents an absolute position in world space
+  - When connectedBody is not null, it represents a relative position in the local space of the connected Rigidbody
 
-- **automaticConnectedAnchor**  
+- [**automaticConnectedAnchor**](/apis/core/#SpringJoint-automaticConnectedAnchor)\
   Whether to automatically calculate the value of connectedAnchor. When enabled, the system automatically sets the connection point to ensure the initial position relationship between objects. If you need precise manual control of the connection point, set this property to false.
 
 ### Distance Constraints
@@ -48,7 +48,7 @@ If the target is a collider, the target entity needs to have a collider componen
   The minimum allowed distance. When the distance between objects is less than this value, the joint applies a pushing force.
 
 - [**maxDistance**](/apis/core/#SpringJoint-maxDistance)  
-  The maximum allowed distance. When the distance between objects exceeds this value, the joint applies a pulling force.
+  The maximum allowed distance. When the distance between objects exceeds this value, the joint applies a pulling force. Set it to `Infinity` to remove the upper distance bound.
 
 - [**tolerance**](/apis/core/#SpringJoint-tolerance)  
   The tolerance range value, default is 0.25. This value determines when the joint starts to apply constraint forces:
@@ -72,7 +72,7 @@ If the target is a collider, the target entity needs to have a collider componen
 
 ### Mass Calculation Intervention
 - [**connectedMassScale**](/apis/core/#SpringJoint-connectedMassScale) and [**massScale**](/apis/core/#SpringJoint-massScale)  
-  Used to adjust the mass influence of the connected collider and the main collider, respectively. These scaling values affect the joint constraint calculations, allowing you to fine-tune the joint's physical behavior. The default value is 1.0. Increasing the value increases the "importance" of the corresponding collider in constraint solving.
+  Used to adjust the mass influence of the connected Rigidbody and the joint's own Rigidbody, respectively. These scaling values affect the joint constraint calculations, allowing you to fine-tune the joint's physical behavior. The default value is 1.0. Increasing the value increases the "importance" of the corresponding Rigidbody in constraint solving.
 
 ## Script Usage
 
@@ -83,7 +83,7 @@ If the target is a collider, the target entity needs to have a collider componen
 const springJoint = entity.addComponent(SpringJoint);
 
 // Set the connected object
-springJoint.connectedCollider = targetEntity.getComponent(Collider);
+springJoint.connectedBody = targetEntity.getComponent(Rigidbody);
 
 // Set distance range
 springJoint.minDistance = 1;

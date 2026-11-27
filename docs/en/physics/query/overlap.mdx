@@ -40,14 +40,14 @@ overlapBoxAll(
   halfExtents: Vector3,
   orientation: Quaternion = new Quaternion(),
   layerMask: Layer = Layer.Everything,
-  shapes: ColliderShape[] = []
-): ColliderShape[]
+  colliders: Collider[] = []
+): Collider[]
 ```
 
 ### Usage Examples
 
 ```typescript
-import { Vector3, Quaternion, Layer, ColliderShape } from "@galacean/engine";
+import { Vector3, Quaternion, Layer, Collider } from "@galacean/engine";
 
 // Get physics scene
 const physicsScene = scene.physics;
@@ -59,8 +59,8 @@ const halfExtents = new Vector3(2, 1, 2); // Box half-size
 const allOverlapping = physicsScene.overlapBoxAll(center, halfExtents);
 console.log(`Detected ${allOverlapping.length} overlapping objects`);
 
-allOverlapping.forEach((shape, index) => {
-  console.log(`${index + 1}. ${shape.collider.entity.name}`);
+allOverlapping.forEach((collider, index) => {
+  console.log(`${index + 1}. ${collider.entity.name}`);
 });
 
 // Example 2: Building system - check if area is occupied
@@ -68,13 +68,13 @@ const buildCenter = new Vector3(5, 0, 3);
 const buildSize = new Vector3(1.5, 1, 1.5);
 const buildingLayerMask = Layer.Layer0 | Layer.Layer1; // Use actual existing layers
 
-const obstacleShapes: ColliderShape[] = [];
+const obstacleColliders: Collider[] = [];
 const obstacles = physicsScene.overlapBoxAll(
-  buildCenter, 
-  buildSize, 
+  buildCenter,
+  buildSize,
   new Quaternion(), // Use new quaternion instance instead of non-existent IDENTITY
-  buildingLayerMask, 
-  obstacleShapes
+  buildingLayerMask,
+  obstacleColliders
 );
 
 if (obstacles.length === 0) {
@@ -82,20 +82,15 @@ if (obstacles.length === 0) {
   placeBuildingAt(buildCenter);
 } else {
   console.log("Area is occupied, cannot build");
-  obstacles.forEach(shape => {
-    console.log(`Obstacle: ${shape.collider.entity.name}`);
+  obstacles.forEach((collider) => {
+    console.log(`Obstacle: ${collider.entity.name}`);
   });
 }
 
 // Example 3: Rotated box detection
 const rotatedOrientation = new Quaternion();
 Quaternion.rotationY(Math.PI / 4, rotatedOrientation); // Use correct API
-const rotatedOverlap = physicsScene.overlapBoxAll(
-  center, 
-  halfExtents, 
-  rotatedOrientation, 
-  Layer.Everything
-);
+const rotatedOverlap = physicsScene.overlapBoxAll(center, halfExtents, rotatedOrientation, Layer.Everything);
 ```
 
 ## Sphere Overlap Detection (overlapSphereAll)
@@ -109,8 +104,8 @@ overlapSphereAll(
   center: Vector3,
   radius: number,
   layerMask: Layer = Layer.Everything,
-  shapes: ColliderShape[] = []
-): ColliderShape[]
+  colliders: Collider[] = []
+): Collider[]
 ```
 
 ### Usage Examples
@@ -121,17 +116,13 @@ const explosionCenter = new Vector3(0, 1, 0);
 const explosionRadius = 5.0;
 const targetLayer = Layer.Layer0; // Use actual existing layer
 
-const affectedTargets = physicsScene.overlapSphereAll(
-  explosionCenter, 
-  explosionRadius, 
-  targetLayer
-);
+const affectedTargets = physicsScene.overlapSphereAll(explosionCenter, explosionRadius, targetLayer);
 
-affectedTargets.forEach(shape => {
-  const entity = shape.collider.entity;
+affectedTargets.forEach((collider) => {
+  const entity = collider.entity;
   const distance = Vector3.distance(explosionCenter, entity.transform.position);
   const damage = calculateExplosionDamage(distance, explosionRadius);
-  
+
   console.log(`${entity.name} takes ${damage} explosion damage`);
   applyDamage(entity, damage);
 });
@@ -141,33 +132,29 @@ const playerPosition = new Vector3(2, 0, 1);
 const collectRadius = 1.5;
 const itemLayer = Layer.Layer2; // Use actual existing layer
 
-const collectibleItems = physicsScene.overlapSphereAll(
-  playerPosition, 
-  collectRadius, 
-  itemLayer
-);
+const collectibleItems = physicsScene.overlapSphereAll(playerPosition, collectRadius, itemLayer);
 
-collectibleItems.forEach(shape => {
-  const item = shape.collider.entity;
+collectibleItems.forEach((collider) => {
+  const item = collider.entity;
   console.log(`Collected item: ${item.name}`);
   collectItem(item);
 });
 
 // Example 3: AI perception system
 class AIPerception {
-  private readonly _detectedShapes: ColliderShape[] = [];
-  
+  private readonly _detectedColliders: Collider[] = [];
+
   checkVisionRange(aiPosition: Vector3, visionRadius: number): Entity[] {
-    this._detectedShapes.length = 0; // Clear array
-    
-    const detectedShapes = physicsScene.overlapSphereAll(
+    this._detectedColliders.length = 0;
+
+    const detectedColliders = physicsScene.overlapSphereAll(
       aiPosition,
       visionRadius,
       Layer.Layer0 | Layer.Layer1, // Use actual layer combination
-      this._detectedShapes
+      this._detectedColliders
     );
-    
-    return detectedShapes.map(shape => shape.collider.entity);
+
+    return detectedColliders.map((collider) => collider.entity);
   }
 }
 ```
@@ -185,8 +172,8 @@ overlapCapsuleAll(
   height: number,
   orientation: Quaternion = new Quaternion(),
   layerMask: Layer = Layer.Everything,
-  shapes: ColliderShape[] = []
-): ColliderShape[]
+  colliders: Collider[] = []
+): Collider[]
 ```
 
 ### Usage Examples
@@ -195,21 +182,16 @@ overlapCapsuleAll(
 // Example 1: Character attack range detection
 const characterCenter = new Vector3(0, 1, 0);
 const attackRadius = 1.0;
-const attackHeight = 2.0;
+const attackHeight = 4.0;
+const upright = new Quaternion();
 const enemyLayer = Layer.Layer3; // Use actual existing layer
 
-const attackTargets = physicsScene.overlapCapsuleAll(
-  characterCenter,
-  attackRadius,
-  attackHeight,
-  new Quaternion(), // Use new quaternion instance
-  enemyLayer
-);
+const attackTargets = physicsScene.overlapCapsuleAll(characterCenter, attackRadius, attackHeight, upright, enemyLayer);
 
 if (attackTargets.length > 0) {
   console.log(`Attack hit ${attackTargets.length} targets`);
-  attackTargets.forEach(shape => {
-    const enemy = shape.collider.entity;
+  attackTargets.forEach((collider) => {
+    const enemy = collider.entity;
     applyMeleeDamage(enemy, 50);
   });
 }
@@ -224,33 +206,33 @@ const charactersInPortal = physicsScene.overlapCapsuleAll(
   portalCenter,
   portalRadius,
   portalHeight,
-  new Quaternion(), // Use new quaternion instance
+  upright,
   characterLayer
 );
 
-charactersInPortal.forEach(shape => {
-  const character = shape.collider.entity;
+charactersInPortal.forEach((collider) => {
+  const character = collider.entity;
   console.log(`${character.name} entered portal`);
   teleportCharacter(character, destinationPosition);
 });
 
 // Example 3: Elevator detection system
 class ElevatorDetector {
-  private readonly _passengersBuffer: ColliderShape[] = [];
-  
+  private readonly _passengersBuffer: Collider[] = [];
+
   detectPassengers(elevatorCenter: Vector3): Entity[] {
     this._passengersBuffer.length = 0;
-    
+
     const passengers = physicsScene.overlapCapsuleAll(
       elevatorCenter,
-      1.2,  // Elevator width
-      2.0,  // Elevator height
-      new Quaternion(), // Use new quaternion instance
+      1.2, // Capsule radius
+      4.4, // Total capsule height
+      upright,
       Layer.Layer0 | Layer.Layer4, // Use actual layer combination
       this._passengersBuffer
     );
-    
-    return passengers.map(shape => shape.collider.entity);
+
+    return passengers.map((collider) => collider.entity);
   }
 }
 ```
@@ -261,18 +243,18 @@ class ElevatorDetector {
 
 - **center** - Center position of the detection region (world coordinates)
 - **layerMask** - Layer mask for filtering specific collider layers (defaults to `Layer.Everything`)
-- **shapes** - Optional output array for storing results to avoid memory allocation
+- **colliders** - Optional output array for storing results to avoid memory allocation
 
 ### Shape-Specific Parameters
 
 - **halfExtents** (overlapBoxAll) - Half-size of the box
 - **radius** (overlapSphereAll/overlapCapsuleAll) - Radius of the sphere/capsule
-- **height** (overlapCapsuleAll) - Height of the capsule
-- **orientation** (overlapBoxAll/overlapCapsuleAll) - Shape rotation (defaults to no rotation)
+- **height** (overlapCapsuleAll) - Total height in world units, including both caps. Values at or below twice the radius degenerate to a sphere of `radius`.
+- **orientation** (overlapBoxAll/overlapCapsuleAll) - Shape rotation (defaults to no rotation; a capsule's default local long axis is Y)
 
 ## Return Values
 
-All detection functions return a `ColliderShape[]` array containing all overlapping collider shapes.
+All detection functions return a `Collider[]` array containing all overlapping Colliders.
 
 ## Performance Optimization Tips
 
@@ -284,23 +266,18 @@ All detection functions return a `ColliderShape[]` array containing all overlapp
 ```typescript
 // Performance optimization example
 class OverlapDetector {
-  private static readonly _resultBuffer: ColliderShape[] = [];
+  private static readonly _resultBuffer: Collider[] = [];
   private static readonly _targetLayer = Layer.Layer0 | Layer.Layer3;
-  
+
   static detectTargetsInRange(center: Vector3, radius: number): Entity[] {
     // Clear reused array
     this._resultBuffer.length = 0;
-    
+
     // Use pre-allocated array and layer filtering
-    const shapes = physicsScene.overlapSphereAll(
-      center,
-      radius,
-      this._targetLayer,
-      this._resultBuffer
-    );
-    
+    const colliders = physicsScene.overlapSphereAll(center, radius, this._targetLayer, this._resultBuffer);
+
     // Convert to entity array
-    return shapes.map(shape => shape.collider.entity);
+    return colliders.map((collider) => collider.entity);
   }
 }
 
@@ -318,12 +295,12 @@ const nearbyTargets = OverlapDetector.detectTargetsInRange(playerPosition, 10.0)
 
 ## Differences from Shape Casting
 
-| Feature | Overlap Detection | Shape Casting |
-|---------|-------------------|---------------|
-| Detection Method | Static region detection | Dynamic directional casting |
-| Return Results | All overlapping objects | First collision object |
-| Use Cases | Area triggers, range attacks | Movement prediction, path detection |
-| Performance Cost | Medium | Medium |
-| Result Count | Multiple | Single |
+| Feature          | Overlap Detection            | Shape Casting                       |
+| ---------------- | ---------------------------- | ----------------------------------- |
+| Detection Method | Static region detection      | Dynamic directional casting         |
+| Return Results   | All overlapping objects      | First collision object              |
+| Use Cases        | Area triggers, range attacks | Movement prediction, path detection |
+| Performance Cost | Medium                       | Medium                              |
+| Result Count     | Multiple                     | Single                              |
 
 Overlap detection provides powerful support for area-based game logic, particularly suitable for implementing triggers, range attacks, collection systems, and other functionality. Combined with appropriate performance optimization strategies, it can efficiently handle complex spatial query requirements.

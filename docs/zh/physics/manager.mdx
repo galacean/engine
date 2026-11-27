@@ -43,13 +43,14 @@ export class Script extends Component {
 物理场景在更新时的执行顺序:
 
 1. 执行 `onPhysicsUpdate` 中的用户逻辑
-2. `callColliderOnUpdate` 将被修改的 [实体](/apis/core/#Entity) `Transform` 数据同步给物理碰撞器
-3. 更新物理场景
-4. `callColliderOnLateUpdate` 将所有 [碰撞器](/docs/physics/collider/overview) 更新后的位置同步给对应的 `实体`
+2. 应用待处理的组件改动：将被修改的 [实体](/apis/core/#Entity) `Transform` 数据、[碰撞器](/docs/physics/collider/overview)的归属和属性同步给物理后端
+3. 模拟一个固定步长
+4. 将所有已启用的[刚体](/docs/physics/collider/rigidbody)模拟后的位姿写回对应的 `实体`
+5. 派发碰撞和触发器事件
 
 ## 设置场景重力
 
-物理场景允许自定义重力方向和大小。重力会影响场景中所有启用重力的[动态碰撞器](/docs/physics/collider/dynamicCollider)。
+物理场景允许自定义重力方向和大小。重力会影响场景中所有启用重力的[刚体](/docs/physics/collider/rigidbody)。
 
 ```typescript
 // 获取物理场景的重力值

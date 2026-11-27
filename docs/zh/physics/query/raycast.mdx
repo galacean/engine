@@ -86,7 +86,7 @@ if (scene.physics.raycast(ray, Number.MAX_VALUE, Layer.Everything, hitResult)) {
   console.log(`击中距离: ${hitResult.distance}`);
   console.log(`击中点: ${hitResult.point.toString()}`);
   console.log(`击中法线: ${hitResult.normal.toString()}`);
-  console.log(`击中形状: ${hitResult.shape.constructor.name}`);
+  console.log(`击中碰撞器: ${hitResult.collider.constructor.name}`);
 }
 ```
 
@@ -203,7 +203,7 @@ scene.physics.raycastAll(ray, 100, Layer.Everything, hits);
 // 长期保存时复制数值；hits.slice() 仍会共享结果对象。
 const saved = hits.map((hit) => ({
   entity: hit.entity,
-  shape: hit.shape,
+  collider: hit.collider,
   distance: hit.distance,
   point: hit.point.clone(),
   normal: hit.normal.clone()
@@ -261,7 +261,7 @@ class RaycastManager {
 
 1. **碰撞器要求** - Entity 必须添加 [碰撞器组件](/docs/physics/collider/overview) 才能被射线检测到
 2. **射线方向** - 射线方向向量应该是标准化的单位向量
-3. **相同距离处理** - 当射线命中多个相同距离的 [碰撞形状](/docs/physics/collider/colliderShape) 时，会返回先添加的碰撞形状所在的 Entity
+3. **命中目标** - `hitResult.collider` 是被命中的碰撞器，`hitResult.entity` 是该碰撞器自身所在的 Entity；子实体上的碰撞器报告的是子实体，而不是其刚体所在的实体
 4. **世界坐标系** - 射线的起点和方向都是基于世界坐标系
 
 ## 与其他查询方法的对比

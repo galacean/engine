@@ -1,65 +1,65 @@
 import { IHingeJoint } from "@galacean/engine-design";
 import { MathUtil, Quaternion, Vector3 } from "@galacean/engine";
-import { PhysXCollider } from "../PhysXCollider";
+import { PhysXActor } from "../PhysXActor";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXJoint } from "./PhysXJoint";
 
 /**
- * A joint which behaves in a similar way to a hinge or axle.
+ * PhysX revolute joint.
  */
 export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
-  protected static _xAxis = new Vector3(1, 0, 0);
-
-  private _axis: Vector3;
-  private _axisRotationQuaternion = new Quaternion();
-  private _connectedAxisRotationQuaternion = new Quaternion();
-
-  constructor(physXPhysics: PhysXPhysics, collider: PhysXCollider) {
-    super(physXPhysics);
-    this._collider = collider;
-    this._pxJoint = physXPhysics._pxPhysics.createRevoluteJoint(
-      collider._pxActor,
-      PhysXJoint._defaultVec,
-      PhysXJoint._defaultQuat,
-      null,
-      PhysXJoint._defaultVec,
-      PhysXJoint._defaultQuat
-    );
+  private static _clampLimit(angle: number): number {
+    // Largest Float32 strictly below PhysX's open limit of two pi radians.
+    const max = 6.283185005187988;
+    return MathUtil.clamp(angle, -max, max);
   }
 
-  override setRotation(value: Quaternion): void {
-    const axis = this._axis;
-    this._rotation.copyFrom(value);
-    axis && this.setAxis(axis);
+  private _anchor: Vector3;
+  private _connectedAnchor: Vector3;
+  private readonly _axisRotationQuaternion = new Quaternion();
+  private readonly _connectedAxisRotationQuaternion = new Quaternion();
+
+  constructor(physXPhysics: PhysXPhysics, actor: PhysXActor, connectedActor: PhysXActor | null) {
+    super(physXPhysics, actor, connectedActor, "createRevoluteJoint");
   }
 
   /**
    * {@inheritDoc IHingeJoint.setAxis }
    */
   setAxis(value: Vector3): void {
-    this._axis = value;
-    const xAxis = PhysXHingeJoint._xAxis;
+    const { x, y, z } = value;
     const axisRotationQuaternion = this._axisRotationQuaternion;
-    xAxis.set(1, 0, 0);
-    const angle = Math.acos(Vector3.dot(xAxis, value));
-    Vector3.cross(xAxis, value, xAxis);
-    Quaternion.rotationAxisAngle(xAxis, angle, axisRotationQuaternion);
-    this._setLocalPose(0, this._anchor, axisRotationQuaternion);
-    const connectedAxisRotationQuaternion = this._connectedAxisRotationQuaternion;
-    Quaternion.multiply(this._rotation, axisRotationQuaternion, connectedAxisRotationQuaternion);
-    this._setLocalPose(1, this._connectedAnchor, connectedAxisRotationQuaternion);
+    // Rotate PhysX’s local X axis onto the requested hinge axis.
+    const lateral = Math.hypot(y, z);
+    if (lateral > 0) {
+      const halfAngle = Math.atan2(lateral, x) * 0.5;
+      const sine = Math.sin(halfAngle);
+      axisRotationQuaternion.set(0, (-z / lateral) * sine, (y / lateral) * sine, Math.cos(halfAngle));
+    } else if (x < 0) {
+      // Use a stable rotation axis for the antiparallel case.
+      axisRotationQuaternion.set(0, 1, 0, 0);
+    } else {
+      axisRotationQuaternion.set(0, 0, 0, 1);
+    }
+    this._pxJoint.setLocalPose(0, this._anchor, axisRotationQuaternion);
+    this._updateConnectedRotation();
+    this.setConnectedAnchor(this._connectedAnchor);
   }
 
   override setAnchor(value: Vector3): void {
-    this._setLocalPose(0, value, this._axisRotationQuaternion);
+    this._pxJoint.setLocalPose(0, value, this._axisRotationQuaternion);
     this._anchor = value;
   }
 
   /**
    * {@inheritDoc IJoint.setConnectedAnchor }
    */
-  override setConnectedAnchor(value: Vector3): void {
-    this._setLocalPose(1, value, this._connectedAxisRotationQuaternion);
+  override setConnectedAnchor(value: Vector3, rotation?: Quaternion): void {
+    if (rotation) {
+      this._connectedRotation.copyFrom(rotation);
+      this._updateConnectedRotation();
+    }
+    this._pxJoint.setLocalPose(1, value, this._connectedAxisRotationQuaternion);
     this._connectedAnchor = value;
   }
 
@@ -67,30 +67,35 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
    * {@inheritDoc IHingeJoint.getAngle }
    */
   getAngle(): number {
-    return MathUtil.radianToDegree(this._pxJoint.getAngle());
+    return this._pxJoint.getAngle();
   }
 
   /**
    * {@inheritDoc IHingeJoint.getVelocity }
    */
-  getVelocity(): Readonly<number> {
+  getVelocity(): number {
     return this._pxJoint.getVelocity();
   }
 
   /**
-   * {@inheritDoc IHingeJoint.setHardLimitCone }
+   * {@inheritDoc IHingeJoint.setHardLimit }
    */
   setHardLimit(lowerLimit: number, upperLimit: number, contactDist: number): void {
-    this._pxJoint.setHardLimit(MathUtil.degreeToRadian(lowerLimit), MathUtil.degreeToRadian(upperLimit), contactDist);
+    this._pxJoint.setHardLimit(
+      PhysXHingeJoint._clampLimit(lowerLimit),
+      PhysXHingeJoint._clampLimit(upperLimit),
+      contactDist,
+      0
+    );
   }
 
   /**
-   * {@inheritDoc IHingeJoint.setHardLimitCone }
+   * {@inheritDoc IHingeJoint.setSoftLimit }
    */
   setSoftLimit(lowerLimit: number, upperLimit: number, stiffness: number, damping: number): void {
     this._pxJoint.setSoftLimit(
-      MathUtil.degreeToRadian(lowerLimit),
-      MathUtil.degreeToRadian(upperLimit),
+      PhysXHingeJoint._clampLimit(lowerLimit),
+      PhysXHingeJoint._clampLimit(upperLimit),
       stiffness,
       damping
     );
@@ -99,8 +104,8 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   /**
    * {@inheritDoc IHingeJoint.setDriveVelocity }
    */
-  setDriveVelocity(velocity: number, autowake: boolean = true): void {
-    this._pxJoint.setDriveVelocity(velocity, autowake);
+  setDriveVelocity(velocity: number): void {
+    this._pxJoint.setDriveVelocity(MathUtil.clamp(velocity, -PhysXJoint._maxFloat32, PhysXJoint._maxFloat32), false);
   }
 
   /**
@@ -118,9 +123,27 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   }
 
   /**
-   * {@inheritDoc IHingeJoint.setHingeJointFlag }
+   * {@inheritDoc IHingeJoint.setLimitEnabled }
    */
-  setHingeJointFlag(flag: number, value: boolean): void {
-    this._pxJoint.setRevoluteJointFlag(flag, value);
+  setLimitEnabled(enabled: boolean): void {
+    this._pxJoint.setRevoluteJointFlag(1, enabled); // eLIMIT_ENABLED
+  }
+
+  /**
+   * {@inheritDoc IHingeJoint.setDriveEnabled }
+   */
+  setDriveEnabled(enabled: boolean): void {
+    this._pxJoint.setRevoluteJointFlag(2, enabled); // eDRIVE_ENABLED
+  }
+
+  /**
+   * {@inheritDoc IHingeJoint.setDriveFreeSpin }
+   */
+  setDriveFreeSpin(enabled: boolean): void {
+    this._pxJoint.setRevoluteJointFlag(4, enabled); // eDRIVE_FREESPIN
+  }
+
+  private _updateConnectedRotation(): void {
+    Quaternion.multiply(this._connectedRotation, this._axisRotationQuaternion, this._connectedAxisRotationQuaternion);
   }
 }

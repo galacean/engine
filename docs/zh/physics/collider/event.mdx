@@ -13,7 +13,7 @@ label: Physics
 碰撞事件在两个处于碰撞器模式的碰撞器物理交互时触发。这些事件提供了关于碰撞的信息，如接触点、法线和涉及的另一个碰撞器。
 
 ### 触发器事件
-触发器事件在碰撞器进入、停留或离开触发区域时触发。触发器是将 `isTrigger` 属性设置为 true 的碰撞形状。它们检测重叠而不引起物理反应。
+触发器事件在碰撞器进入、停留或离开触发区域时触发。触发器是将 `isTrigger` 属性设置为 true 的碰撞器。它们检测重叠而不引起物理反应。
 
 ## 事件触发关系
 
@@ -29,13 +29,15 @@ label: Physics
 | **触发器模式** | 仅触发事件回调，不产生物理碰撞 | 检测区域、触发机关等 |
 
 <Callout type="positive">
-碰撞器模式和触发器模式是碰撞形状的属性，一个碰撞器可以包含多个碰撞形状，每个形状都可以独立设置是否为触发器。这意味着：
-一个碰撞器可以同时具备两种模式，可以添加多个碰撞形状，有的设为碰撞器模式，有的设为触发器模式，这样可以同时实现物理碰撞和区域检测的功能
+触发器模式按碰撞器组件单独设置。一个实体，或拥有多个碰撞器的刚体，可以同时具备两种模式：一部分碰撞器负责物理碰撞，另一部分设置 `isTrigger` 用于区域检测。
 </Callout>
 
 ## 事件回调
 
-当两个碰撞器发生碰撞或触发器重叠时，会触发碰撞器所属实体上挂载的[脚本](/docs/script/script)中的回调函数。
+当两个碰撞器发生碰撞或触发器重叠时，会调用每个碰撞器所属[刚体](/docs/physics/collider/rigidbody)所在实体上挂载的[脚本](/docs/script/script)中的回调函数；若碰撞器没有所属刚体（静态碰撞器与 `CharacterController`），则调用碰撞器自身所在实体上的脚本。挂载在刚体子实体上的碰撞器只向刚体所在实体报告事件，不会通知子实体上的脚本。
+
+- 触发器回调接收 `(other, self)`：另一个碰撞器，以及接收事件的己方碰撞器（在复合体中，`self` 可用于区分是刚体下哪个子碰撞器触发了事件）。
+- 碰撞回调接收一个 [Collision](/apis/core/#Collision)：`collision.collider` 是另一个碰撞器，`collision.selfCollider` 是接收事件的己方碰撞器（在复合体中精确指向发生碰撞的子碰撞器）。`getContacts()` 返回的接触点法线和冲量从另一个碰撞器指向接收者。Collision 数据只在回调期间有效，需要保留的数据请自行复制。
 
 ### 碰撞器事件回调
 | 事件名 | 触发时机 |
@@ -54,30 +56,35 @@ label: Physics
 ## 脚本使用
 
 ```typescript
+import { Collider, Collision, ContactPoint, Script } from "@galacean/engine";
+
 class EventHandler extends Script {
+  private _contacts: ContactPoint[] = [];
+
   // 碰撞器事件
-  onCollisionEnter(other: Collider) {
-    console.log("碰撞开始，对象：", other.entity.name);
+  onCollisionEnter(collision: Collision) {
+    const count = collision.getContacts(this._contacts);
+    console.log("碰撞开始，对象：", collision.collider.entity.name, "接触点数：", count);
   }
 
-  onCollisionStay(other: Collider) {
-    console.log("碰撞持续中，对象：", other.entity.name);
+  onCollisionStay(collision: Collision) {
+    console.log("碰撞持续中，对象：", collision.collider.entity.name);
   }
 
-  onCollisionExit(other: Collider) {
-    console.log("碰撞结束，对象：", other.entity.name);
+  onCollisionExit(collision: Collision) {
+    console.log("碰撞结束，对象：", collision.collider.entity.name);
   }
 
   // 触发器事件
-  onTriggerEnter(other: Collider) {
+  onTriggerEnter(other: Collider, self: Collider) {
     console.log("触发器开始，对象：", other.entity.name);
   }
 
-  onTriggerStay(other: Collider) {
+  onTriggerStay(other: Collider, self: Collider) {
     console.log("触发器持续中，对象：", other.entity.name);
   }
 
-  onTriggerExit(other: Collider) {
+  onTriggerExit(other: Collider, self: Collider) {
     console.log("触发器结束，对象：", other.entity.name);
   }
 }

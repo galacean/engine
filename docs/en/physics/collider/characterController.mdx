@@ -7,23 +7,22 @@ label: Physics
 
 The [CharacterController](/apis/core/#CharacterController) is a special collider component designed specifically for handling character physics movement. It provides specialized movement algorithms and collision detection, capable of handling complex terrain like steps and slopes, making it particularly suitable for character control in first-person or third-person games.
 
-## Differences from Dynamic Collider
+## Differences from Rigidbody
 
-While both the Character Controller and [Dynamic Collider](/en/docs/physics/collider/dynamicCollider) can achieve object movement, they have significant differences:
+While both the Character Controller and a [Rigidbody](/en/docs/physics/collider/rigidbody) can move objects, they have significant differences:
 
-| Feature | Character Controller | Dynamic Collider |
+| Feature | Character Controller | Rigidbody |
 |---------|---------------------|------------------|
-| Movement Method | Direct displacement control via `move()` method | Movement through forces or impulses |
+| Movement Method | Direct displacement control via `move()` method | Movement through forces or velocity |
 | Collision Response | Manual collision response, automatic step and slope handling | Physics-based collision response |
 | Gravity Handling | Requires manual gravity implementation | Automatic scene gravity application |
-| Shape Limitations | Can only use one collision shape | Can use multiple collision shapes |
+| Shape | Inline capsule | Any Collider components on its Entity and children |
 | Use Cases | Character control, first/third-person games | Physics simulation, rigid body motion |
-| Performance Cost | Lower | Higher |
 
 <Callout type="positive">
 Recommendations:
 - Use Character Controller when precise control over character movement and collision response is needed
-- Use Dynamic Collider when realistic physics simulation is required
+- Use Rigidbody when realistic physics simulation is required
 </Callout>
 
 ## Usage
@@ -32,46 +31,48 @@ Recommendations:
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*nEMXRKiqpy8AAAAAAAAAAAAAesJ_AQ/original" />
 
-2. Set the controller's collision shape to match the character's appearance as closely as possible. For detailed information about collision shapes, please refer to the [ColliderShape](/en/docs/physics/collider/colliderShape) documentation.
+2. Set the capsule's `radius`, `height`, and `center` to match the character's appearance as closely as possible.
 
 <Callout type="positive">
-Unlike other colliders, the Character Controller can only have one collision shape. It is recommended to use a CapsuleColliderShape as the character's collision shape.
+The Character Controller carries its own capsule geometry instead of using other Collider components, and it is never owned by a Rigidbody.
 </Callout>
 
-<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*4QvUTI4D89EAAAAAAAAAAAAAesJ_AQ/original" />
-
-<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*aRGqSIMqDmsAAAAAAAAAAAAAesJ_AQ/original" />
-
-3. Adjust the collider's properties according to your needs to modify the object's physical behavior. The meaning and function of each property are explained below.
+3. Adjust the controller's properties according to your needs. The meaning and function of each property are explained below.
 
 ## Property Description
 
+### Geometry
+| Property | Description | Default |
+|----------|-------------|---------|
+| [**radius**](/apis/core/#CharacterController-radius) | Capsule radius in the Entity's local space | 0.5 |
+| [**height**](/apis/core/#CharacterController-height) | Total capsule height including both caps | 2 |
+| [**center**](/apis/core/#Collider-center) | Center of the geometry in the Entity's local space | (0, 0, 0) |
+
+Radius and height follow the absolute Entity's world scale. `center` is a local point transformed by the Entity's world rotation and scale, while the capsule orientation itself is controlled only by `upDirection`.
+
 ### Properties Inherited from Collider
-| Property | Description |
-|----------|-------------|
-| [**shapes**](/apis/core/#Collider-shapes) | Collection of collision shapes |
+| Property | Description | Default |
+|----------|-------------|---------|
+| [**contactOffset**](/apis/core/#CharacterController-contactOffset) | Contact offset. Must be greater than 0; other values throw | 0.02 |
+| [**collisionLayer**](/apis/core/#Collider-collisionLayer) | Collision layer of the controller | Layer.Layer0 |
+| [**material**](/apis/core/#Collider-material) | Physics material, `null` for the shared default | null |
+| [**isTrigger**](/apis/core/#CharacterController-isTrigger) | Always false; setting it to true throws | false |
 
 ### Specific Properties
 | Property | Description | Default |
 |----------|-------------|---------|
-| [**stepOffset**](/apis/core/#CharacterController-stepOffset) | Maximum step height the character can automatically climb.<ul><li>Must be greater than or equal to 0</li><li>Actual climbable height = stepOffset + contact offset of collision shape</li></ul> | 0.5 |
+| [**stepOffset**](/apis/core/#CharacterController-stepOffset) | Requested step height in world units. Non-finite values throw, and finite negative values are clamped to 0. The assigned value is preserved, while the effective step height is clamped to the scaled capsule's effective total height during synchronization. | 0.5 |
 | [**slopeLimit**](/apis/core/#CharacterController-slopeLimit) | Maximum slope angle (in degrees) the character can walk on.<ul><li>Surfaces steeper than this angle will be treated as unwalkable walls</li><li>Affects the character's climbing ability</li></ul> | 45° |
 | [**nonWalkableMode**](/apis/core/#CharacterController-nonWalkableMode) | Defines how to handle unwalkable surfaces.<ul><li>PreventClimbing: Prevents the character from climbing unwalkable slopes but doesn't force other movements (default)</li><li>PreventClimbingAndForceSliding: Prevents the character from climbing unwalkable slopes and forces the character to slide down</li></ul> | PreventClimbing |
-| [**upDirection**](/apis/core/#CharacterController-upDirection) | Defines the character's up direction. Default is (0, 1, 0), which means Y-axis up in world space. Affects movement and collision detection direction | (0, 1, 0) |
+| [**upDirection**](/apis/core/#CharacterController-upDirection) | Read-only snapshot of the unit up direction in world space, affecting movement and collision detection orientation. Assign a complete direction vector to update (normalized automatically); a zero vector leaves it unchanged, and a non-finite length throws. | (0, 1, 0) |
 
 ## Public Methods
 
-### Methods Inherited from Collider
 | Method | Description |
 |--------|-------------|
-| [**addShape**](/apis/core/#Collider-addShape) | Add a collision shape |
-| [**removeShape**](/apis/core/#Collider-removeShape) | Remove a specified collision shape |
-| [**clearShapes**](/apis/core/#Collider-clearShapes) | Clear all collision shapes |
+| [**move**](/apis/core/#CharacterController-move) | Move the character controller and write the result to the Entity's world position immediately. Returns a collision flag value indicating collision status, or 0 when the controller is not in a scene.<ul><li>displacement: Movement vector</li><li>minDist: Minimum movement distance</li><li>elapsedTime: Elapsed time</li></ul> |
 
-### Specific Methods
-| Method | Description |
-|--------|-------------|
-| [**move**](/apis/core/#CharacterController-move) | Move the character controller. Returns a collision flag value indicating collision status.<ul><li>displacement: Movement vector</li><li>minDist: Minimum movement distance</li><li>elapsedTime: Elapsed time</li></ul> |
+`getClosestPoint` is not supported by the Character Controller and returns -1.
 
 ### Collision Flags
 
@@ -88,14 +89,11 @@ The `move()` function returns a collision flag value that indicates the characte
 
 ### Basic Configuration
 ```typescript
-// Create character controller
+// Create a capsule controller.
 const controller = entity.addComponent(CharacterController);
-
-// Add capsule shape
-const capsule = new CapsuleColliderShape();
-capsule.radius = 0.5;
-capsule.height = 2;
-controller.addShape(capsule);
+controller.radius = 0.5;
+controller.height = 2;
+controller.center = new Vector3(0, 1, 0);
 
 // Configure controller properties
 controller.stepOffset = 0.5;      // Set step height
@@ -115,9 +113,7 @@ class CharacterMovement extends Script {
     const displacement = new Vector3();
     Vector3.scale(this._velocity, deltaTime, displacement);
 
-    // Execute movement and get collision flags
-    // minDist: Minimum movement distance, usually set to 0
-    // deltaTime: Elapsed time for physics calculations
+    // Pass the frame duration in seconds. Use a zero minimum distance to avoid filtering out small moves.
     const collisionFlags = controller.move(displacement, 0, deltaTime);
     
     // Handle collision response
@@ -236,11 +232,10 @@ class CharacterMovement extends Script {
 
 ## Limitations and Considerations
 
-1. **Shape Limitations**
-   - Can only use one collision shape
-   - Recommended to use CapsuleColliderShape as the collision shape
+1. **Geometry**
+   - The controller has a single inline capsule; other Collider components on the Entity are separate Colliders
+   - The controller cannot be a trigger and does not support `getClosestPoint`
 
 2. **Performance Considerations**
-   - Character Controller has better performance than Dynamic Collider
-   - But each Character Controller consumes some physics calculation resources
+   - Each Character Controller consumes some physics calculation resources
    - It's recommended to control the number of Character Controllers in the scene

@@ -1,61 +1,49 @@
 import { Quaternion, Vector3 } from "@galacean/engine-math";
-import { ICollider } from "../ICollider";
+import { IPhysicsActor } from "../IPhysicsActor";
 
 /**
- * a base interface providing common functionality for joints.
+ * Common configuration for native joints.
  */
 export interface IJoint {
   /**
-   * The connected collider.
+   * Bind both actors. A null connected actor connects the owning actor to the world.
    */
-  setConnectedCollider(value: ICollider | null | undefined): void;
+  setActors(actor: IPhysicsActor, connectedActor: IPhysicsActor | null): void;
 
   /**
-   * The connected anchor position.
-   * @remarks If connectedCollider is set, this anchor is relative offset, or the anchor is world position.
+   * Set the anchor and optionally the rotation in the connected actor's frame or in world space.
    */
-  setConnectedAnchor(value: Vector3): void;
+  setConnectedAnchor(value: Vector3, rotation?: Quaternion): void;
 
   /**
-   * The anchor position.
+   * Set the anchor in the owning actor’s frame.
    */
   setAnchor(value: Vector3): void;
 
   /**
-   *  The scale to apply to the inverse mass of collider1 for resolving this constraint.
+   * Set the connected actor’s mass multiplier for this constraint.
    */
   setConnectedMassScale(value: number): void;
 
   /**
-   * The rotation of the joint.
-   * @param value The rotation of the joint.
-   */
-  setRotation(value: Quaternion): void;
-
-  /**
-   * The scale to apply to the inverse mass of collider0 for resolving this constraint.
+   * Set the owning actor’s mass multiplier for this constraint.
    */
   setMassScale(value: number): void;
 
   /**
-   * The scale to apply to the inverse inertia of collider1 for resolving this constraint.
+   * The scale to apply to the inverse inertia of the connected actor for resolving this constraint.
    */
   setConnectedInertiaScale(value: number): void;
 
   /**
-   * The scale to apply to the inverse inertia of collider0 for resolving this constraint.
+   * The scale to apply to the inverse inertia of the owning actor for resolving this constraint.
    */
   setInertiaScale(value: number): void;
 
   /**
-   * The maximum force the joint can apply before breaking.
+   * Set the maximum force and torque the joint can apply before breaking.
    */
-  setBreakForce(value: number): void;
-
-  /**
-   * The maximum torque the joint can apply before breaking.
-   */
-  setBreakTorque(value: number): void;
+  setBreakForce(force: number, torque: number): void;
 
   /**
    * Destroy the joint.

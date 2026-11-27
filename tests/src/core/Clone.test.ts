@@ -2098,14 +2098,6 @@ describe("Clone remap", async () => {
       // Exemptions are engine-bound structural types the gate only ever clones against a
       // same-type constructor preset (`reusable`) — each entry states why it cannot be bare.
       const exempt = new Set<string>([
-        // Physics shapes construct a PhysicsMaterial and need an initialized physics backend —
-        // bare-constructible in a real runtime, just not in this physics-less test engine.
-        "ColliderShape",
-        "BoxColliderShape",
-        "SphereColliderShape",
-        "CapsuleColliderShape",
-        "PlaneColliderShape",
-        "MeshColliderShape",
         // Host-bound structural types wired to their host at construction — in their engine
         // slots the gate clones them against the component's same-type constructor preset; a
         // preset-less occurrence (e.g. a user container) fails with the named bare-construction

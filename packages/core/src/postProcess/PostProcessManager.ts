@@ -1,4 +1,3 @@
-import { Vector3 } from "@galacean/engine-math";
 import { Camera } from "../Camera";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { Scene } from "../Scene";
@@ -14,14 +13,11 @@ import { PostProcessEffect } from "./PostProcessEffect";
  */
 export class PostProcessManager {
   private static _tempColliders: Collider[] = [];
-  private static _tempVector3 = new Vector3();
 
   /** @internal */
   _uberMaterial: Material;
   /** @internal */
   _postProcessNeedSorting = false;
-  /** @internal */
-  _postProcessPassNeedSorting = false;
 
   private _activePostProcesses: PostProcess[] = [];
   private _swapRenderTarget: RenderTarget | null;
@@ -62,6 +58,7 @@ export class PostProcessManager {
     // Sort post process
     this._sortActivePostProcess();
     const activePostProcesses = this._activePostProcesses;
+    let physicsSynced = false;
 
     for (let i = 0, n = activePostProcesses.length; i < n; i++) {
       const postProcess = activePostProcesses[i];
@@ -74,40 +71,34 @@ export class PostProcessManager {
       let interpFactor = 1; // Global default value
       if (!isGlobal) {
         const currentColliders = PostProcessManager._tempColliders;
+        const entity = postProcess.entity;
+        const count = entity.getComponents(Collider, currentColliders).length;
+        if (count === 0) {
+          Logger.isEnabled && Logger.warn(`Local post-process volume "${entity.name}" requires a Collider.`);
+          continue;
+        }
         const cameraPosition = camera.entity.transform.worldPosition;
         const blendDistance = postProcess.blendDistance;
-
-        let hasColliderShape = false;
-        // Find closest distance to current postProcess, 0 means it's inside it
-        let closestDistance = Number.POSITIVE_INFINITY;
-
-        postProcess.entity.getComponents(Collider, currentColliders);
-        for (let i = 0; i < currentColliders.length; i++) {
-          const collider = currentColliders[i];
+        let closestDistance = Infinity;
+        for (let j = 0; j < count; j++) {
+          const collider = currentColliders[j];
           if (!collider.enabled) {
             continue;
           }
-          const shapes = collider.shapes;
-          for (let j = 0; j < shapes.length; j++) {
-            const currentShape = shapes[j];
-            hasColliderShape = true;
-
-            const distance = currentShape.getClosestPoint(cameraPosition, PostProcessManager._tempVector3);
-            if (distance < closestDistance) {
-              closestDistance = distance;
-            }
+          if (!physicsSynced) {
+            // Volume queries need current collider poses even when the frame has no physics step.
+            this.scene.physics._syncColliders(false);
+            physicsSynced = true;
+          }
+          const distance = collider._getVolumeDistance(cameraPosition);
+          if (distance >= 0 && distance < closestDistance) {
+            closestDistance = distance;
+            if (distance === 0) break;
           }
         }
+        currentColliders.length = 0;
 
-        if (!hasColliderShape) {
-          Logger.warn(
-            `No collider shape found in the entity:"${postProcess.entity.name}", the local mode of post process will not take effect.`
-          );
-          continue;
-        }
-
-        // Post process has no influence, ignore it
-        if (closestDistance > blendDistance) {
+        if (closestDistance === Infinity || closestDistance > blendDistance) {
           continue;
         }
 

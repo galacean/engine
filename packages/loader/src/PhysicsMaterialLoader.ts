@@ -16,13 +16,14 @@ class PhysicsMaterialLoader extends Loader<PhysicsMaterial> {
         ...item,
         type: "json"
       })
-      .then((data) => {
-        const physicsMaterial = new PhysicsMaterial();
-        physicsMaterial.bounciness = data.bounciness;
-        physicsMaterial.dynamicFriction = data.dynamicFriction;
-        physicsMaterial.staticFriction = data.staticFriction;
-        physicsMaterial.bounceCombine = data.bounceCombine;
-        physicsMaterial.frictionCombine = data.frictionCombine;
+      .then(({ bounciness, dynamicFriction, staticFriction, bounceCombine, frictionCombine }) => {
+        const physicsMaterial = new PhysicsMaterial(resourceManager.engine);
+        // Omitted fields keep the material's constructor defaults.
+        if (bounciness !== undefined) physicsMaterial.bounciness = bounciness;
+        if (dynamicFriction !== undefined) physicsMaterial.dynamicFriction = dynamicFriction;
+        if (staticFriction !== undefined) physicsMaterial.staticFriction = staticFriction;
+        if (bounceCombine !== undefined) physicsMaterial.bounceCombine = bounceCombine;
+        if (frictionCombine !== undefined) physicsMaterial.frictionCombine = frictionCombine;
 
         return physicsMaterial;
       });

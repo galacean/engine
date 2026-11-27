@@ -5,10 +5,10 @@ type: 物理
 label: Physics
 ---
 
-关节组件用于模拟碰撞体之间或碰撞体与世界空间任意点之间的连接关系。通过施加力来限制运动自由度，从而实现特定的物理效果。目前，Galacean支持以下三种关节组件：
+关节组件用于模拟刚体之间或刚体与世界空间任意点之间的连接关系。通过施加力来限制运动自由度，从而实现特定的物理效果。目前，Galacean支持以下三种关节组件：
 
 1. [固定关节](/docs/physics/joint/fixedJoint)（[FixedJoint](/apis/core/#FixedJoint)）  
-   固定关节完全限制了两个碰撞体之间的相对运动，使其保持固定的相对位置和方向。当需要实现能够分离的物体，或在无需层级父子结构的情况下实现同步移动时，这种关节十分适用。
+   固定关节完全限制了两个刚体之间的相对运动，使其保持固定的相对位置和方向。当需要实现能够分离的物体，或在无需层级父子结构的情况下实现同步移动时，这种关节十分适用。
 
    <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*h050RoMxg8sAAAAAAAAAAAAAesJ_AQ/original" />
 
@@ -28,13 +28,17 @@ label: Physics
 
 1. **关节端点**：每个关节都包含两个作用对象：
 
-   - 主体碰撞体：挂载关节组件的碰撞体
-   - 连接对象：通过 `connectedCollider` 属性指定的目标碰撞体或世界空间中的点
+   - 主体刚体：挂载关节组件的实体上的刚体
+   - 连接对象：`connectedBody` 指定目标刚体，设为 `null` 时连接到世界空间。
+
+   两个刚体都在同一场景中启用时，关节约束生效。刚体暂时不可用时，关节保留连接设置，等两个刚体再次生效后自动重连。
 
 2. **锚点设置**：
 
-   - `anchor`：在主体碰撞体上的连接点
+   - `anchor`：在主体刚体上的连接点
    - `connectedAnchor`：在目标对象上的连接点
+
+   场景和 Prefab 将关节切换为手动模式（`automaticConnectedAnchor: false`）时，需提供完整的 `connectedAnchor` 向量（或沿用 Prefab 继承的手动锚点）。
 
 3. **断裂阈值**：
 
@@ -42,7 +46,7 @@ label: Physics
    - `breakTorque`：关节能承受的最大扭矩
 
 4. **质量计算干预**：
-   - `connectedMassScale` 和 `massScale`：用于调整连接碰撞体和主体碰撞体的质量影响
+   - `connectedMassScale` 和 `massScale`：用于调整连接刚体和主体刚体的质量影响
 
 ## 脚本使用
 
@@ -66,16 +70,17 @@ const hingeJoint = entity.addComponent(HingeJoint);
 所有关节都可以设置连接目标和锚点:
 
 ```typescript
-// 设置连接的目标碰撞体
-joint.connectedCollider = targetEntity.getComponent(Collider);
+joint.connectedBody = targetEntity.getComponent(Rigidbody);
 
-// 设置关节在自身碰撞体上的锚点
-joint.anchor.setValue(0, 1, 0);
+// 锚点使用关节自身刚体的局部坐标。
+joint.anchor.set(0, 1, 0);
 
-// 手动设置关节在目标碰撞体上的连接点
-fixedJoint.automaticConnectedAnchor = false;
-joint.connectedAnchor.setValue(0, 0, 0);
+// 关闭自动计算后，使用目标刚体的局部坐标设置连接点。
+joint.automaticConnectedAnchor = false;
+joint.connectedAnchor.set(0, 0, 0);
 ```
+
+设置或修改 `connectedAnchor` 会自动关闭 `automaticConnectedAnchor`。关节生效时，将 `automaticConnectedAnchor` 重新设为 `true` 会按当前位姿重新计算连接点；设为 `false` 时保留当前值。
 
 ### 通用属性配置
 

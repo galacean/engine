@@ -5,20 +5,18 @@
 import {
   AmbientLight,
   AssetType,
-  BoxColliderShape,
+  BoxCollider,
   Camera,
-  CollisionDetectionMode,
   Color,
-  DynamicCollider,
   Entity,
   GLTFResource,
-  MeshColliderShape,
+  MeshCollider,
   MeshRenderer,
   ModelMesh,
   PBRMaterial,
   PointLight,
   PrimitiveMesh,
-  StaticCollider,
+  Rigidbody,
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
@@ -46,11 +44,8 @@ function createFallingBox(
   renderer.setMaterial(material);
 
   // Physics - box collider with CCD to prevent tunneling
-  const collider = entity.addComponent(DynamicCollider);
-  collider.collisionDetectionMode = CollisionDetectionMode.Continuous;
-  const shape = new BoxColliderShape();
-  shape.size = size;
-  collider.addShape(shape);
+  entity.addComponent(BoxCollider).size = size;
+  entity.addComponent(Rigidbody).useCCD = true;
 
   return entity;
 }
@@ -81,7 +76,7 @@ WebGLEngine.create({ canvas: "canvas", physics }).then((engine) => {
     engine.resourceManager.load<GLTFResource>({
       url: "https://mdn.alipayobjects.com/rms/afts/file/A*UZO7RaRQa2kAAAAAgDAAAAgAehQnAQ/pot.glb",
       type: AssetType.GLTF,
-      params: { keepMeshData: true } // Required for MeshColliderShape.mesh
+      params: { keepMeshData: true } // Required for MeshCollider.mesh
     }),
     engine.resourceManager.load<AmbientLight>({
       type: AssetType.AmbientLight,
@@ -125,14 +120,7 @@ WebGLEngine.create({ canvas: "canvas", physics }).then((engine) => {
           const meshEntity = renderer.entity;
           // Scale 20 can expose penetration issues in non-SIMD mode
           meshEntity.transform.setScale(20, 20, 20);
-          let collider = meshEntity.getComponent(StaticCollider);
-          if (!collider) {
-            collider = meshEntity.addComponent(StaticCollider);
-          }
-
-          const meshShape = new MeshColliderShape();
-          meshShape.mesh = mesh;
-          collider.addShape(meshShape);
+          meshEntity.addComponent(MeshCollider).mesh = mesh;
         }
       }
     }

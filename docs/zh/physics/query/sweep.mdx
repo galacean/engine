@@ -12,7 +12,7 @@ label: Physics
 Galacean 物理引擎提供三种形状投射功能：
 
 - **boxCast** - 盒子投射：投射一个立方体形状
-- **sphereCast** - 球体投射：投射一个球形形状  
+- **sphereCast** - 球体投射：投射一个球形形状
 - **capsuleCast** - 胶囊投射：投射一个胶囊形状
 
 <Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*AicVTLV-8dsAAAAAQHAAAAgAesJ_AQ/original" />
@@ -50,12 +50,12 @@ boxCast(center: Vector3, halfExtents: Vector3, direction: Vector3, distance: num
 
 // 完整参数版本
 boxCast(
-  center: Vector3, 
-  halfExtents: Vector3, 
-  direction: Vector3, 
-  orientation: Quaternion, 
-  distance: number, 
-  layerMask: Layer, 
+  center: Vector3,
+  halfExtents: Vector3,
+  direction: Vector3,
+  orientation: Quaternion,
+  distance: number,
+  layerMask: Layer,
   outHitResult?: HitResult
 ): boolean
 ```
@@ -71,7 +71,7 @@ const physicsScene = scene.physics;
 // 示例1: 基础阻挡检测
 const center = new Vector3(0, 5, 0);
 const halfExtents = new Vector3(1, 1, 1); // 盒子半尺寸
-const direction = new Vector3(0, -1, 0);  // 向下投射
+const direction = new Vector3(0, -1, 0); // 向下投射
 
 if (physicsScene.boxCast(center, halfExtents, direction)) {
   console.log("检测到阻挡！");
@@ -102,15 +102,7 @@ const layerMask = Layer.Everything; // 检测所有层
 const maxDistance = 10.0;
 
 const detailHit = new HitResult();
-if (physicsScene.boxCast(
-  center, 
-  halfExtents, 
-  direction, 
-  orientation, 
-  maxDistance, 
-  layerMask, 
-  detailHit
-)) {
+if (physicsScene.boxCast(center, halfExtents, direction, orientation, maxDistance, layerMask, detailHit)) {
   console.log("精确检测成功");
 }
 ```
@@ -131,13 +123,13 @@ sphereCast(center: Vector3, radius: number, direction: Vector3, outHitResult: Hi
 // 指定投射距离
 sphereCast(center: Vector3, radius: number, direction: Vector3, distance: number): boolean
 
-// 指定距离并获取命中信息  
+// 指定距离并获取命中信息
 sphereCast(center: Vector3, radius: number, direction: Vector3, distance: number, outHitResult: HitResult): boolean
 
 // 完整参数版本
 sphereCast(
   center: Vector3,
-  radius: number, 
+  radius: number,
   direction: Vector3,
   distance: number,
   layerMask: Layer,
@@ -183,7 +175,7 @@ capsuleCast(center: Vector3, radius: number, height: number, direction: Vector3,
 capsuleCast(
   center: Vector3,
   radius: number,
-  height: number, 
+  height: number,
   direction: Vector3,
   orientation: Quaternion,
   distance: number,
@@ -199,10 +191,20 @@ capsuleCast(
 const characterCenter = new Vector3(0, 1, 0);
 const characterRadius = 0.5;
 const characterHeight = 1.8;
+const upright = new Quaternion();
 const jumpDirection = new Vector3(0, 1, 0);
 const jumpHeight = 2.0;
 
-if (!physicsScene.capsuleCast(characterCenter, characterRadius, characterHeight, jumpDirection, jumpHeight)) {
+const jumpBlocked = physicsScene.capsuleCast(
+  characterCenter,
+  characterRadius,
+  characterHeight,
+  jumpDirection,
+  upright,
+  jumpHeight,
+  Layer.Everything
+);
+if (!jumpBlocked) {
   // 头顶空间足够，可以跳跃
   performJump();
 }
@@ -212,14 +214,18 @@ const moveDirection = new Vector3(1, 0, 0);
 const stepDistance = 1.0;
 
 const moveHit = new HitResult();
-if (physicsScene.capsuleCast(
-  characterCenter, 
-  characterRadius, 
-  characterHeight, 
-  moveDirection, 
-  stepDistance, 
-  moveHit
-)) {
+if (
+  physicsScene.capsuleCast(
+    characterCenter,
+    characterRadius,
+    characterHeight,
+    moveDirection,
+    upright,
+    stepDistance,
+    Layer.Everything,
+    moveHit
+  )
+) {
   console.log(`角色移动会在 ${moveHit.distance} 处碰到障碍物`);
   // 可以实现滑动或其他阻挡响应
 }
@@ -239,8 +245,8 @@ if (physicsScene.capsuleCast(
 
 - **halfExtents** (boxCast) - 盒子的半尺寸
 - **radius** (sphereCast/capsuleCast) - 球体/胶囊的半径
-- **height** (capsuleCast) - 胶囊的高度
-- **orientation** (boxCast/capsuleCast) - 形状的旋转（默认为无旋转）
+- **height** (capsuleCast) - 胶囊总高（世界单位），包含两端半球。高度小于或等于两倍半径时退化为半径为 `radius` 的球体。
+- **orientation** (boxCast/capsuleCast) - 形状的旋转（默认为无旋转；胶囊体默认局部长轴为 Y 轴）
 
 ## 性能优化建议
 
@@ -253,17 +259,19 @@ if (physicsScene.capsuleCast(
 // 性能优化示例
 class PhysicsQuery {
   private static readonly _hitResult = new HitResult();
+  private static readonly _upright = new Quaternion();
   private static readonly _playerLayerMask = Layer.Layer0 | Layer.Layer1;
-  
+
   static checkPlayerMovement(center: Vector3, direction: Vector3): boolean {
     return scene.physics.capsuleCast(
       center,
-      0.5,           // 固定半径
-      1.8,           // 固定高度
+      0.5, // 固定半径
+      1.8, // 总高
       direction,
-      2.0,           // 限制检测距离
-      this._playerLayerMask,  // 只检测相关层
-      this._hitResult         // 重用结果对象
+      this._upright,
+      2.0, // 限制检测距离
+      this._playerLayerMask, // 只检测相关层
+      this._hitResult // 重用结果对象
     );
   }
 }
@@ -277,10 +285,10 @@ class PhysicsQuery {
 
 ## 与射线检测的区别
 
-| 特性 | 射线检测 | 形状投射 |
-|------|----------|----------|
-| 检测精度 | 点精度 | 体积精度 |
-| 性能消耗 | 低 | 中等 |
+| 特性     | 射线检测   | 形状投射           |
+| -------- | ---------- | ------------------ |
+| 检测精度 | 点精度     | 体积精度           |
+| 性能消耗 | 低         | 中等               |
 | 适用场景 | 点选、瞄准 | 移动预测、路径验证 |
 
 形状投射提供了比射线检测更精确的阻挡信息，特别适合需要考虑物体体积的应用场景。结合合适的性能优化策略，可以在保证精度的同时维持良好的运行效率。

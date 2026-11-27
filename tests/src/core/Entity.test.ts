@@ -1,6 +1,6 @@
 import { createPhysics } from "../utils/physics";
 import { Quaternion } from "@galacean/engine";
-import { DynamicCollider, Entity, EntityModifyFlags, Scene, Script } from "@galacean/engine-core";
+import { Entity, EntityModifyFlags, Scene, Script } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -573,8 +573,15 @@ describe("Entity", async () => {
       const entityChild = entityParent.createChild("child");
       const entityGrandson = entityChild.createChild("grandson");
       entityGrandson.transform.rotation.set(90, 0, 0);
-      // DynamicCollider 组件在构造函数中会获取 worldRotationQuaternion
-      entityGrandson.addComponent(DynamicCollider);
+      // Verify cloning when a component constructor reads worldRotationQuaternion before clone.
+      entityGrandson.addComponent(
+        class extends Script {
+          constructor(entity: Entity) {
+            super(entity);
+            entity.transform.worldRotationQuaternion;
+          }
+        }
+      );
       const entityChildClone = entityParent.clone().children[0];
       const entityGrandsonClone = entityChildClone.children[0];
       // @ts-ignore

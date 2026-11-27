@@ -25,9 +25,19 @@ const engine = await WebGLEngine.create({
 });
 ```
 
+UMD、ESM 和 CommonJS 入口默认从同级的 `./libs/` 加载包内运行时。自行托管时，将 `dist/libs/` 目录和入口文件放在一起。
+
+在 2.0 中，npm 直接导入和 jsDelivr 等 npm 镜像上的资源路径为 `@galacean/engine-physics-physx/dist/libs/*`。Galacean 官方 CDN 将 `dist/` 作为版本根目录，运行时路径为 `<version>/libs/*`。
+
+使用 Vite 开发时，将 `@galacean/engine-physics-physx` 加入 `optimizeDeps.exclude`，使资源按包内路径解析。
+
+专用模块 Worker 和 Node.js 默认使用包内的 `.mjs` 加载器。网页和经典 Worker 使用 `.js` 加载器。经典 Worker 通过 `importScripts()` 加载 UMD 时需要显式指定加载器 URL。
+
+要从其他位置加载运行时，在构造函数的第二个参数中用 `wasmModeUrl` 指定标准版，用 `wasmSIMDModeUrl` 指定 SIMD 版。将同一发行版的 `.wasm` 放在对应加载器的同一目录下。
+
 ## 后端说明
 
-PhysX 提供完整物理功能和高性能模拟。PhysX 依赖 WebAssembly；`Auto` 运行时模式只会在 SIMD 与非 SIMD WebAssembly 构建之间选择。使用 PhysX 后端会额外引入约 2.5 MB 的 wasm/js 运行时文件，可能影响包体积和初始化速度。
+PhysX 依赖 WebAssembly。`Auto` 在支持 SIMD 时选择 SIMD 构建，否则选择标准构建。启动时只加载所选模式的 JavaScript 加载器和配套的 WASM，压缩前合计约为标准版 2.5 MiB、SIMD 版 3.0 MiB。
 
 | 功能           | physics-physx |
 | -------------- | ------------- |
@@ -41,10 +51,8 @@ PhysX 提供完整物理功能和高性能模拟。PhysX 依赖 WebAssembly；`A
 ### 碰撞器
 
 - [碰撞器概述](/docs/physics/collider/overview)
-  - [动态碰撞器](/docs/physics/collider/dynamicCollider) - 可自由运动的物理对象
-  - [静态碰撞器](/docs/physics/collider/staticCollider) - 固定在场景中的物理对象
+  - [刚体](/docs/physics/collider/rigidbody) - 让碰撞器受物理控制
   - [角色控制器](/docs/physics/collider/characterController) - 专用于角色控制的碰撞器
-  - [碰撞形状](/docs/physics/collider/colliderShape) - 碰撞器的形状定义
 
 ### 关节系统
 
