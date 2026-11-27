@@ -522,11 +522,11 @@ export class WebGPUGraphicDevice implements IHardwareRenderer {
   }
 
   createPlatformTransformFeedback(): never {
-    throw new Error("Transform Feedback is not supported by WebGPU; use a compute pipeline.");
+    throw new Error("TransformFeedback is only supported on WebGL2; use ComputeShader on WebGPU.");
   }
 
   createPlatformTransformFeedbackPrimitive(): never {
-    throw new Error("Transform Feedback is not supported by WebGPU; use a compute pipeline.");
+    throw new Error("TransformFeedback is only supported on WebGL2; use ComputeShader on WebGPU.");
   }
 
   bindUniformBufferBase(binding: number, buffer: IPlatformBuffer): void {

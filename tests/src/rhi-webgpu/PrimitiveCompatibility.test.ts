@@ -135,8 +135,8 @@ describe.skipIf(!navigator.gpu)("WebGPU compatibility inputs", () => {
   it("reports WebGPU compute support without Transform Feedback emulation", () => {
     expect(hardware.supportsCompute).toBe(true);
     expect(hardware.supportsTransformFeedback).toBe(false);
-    expect(() => hardware.createPlatformTransformFeedback()).toThrow(/compute pipeline/i);
-    expect(() => hardware.createPlatformTransformFeedbackPrimitive()).toThrow(/compute pipeline/i);
+    expect(() => hardware.createPlatformTransformFeedback()).toThrow(/WebGL2.*ComputeShader/i);
+    expect(() => hardware.createPlatformTransformFeedbackPrimitive()).toThrow(/WebGL2.*ComputeShader/i);
   });
 
   it("restricts the sampled mip range and reuses the native view when switching back", () => {

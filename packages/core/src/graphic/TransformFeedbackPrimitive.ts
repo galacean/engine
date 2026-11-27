@@ -43,7 +43,11 @@ export class TransformFeedbackPrimitive extends GraphicsResource {
   ) {
     super(engine);
     if (!engine._hardwareRenderer.supportsTransformFeedback) {
-      throw new Error("TransformFeedback is only supported on WebGL2; use ComputeShader on WebGPU.");
+      throw new Error(
+        engine._hardwareRenderer.supportsCompute
+          ? "TransformFeedback is only supported on WebGL2; use ComputeShader on WebGPU."
+          : "TransformFeedback requires WebGL2 and is not supported on this graphics backend."
+      );
     }
     this._byteStride = byteStride;
     this._transformFeedback = new TransformFeedback(engine);

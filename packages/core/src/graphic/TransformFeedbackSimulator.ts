@@ -8,8 +8,10 @@ import type { ShaderData } from "../shader/ShaderData";
 import type { ShaderPass } from "../shader/ShaderPass";
 
 /**
- * General-purpose Transform Feedback simulator.
- * Manages per-frame simulation with shared shader program caching.
+ * @internal
+ * WebGL2-only Transform Feedback simulator for internal engine subsystems.
+ * Manages per-frame ping-pong or output-only GPU simulation with shared shader program caching.
+ * Not supported on WebGPU — use `ComputeShader` instead.
  */
 export class TransformFeedbackSimulator {
   private readonly _primitive: TransformFeedbackPrimitive;
