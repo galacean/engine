@@ -20,60 +20,18 @@ const COEFFICIENT_COUNT = 9;
 const COEFFICIENT_STRIDE = 16;
 const PROJECTION_STRIDE = COEFFICIENT_COUNT * COEFFICIENT_STRIDE;
 const PROJECT_SHADER_NAME = "Lighting/RealtimeIBLProjectSH";
-
-const COMPUTE_SH_SOURCE = `ComputeShader "Lighting/RealtimeIBLProjectSHCompute" {
-  Kernel "Project" {
-    WorkgroupSize = (1, 1, 1);
-    ComputeKernel = csProject;
-
-    #include "ShaderLibrary/Lighting/RealtimeIBLProjectSHCore.glsl"
-
-    storage OutSH {
-      vec4 outCoefficients[9];
-    };
-
-    void csProject() {
-      vec4 packed[9];
-      projectSHCoefficients(packed);
-      for (int i = 0; i < 9; i++) {
-        outCoefficients[i] = packed[i];
-      }
-    }
-  }
-
-  Kernel "Blend" {
-    WorkgroupSize = (9, 1, 1);
-    ComputeKernel = csBlend;
-
-    float renderer_SHBlend;
-
-    readonly storage SourceSH {
-      vec4 srcCoefficients[9];
-    };
-
-    readonly storage TargetSH {
-      vec4 dstCoefficients[9];
-    };
-
-    storage OutSH {
-      vec4 outCoefficients[9];
-    };
-
-    void csBlend() {
-      uint idx = gl_GlobalInvocationID.x;
-      if (idx < 9u) {
-        outCoefficients[idx] = mix(srcCoefficients[idx], dstCoefficients[idx], renderer_SHBlend);
-      }
-    }
-  }
-}`;
+const PROJECT_COMPUTE_SHADER_NAME = "Lighting/RealtimeIBLProjectSHCompute";
 
 const computeShaderCache = new WeakMap<Engine, ComputeShader>();
 
 function getOrCreateSHComputeShader(engine: Engine): ComputeShader {
   let cs = computeShaderCache.get(engine);
   if (!cs || cs.destroyed) {
-    cs = ComputeShader.create(COMPUTE_SH_SOURCE, engine);
+    const precompiled = engine._builtinShaders.computeByName[PROJECT_COMPUTE_SHADER_NAME];
+    if (!precompiled) {
+      throw new Error(`Built-in ComputeShader "${PROJECT_COMPUTE_SHADER_NAME}" is not registered.`);
+    }
+    cs = ComputeShader.createFromPrecompiled(precompiled, engine);
     computeShaderCache.set(engine, cs);
     engine.once(EngineEventType.Shutdown, () => {
       if (computeShaderCache.get(engine) === cs) {

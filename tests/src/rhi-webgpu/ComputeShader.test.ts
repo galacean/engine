@@ -1383,4 +1383,63 @@ describe("ShaderLab ComputeShader & WebGPU-only Capabilities", () => {
     gl!.deleteShader(fs);
     expect(ok, `Chrome WebGL2 compile failed: ${log}\n--- FS ---\n${fsSrc}`).toBe(true);
   });
+
+  it.skipIf(!navigator.gpu)(
+    "loads offline-precompiled built-in ComputeShaders via createFromPrecompiled without runtime ShaderLab parsing",
+    async () => {
+      const engine = await WebGPUEngine.create({ canvas: document.createElement("canvas") });
+      const { device } = engine._hardwareRenderer as WebGPUGraphicDevice;
+      device.pushErrorScope("validation");
+      try {
+        const expectedBuiltins = [
+          "PostProcess/SunLensFlareVisibilityCompute",
+          "Lighting/RealtimeIBLProjectSHCompute",
+          "Effect/ParticleSimulationCompute",
+          "Effect/ParticleSubEmitterGatherCompute"
+        ];
+        for (const name of expectedBuiltins) {
+          const artifact = engine._builtinShaders.computeByName[name];
+          expect(artifact, `missing precompiled compute shader ${name}`).toBeDefined();
+          expect(artifact.kind).toBe("compute");
+          expect(artifact.kernels.length).toBeGreaterThan(0);
+          expect(artifact.kernels[0].wgslComputeInstructions?.length).toBeGreaterThan(0);
+        }
+
+        // Verify execution from precompiled artifact works without touching runtime _shaderCompiler
+        const origCompiler = engine._shaderCompiler;
+        (engine as unknown as { _shaderCompiler: unknown })._shaderCompiler = undefined;
+        try {
+          const gather = ComputeShader.createFromPrecompiled(
+            engine._builtinShaders.computeByName["Effect/ParticleSubEmitterGatherCompute"],
+            engine
+          );
+          const parentBuf = new Buffer(engine, BufferBindFlag.StorageBuffer, 12 * 4, BufferUsage.Dynamic);
+          const childBuf = new Buffer(engine, BufferBindFlag.StorageBuffer, 6 * 4, BufferUsage.Dynamic);
+          parentBuf.setData(new Float32Array([0, 0, 0, 0, 0, 0, 11, 22, 33, 44, 55, 66]));
+          gather.shaderData.setInt("u_firstParent", 0);
+          gather.shaderData.setInt("u_firstChild", 0);
+          gather.shaderData.setInt("u_childrenPerParent", 1);
+          gather.shaderData.setInt("u_count", 1);
+          gather.shaderData.setInt("u_parentFloatStride", 12);
+          gather.shaderData.setInt("u_childFloatStride", 6);
+          gather.shaderData.setBuffer("ParentBuf", parentBuf);
+          gather.shaderData.setBuffer("ChildBuf", childBuf);
+          gather.dispatch(1, 1, 1);
+
+          const out = new Float32Array(6);
+          await childBuf.getDataAsync(out);
+          expect(Array.from(out)).toEqual([11, 22, 33, 44, 55, 66]);
+
+          gather.destroy();
+          parentBuf.destroy();
+          childBuf.destroy();
+        } finally {
+          (engine as unknown as { _shaderCompiler: unknown })._shaderCompiler = origCompiler;
+        }
+        expect(await device.popErrorScope()).toBeNull();
+      } finally {
+        engine.destroy();
+      }
+    }
+  );
 });

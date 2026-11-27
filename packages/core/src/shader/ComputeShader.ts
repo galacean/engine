@@ -1,4 +1,4 @@
-import type { IComputeProgramSource, IWebGPUComputeProgram } from "@galacean/engine-design";
+import type { IComputeProgramSource, IPrecompiledComputeShader, IWebGPUComputeProgram } from "@galacean/engine-design";
 import type { Engine } from "../Engine";
 import { EngineEventType } from "../EngineEventType";
 import { GLCapabilityType } from "../base/Constant";
@@ -70,6 +70,41 @@ export class ComputeShader {
     }
 
     return new ComputeShader(engine, parsed.name, kernels, kernelNames);
+  }
+
+  /**
+   * Create a compute shader from an offline-precompiled `.shaderc` artifact without runtime ShaderLab parsing.
+   * @param precompiled - Precompiled compute shader emitted by `ShaderPrecompiler` (WGSL target)
+   * @param engine - Engine instance (must use the WebGPU backend)
+   * @returns `ComputeShader` instance bound to `engine`
+   */
+  static createFromPrecompiled(precompiled: IPrecompiledComputeShader, engine: Engine): ComputeShader {
+    const rhi = engine._hardwareRenderer;
+    if (!rhi.supportsCompute || !rhi.createPlatformComputeProgram) {
+      throw new Error("ComputeShader requires a WebGPU engine; compute shaders are not supported on this backend.");
+    }
+    if (precompiled.kind !== "compute" || !precompiled.kernels?.length) {
+      throw new Error(`Expected precompiled ComputeShader artifact, but received "${precompiled.name}".`);
+    }
+
+    const kernels = new Map<string, CompiledComputeKernel>();
+    const kernelNames: string[] = [];
+    for (const kernel of precompiled.kernels) {
+      kernels.set(kernel.name, {
+        name: kernel.name,
+        source: {
+          compute: kernel.wgsl?.compute ?? "",
+          workgroupSize: kernel.workgroupSize,
+          uniformBlocks: kernel.uniformBlocks,
+          wgslComputeInstructions: kernel.wgslComputeInstructions,
+          wgsl: kernel.wgsl
+        },
+        variants: new Map()
+      });
+      kernelNames.push(kernel.name);
+    }
+
+    return new ComputeShader(engine, precompiled.name, kernels, kernelNames);
   }
 
   /** Compute shader name. */
@@ -258,17 +293,27 @@ export class ComputeShader {
     data: ShaderData,
     unfilterableTextures?: Set<string>
   ): IWebGPUComputeProgram {
-    const webgpuCompiler = this._engine._webGPUShaderCompiler!;
+    const instructions = kernel.source.wgslComputeInstructions;
+    if (
+      kernel.source.wgsl &&
+      !unfilterableTextures &&
+      (!instructions || (instructions.length === 1 && typeof instructions[0] === "string"))
+    ) {
+      return kernel.source.wgsl;
+    }
+    const webgpuCompiler = this._engine._webGPUShaderCompiler;
+    if (!webgpuCompiler?.compileWebGPUComputeVariant) {
+      throw new Error("This engine was created without a WebGPU shader compiler.");
+    }
+    if (!instructions) {
+      if (kernel.source.wgsl) return kernel.source.wgsl;
+      throw new Error(`ComputeShader "${this.name}" kernel "${kernel.name}" is missing WGSL instructions.`);
+    }
     const macros = new Map(ShaderMacroProcessor._defaultWebGPUMacros);
     const enabled = data.getMacros();
     for (let i = 0; i < enabled.length; i++) {
       const m = enabled[i];
       macros.set(m.name, m.value ?? "");
-    }
-    const instructions = kernel.source.wgslComputeInstructions;
-    if (!instructions) {
-      if (kernel.source.wgsl) return kernel.source.wgsl;
-      throw new Error(`ComputeShader "${this.name}" kernel "${kernel.name}" is missing WGSL instructions.`);
     }
     const evaluated = ShaderMacroProcessor.evaluate(instructions, macros);
     const rhi = this._engine._hardwareRenderer;
@@ -277,7 +322,7 @@ export class ComputeShader {
       if (fromMacro !== undefined && /^-?\d+$/.test(fromMacro.trim())) return Number(fromMacro.trim());
       return rhi.resolveShaderConstant(name);
     };
-    return webgpuCompiler.compileWebGPUComputeVariant!(evaluated, {
+    return webgpuCompiler.compileWebGPUComputeVariant(evaluated, {
       uniformBlocks: kernel.source.uniformBlocks,
       workgroupSize: kernel.source.workgroupSize,
       resolveConstant,

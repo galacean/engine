@@ -23,7 +23,13 @@ export type {
 export * from "./ShaderInstancing";
 export * from "./ShaderUniformVariant";
 export { shaderConstant, type ShaderConstant } from "./ShaderConstant";
-export type { IPrecompiledShader, IPrecompiledSubShader, IPrecompiledPass } from "./IPrecompiledShader";
+export type {
+  IPrecompiledShader,
+  IPrecompiledSubShader,
+  IPrecompiledPass,
+  IPrecompiledComputeShader,
+  IPrecompiledComputeKernel
+} from "./IPrecompiledShader";
 export type {
   IShaderProgramSource as IShaderInfo,
   IShaderUniformBlock,

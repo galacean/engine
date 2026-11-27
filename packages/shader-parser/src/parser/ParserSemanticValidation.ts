@@ -145,13 +145,19 @@ export class ParserSemanticValidation {
       let sharedReason: string | undefined;
       for (const symbol of symbols) {
         if (!(symbol instanceof VarSymbol)) return;
+        const storageBlock =
+          symbol.astNode instanceof ASTNode.VariableDeclaration ? symbol.astNode.storageBlock : undefined;
         const reason = symbol.isConst
           ? "a const-qualified variable"
           : TypeSystem.isSamplerType(symbol.dataType?.type)
             ? "a sampler"
-            : symbol.isUniform
-              ? "a uniform variable"
-              : undefined;
+            : storageBlock
+              ? storageBlock.readonly
+                ? "a readonly storage buffer"
+                : undefined
+              : symbol.isUniform
+                ? "a uniform variable"
+                : undefined;
         if (!reason) return;
         if (sharedReason && sharedReason !== reason) return "a non-modifiable variable";
         sharedReason = reason;

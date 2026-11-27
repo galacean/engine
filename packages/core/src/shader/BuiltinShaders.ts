@@ -1,4 +1,4 @@
-import type { IPrecompiledShader } from "@galacean/engine-design";
+import type { IPrecompiledComputeShader, IPrecompiledShader } from "@galacean/engine-design";
 import { Shader } from "./Shader";
 
 /**
@@ -6,6 +6,7 @@ import { Shader } from "./Shader";
  */
 export interface BuiltinShaders {
   readonly byName: Readonly<Record<string, Shader>>;
+  readonly computeByName: Readonly<Record<string, IPrecompiledComputeShader>>;
   readonly blit: Shader;
   readonly blitScreen: Shader;
   readonly pbr: Shader;
@@ -69,11 +70,23 @@ export interface BuiltinShaderSources {
   WindGpuFieldSource: IPrecompiledShader;
   WindGpuGroundResponseSource: IPrecompiledShader;
   WindGpuTreeResponseSource: IPrecompiledShader;
+  SunLensFlareVisibilityComputeSource?: IPrecompiledComputeShader;
+  RealtimeIBLProjectSHComputeSource?: IPrecompiledComputeShader;
+  ParticleSimulationComputeSource?: IPrecompiledComputeShader;
+  ParticleSubEmitterGatherComputeSource?: IPrecompiledComputeShader;
 }
 
 /** @internal Creates a catalog, resolving common passes before material shaders. */
 export function createBuiltinShaders(sources: BuiltinShaderSources): BuiltinShaders {
   const byName: Record<string, Shader> = Object.create(null);
+  const computeByName: Record<string, IPrecompiledComputeShader> = Object.create(null);
+  const registerCompute = (source?: IPrecompiledComputeShader): void => {
+    if (source) computeByName[source.name] = source;
+  };
+  registerCompute(sources.SunLensFlareVisibilityComputeSource);
+  registerCompute(sources.RealtimeIBLProjectSHComputeSource);
+  registerCompute(sources.ParticleSimulationComputeSource);
+  registerCompute(sources.ParticleSubEmitterGatherComputeSource);
   const create = (source: IPrecompiledShader): Shader =>
     (byName[source.name] = Shader._createFromPrecompiled(source, byName));
   // Material shaders resolve UsePass references during creation
@@ -97,6 +110,7 @@ export function createBuiltinShaders(sources: BuiltinShaderSources): BuiltinShad
 
   return {
     byName,
+    computeByName,
     screenSpaceReflection: create(sources.ScreenSpaceReflectionSource),
     blit: create(sources.BlitSource),
     blitScreen: create(sources.BlitScreenSource),

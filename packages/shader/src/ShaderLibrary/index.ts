@@ -60,6 +60,7 @@ import PostProcess_FinalAntiAliasing from "./PostProcess/FinalAntiAliasing.glsl"
 import PostProcess_FinalSRGB from "./PostProcess/FinalSRGB.glsl";
 import PostProcess_PostCommon from "./PostProcess/PostCommon.glsl";
 import PostProcess_SunLensFlare from "./PostProcess/SunLensFlare.glsl";
+import PostProcess_SunLensFlareVisibilityCore from "./PostProcess/SunLensFlareVisibilityCore.glsl";
 import PostProcess_Tonemapping_ACES_ColorTransform from "./PostProcess/Tonemapping/ACES/ColorTransform.glsl";
 import PostProcess_Tonemapping_ACES_ODT from "./PostProcess/Tonemapping/ACES/ODT.glsl";
 import PostProcess_Tonemapping_ACES_RRT from "./PostProcess/Tonemapping/ACES/RRT.glsl";
@@ -134,6 +135,7 @@ export const shaderLibrary: IShaderSource[] = [
   { source: PostProcess_FinalSRGB, path: "ShaderLibrary/PostProcess/FinalSRGB.glsl" },
   { source: PostProcess_PostCommon, path: "ShaderLibrary/PostProcess/PostCommon.glsl" },
   { source: PostProcess_SunLensFlare, path: "ShaderLibrary/PostProcess/SunLensFlare.glsl" },
+  { source: PostProcess_SunLensFlareVisibilityCore, path: "ShaderLibrary/PostProcess/SunLensFlareVisibilityCore.glsl" },
   { source: PostProcess_Tonemapping_ACES_ColorTransform, path: "ShaderLibrary/PostProcess/Tonemapping/ACES/ColorTransform.glsl" },
   { source: PostProcess_Tonemapping_ACES_ODT, path: "ShaderLibrary/PostProcess/Tonemapping/ACES/ODT.glsl" },
   { source: PostProcess_Tonemapping_ACES_RRT, path: "ShaderLibrary/PostProcess/Tonemapping/ACES/RRT.glsl" },

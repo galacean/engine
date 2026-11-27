@@ -28,14 +28,7 @@ struct FlareQuadVaryings {
 	float v_radius;
 };
 
-// Pass 0 (Transform Feedback, ShaderDataGroup.Renderer):
-highp sampler2D renderer_SunLensFlareDepthTexture;
-// xy: scale from screen UV to depth texture UV, zw: offset
-vec4 renderer_SunLensFlareDepthRect;
-// x: sunU, y: sunV, z: aspectRatio, w: diskSampleRadiusY
-vec4 renderer_SunLensFlareVisibilityParams0;
-// x: depthSkyThreshold, y: temporalBlendFactor, z: unused, w: unused
-vec4 renderer_SunLensFlareVisibilityParams1;
+#include "ShaderLibrary/PostProcess/SunLensFlareVisibilityCore.glsl"
 
 // Pass 1 (Instanced Additive Quads, ShaderDataGroup.Material):
 // x: sunU, y: sunV, z: effectiveIntensity, w: aspectRatio
@@ -46,45 +39,6 @@ vec4 material_SunLensFlareParams1;
 vec4 material_SunLensFlareTint;
 // < 0.0: read a_SunVisibility from Transform Feedback VBO; >= 0.0: use this value directly (occlusion disabled / WebGL1)
 float material_SunLensFlareVisibilityOverride;
-
-#if defined(GRAPHICS_API_WEBGL2) || defined(GRAPHICS_API_WEBGPU)
-	vec2 toSunLensFlareDepthUv(vec2 screenUv, vec4 depthRect) {
-		vec2 clampedScreen = clamp(screenUv, vec2(0.002), vec2(0.998));
-		return clamp(clampedScreen * depthRect.xy + depthRect.zw, vec2(0.002), vec2(0.998));
-	}
-
-	// 9-tap solar disk visibility executed on 1 single vertex in Transform Feedback (RASTERIZER_DISCARD, zero FBO pass).
-	float sampleSunLensFlareVisibilityTf(vec2 sunUv, float aspectRatio, float radiusY, float skyThreshold, vec4 depthRect) {
-		vec2 r = vec2(radiusY / max(aspectRatio, 0.0001), radiusY);
-		vec2 d = r * 0.70710678;
-
-		float vis = 0.0;
-		highp float depth;
-
-		depth = textureLod(renderer_SunLensFlareDepthTexture, toSunLensFlareDepthUv(sunUv, depthRect), 0.0).r;
-		vis += step(skyThreshold, depth) * 2.0;
-
-		depth = textureLod(renderer_SunLensFlareDepthTexture, toSunLensFlareDepthUv(sunUv + vec2(r.x, 0.0), depthRect), 0.0).r;
-		vis += step(skyThreshold, depth);
-		depth = textureLod(renderer_SunLensFlareDepthTexture, toSunLensFlareDepthUv(sunUv - vec2(r.x, 0.0), depthRect), 0.0).r;
-		vis += step(skyThreshold, depth);
-		depth = textureLod(renderer_SunLensFlareDepthTexture, toSunLensFlareDepthUv(sunUv + vec2(0.0, r.y), depthRect), 0.0).r;
-		vis += step(skyThreshold, depth);
-		depth = textureLod(renderer_SunLensFlareDepthTexture, toSunLensFlareDepthUv(sunUv - vec2(0.0, r.y), depthRect), 0.0).r;
-		vis += step(skyThreshold, depth);
-
-		depth = textureLod(renderer_SunLensFlareDepthTexture, toSunLensFlareDepthUv(sunUv + d, depthRect), 0.0).r;
-		vis += step(skyThreshold, depth);
-		depth = textureLod(renderer_SunLensFlareDepthTexture, toSunLensFlareDepthUv(sunUv - d, depthRect), 0.0).r;
-		vis += step(skyThreshold, depth);
-		depth = textureLod(renderer_SunLensFlareDepthTexture, toSunLensFlareDepthUv(sunUv + vec2(d.x, -d.y), depthRect), 0.0).r;
-		vis += step(skyThreshold, depth);
-		depth = textureLod(renderer_SunLensFlareDepthTexture, toSunLensFlareDepthUv(sunUv + vec2(-d.x, d.y), depthRect), 0.0).r;
-		vis += step(skyThreshold, depth);
-
-		return vis * 0.1;
-	}
-#endif
 
 // Pass 0: 1-vertex Transform Feedback temporal visibility update (no FBO, no CPU readback).
 VisibilityTfVaryings visibilityTfVert(VisibilityTfAttributes attr) {

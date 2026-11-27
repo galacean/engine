@@ -191,39 +191,18 @@ export class SunLensFlareEffect extends PostProcessEffect {
   }
 }
 
-const SUN_LENS_FLARE_VISIBILITY_COMPUTE_SOURCE = `ComputeShader "PostProcess/SunLensFlareVisibilityCompute" {
-  WorkgroupSize = (1, 1, 1);
-  ComputeKernel = csMain;
-
-  #include "ShaderLibrary/PostProcess/SunLensFlare.glsl"
-
-  readonly storage PrevVisibilityBuf {
-    float prevVis[];
-  };
-
-  storage NextVisibilityBuf {
-    float nextVis[];
-  };
-
-  void csMain() {
-    float rawVis = sampleSunLensFlareVisibilityTf(
-      renderer_SunLensFlareVisibilityParams0.xy,
-      renderer_SunLensFlareVisibilityParams0.z,
-      renderer_SunLensFlareVisibilityParams0.w,
-      renderer_SunLensFlareVisibilityParams1.x,
-      renderer_SunLensFlareDepthRect
-    );
-    float blendFactor = clamp(renderer_SunLensFlareVisibilityParams1.y, 0.0, 1.0);
-    nextVis[0] = mix(prevVis[0], rawVis, blendFactor);
-  }
-}`;
+const SUN_LENS_FLARE_VISIBILITY_COMPUTE_NAME = "PostProcess/SunLensFlareVisibilityCompute";
 
 const sunLensFlareComputeCache = new WeakMap<Engine, ComputeShader>();
 
 function getOrCreateVisibilityComputeShader(engine: Engine): ComputeShader {
   let cs = sunLensFlareComputeCache.get(engine);
   if (!cs || cs.destroyed) {
-    cs = ComputeShader.create(SUN_LENS_FLARE_VISIBILITY_COMPUTE_SOURCE, engine);
+    const precompiled = engine._builtinShaders.computeByName[SUN_LENS_FLARE_VISIBILITY_COMPUTE_NAME];
+    if (!precompiled) {
+      throw new Error(`Built-in ComputeShader "${SUN_LENS_FLARE_VISIBILITY_COMPUTE_NAME}" is not registered.`);
+    }
+    cs = ComputeShader.createFromPrecompiled(precompiled, engine);
     sunLensFlareComputeCache.set(engine, cs);
     engine.once(EngineEventType.Shutdown, () => {
       if (sunLensFlareComputeCache.get(engine) === cs) {
