@@ -1,0 +1,29 @@
+packages/shader-compiler/src/codeGen/WGSLTypes.ts
+  s_c72f930c19d1f3::t_083b348923b32f 56-57,105-163,207-212,368-371
+packages/shader-parser/src/ir/ShaderBuiltinSemantic.ts
+  s_c72f930c19d1f3::t_de9caffe131485 19-23
+packages/shader-parser/src/lalr/CFG.ts
+  s_c72f930c19d1f3::t_e7b996ddb41f05 23-24,53-90,272-277,333-343
+packages/shader-parser/src/parser/ShaderInfo.ts
+  s_c72f930c19d1f3::t_6106188846c188 5,50-52
+packages/shader-parser/src/parser/builtin/functions.ts
+  s_c72f930c19d1f3::t_97d24921f56283 811-850
+packages/shader-parser/src/parser/builtin/variables.ts
+  s_c72f930c19d1f3::t_2c63a91ec941ee 74-104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8b407006812126eed00dc4a3264434cef286da15",
+  "prompts": {},
+  "sessions": {
+    "s_c72f930c19d1f3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21604-5ead-7042-b751-c18d1813c1a0",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
