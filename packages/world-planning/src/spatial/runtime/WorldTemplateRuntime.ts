@@ -1526,6 +1526,7 @@ export class WorldTemplateRuntime {
           }
           if (hasBoughWind) {
             configureProceduralPlantWindMaterial(material, true);
+            data.enableMacro("MATERIAL_WIND_GROUP_SWAY");
             data.setFloat("material_ProceduralTreeHeight", crownHeight);
             // Smooth bough-coherent sway (0.36 Hz ~ 2.8s period) matching the procedural flowers/grass.
             data.setVector4("material_ProceduralTreeWindParams", new Vector4(0.01, 0.26, 0.048, 0.36));
