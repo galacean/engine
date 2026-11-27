@@ -411,6 +411,9 @@ material_Water_renderState_blendMode("material_Water_renderState_blendMode", Enu
         vec3 objectPosition;
         vec2 meshUv;
         vec3 tangentWS;
+#if defined(SCENE_VOLUMETRIC_CLOUD_SHADOW) && !defined(RENDERER_WORLD_PICK)
+        float cloudShadow;
+#endif
         vec4 clipPosition;
       };
 
@@ -1725,6 +1728,9 @@ vec3 evaluateRiverFlowNormalWS(vec2 motion, float halfWidth, float localSpeed, v
         output.objectPosition = geometry.localPosition.xyz;
         output.meshUv = attr.TEXCOORD_0;
         output.tangentWS = geometry.worldTangent;
+#if defined(SCENE_VOLUMETRIC_CLOUD_SHADOW) && !defined(RENDERER_WORLD_PICK)
+        output.cloudShadow = sampleVolumetricCloudShadow(geometry.worldPosition.xyz);
+#endif
         output.clipPosition = geometry.clipPosition;
         return output;
       }
@@ -1942,9 +1948,14 @@ vec3 evaluateRiverFlowNormalWS(vec2 motion, float halfWidth, float localSpeed, v
         float sunlightAvailable = step(0.000001, sunlightDirectionLengthSquared);
         vec3 lightDirection = sunlightDirectionVector / max(sqrt(sunlightDirectionLengthSquared), 0.000001);
         float directShadow = 1.0;
+#if defined(SCENE_VOLUMETRIC_CLOUD_SHADOW) && !defined(RENDERER_WORLD_PICK)
+        float cloudShadowAttenuation = input.cloudShadow;
+#else
+        float cloudShadowAttenuation = 1.0;
+#endif
         vec3 sunlightColor = max(scene_SunlightColor.rgb, vec3(0.0)) * directShadow
           * sunlightAvailable
-          * sampleVolumetricCloudShadow(input.worldPosition);
+          * cloudShadowAttenuation;
         vec3 halfDirection = safeNormalize3(viewDirection + lightDirection, lightDirection);
         float normalDotLight = saturate(dot(surfaceNormalWS, lightDirection));
         float normalDotHalf = saturate(dot(surfaceNormalWS, halfDirection));

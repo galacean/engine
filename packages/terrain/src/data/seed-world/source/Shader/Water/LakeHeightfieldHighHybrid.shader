@@ -233,6 +233,9 @@ Shader "AIWorld/HeightfieldWaterSurfaceAppearanceV2ed93d4a81a01602dHybridHigh0" 
         float waveOffset;
         float surfaceEyeDepth;
         float shoreDamping;
+#if defined(SCENE_VOLUMETRIC_CLOUD_SHADOW) && !defined(RENDERER_WORLD_PICK)
+        float cloudShadow;
+#endif
         vec4 clipPosition;
       };
 
@@ -1418,7 +1421,7 @@ vec4 waterSurfaceOutputWithPick(vec4 color) {
       }
 
       void evaluateWaterSurfaceDirectionalLighting(
-        vec3 positionWS,
+        float cloudShadowAttenuation,
         vec3 normalWS,
         vec3 viewDirection,
         float normalDotView,
@@ -1445,7 +1448,7 @@ vec4 waterSurfaceOutputWithPick(vec4 color) {
                 lightDirection *= inversesqrt(lightDirectionLengthSquared);
                 float lightAttenuation = 1.0;
                 if (lightIndex == 0) {
-                  lightAttenuation *= sampleVolumetricCloudShadow(positionWS);
+                  lightAttenuation *= cloudShadowAttenuation;
                 }
                 vec3 lightRadiance = max(directionalLight.color, vec3(0.0)) * lightAttenuation;
                 float normalDotLight = saturate(dot(normalWS, lightDirection));
@@ -1655,6 +1658,9 @@ vec3 waterConnectionNormal(vec2 p, vec3 normal) {
         output.waveOffset = waveOffset;
         output.surfaceEyeDepth = -(camera_ViewMat * vec4(displacedWorldPosition, 1.0)).z;
         output.shoreDamping = shoreDamping;
+#if defined(SCENE_VOLUMETRIC_CLOUD_SHADOW) && !defined(RENDERER_WORLD_PICK)
+        output.cloudShadow = sampleVolumetricCloudShadow(displacedWorldPosition);
+#endif
         output.clipPosition = computedClipPosition;
         return output;
       }
@@ -2042,8 +2048,13 @@ float waterSurface_waveCrest = max(input.waveOffset, 0.0);
 
         vec3 directDiffuseRadiance = vec3(0.0);
         vec3 directSpecularRadiance = vec3(0.0);
+#if defined(SCENE_VOLUMETRIC_CLOUD_SHADOW) && !defined(RENDERER_WORLD_PICK)
+        float cloudShadowAttenuation = input.cloudShadow;
+#else
+        float cloudShadowAttenuation = 1.0;
+#endif
         evaluateWaterSurfaceDirectionalLighting(
-          input.worldPosition,
+          cloudShadowAttenuation,
           surfaceNormalWS,
           viewDirection,
           normalDotView,

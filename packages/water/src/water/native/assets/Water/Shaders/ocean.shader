@@ -387,6 +387,9 @@ vec4 waterOceanApplySceneFog(vec4 color, vec3 positionVS) {
         vec4 clipPosition;
         float waveOffsetY;
         float lod;
+#if defined(SCENE_VOLUMETRIC_CLOUD_SHADOW) && !defined(RENDERER_WORLD_PICK)
+        float cloudShadow;
+#endif
       };
 
 #ifndef WATER_ENVIRONMENT_REFLECTION_INCLUDED
@@ -1946,6 +1949,9 @@ float waterConnectionShore(vec2 p, float original) {
         output.clipPosition = camera_VPMat * worldPosition4;
         output.waveOffsetY = offset.y;
         output.lod = renderer_OceanLod;
+#if defined(SCENE_VOLUMETRIC_CLOUD_SHADOW) && !defined(RENDERER_WORLD_PICK)
+        output.cloudShadow = sampleVolumetricCloudShadow(worldPosition4.xyz);
+#endif
         gl_Position = output.clipPosition;
         return output;
       }
@@ -2362,7 +2368,11 @@ gl_FragColor = waterSurfaceOutputWithPick(farWaterClosure);
         float sunlightAvailable = step(0.00000001, dot(lightDirectionVector, lightDirectionVector));
         vec3 lightDirection = safeNormalize3(lightDirectionVector, vec3(0.0, 1.0, 0.0));
         vec3 unshadowedSunlightColor = max(scene_SunlightColor.rgb, vec3(0.0)) * sunlightAvailable;
-        float cloudShadowAttenuation = sampleVolumetricCloudShadow(input.worldPosition);
+#if defined(SCENE_VOLUMETRIC_CLOUD_SHADOW) && !defined(RENDERER_WORLD_PICK)
+        float cloudShadowAttenuation = input.cloudShadow;
+#else
+        float cloudShadowAttenuation = 1.0;
+#endif
         vec3 sunlightColor = unshadowedSunlightColor * cloudShadowAttenuation;
         vec3 diffuseNormal = safeNormalize3(
           mix(macroNormal, detailNormal, material_OceanNormalParameters.x),

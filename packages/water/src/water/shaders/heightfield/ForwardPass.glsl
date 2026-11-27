@@ -104,6 +104,9 @@
         float waveOffset;
         float surfaceEyeDepth;
         float shoreDamping;
+#if defined(SCENE_VOLUMETRIC_CLOUD_SHADOW) && !defined(RENDERER_WORLD_PICK)
+        float cloudShadow;
+#endif
         vec4 clipPosition;
       };
 
@@ -171,6 +174,9 @@
         output.waveOffset = waveOffset;
         output.surfaceEyeDepth = -(camera_ViewMat * vec4(displacedWorldPosition, 1.0)).z;
         output.shoreDamping = shoreDamping;
+#if defined(SCENE_VOLUMETRIC_CLOUD_SHADOW) && !defined(RENDERER_WORLD_PICK)
+        output.cloudShadow = sampleVolumetricCloudShadow(displacedWorldPosition);
+#endif
         output.clipPosition = computedClipPosition;
         return output;
       }

@@ -1,7 +1,12 @@
         vec3 directDiffuseRadiance = vec3(0.0);
         vec3 directSpecularRadiance = vec3(0.0);
+#if defined(SCENE_VOLUMETRIC_CLOUD_SHADOW) && !defined(RENDERER_WORLD_PICK)
+        float cloudShadowAttenuation = input.cloudShadow;
+#else
+        float cloudShadowAttenuation = 1.0;
+#endif
         evaluateWaterSurfaceDirectionalLighting(
-          input.worldPosition,
+          cloudShadowAttenuation,
           surfaceNormalWS,
           viewDirection,
           normalDotView,

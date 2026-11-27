@@ -872,6 +872,51 @@ describe("Water P0 + P1 performance optimizations", () => {
     expect(nearShaderc).toContain("0.9999");
     expect(farShaderc).toContain("outsideAtlas < 0.5");
     expect(farShaderc).toContain("textureLod ( material_NearshoreTexture");
+
+    // Verify volumetric cloud shadow is hoisted from frag to vert across Lake, River, and Ocean (matching Terrain/Surface).
+    for (const [label, source] of [
+      ["lake.shader", lakeShaderSource],
+      ["river.shader", riverShaderSource],
+      ["ocean.shader", oceanShaderSource],
+      ["LakeHeightfieldHighHybrid.shader", lakeAotShaderSource],
+      ["OceanNearDetailed.shader", oceanNearAotShaderSource]
+    ] as const) {
+      const vertIdx = source.indexOf("Varyings vert(");
+      const fragIdx = source.indexOf("void frag(Varyings input)");
+      expect(vertIdx, `${label}: vert entry`).toBeGreaterThan(-1);
+      expect(fragIdx, `${label}: frag entry`).toBeGreaterThan(vertIdx);
+      const vertBody = source.slice(vertIdx, fragIdx);
+      const fragBody = source.slice(fragIdx);
+      expect(vertBody, `${label}: vert evaluates sampleVolumetricCloudShadow`).toContain(
+        "output.cloudShadow = sampleVolumetricCloudShadow("
+      );
+      expect(fragBody, `${label}: frag does not call sampleVolumetricCloudShadow`).not.toContain(
+        "sampleVolumetricCloudShadow("
+      );
+      expect(fragBody, `${label}: frag reads hoisted input.cloudShadow`).toContain("input.cloudShadow");
+    }
+
+    for (const [label, rawJson] of [
+      ["lake-heightfield-high-hybrid-v2.shaderc", lakeShaderc],
+      ["ocean-near-detailed.shaderc", nearShaderc]
+    ] as const) {
+      const parsed = JSON.parse(rawJson) as {
+        subShaders: Array<{
+          passes: Array<{ vertexShaderInstructions: unknown; fragmentShaderInstructions: unknown }>;
+        }>;
+      };
+      const forwardPass = parsed.subShaders[0]!.passes[0]!;
+      const vsText = JSON.stringify(forwardPass.vertexShaderInstructions);
+      const fsText = JSON.stringify(forwardPass.fragmentShaderInstructions);
+      expect(vsText, `${label}: VS contains sampleVolumetricCloudShadow`).toContain("sampleVolumetricCloudShadow");
+      expect(vsText, `${label}: VS contains scene_VolumetricCloudShadowTexture`).toContain(
+        "scene_VolumetricCloudShadowTexture"
+      );
+      expect(fsText, `${label}: FS strips sampleVolumetricCloudShadow`).not.toContain("sampleVolumetricCloudShadow");
+      expect(fsText, `${label}: FS strips scene_VolumetricCloudShadowTexture`).not.toContain(
+        "scene_VolumetricCloudShadowTexture"
+      );
+    }
   });
 
   it("validates 4-element heightfield vertex layout before skipping setVertexElements", async () => {
@@ -1540,16 +1585,22 @@ describe("Water P0 + P1 performance optimizations", () => {
       shaderCompiler: new ShaderCompiler()
     });
     const lakeShader = Shader.create(lakeShaderSource.replace("Water/Lake.v1", "WaterMacroPruneTest/Lake"));
+    const riverShader = Shader.create(riverShaderSource.replace("Water/River.v1", "WaterMacroPruneTest/River"));
     const oceanShader = Shader.create(oceanShaderSource.replace("Water/Ocean.v1", "WaterMacroPruneTest/Ocean"));
     try {
       const lakeForwardPass = lakeShader.subShaders[0].passes[0];
       const lakeSsrPass = lakeShader.subShaders[0].passes[1];
+      const riverForwardPass = riverShader.subShaders[0].passes[0];
       const oceanForwardPass = oceanShader.subShaders[0].passes[0];
 
-      const makeMacros = (names: readonly string[]) => {
+      const makeMacros = (names: readonly (string | readonly [string, string])[]) => {
         const collection = new ShaderMacroCollection();
         collection.enable(ShaderMacro.getByName("GRAPHICS_API_WEBGL2"));
-        for (const name of names) collection.enable(ShaderMacro.getByName(name));
+        for (const entry of names) {
+          collection.enable(
+            typeof entry === "string" ? ShaderMacro.getByName(entry) : ShaderMacro.getByName(entry[0], entry[1])
+          );
+        }
         return collection;
       };
 
@@ -1563,7 +1614,37 @@ describe("Water P0 + P1 performance optimizations", () => {
         makeMacros(["SCENE_SURFACE_CLIMATE_DRY", "CAMERA_ENABLE_SSR"])
       );
       const lakeSsrReceiverDry = lakeSsrPass._getShaderProgram(engine, makeMacros(["SCENE_SURFACE_CLIMATE_DRY"]));
+      const lakeCloudShadow = lakeForwardPass._getShaderProgram(
+        engine,
+        makeMacros(["SCENE_SURFACE_CLIMATE_DRY", ["SCENE_DIRECT_LIGHT_COUNT", "1"], "SCENE_VOLUMETRIC_CLOUD_SHADOW"])
+      );
+      const lakeCloudShadowPick = lakeForwardPass._getShaderProgram(
+        engine,
+        makeMacros([
+          "SCENE_SURFACE_CLIMATE_DRY",
+          ["SCENE_DIRECT_LIGHT_COUNT", "1"],
+          "SCENE_VOLUMETRIC_CLOUD_SHADOW",
+          "RENDERER_WORLD_PICK"
+        ])
+      );
+      const riverSteady = riverForwardPass._getShaderProgram(engine, makeMacros([]));
+      const riverCloudShadow = riverForwardPass._getShaderProgram(
+        engine,
+        makeMacros(["SCENE_VOLUMETRIC_CLOUD_SHADOW"])
+      );
+      const riverCloudShadowPick = riverForwardPass._getShaderProgram(
+        engine,
+        makeMacros(["SCENE_VOLUMETRIC_CLOUD_SHADOW", "RENDERER_WORLD_PICK"])
+      );
       const oceanSteady = oceanForwardPass._getShaderProgram(engine, makeMacros([]));
+      const oceanCloudShadow = oceanForwardPass._getShaderProgram(
+        engine,
+        makeMacros(["SCENE_VOLUMETRIC_CLOUD_SHADOW"])
+      );
+      const oceanCloudShadowPick = oceanForwardPass._getShaderProgram(
+        engine,
+        makeMacros(["SCENE_VOLUMETRIC_CLOUD_SHADOW", "RENDERER_WORLD_PICK"])
+      );
       const oceanWithSecondary = oceanForwardPass._getShaderProgram(
         engine,
         makeMacros(["MATERIAL_WATER_SECONDARY_ENVIRONMENT_REFLECTION", "MATERIAL_WATER_ENVIRONMENT_BOX_PROJECTION"])
@@ -1573,8 +1654,32 @@ describe("Water P0 + P1 performance optimizations", () => {
       expect(lakeDrySteady.isValid).toBe(true);
       expect(lakeDrySsr.isValid).toBe(true);
       expect(lakeSsrReceiverDry.isValid).toBe(true);
+      expect(lakeCloudShadow.isValid).toBe(true);
+      expect(lakeCloudShadowPick.isValid).toBe(true);
+      expect(riverSteady.isValid).toBe(true);
+      expect(riverCloudShadow.isValid).toBe(true);
+      expect(riverCloudShadowPick.isValid).toBe(true);
       expect(oceanSteady.isValid).toBe(true);
+      expect(oceanCloudShadow.isValid).toBe(true);
+      expect(oceanCloudShadowPick.isValid).toBe(true);
       expect(oceanWithSecondary.isValid).toBe(true);
+
+      // Volumetric cloud shadow is evaluated in VS, so enabling SCENE_VOLUMETRIC_CLOUD_SHADOW adds
+      // 0 fragment texture units (activeTextureCount) while binding 2 vertex texture units (_activeTextureUint),
+      // and RENDERER_WORLD_PICK skips the VS cloud-shadow fetch as well.
+      const totalTextureUnits = (program: { activeTextureCount: number }) =>
+        (program as unknown as { _activeTextureUint: number })._activeTextureUint;
+      expect(lakeCloudShadow.activeTextureCount).toBe(lakeDrySteady.activeTextureCount);
+      expect(totalTextureUnits(lakeCloudShadow) - totalTextureUnits(lakeDrySteady)).toBe(2);
+      expect(totalTextureUnits(lakeCloudShadowPick)).toBeLessThan(totalTextureUnits(lakeCloudShadow));
+
+      expect(riverCloudShadow.activeTextureCount).toBe(riverSteady.activeTextureCount);
+      expect(totalTextureUnits(riverCloudShadow) - totalTextureUnits(riverSteady)).toBe(2);
+      expect(totalTextureUnits(riverCloudShadowPick)).toBeLessThan(totalTextureUnits(riverCloudShadow));
+
+      expect(oceanCloudShadow.activeTextureCount).toBe(oceanSteady.activeTextureCount);
+      expect(totalTextureUnits(oceanCloudShadow) - totalTextureUnits(oceanSteady)).toBe(2);
+      expect(totalTextureUnits(oceanCloudShadowPick)).toBeLessThan(totalTextureUnits(oceanCloudShadow));
 
       // Dry + no secondary cubemap saves 2 active fragment texture units on Lake (rain atlas + secondary cubemap),
       // and stays well within WebGL2's 16 guaranteed fragment texture units even with the baked 128x128 Voronoi LUT.
@@ -1668,6 +1773,7 @@ describe("Water P0 + P1 performance optimizations", () => {
       }
     } finally {
       lakeShader.destroy();
+      riverShader.destroy();
       oceanShader.destroy();
       engine.destroy();
     }

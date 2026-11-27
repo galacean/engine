@@ -25,7 +25,7 @@
       }
 
       void evaluateWaterSurfaceDirectionalLighting(
-        vec3 positionWS,
+        float cloudShadowAttenuation,
         vec3 normalWS,
         vec3 viewDirection,
         float normalDotView,
@@ -52,7 +52,7 @@
                 lightDirection *= inversesqrt(lightDirectionLengthSquared);
                 float lightAttenuation = 1.0;
                 if (lightIndex == 0) {
-                  lightAttenuation *= sampleVolumetricCloudShadow(positionWS);
+                  lightAttenuation *= cloudShadowAttenuation;
                 }
                 vec3 lightRadiance = max(directionalLight.color, vec3(0.0)) * lightAttenuation;
                 float normalDotLight = saturate(dot(normalWS, lightDirection));
