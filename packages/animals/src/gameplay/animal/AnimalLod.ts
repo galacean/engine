@@ -1,6 +1,59 @@
 /** The three geometry levels; null means no renderer submission. */
 export type AnimalLodLevel = 0 | 1 | 2 | null;
 
+/** Screen-relative skeletal animation frequency LOD settings (global default + per-template override). */
+export interface AnimalAnimationLodConfig {
+  /** Whether screen-coverage skeletal animation frequency decimation is enabled. */
+  enabled: boolean;
+  /** Strictly decreasing screen-height ratio thresholds [LOD0, LOD1, LOD2] (e.g. [0.12, 0.06, 0.03]). */
+  screenRelativeTransitionHeights: readonly [number, number, number];
+  /** Target skeletal evaluation rates in Hz for [LOD0, LOD1, LOD2, below-LOD2] (e.g. [30, 15, 10, 7.5]). */
+  ratesHz: readonly [number, number, number, number];
+}
+
+/** Global defaults for screen-relative animal skeletal animation LOD. */
+export const DEFAULT_ANIMAL_ANIMATION_LOD: Readonly<AnimalAnimationLodConfig> = Object.freeze({
+  enabled: true,
+  screenRelativeTransitionHeights: Object.freeze([0.12, 0.06, 0.03] as const),
+  ratesHz: Object.freeze([30, 15, 10, 7.5] as const)
+});
+
+/** Resolve and validate sparse global or per-template animal animation LOD settings. */
+export function animalAnimationLodConfig(input?: Partial<AnimalAnimationLodConfig>): AnimalAnimationLodConfig {
+  const enabled = input?.enabled ?? DEFAULT_ANIMAL_ANIMATION_LOD.enabled;
+  const heights =
+    input?.screenRelativeTransitionHeights ?? DEFAULT_ANIMAL_ANIMATION_LOD.screenRelativeTransitionHeights;
+  const rates = input?.ratesHz ?? DEFAULT_ANIMAL_ANIMATION_LOD.ratesHz;
+  if (
+    typeof enabled !== "boolean" ||
+    !Array.isArray(heights) ||
+    heights.length !== 3 ||
+    !heights.every((v) => Number.isFinite(v) && v > 0 && v <= 1) ||
+    !(heights[0] > heights[1] && heights[1] > heights[2])
+  ) {
+    throw new Error("Invalid animal animation LOD screenRelativeTransitionHeights");
+  }
+  if (!Array.isArray(rates) || rates.length !== 4 || !rates.every((v) => Number.isFinite(v) && v > 0)) {
+    throw new Error("Invalid animal animation LOD ratesHz");
+  }
+  return {
+    enabled,
+    screenRelativeTransitionHeights: [heights[0], heights[1], heights[2]],
+    ratesHz: [rates[0], rates[1], rates[2], rates[3]]
+  };
+}
+
+/** Convert a selected screen-coverage LOD level to a fixed-step skeletal update stride (1 = full baseHz). */
+export function animalAnimationLodStride(
+  level: AnimalLodLevel,
+  config: Readonly<AnimalAnimationLodConfig>,
+  baseHz = 30
+): number {
+  if (!config.enabled) return 1;
+  const hz = config.ratesHz[level ?? 3];
+  return Math.max(1, Math.round(baseHz / hz));
+}
+
 /**
  * Select one of three screen-relative LODs with 15% hysteresis around transitions.
  * @param height Projected reference diameter divided by viewport height.

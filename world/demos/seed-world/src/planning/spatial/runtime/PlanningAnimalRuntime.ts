@@ -13,7 +13,10 @@ import { FireflyPresenter } from "@galacean/engine-animals/gameplay/animal/Firef
 import type { Camera } from "@galacean/engine";
 import { querySeedAnimalCatalog, seedAnimalSpeciesId } from "./PlanningAnimalCatalog.ts";
 import { templateAnimalPopulation } from "@galacean/engine-world-planning/spatial/AnimalPopulationComponent";
-import { WORLD_TEMPLATE_ART } from "@galacean/engine-world-planning/spatial/WorldTemplateArtDirection";
+import {
+  templateAnimalAnimationLod,
+  WORLD_TEMPLATE_ART
+} from "@galacean/engine-world-planning/spatial/WorldTemplateArtDirection";
 import { PlanningAnimalSurfaceKind, type PlanningAnimalSurfaceData } from "./PlanningAnimalSurface.ts";
 import type { AnimalInstanceDocument } from "@galacean/engine-animals/gameplay/animal/AnimalInstanceDocument";
 import {
@@ -38,6 +41,13 @@ import {
   type ResolvedAnimalAsset
 } from "@galacean/engine-animals/gameplay/animal/AnimalAssetLibrary";
 import { ConfiguredAnimal } from "@galacean/engine-animals/gameplay/animal/ConfiguredAnimal";
+import {
+  animalAnimationLodConfig,
+  animalAnimationLodStride,
+  projectAnimalSize,
+  selectAnimalLod,
+  type AnimalLodLevel
+} from "@galacean/engine-animals/gameplay/animal/AnimalLod";
 import { animalCollisionRadius } from "@galacean/engine-animals/gameplay/animal/AnimalAssetCatalog";
 import { AnimalSystem } from "@galacean/engine-animals/gameplay/animal/AnimalSystem";
 import { GroundAnimalCrowd, type GroundAnimalBody } from "@galacean/engine-animals/gameplay/animal/GroundAnimalCrowd";
@@ -132,6 +142,7 @@ interface Actor {
   error?: string;
   nextApproach?: number;
   food?: FoodMemory;
+  animLodLevel?: AnimalLodLevel;
 }
 interface Population {
   root: Entity;
@@ -198,6 +209,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
   private sampleCount = 0;
   private sampleCursor = 0;
   private interaction = animalInteractionConfig();
+  private animationLod = animalAnimationLodConfig();
   private previousPlayer?: { x: number; z: number };
   private simulationAccumulator = 0;
   private readonly dynamicObstacles = new Map<string, readonly PlanningAnimalDynamicObstacle[]>();
@@ -248,6 +260,18 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
   ): void {
     validateAnimalPopulationConfig(config);
     this.interaction = animalInteractionConfig(config.interaction);
+    const templateId = plan.parameters.worldTemplate?.id;
+    const templateWildlife = templateAnimalPopulation(templateId);
+    this.animationLod = animalAnimationLodConfig({
+      ...templateAnimalAnimationLod(templateId),
+      ...config.animationLod
+    });
+    if (this.population) {
+      for (const actor of this.population.actors) {
+        actor.animLodLevel = undefined;
+        if (!this.animationLod.enabled) actor.animal?.setAnimationLod(1, actor.birth.seed & 0xff);
+      }
+    }
     void this.interactions.food?.refresh();
     if (this.disposed) return;
     this.enabled = config.enabled;
@@ -256,7 +280,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
       this.errors = [];
       return;
     }
-    const templateHomeRadius = templateAnimalPopulation(plan.parameters.worldTemplate?.id)?.homeRadius;
+    const templateHomeRadius = templateWildlife?.homeRadius;
     config = this.library.resolvePopulationConfig({
       ...config,
       homeRadius:
@@ -1101,8 +1125,19 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
         } finally {
           p.navigation.endAnimalUpdate?.();
         }
+        const observer = this.observer();
+        const camera =
+          this.interactions.fireflies?.camera ??
+          (
+            this.parent.scene as unknown as {
+              _componentsManager?: { _activeCameras?: { _elements?: Camera[] } };
+            }
+          )?._componentsManager?._activeCameras?._elements?.[0];
+        const verticalFov = camera?.fieldOfView ?? 45;
+        const orthoSize = camera?.isOrthographic ? camera.orthographicSize : undefined;
         for (const actor of p.active) {
           const position = actor.animal!.position;
+          this.updateActorAnimationLod(actor, observer.x, observer.y, observer.z, verticalFov, orthoSize);
           if (position.x !== actor.x || position.z !== actor.z) {
             actor.x = position.x;
             actor.z = position.z;
@@ -1175,7 +1210,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
       const animal = actor.animal;
       if (!animal?.visible) continue;
       const [min, max] = animal.bounds;
-      let near = 0,
+      let near = -Infinity,
         far = reach;
       for (let axis = 0; axis < 3; axis++) {
         const key = (["x", "y", "z"] as const)[axis],
@@ -1190,7 +1225,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
           far = Math.min(far, Math.max(a, b));
         }
       }
-      if (near <= far && near < nearest) {
+      if (near > 0 && near <= far && near < nearest) {
         nearest = near;
         chosen = actor;
       }
@@ -1406,6 +1441,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
           resolveMaterial: p.outlineEnabled ? this.resolveMaterial : this.resolvePlainMaterial,
           resolvePlainMaterial: this.resolvePlainMaterial,
           distantUpdateSeconds: DISTANT_ANIMAL_UPDATE_SECONDS,
+          shortHorizonGroundValidation: true,
           interactionArrivalRadius: () =>
             food.approaching?.appearance === "cart" && food.cart?.entering ? 0.06 : undefined,
           arrivedAtInteraction: (destination) =>
@@ -2056,6 +2092,38 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
     }
   }
 
+  private updateActorAnimationLod(
+    actor: Actor,
+    obsX: number,
+    obsY: number | undefined,
+    obsZ: number,
+    verticalFov: number,
+    orthoSize: number | undefined
+  ): void {
+    const animal = actor.animal;
+    if (!animal) return;
+    if (!this.animationLod.enabled) {
+      if (actor.animLodLevel !== 0) {
+        actor.animLodLevel = 0;
+        animal.setAnimationLod(1, actor.birth.seed & 0xff);
+      }
+      return;
+    }
+    const pos = animal.position;
+    const dx = pos.x - obsX;
+    const dy = obsY !== undefined ? pos.y - obsY : 0;
+    const dz = pos.z - obsZ;
+    const distance = Math.hypot(dx, dy, dz);
+    const projectedHeight = projectAnimalSize(animal.boundingRadius * 2, distance, verticalFov, orthoSize);
+    const prev: AnimalLodLevel = actor.animLodLevel === undefined ? 0 : actor.animLodLevel;
+    const next = selectAnimalLod(projectedHeight, this.animationLod.screenRelativeTransitionHeights, prev);
+    if (actor.animLodLevel === undefined || next !== prev) {
+      actor.animLodLevel = next;
+      const stride = animalAnimationLodStride(next, this.animationLod, 1 / ANIMAL_FIXED_STEP_SECONDS);
+      animal.setAnimationLod(stride, actor.birth.seed & 0xff);
+    }
+  }
+
   private releasePopulation(): void {
     this.previousPlayer = undefined;
     this.simulationAccumulator = 0;
@@ -2088,7 +2156,13 @@ function destroyPopulation(p: Population): void {
   p.queue.clear();
 }
 function populationKey(config: AnimalPopulationConfig): string {
-  return JSON.stringify({ ...config, activationDistance: 0, interaction: undefined, fireflies: undefined });
+  return JSON.stringify({
+    ...config,
+    activationDistance: 0,
+    interaction: undefined,
+    fireflies: undefined,
+    animationLod: undefined
+  });
 }
 function validAuthoringIdentity(value: unknown): value is string {
   return (

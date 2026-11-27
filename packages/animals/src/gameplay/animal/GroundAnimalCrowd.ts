@@ -730,7 +730,16 @@ export class GroundAnimalCrowd {
         copyMotion(s.forward, s.next);
         this._activeRecoveryBody = b;
         try {
-          recovered = s.recovery.advance(m, s.next, b.desiredSpeed, b.bodyLength, seconds, this._recoveryCanTraverse);
+          const targetHeading = Math.hypot(goalX, goalZ) > 1e-4 ? Math.atan2(goalX, goalZ) : undefined;
+          recovered = s.recovery.advance(
+            m,
+            s.next,
+            b.desiredSpeed,
+            b.bodyLength,
+            seconds,
+            this._recoveryCanTraverse,
+            targetHeading
+          );
         } finally {
           this._activeRecoveryBody = undefined;
         }
@@ -738,6 +747,7 @@ export class GroundAnimalCrowd {
         b.surfaceBlocked = !supported && !recovered;
         if (recovered) b.blocked = false;
       }
+      const pivoting = recovered && s.recovery.pivoting;
       const rawDx = !b.surfaceBlocked ? s.next.x - m.x : 0;
       const rawDz = !b.surfaceBlocked ? s.next.z - m.z : 0;
       let fraction = 1;
@@ -753,8 +763,8 @@ export class GroundAnimalCrowd {
       // Feed post-contact speeds into gait cadence so glancing or blocked contacts never
       // advance animation at full unclamped speed while the body barely moves.
       const cp = s.contactProposed;
-      if (!b.surfaceBlocked && fraction > 0) {
-        const contactTurn = rawDx !== 0 || rawDz !== 0 ? fraction : 0;
+      if (!b.surfaceBlocked && (fraction > 0 || pivoting)) {
+        const contactTurn = rawDx !== 0 || rawDz !== 0 ? fraction : pivoting ? 1 : 0;
         cp.x = m.x + rawDx * fraction;
         cp.z = m.z + rawDz * fraction;
         cp.heading = m.heading + (s.next.heading - m.heading) * contactTurn;
@@ -778,10 +788,10 @@ export class GroundAnimalCrowd {
       const appliedFraction = translationAllowed ? fraction * pose : 0;
       m.x += rawDx * appliedFraction;
       m.z += rawDz * appliedFraction;
-      const turningFraction = rawDx !== 0 || rawDz !== 0 ? appliedFraction : 0;
+      const turningFraction = rawDx !== 0 || rawDz !== 0 ? appliedFraction : pivoting && translationAllowed ? pose : 0;
       m.heading += (s.next.heading - m.heading) * turningFraction;
       // A partial terminal animation sample limits displacement, not the endpoint momentum.
-      m.angularSpeed = turningFraction > 0 ? s.next.angularSpeed * fraction : 0;
+      m.angularSpeed = turningFraction > 0 ? s.next.angularSpeed * (pivoting ? 1 : fraction) : 0;
       m.speed = translationAllowed ? s.next.speed * fraction : 0;
       b.arrived &&= translationAllowed && fraction === 1 && pose === 1;
       if (b.arrived) s.recovery.reset();

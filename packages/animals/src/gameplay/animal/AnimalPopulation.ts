@@ -1,5 +1,6 @@
 import { validateFireflySettings, type FireflySettings } from "./FireflyPopulation";
 import { animalInteractionConfig, type AnimalInteractionConfig } from "./AnimalInteraction";
+import { animalAnimationLodConfig, type AnimalAnimationLodConfig } from "./AnimalLod";
 
 /** One initialization-only appearance candidate. Zero excludes it; positive weights express relative probability. */
 export interface AnimalPopulationAppearance {
@@ -43,6 +44,8 @@ export interface AnimalPopulationConfig {
   fireflies?: FireflySettings;
   /** Local player reactions and farm feeding; sparse legacy saves inherit shared defaults. */
   interaction?: Partial<AnimalInteractionConfig>;
+  /** Screen-relative skeletal animation frequency LOD; sparse overrides inherit global/template defaults. */
+  animationLod?: Partial<AnimalAnimationLodConfig>;
   /** When present, replaces legacy circular spawn/roaming ranges. */
   distribution?: AnimalPopulationDistribution;
   enabled: boolean;
@@ -156,6 +159,7 @@ export function validateAnimalPopulationConfig(config: AnimalPopulationConfig): 
     throw new Error("动物分布配置版本、启用状态或类型列表无效");
   }
   animalInteractionConfig(config.interaction);
+  if (config.animationLod !== undefined) animalAnimationLodConfig(config.animationLod);
   if (config.fireflies) validateFireflySettings(config.fireflies);
   for (const field of ["spawnRadius", "roamRadius", "activationDistance"] as const) {
     if (!Number.isFinite(config[field]) || config[field] <= 0) {
