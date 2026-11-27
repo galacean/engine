@@ -1,0 +1,35 @@
+packages/physics-physx/libs/physx.release.simd.js
+  s_3754ebc6b108f2::t_71e2e31523b037 1
+packages/physics-physx/libs/physx.release.simd.mjs
+  s_3754ebc6b108f2::t_71e2e31523b037 1
+packages/core/src/physics/PhysicsScene.ts
+  s_3754ebc6b108f2::t_638f2946cf1b84 255,431,832,975-976,987,1021-1026,1034-1037,1053-1056,1062-1063,1066-1068,1070
+packages/core/src/Script.ts
+  s_3754ebc6b108f2::t_638f2946cf1b84 239,267
+packages/design/src/physics/IPhysicsScene.ts
+  s_3754ebc6b108f2::t_638f2946cf1b84 80
+packages/physics-physx/libs/physx.release.mjs
+  s_3754ebc6b108f2::t_71e2e31523b037 1
+packages/physics-physx/libs/physx.release.js
+  s_3754ebc6b108f2::t_71e2e31523b037 1
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_3754ebc6b108f2::t_638f2946cf1b84 164,176,181,286,289,291-292,294-295,298,448,589,593,601,604
+tests/src/core/physics/PhysicsScene.test.ts
+  s_3754ebc6b108f2::t_975cfc6ebb614a 219-262,809-833
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "511ee1f7099bc8b2e63cb55af7cabb723e594cc7",
+  "prompts": {},
+  "sessions": {
+    "s_3754ebc6b108f2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a218cd-a576-7eb3-aadd-5c308d16914c",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
