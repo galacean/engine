@@ -1,0 +1,20 @@
+packages/core/src/graphic/TransformFeedbackPrimitive.ts
+  h_171a11afaf879a 46-50
+packages/core/src/graphic/TransformFeedbackSimulator.ts
+  h_171a11afaf879a 11-14
+packages/rhi-webgpu/src/WebGPUGraphicDevice.ts
+  h_171a11afaf879a 525,529
+tests/src/rhi-webgpu/PrimitiveCompatibility.test.ts
+  h_171a11afaf879a 138-139
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5050908c9464bb2bd58302ee62e65758e602056e",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
