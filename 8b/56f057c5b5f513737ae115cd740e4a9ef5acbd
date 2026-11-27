@@ -1,0 +1,29 @@
+packages/ai-chat/src/ai-chat/asr.ts
+  s_a61a893a3e253a::t_965e010438a363 575,577,579,583,593,597,606-609
+  s_a61a893a3e253a::t_900afc61f67a4b 1,28,117,180,185,188-190
+packages/ai-chat/tests/asr-native.spec.ts
+  s_a61a893a3e253a::t_6e2df44e54ff8f 1,4-5,7-11,13,15-17,20-24,26-27,31-40,43-45,50
+  s_a61a893a3e253a::t_0ace8b4e2c98e1 54-63,65-72
+world/demos/seed-world/assistant/SeedWorldChatPanel.ts
+  s_a61a893a3e253a::t_baf506a6c0f8f9 871-875
+world/tests/seed-world/SeedWorldVoiceHudController.spec.ts
+  s_a61a893a3e253a::t_baf506a6c0f8f9 12,297-317,619-621,737
+packages/ai-chat/src/ai-chat/README.md
+  s_a61a893a3e253a::t_0ace8b4e2c98e1 446,448
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8b56f057c5b5f513737ae115cd740e4a9ef5acbd",
+  "prompts": {},
+  "sessions": {
+    "s_a61a893a3e253a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20875-19df-7c71-be76-42bd2313456c",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

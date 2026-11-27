@@ -1,0 +1,40 @@
+packages/building/src/building/runtime/BuildingRenderLayer.ts
+  s_c72f930c19d1f3::t_8d91cc2ae2e131 1-4
+packages/building/src/building/runtime/ConstructionSceneLighting.glsl
+  s_c72f930c19d1f3::t_8d91cc2ae2e131 88,262
+packages/building/src/building/runtime/EngineResidentScene.ts
+  s_c72f930c19d1f3::t_8d91cc2ae2e131 1,447
+packages/building/tests/ConstructionSceneLightingCompiler.spec.ts
+  s_c72f930c19d1f3::t_8d91cc2ae2e131 10
+packages/building/src/building/runtime/BuildingGlobalProxy.ts
+  s_c72f930c19d1f3::t_8d91cc2ae2e131 1,523
+packages/building/src/building/runtime/ConstructionSceneLighting.ts
+  s_c72f930c19d1f3::t_8d91cc2ae2e131 7-8
+packages/building/src/building/runtime/BuildingFarProxy.ts
+  s_c72f930c19d1f3::t_8d91cc2ae2e131 1,1120
+packages/building/src/building/runtime/ConstructionDecorationLights.ts
+  s_c72f930c19d1f3::t_c1cc900c291410 198-200
+  s_c72f930c19d1f3::t_8d91cc2ae2e131 12,75
+packages/building/tests/BuildingOptimization.spec.ts
+  s_c72f930c19d1f3::t_c1cc900c291410 9,1438,1446,1456-1458
+  s_c72f930c19d1f3::t_65ebf4d1ef30c2 440-443,964,1299
+  s_c72f930c19d1f3::t_8d91cc2ae2e131 27,1436
+packages/building/src/building/runtime/BuildingDistanceView.ts
+  s_c72f930c19d1f3::t_8d91cc2ae2e131 1,326
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9baf330b19d8f50eb6b1e86f982345a3aee041a7",
+  "prompts": {},
+  "sessions": {
+    "s_c72f930c19d1f3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21604-5ead-7042-b751-c18d1813c1a0",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

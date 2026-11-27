@@ -1,0 +1,24 @@
+.agents/skills/seed-world-flash-publish/SKILL.md
+  h_ddbf152d31b140 78-80
+world/demos/seed-world/FLASH_APP_PUBLISH.md
+  h_ddbf152d31b140 86-90,97
+world/demos/seed-world/flash-app-cdn-manifest.json
+  h_ddbf152d31b140 681-686,879-884,981-986,999-1004,1527-1532,1635-1640,1839-1844,2475-2480,2571-2576
+world/scripts/deploy-seed-world-flash-app.mjs
+  h_ddbf152d31b140 2,60-63,65
+world/scripts/publish-seed-world-flash-apps.mjs
+  h_ddbf152d31b140 9-12,130,172-174,231-233,502-612,685,780,802-803,825-829,833-835,846,880-938,954,961
+world/tests/seed-world/SeedWorldFlashApps.spec.ts
+  h_ddbf152d31b140 151,217-218,304,339-495
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3eb9b92fff2f6da4fe64e35be12848589bef6de0",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
