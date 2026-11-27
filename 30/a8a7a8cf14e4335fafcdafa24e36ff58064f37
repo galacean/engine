@@ -1,0 +1,94 @@
+packages/farming/src/farming/presentation/PlantHarvestShader.ts
+  h_a3c79ce84ffdc2 37-43
+packages/farming/src/farming/presentation/harvest/HarvestProduce.ts
+  h_a3c79ce84ffdc2 10
+packages/farming/src/farming/presentation/soil/SoilMoistureShader.ts
+  h_a3c79ce84ffdc2 15-21,88-98
+packages/farming/tests/native/FarmingPerfTrack3.spec.ts
+  h_a3c79ce84ffdc2 13,18-19,995-1064
+packages/shader/src/Shaders/Lighting/ScreenSpaceReflection.shader
+  h_a3c79ce84ffdc2 772-773,966-971
+packages/shader/src/Shaders/Pipeline/SSRReceiver.shader
+  h_a3c79ce84ffdc2 43-47,55-58,72-83,85-86,88,118-121,125,174,183,193-201,204,219-221,248
+packages/terrain/src/data/seed-world/project.json
+  h_a3c79ce84ffdc2 235,241,247,253
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/seed-world/public/Shader/Water/WaterAotManifest.e5c37a9778590fb6822f7dd53b738b895d159a90f6c13c1ea6d553225fe2f356.json
+  h_a3c79ce84ffdc2 23,32-36,75,84-88,122,131-135,164
+packages/terrain/src/data/seed-world/public/Shader/Water/lake-heightfield-high-hybrid-v2.964f76d427db338d5d41a551c307ae2a2ae59316cef9a152b302e30e26a14ed6.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/seed-world/public/Shader/Water/ocean-far-graded.92c6299498c86ba48042ff7b3c0a15d888767e745a70a825719ac21e00bcb2ec.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/seed-world/public/Shader/Water/ocean-near-detailed.aaff9f6370f81dd9b96638a070140846a4d48a208c0271c56e2f4670a1b31b2c.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/seed-world/source/Shader/Water/LakeHeightfieldHighHybrid.shader
+  h_a3c79ce84ffdc2 189,193-194,198,202,204-205,239-245,259,315,328,361,364-375,406-424,426-451,550-564,580-588,603-607,609-616,683-685,692-767,769-785,1225-1239,1681-1713,1942-1944,2036,2575-2581,2583-2590,2596,2601-2604,2606-2609,2611-2619,2621-2630,2632-2640,2642-2652,2668-2682,2698-2706,2721-2725,2727-2734,2738-2747,2754-2829,2833-2849,2933-2965,3115-3117,3125
+packages/terrain/src/data/seed-world/source/Shader/Water/OceanFarGraded.shader
+  h_a3c79ce84ffdc2 38,42-43,47,51,53-54,116-121,123-138,142-148,150-160,163-165,171-176,178-192,194-206,208-216,218-229,231-235,237-244,248-262,355-360,377-381,383-416,418-508,511-527,529-566,623-625,637-642,652-666,668-685,687-711,736-763,821-856,941-955,965-974,1057-1067,1070-1100,1141-1146,1148-1188
+packages/terrain/src/data/seed-world/source/Shader/Water/OceanNearDetailed.shader
+  h_a3c79ce84ffdc2 39,43-44,48,52,54-55,117-122,124-139,143-149,172-177,179-193,195-207,209-217,219-230,232-236,238-245,249-263,365,398,401-412,443-461,463-488,921-935,1481-1484,1640-1642
+packages/terrain/src/shaders/grass/GrassForwardPass.glsl
+  h_a3c79ce84ffdc2 74-76,214-216,369-395,471,477-485,672-678,877-898
+packages/water/src/water/native/assets/Water/Shaders/builtin/lake.json
+  h_a3c79ce84ffdc2 1
+packages/water/src/water/native/assets/Water/Shaders/builtin/ocean.json
+  h_a3c79ce84ffdc2 1
+packages/water/src/water/native/assets/Water/Shaders/builtin/river.json
+  h_a3c79ce84ffdc2 1
+packages/water/src/water/native/assets/Water/Shaders/builtin/sources.json
+  h_a3c79ce84ffdc2 2-4
+packages/water/src/water/native/assets/Water/Shaders/lake-heightfield-high-hybrid-v2.shaderc
+  h_a3c79ce84ffdc2 1
+packages/water/src/water/native/assets/Water/Shaders/lake.shader
+  h_a3c79ce84ffdc2 356,360-361,365,369,371-372,419,475,488,521,524-535,566-584,586-611,1252-1266,1936-1938,2030,2575,2585,2875-2877,2885
+packages/water/src/water/native/assets/Water/Shaders/ocean-near-detailed.shaderc
+  h_a3c79ce84ffdc2 1
+packages/water/src/water/native/assets/Water/Shaders/ocean.shader
+  h_a3c79ce84ffdc2 187,191-192,196,200,202-203,401,434,437-448,479-497,499-524,957-971,2587,2591-2592,2596,2600,2602-2603,2795-2796,3044-3058
+packages/water/src/water/native/assets/Water/Shaders/river.shader
+  h_a3c79ce84ffdc2 309,313-314,318,322,324-325,457,490,493-504,535-553,555-580,959-973
+packages/water/src/water/native/assets/conversion.json
+  h_a3c79ce84ffdc2 275,277-278,282,284-285
+packages/water/src/water/runtime/heightfield/HeightfieldWaterMaterialFactory.ts
+  h_a3c79ce84ffdc2 249-251,258-259
+packages/water/src/water/runtime/optics/WaterSurfaceOpticsBinding.ts
+  h_a3c79ce84ffdc2 2,44-46,463-477,479
+packages/water/src/water/shaders/library/heightfield/HeightfieldWaterRainRipple.glsl
+  h_a3c79ce84ffdc2 4,60
+packages/water/src/water/shaders/library/heightfield/HeightfieldWaterRainRippleLayeredStatements.glsl
+  h_a3c79ce84ffdc2 4-6,98
+packages/water/src/water/shaders/library/heightfield/HeightfieldWaterRainRippleLowStatements.glsl
+  h_a3c79ce84ffdc2 4-6,73
+packages/water/src/water/shaders/library/optics/WaterEnvironmentReflection.glsl
+  h_a3c79ce84ffdc2 10,43,46-57,88-106,108-133
+packages/water/src/water/shaders/library/optics/WaterEnvironmentReflectionUniforms.glsl
+  h_a3c79ce84ffdc2 7,11-12,16,20,22-23
+packages/water/src/water/shaders/library/surface/WaterSurfaceRawContribution.glsl
+  h_a3c79ce84ffdc2 178-192
+packages/water/tests/WaterPerformanceOptimizations.test.ts
+  h_a3c79ce84ffdc2 12-13,60-63,1710-1846
+packages/world-planning/src/world/SeedWorldShaderVariantCoverage.ts
+  h_a3c79ce84ffdc2 161-162,168-182
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_a3c79ce84ffdc2 8,1917-1919
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmSoilShader.ts
+  h_a3c79ce84ffdc2 20-27
+world/tests/seed-world/ScreenSpaceReflection.spec.ts
+  h_a3c79ce84ffdc2 580-631
+world/tests/seed-world/SeedWorldStartupShaderWarmup.spec.ts
+  h_a3c79ce84ffdc2 1945-1994
+world/tests/seed-world/TerrainFarShader.spec.ts
+  h_a3c79ce84ffdc2 2-3,6-7,653-711
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "30a8a7a8cf14e4335fafcdafa24e36ff58064f37",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+packages/core/src/Engine.ts
+  s_3754ebc6b108f2::t_fec50404fe1484 708
+packages/physics-physx/libs/physx.release.js
+  s_3754ebc6b108f2::t_bc5c7ee308831e 1
+packages/physics-physx/libs/physx.release.mjs
+  s_3754ebc6b108f2::t_28ef900a4bf69b 1
+packages/physics-physx/libs/physx.release.simd.js
+  s_3754ebc6b108f2::t_1bcea12013286b 1
+packages/physics-physx/libs/physx.release.simd.mjs
+  s_3754ebc6b108f2::t_71de7b90f428d7 1
+tests/src/core/physics/PhysicsScene.test.ts
+  s_3754ebc6b108f2::t_662695f2861321 825
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "32861871f9f0a95fadddbfe3f0c14145675990ca",
+  "prompts": {},
+  "sessions": {
+    "s_3754ebc6b108f2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a218cd-a576-7eb3-aadd-5c308d16914c",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
