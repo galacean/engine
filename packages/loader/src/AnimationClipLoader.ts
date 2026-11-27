@@ -1,58 +1,25 @@
 import {
-  resourceLoader,
-  Loader,
+  AnimationClip,
   AssetPromise,
   AssetType,
+  Loader,
   LoadItem,
+  ReferResource,
   ResourceManager,
-  AnimationClip,
-  ReferResource
+  resourceLoader
 } from "@galacean/engine-core";
 import { decode } from "./resource-deserialize";
+import type { RefItem } from "./schema/CommonSchema";
 
 @resourceLoader(AssetType.AnimationClip, ["anim"])
 class AnimationClipLoader extends Loader<AnimationClip> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AnimationClip> {
-    return new AssetPromise((resolve, reject) => {
-      resourceManager
-        ._request<any>(item.url!, {
-          ...item,
-          type: "arraybuffer"
-        })
-        .then((data) => {
-          return decode<AnimationClip>(data, resourceManager.engine)
-            .then((clip) => {
-              const curveBindingPromises = clip.curveBindings.map((curveBinding) => {
-                const curve = curveBinding.curve!;
-                const promises = curve.keys.map((key) => {
-                  return this._parseKeyframeValue(key, resourceManager).then((actualValue) => {
-                    key.value = actualValue;
-                  });
-                });
-                return Promise.all(promises);
-              });
-              return Promise.all(curveBindingPromises).then(() => {
-                resolve(clip);
-              });
-            })
-            .catch(reject);
-        })
-        .catch(reject);
-    });
-  }
-
-  private _parseKeyframeValue(keyframe: any, resourceManager: ResourceManager): Promise<any> {
-    const value = keyframe.value;
-
-    if (typeof value === "object" && (value as any)?.url) {
-      return new Promise((resolve) => {
-        resourceManager.getResourceByRef<ReferResource>(value as any).then((asset: ReferResource) => {
-          keyframe.value = asset;
-          resolve(keyframe.value);
-        });
-      });
-    } else {
-      return Promise.resolve(keyframe.value);
-    }
+    return resourceManager
+      ._request<ArrayBuffer>(item.url!, { ...item, type: "arraybuffer" })
+      .then((data) =>
+        decode<AnimationClip>(data, resourceManager.engine, (ref: RefItem) =>
+          resourceManager.getResourceByRef<ReferResource>(ref)
+        )
+      );
   }
 }

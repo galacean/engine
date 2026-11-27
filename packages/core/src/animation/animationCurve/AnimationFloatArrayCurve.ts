@@ -1,6 +1,8 @@
+import { TypedArray } from "../../base/Constant";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
+import { evaluateHermiteArray, readArrayKey, subtractArrayFirstKey } from "../internal/AnimationCurvePack";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
@@ -11,9 +13,13 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<Float32Array>>()
 export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
   /** @internal */
-  static _isCopyMode: boolean = true;
+  static override readonly _keyValueSize = 0;
   /** @internal */
-  static _supportInterpolationMode: boolean = true;
+  static readonly _isCopyMode = true;
+  /** @internal */
+  static readonly _supportInterpolationMode = true;
+
+  protected declare _values: TypedArray;
 
   /**
    * @internal
@@ -85,48 +91,80 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
     return out;
   }
 
-  /**
-   * @internal
-   */
-  static _hermiteInterpolationValue(
-    frame: Keyframe<Float32Array>,
-    nextFrame: Keyframe<Float32Array>,
-    t: number,
-    dur: number,
-    out: Float32Array
-  ): Float32Array {
-    const t0 = frame.outTangent!;
-    const t1 = nextFrame.inTangent!;
-    const p0 = frame.value;
-    const p1 = nextFrame.value;
+  /** A remapped track contributes zero to morph targets absent from its source. */
+  private static _prepareOutput(out: Float32Array, sourceSize: number): number {
+    if (out.length <= sourceSize) return out.length;
+    out.fill(0, sourceSize);
+    return sourceSize;
+  }
 
-    const t2 = t * t;
-    const t3 = t2 * t;
-    const a = 2.0 * t3 - 3.0 * t2 + 1.0;
-    const b = t3 - 2.0 * t2 + t;
-    const c = t3 - t2;
-    const d = -2.0 * t3 + 3.0 * t2;
+  /** @inheritdoc */
+  override evaluate(time: number): Float32Array | undefined {
+    // Allocate the scratch output lazily once the curve's element width is known.
+    if (this._keyCount > 0 && this._evaluateData.value?.length !== this._valueSize) {
+      this._evaluateData.value = new Float32Array(this._valueSize);
+    }
+    return super.evaluate(time);
+  }
 
-    for (let i = 0, n = p0.length; i < n; ++i) {
-      if (Number.isFinite(t0[i]) && Number.isFinite(t1[i])) {
-        out[i] = a * p0[i] + b * t0[i] * dur + c * t1[i] * dur + d * p1[i];
-      } else {
-        out[i] = frame.value[i];
-      }
+  protected override _clearValues(): void {
+    super._clearValues();
+    this._evaluateData.value = null!;
+  }
+
+  protected override _evaluateKey(index: number, out: Float32Array): Float32Array {
+    const values = this._values;
+    const valueSize = this._valueSize;
+    const offset = this._hasTangents ? index * valueSize * 3 + valueSize : index * valueSize;
+    const count = AnimationFloatArrayCurve._prepareOutput(out, valueSize);
+    for (let i = 0; i < count; ++i) {
+      out[i] = values[offset + i];
     }
     return out;
   }
 
-  /**
-   * @inheritdoc
-   */
-  override addKey(key: Keyframe<Float32Array>): void {
-    super.addKey(key);
-
-    const evaluateData = this._evaluateData;
-    if (!evaluateData.value || evaluateData.value.length !== key.value.length) {
-      const size = key.value.length;
-      evaluateData.value = new Float32Array(size);
+  protected override _evaluateLinear(curIndex: number, nextIndex: number, t: number, out: Float32Array): Float32Array {
+    const values = this._values;
+    const valueSize = this._valueSize;
+    const stride = this._hasTangents ? valueSize * 3 : valueSize;
+    const valueOffset = this._hasTangents ? valueSize : 0;
+    const o0 = curIndex * stride + valueOffset;
+    const o1 = nextIndex * stride + valueOffset;
+    const count = AnimationFloatArrayCurve._prepareOutput(out, valueSize);
+    for (let i = 0; i < count; ++i) {
+      const src = values[o0 + i];
+      out[i] = src + (values[o1 + i] - src) * t;
     }
+    return out;
+  }
+
+  protected override _evaluateHermite(
+    curIndex: number,
+    nextIndex: number,
+    a: number,
+    bd: number,
+    cd: number,
+    d: number,
+    out: Float32Array
+  ): Float32Array {
+    const valueSize = this._valueSize;
+    const count = AnimationFloatArrayCurve._prepareOutput(out, valueSize);
+    evaluateHermiteArray(this._values, valueSize, curIndex, nextIndex, a, bd, cd, d, out, count);
+    return out;
+  }
+
+  protected override _subtractFirstKey(out: Float32Array): Float32Array {
+    return subtractArrayFirstKey(this._values, this._valueSize, this._hasTangents, out);
+  }
+
+  protected override _readKeyAt(
+    offset: number,
+    out: Keyframe<Float32Array>,
+    inOffset: number,
+    outOffset: number
+  ): void {
+    const valueSize = this._valueSize;
+    const dstValue = out.value && out.value.length === valueSize ? out.value : new Float32Array(valueSize);
+    readArrayKey(this._values, valueSize, offset, inOffset, outOffset, out, dstValue);
   }
 }

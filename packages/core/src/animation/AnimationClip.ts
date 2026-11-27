@@ -18,7 +18,8 @@ export class AnimationClip extends EngineObject {
   /** @internal */
   _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
-  private _length: number = 0;
+  private _length = { value: 0 };
+  private _invalidateLength = AnimationClip._createLengthInvalidator(this._length);
   private _events: AnimationEvent[] = [];
 
   /**
@@ -39,7 +40,15 @@ export class AnimationClip extends EngineObject {
    * Animation length in seconds.
    */
   get length(): number {
-    return this._length;
+    const cache = this._length;
+    if (cache.value < 0) {
+      let length = 0;
+      for (const binding of this._curveBindings) {
+        length = Math.max(length, binding.curve?.length ?? 0);
+      }
+      cache.value = length;
+    }
+    return cache.value;
   }
 
   /**
@@ -192,7 +201,11 @@ export class AnimationClip extends EngineObject {
       }
     }
 
-    this._length = Math.max(this._length, curveBinding.curve!.length);
+    curveBinding._setLengthChangedListener(this._invalidateLength);
+    const cache = this._length;
+    if (cache.value >= 0) {
+      cache.value = Math.max(cache.value, curveBinding.curve!.length);
+    }
     this._curveBindings.push(curveBinding);
   }
 
@@ -200,8 +213,12 @@ export class AnimationClip extends EngineObject {
    * Clears all curve bindings from the clip.
    */
   clearCurveBindings(): void {
-    this._curveBindings.length = 0;
-    this._length = 0;
+    const bindings = this._curveBindings;
+    for (const binding of bindings) {
+      binding._setLengthChangedListener(undefined);
+    }
+    bindings.length = 0;
+    this._length.value = 0;
   }
 
   /**
@@ -213,23 +230,35 @@ export class AnimationClip extends EngineObject {
     const { _curveBindings: curveBindings } = this;
     const components = AnimationCurveOwner._components;
     for (let i = curveBindings.length - 1; i >= 0; i--) {
-      const curve = curveBindings[i];
-      const targetEntity = entity.findByPath(curve.relativePath);
+      const binding = curveBindings[i];
+      const curve = binding.curve;
+      if (!curve?.keyCount) continue;
+      const targetEntity = entity.findByPath(binding.relativePath);
       if (targetEntity) {
         const component =
-          curve.typeIndex > 0
-            ? targetEntity.getComponents(curve.type, components)[curve.typeIndex]
-            : targetEntity.getComponent(curve.type);
+          binding.typeIndex > 0
+            ? targetEntity.getComponents(binding.type, components)[binding.typeIndex]
+            : targetEntity.getComponent(binding.type);
         components.length = 0;
         if (!component) {
           continue;
         }
-        const curveOwner = curve._getTempCurveOwner(targetEntity, component);
-        if (curveOwner && curve.curve!.keys.length) {
-          const value = curveOwner.evaluateValue(curve.curve!, time, false);
-          curveOwner.applyValue(value!, 1, false);
-        }
+        const curveOwner = binding._getTempCurveOwner(targetEntity, component);
+        const value = curveOwner.evaluateValue(curve, time, false);
+        curveOwner.applyValue(value!, 1, false);
       }
     }
+  }
+
+  protected override _onDestroy(): void {
+    this.clearCurveBindings();
+    super._onDestroy();
+  }
+
+  private static _createLengthInvalidator(cache: { value: number }): () => void {
+    // A retained curve should not hold its clip and the other curves alive
+    return () => {
+      cache.value = -1;
+    };
   }
 }

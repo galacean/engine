@@ -1,7 +1,5 @@
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
-import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
 
@@ -11,9 +9,9 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<boolean>>()
 export class AnimationBoolCurve extends AnimationCurve<boolean> {
   /** @internal */
-  static _isCopyMode: boolean = false;
+  static readonly _isCopyMode = false;
   /** @internal */
-  static _supportInterpolationMode: boolean = false;
+  static readonly _supportInterpolationMode = false;
 
   /**
    * @internal
@@ -28,49 +26,15 @@ export class AnimationBoolCurve extends AnimationCurve<boolean> {
   /**
    * @internal
    */
-  static _initializeLayerOwner(owner: AnimationCurveLayerOwner): void {
-    owner.finalValue = false;
-  }
-
-  /**
-   * @internal
-   */
-  static _lerpValue(srcValue: boolean, destValue: boolean): boolean {
+  static _lerpValue(srcValue: boolean, _destValue: boolean): boolean {
     return srcValue;
   }
 
   /**
    * @internal
    */
-  static _subtractValue(src: boolean, base: boolean, out: boolean): boolean {
-    return src;
-  }
-
-  /**
-   * @internal
-   */
-  static _getZeroValue(): boolean {
-    return false;
-  }
-  /**
-   * @internal
-   */
-  static _additiveValue(value: boolean, weight: number, source: boolean): boolean {
+  static _additiveValue(value: boolean, _weight: number, _source: boolean): boolean {
     return value;
-  }
-
-  /**
-   * @internal
-   */
-  static _setValue(value: boolean): boolean {
-    return value;
-  }
-
-  /**
-   * @internal
-   */
-  static _hermiteInterpolationValue(frame: Keyframe<boolean>): boolean {
-    return frame.value;
   }
 
   constructor() {

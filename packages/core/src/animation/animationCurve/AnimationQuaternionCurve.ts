@@ -1,7 +1,9 @@
-import { Quaternion } from "@galacean/engine-math";
+import { MathUtil, Quaternion, Vector4 } from "@galacean/engine-math";
+import { TypedArray } from "../../base/Constant";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
+import { evaluateHermiteScalar, readObjectKey } from "../internal/AnimationCurvePack";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
@@ -12,12 +14,17 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<Quaternion>>()
 export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
   /** @internal */
-  static _supportInterpolationMode: boolean = true;
+  static override readonly _keyValueSize = 4;
   /** @internal */
-  static _isCopyMode: boolean = true;
+  static readonly _supportInterpolationMode = true;
+  /** @internal */
+  static readonly _isCopyMode = true;
 
-  /** @internal */
   private static _tempConjugateQuat = new Quaternion();
+  private static _tempQuat0 = new Quaternion();
+  private static _tempQuat1 = new Quaternion();
+
+  protected declare _values: TypedArray;
 
   /**
    * @internal
@@ -83,61 +90,70 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
     return out;
   }
 
-  /**
-   * @internal
-   */
-  static _hermiteInterpolationValue(
-    frame: Keyframe<Quaternion>,
-    nextFrame: Keyframe<Quaternion>,
-    t: number,
-    dur: number,
-    out: Quaternion
-  ): Quaternion {
-    const p0 = frame.value;
-    const tan0 = frame.outTangent!;
-    const p1 = nextFrame.value;
-    const tan1 = nextFrame.inTangent!;
-
-    const t2 = t * t;
-    const t3 = t2 * t;
-    const a = 2.0 * t3 - 3.0 * t2 + 1.0;
-    const b = t3 - 2.0 * t2 + t;
-    const c = t3 - t2;
-    const d = -2.0 * t3 + 3.0 * t2;
-
-    let t0 = tan0.x,
-      t1 = tan1.x;
-    if (Number.isFinite(t0) && Number.isFinite(t1)) {
-      out.x = a * p0.x + b * t0 * dur + c * t1 * dur + d * p1.x;
-    } else {
-      out.x = p0.x;
-    }
-
-    (t0 = tan0.y), (t1 = tan1.y);
-    if (Number.isFinite(t0) && Number.isFinite(t1)) {
-      out.y = a * p0.y + b * t0 * dur + c * t1 * dur + d * p1.y;
-    } else {
-      out.y = p0.y;
-    }
-
-    (t0 = tan0.z), (t1 = tan1.z);
-    if (Number.isFinite(t0) && Number.isFinite(t1)) {
-      out.z = a * p0.z + b * t0 * dur + c * t1 * dur + d * p1.z;
-    } else {
-      out.z = p0.z;
-    }
-
-    (t0 = tan0.w), (t1 = tan1.w);
-    if (Number.isFinite(t0) && Number.isFinite(t1)) {
-      out.w = a * p0.w + b * t0 * dur + c * t1 * dur + d * p1.w;
-    } else {
-      out.w = p0.w;
-    }
-    return out;
-  }
-
   constructor() {
     super();
     this._evaluateData.value = new Quaternion();
+  }
+
+  protected override _evaluateKey(index: number, out: Quaternion): Quaternion {
+    const values = this._values;
+    const offset = this._hasTangents ? index * 12 + 4 : index * 4;
+    return out.set(values[offset], values[offset + 1], values[offset + 2], values[offset + 3]);
+  }
+
+  protected override _evaluateLinear(curIndex: number, nextIndex: number, t: number, out: Quaternion): Quaternion {
+    const values = this._values;
+    const stride = this._hasTangents ? 12 : 4;
+    const valueOffset = this._hasTangents ? 4 : 0;
+    const o0 = curIndex * stride + valueOffset;
+    const o1 = nextIndex * stride + valueOffset;
+    const q0 = AnimationQuaternionCurve._tempQuat0.set(values[o0], values[o0 + 1], values[o0 + 2], values[o0 + 3]);
+    const q1 = AnimationQuaternionCurve._tempQuat1.set(values[o1], values[o1 + 1], values[o1 + 2], values[o1 + 3]);
+    Quaternion.slerp(q0, q1, t, out);
+    return out;
+  }
+
+  protected override _evaluateHermite(
+    curIndex: number,
+    nextIndex: number,
+    a: number,
+    bd: number,
+    cd: number,
+    d: number,
+    out: Quaternion
+  ): Quaternion {
+    const values = this._values;
+    const o0 = curIndex * 12 + 4;
+    const o1 = nextIndex * 12;
+    const p0x = values[o0];
+    const p0y = values[o0 + 1];
+    const p0z = values[o0 + 2];
+    const p0w = values[o0 + 3];
+    const x = evaluateHermiteScalar(p0x, values[o0 + 4], values[o1], values[o1 + 4], a, bd, cd, d);
+    const y = evaluateHermiteScalar(p0y, values[o0 + 5], values[o1 + 1], values[o1 + 5], a, bd, cd, d);
+    const z = evaluateHermiteScalar(p0z, values[o0 + 6], values[o1 + 2], values[o1 + 6], a, bd, cd, d);
+    const w = evaluateHermiteScalar(p0w, values[o0 + 7], values[o1 + 3], values[o1 + 7], a, bd, cd, d);
+    const len = Math.sqrt(x * x + y * y + z * z + w * w);
+    if (len > MathUtil.zeroTolerance) {
+      const invLen = 1 / len;
+      return out.set(x * invLen, y * invLen, z * invLen, w * invLen);
+    }
+    return out.set(p0x, p0y, p0z, p0w);
+  }
+
+  protected override _subtractFirstKey(out: Quaternion): Quaternion {
+    const values = this._values;
+    const offset = this._hasTangents ? 4 : 0;
+    const base = AnimationQuaternionCurve._tempQuat0.set(
+      values[offset],
+      values[offset + 1],
+      values[offset + 2],
+      values[offset + 3]
+    );
+    return AnimationQuaternionCurve._subtractValue(out, base, out);
+  }
+
+  protected override _readKeyAt(offset: number, out: Keyframe<Quaternion>, inOffset: number, outOffset: number): void {
+    readObjectKey(this._values, offset, inOffset, outOffset, out, Quaternion, Vector4);
   }
 }

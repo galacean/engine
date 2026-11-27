@@ -1,7 +1,5 @@
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
-import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
 
@@ -11,9 +9,9 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<string>>()
 export class AnimationStringCurve extends AnimationCurve<string> {
   /** @internal */
-  static _isCopyMode: boolean = false;
+  static readonly _isCopyMode = false;
   /** @internal */
-  static _supportInterpolationMode: boolean = false;
+  static readonly _supportInterpolationMode = false;
 
   /**
    * @internal
@@ -28,49 +26,15 @@ export class AnimationStringCurve extends AnimationCurve<string> {
   /**
    * @internal
    */
-  static _initializeLayerOwner(owner: AnimationCurveLayerOwner): void {
-    owner.finalValue = "";
-  }
-
-  /**
-   * @internal
-   */
-  static _lerpValue(srcValue: string, destValue: string): string {
+  static _lerpValue(srcValue: string, _destValue: string): string {
     return srcValue;
   }
 
   /**
    * @internal
    */
-  static _subtractValue(src: string, base: string, out: string): string {
-    return src;
-  }
-
-  /**
-   * @internal
-   */
-  static _getZeroValue(): string {
-    return "";
-  }
-  /**
-   * @internal
-   */
-  static _additiveValue(value: string, weight: number, source: string): string {
+  static _additiveValue(value: string, _weight: number, _source: string): string {
     return value;
-  }
-
-  /**
-   * @internal
-   */
-  static _setValue(value: string): string {
-    return value;
-  }
-
-  /**
-   * @internal
-   */
-  static _hermiteInterpolationValue(frame: Keyframe<string>): string {
-    return frame.value;
   }
 
   constructor() {

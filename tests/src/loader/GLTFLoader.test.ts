@@ -1,8 +1,16 @@
 import {
+  AnimationClip,
+  AnimationFloatArrayCurve,
+  Animator,
+  AnimatorControllerLayer,
+  AnimatorLayerBlendingMode,
+  AnimatorStateMachine,
   AssetPromise,
   AssetType,
   BlinnPhongMaterial,
   Entity,
+  InterpolationType,
+  Keyframe,
   ModelMesh,
   PBRMaterial,
   PointLight,
@@ -13,7 +21,8 @@ import {
   TextureCoordinate,
   TextureFilterMode,
   TextureWrapMode,
-  UnlitMaterial
+  UnlitMaterial,
+  WrapMode
 } from "@galacean/engine-core";
 import {
   GLTFExtensionMode,
@@ -27,7 +36,7 @@ import {
   registerGLTFExtension,
   registerGLTFParser
 } from "@galacean/engine-loader";
-import { Color } from "@galacean/engine-math";
+import { Color, Quaternion, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { describe, beforeAll, afterAll, expect, it, vi } from "vitest";
 
@@ -278,6 +287,12 @@ beforeAll(async function () {
             componentType: 5126,
             count: 3,
             type: "VEC3"
+          },
+          {
+            bufferView: 0,
+            componentType: 5126,
+            count: 3,
+            type: "VEC4"
           }
         ],
         images: [
@@ -505,7 +520,7 @@ beforeAll(async function () {
               {
                 input: 0,
                 interpolation: "LINEAR",
-                output: 1
+                output: 2
               }
             ]
           }
@@ -690,6 +705,484 @@ describe("glTF Loader test", function () {
     } finally {
       resource?.destroy();
       URL.revokeObjectURL(url);
+    }
+  });
+
+  it("binds repeated animation targets in each scene after scene extensions run", async () => {
+    @registerGLTFExtension("TEST_rename_animation_target", GLTFExtensionMode.AdditiveParse)
+    class RenameAnimationTarget extends GLTFExtensionParser {
+      override additiveParse(_context: GLTFParserContext, root: Entity): void {
+        root.findByPath("Rig/Joint")!.name = "Renamed";
+      }
+    }
+
+    const bytes = new Float32Array([0, 1, 1, 2, 3, 3, 4, 5]);
+    const bufferUrl = URL.createObjectURL(new Blob([bytes]));
+    const glTF = {
+      asset: { version: "2.0" },
+      scene: 0,
+      extensionsUsed: ["TEST_rename_animation_target"],
+      scenes: [{ nodes: [0], extensions: { TEST_rename_animation_target: {} } }, { nodes: [2] }],
+      nodes: [{ name: "Rig", children: [1] }, { name: "Joint" }, { name: "Other" }, { name: "Unattached" }],
+      buffers: [{ uri: bufferUrl, byteLength: bytes.byteLength }],
+      bufferViews: [{ buffer: 0, byteLength: bytes.byteLength }],
+      accessors: [
+        { bufferView: 0, type: "SCALAR", componentType: 5126, count: 2, min: [0], max: [1] },
+        { bufferView: 0, byteOffset: 8, type: "VEC3", componentType: 5126, count: 2 }
+      ],
+      animations: [
+        {
+          samplers: [{ input: 0, output: 1 }],
+          channels: [
+            { sampler: 0, target: { node: 1, path: "translation" } },
+            { sampler: 0, target: { node: 1, path: "scale" } },
+            { sampler: 0, target: { node: 2, path: "translation" } },
+            { sampler: 0, target: { node: 3, path: "translation" } }
+          ]
+        }
+      ]
+    };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(glTF)], { type: "model/gltf+json" }));
+    let resource: GLTFResource | undefined;
+    let primary: Entity | undefined;
+    let secondary: Entity | undefined;
+    try {
+      resource = await engine.resourceManager.load<GLTFResource>({ type: AssetType.GLTF, url });
+      const clip = resource.animations![0];
+      expect(clip.curveBindings.map(({ relativePath, property }) => [relativePath, property])).toEqual([
+        ["Rig/Renamed", "position"],
+        ["Rig/Renamed", "scale"],
+        ["Other", "position"]
+      ]);
+
+      primary = resource.instantiateSceneRoot(0);
+      secondary = resource.instantiateSceneRoot(1);
+      clip.sampleAnimation(primary, 0.5);
+      clip.sampleAnimation(secondary, 0.5);
+      const joint = primary.findByPath("Rig/Renamed")!;
+      expect(joint.transform.position).toMatchObject({ x: 2, y: 3, z: 4 });
+      expect(joint.transform.scale).toMatchObject({ x: 2, y: 3, z: 4 });
+      expect(secondary.findByPath("Other")!.transform.position).toMatchObject({ x: 2, y: 3, z: 4 });
+    } finally {
+      primary?.destroy();
+      secondary?.destroy();
+      resource?.destroy();
+      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(bufferUrl);
+    }
+  });
+
+  it.each(["gltf", "glb"])("samples and edits compact animations from %s", async (format) => {
+    const bytes = new ArrayBuffer(156);
+    new Float32Array(bytes, 4, 8).set([0, 1, 1, 2, 3, 5, 6, 7]);
+    new Int8Array(bytes, 36, 8).set([0, 0, 0, 127, 0, 0, 0, 127]);
+    new Uint8Array(bytes)[44] = 1;
+    new Int8Array(bytes, 48, 4).set([0, 0, -128, 0]);
+    new Float32Array(bytes, 52, 8).set([0, 1, 0, 0, 2, 0, 1, 0]); // times, then cubic weights
+    new Float32Array(bytes, 84, 9).set([0, 0, 0, 1, 0, 0, 0, 1, 0]); // triangle
+    new Float32Array(bytes, 120, 9).set([0, 0, 1, 0, 0, 1, 0, 0, 1]); // morph deltas
+    const bufferUrl = format === "gltf" ? URL.createObjectURL(new Blob([bytes])) : undefined;
+    const glTF = {
+      asset: { version: "2.0" },
+      scene: 0,
+      scenes: [{ nodes: [0, 1, 2] }],
+      nodes: [{ name: "Actor", mesh: 0 }, { name: "Twin", mesh: 0 }, { name: "Wide", mesh: 1 }, { name: "Unattached" }],
+      meshes: [1, 2].map((count) => ({
+        weights: new Array<number>(count).fill(0),
+        primitives: [{ attributes: { POSITION: 4 }, targets: Array.from({ length: count }, () => ({ POSITION: 5 })) }]
+      })),
+      buffers: [{ uri: bufferUrl, byteLength: bytes.byteLength }],
+      bufferViews: [
+        { buffer: 0, byteOffset: 4, byteLength: 32 },
+        { buffer: 0, byteOffset: 36, byteLength: 8 },
+        { buffer: 0, byteOffset: 44, byteLength: 1 },
+        { buffer: 0, byteOffset: 48, byteLength: 4 },
+        { buffer: 0, byteOffset: 52, byteLength: 32, byteStride: 4 },
+        { buffer: 0, byteOffset: 84, byteLength: 36, target: 34962 },
+        { buffer: 0, byteOffset: 120, byteLength: 36, target: 34962 }
+      ],
+      accessors: [
+        { bufferView: 0, type: "SCALAR", componentType: 5126, count: 2, min: [0], max: [1] },
+        { bufferView: 0, byteOffset: 8, type: "VEC3", componentType: 5126, count: 2 },
+        {
+          bufferView: 1,
+          type: "VEC4",
+          componentType: 5120,
+          normalized: true,
+          count: 2,
+          sparse: { count: 1, indices: { bufferView: 2, componentType: 5121 }, values: { bufferView: 3 } }
+        },
+        { bufferView: 4, byteOffset: 8, type: "SCALAR", componentType: 5126, count: 6 },
+        { bufferView: 5, type: "VEC3", componentType: 5126, count: 3, min: [0, 0, 0], max: [1, 1, 0] },
+        { bufferView: 6, type: "VEC3", componentType: 5126, count: 3, min: [0, 0, 1], max: [0, 0, 1] },
+        { bufferView: 4, type: "SCALAR", componentType: 5126, count: 2, min: [0], max: [1] },
+        { bufferView: 0, byteOffset: 24, type: "SCALAR", componentType: 5126, count: 2 },
+        { bufferView: 0, byteOffset: 8, type: "SCALAR", componentType: 5126, count: 4 }
+      ],
+      animations: [
+        {
+          samplers: [
+            { input: 0, output: 1 },
+            { input: 0, output: 2, interpolation: "STEP" },
+            { input: 0, output: 0 },
+            { input: 6, output: 2, interpolation: "LINEAR" }
+          ],
+          channels: [
+            { sampler: 0, target: { node: 0, path: "translation" } },
+            { sampler: 0, target: { node: 0, path: "scale" } },
+            { sampler: 1, target: { node: 0, path: "rotation" } },
+            { sampler: 2, target: { node: 0, path: "weights" } },
+            { sampler: 2, target: { node: 1, path: "weights" } },
+            { sampler: 3, target: { node: 1, path: "rotation" } }
+          ]
+        },
+        {
+          samplers: [{ input: 6, output: 3, interpolation: "CUBICSPLINE" }],
+          channels: [{ sampler: 0, target: { node: 0, path: "weights" } }]
+        },
+        {
+          // Unreferenced samplers and channels outside all scenes do not retain data
+          samplers: [
+            { input: 0, output: 7 },
+            { input: 0, output: 8 },
+            { input: 0, output: 1 }
+          ],
+          channels: [
+            { sampler: 0, target: { node: 0, path: "weights" } },
+            { sampler: 2, target: { node: 3, path: "translation" } }
+          ]
+        }
+      ]
+    };
+    const json = JSON.stringify(glTF);
+    let source: Blob;
+    if (format === "glb") {
+      const jsonBytes = new TextEncoder().encode(json);
+      const jsonLength = Math.ceil(jsonBytes.length / 4) * 4;
+      const header = new Uint32Array([0x46546c67, 2, 28 + jsonLength + bytes.byteLength, jsonLength, 0x4e4f534a]);
+      const jsonChunk = new Uint8Array(jsonLength).fill(0x20);
+      jsonChunk.set(jsonBytes);
+      const binHeader = new Uint32Array([bytes.byteLength, 0x004e4942]);
+      source = new Blob([header, jsonChunk, binHeader, bytes], { type: "model/gltf-binary" });
+    } else {
+      source = new Blob([json], { type: "model/gltf+json" });
+    }
+    const url = URL.createObjectURL(source);
+    let resource: GLTFResource | undefined;
+    let instance: Entity | undefined;
+    try {
+      resource = await engine.resourceManager.load<GLTFResource>({ type: AssetType.GLTF, url });
+      const clip = resource.animations![0];
+      const [position, scale, rotation, weight, unplayedWeight, linearRotation] = clip.curveBindings.map(
+        (binding) => binding.curve!
+      );
+      expect(clip.length).toBe(1);
+      expect(position.keyCount).toBe(2);
+      expect(position.evaluate(0.5)).toMatchObject({ x: 3, y: 4, z: 5 });
+      const backing = position["_times"].buffer;
+      expect(position["_values"].buffer).toBe(backing);
+      expect(scale).not.toBe(position);
+      expect(scale["_times"]).toBe(position["_times"]);
+      expect(scale["_values"]).toBe(position["_values"]);
+      expect(backing.byteLength).toBe(32);
+      expect(rotation["_values"]).toBe(linearRotation["_values"]);
+      const beforeEdit = new Uint8Array(backing).slice();
+
+      // Mutating `position` copies on write and leaves `scale` (which shares sampler 0) isolated.
+      const firstPos = position.getKey(0);
+      (firstPos.value as Vector3).x = 11;
+      position.setKey(0, firstPos);
+      expect(position.evaluate(0.5)).toMatchObject({ x: 8, y: 4, z: 5 });
+      expect(position["_times"].buffer).not.toBe(backing);
+      expect(position["_values"].buffer).not.toBe(backing);
+      expect(new Uint8Array(backing)).toEqual(beforeEdit);
+      scale.interpolation = InterpolationType.Step;
+      expect(scale.evaluate(0.5)).toMatchObject({ x: 1, y: 2, z: 3 });
+
+      expect(rotation.evaluate(0.5)).toMatchObject({ x: 0, y: 0, z: 0, w: 1 });
+      expect(rotation.evaluate(1)).toMatchObject({ x: 0, y: 0, z: -1, w: 0 });
+      const midLinearRot = linearRotation.evaluate(0.5) as Quaternion;
+      expect(midLinearRot.x).toBeCloseTo(0, 5);
+      expect(midLinearRot.y).toBeCloseTo(0, 5);
+      expect(midLinearRot.z).toBeCloseTo(-Math.SQRT1_2, 5);
+      expect(midLinearRot.w).toBeCloseTo(Math.SQRT1_2, 5);
+      expect(linearRotation.evaluate(1)).toMatchObject({ x: 0, y: 0, z: -1, w: 0 });
+      expect(weight.evaluate(0.5)).toEqual(new Float32Array([0.5]));
+      const cubic = resource.animations![1].curveBindings[0].curve!;
+      expect(cubic["_times"].buffer).not.toBe(backing);
+      expect(cubic["_times"].buffer).toBe(cubic["_values"].buffer);
+      expect(cubic["_times"].buffer.byteLength).toBe(32);
+      expect(linearRotation["_times"].buffer.byteLength).toBe(8);
+      expect(cubic.evaluate(0)).toEqual(new Float32Array([0]));
+      expect(cubic.evaluate(0.5)).toEqual(new Float32Array([0.75]));
+      expect(cubic.evaluate(1)).toEqual(new Float32Array([1]));
+
+      const gappedClip = resource.animations![2];
+      expect(gappedClip.curveBindings).toHaveLength(1);
+      const gapped = gappedClip.curveBindings[0].curve!;
+      expect(gapped["_times"].buffer.byteLength).toBe(8);
+      expect(gapped["_values"].buffer.byteLength).toBe(8);
+      expect(gapped.evaluate(0.5)).toEqual(new Float32Array([6.5]));
+
+      instance = resource.instantiateSceneRoot();
+      const wide = instance.findByName("Wide")!;
+      const renderer = wide.getComponent(SkinnedMeshRenderer)!;
+      const seedCurve = new AnimationFloatArrayCurve();
+      seedCurve._setKeyBuffers(new Float32Array([0, 1]), new Float32Array([0.75, 0.75, 0.75, 0.75]));
+      const remapped = new AnimationClip("Retarget");
+      remapped.addCurveBinding("", SkinnedMeshRenderer, "blendShapeWeights", seedCurve);
+      for (const [curve, expected] of [
+        [weight, 0.5],
+        [cubic, 0.75]
+      ] as const) {
+        remapped.curveBindings[0].curve = seedCurve;
+        remapped.sampleAnimation(wide, 0.5);
+        expect(Array.from(renderer.blendShapeWeights)).toEqual([0.75, 0.75]);
+        remapped.curveBindings[0].curve = curve;
+        remapped.sampleAnimation(wide, 0.5);
+        expect(Array.from(renderer.blendShapeWeights)).toEqual([expected, 0]);
+      }
+      remapped.destroy();
+      expect(weight.getKey(1).value).toEqual(new Float32Array([1]));
+      expect(weight.evaluate(0.75)).toEqual(new Float32Array([0.75]));
+
+      const replacementTimes = new Float32Array([0, 1]);
+      const replacementValues = new Float32Array([2, 3, 3, 4]);
+      for (const curve of [weight, unplayedWeight]) {
+        curve._setKeyBuffers(replacementTimes, replacementValues);
+        expect(curve.evaluate(0.5)).toEqual(new Float32Array([2.5, 3.5]));
+      }
+    } finally {
+      instance?.destroy();
+      resource?.destroy();
+      URL.revokeObjectURL(url);
+      if (bufferUrl) URL.revokeObjectURL(bufferUrl);
+    }
+  });
+
+  it("samples glTF animations via playback, crossfade, and additive layers with flat curve normalization", async () => {
+    const times = [0, 1];
+    const transLinear = [0, 0, 0, 2, 4, 6];
+    const rotLinear = [0, 0, 0, 1, 0, Math.SQRT1_2, 0, Math.SQRT1_2];
+    const scaleCubic = [
+      // key 0: inTangent, value, outTangent
+      0, 0, 0, 1, 1, 1, 0, 4, 0,
+      // key 1: inTangent, value, outTangent
+      0, 0, 0, 2, 3, 4, 0, 0, 0
+    ];
+    const weightLinear = [0, 1, 1, 0];
+    const transStep = [1, 2, 3, 5, 6, 7];
+    const rotCubic = [
+      // key 0: inTangent, value, outTangent
+      0, 0, 0, 0, 0, 0, 0, 1, 0.2, 0.4, 0.6, 0.8,
+      // key 1: inTangent, value, outTangent
+      -0.2, -0.4, -0.6, -0.8, 0, 0, 1, 0, 0, 0, 0, 0
+    ];
+    const weightCubic = [
+      // key 0 (2 morph targets): in, value, out
+      0, 0, 0, 1, 0, 2,
+      // key 1 (2 morph targets): in, value, out
+      2, 0, 1, 0, 0, 0
+    ];
+    const triangle = [0, 0, 0, 1, 0, 0, 0, 1, 0];
+    const delta0 = [0, 0, 1, 0, 0, 1, 0, 0, 1];
+    const delta1 = [0, 1, 0, 0, 1, 0, 0, 1, 0];
+
+    const floats = [
+      ...times,
+      ...transLinear,
+      ...rotLinear,
+      ...scaleCubic,
+      ...weightLinear,
+      ...transStep,
+      ...rotCubic,
+      ...weightCubic,
+      ...triangle,
+      ...delta0,
+      ...delta1
+    ];
+    const bytes = new ArrayBuffer(floats.length * 4);
+    new Float32Array(bytes).set(floats);
+
+    const bufferViews: Array<{ buffer: number; byteOffset: number; byteLength: number; target?: number }> = [];
+    const accessors: Array<{
+      bufferView: number;
+      type: string;
+      componentType: number;
+      count: number;
+      min?: number[];
+      max?: number[];
+    }> = [];
+    let floatOffset = 0;
+    const addAccessor = (type: string, elementCount: number, count: number, isGeometry = false) => {
+      const byteOffset = floatOffset * 4;
+      const byteLength = count * elementCount * 4;
+      floatOffset += count * elementCount;
+      const viewIndex = bufferViews.length;
+      bufferViews.push(
+        isGeometry ? { buffer: 0, byteOffset, byteLength, target: 34962 } : { buffer: 0, byteOffset, byteLength }
+      );
+      const accessorIndex = accessors.length;
+      const accessor: (typeof accessors)[number] = {
+        bufferView: viewIndex,
+        type,
+        componentType: 5126,
+        count
+      };
+      if (type === "SCALAR" && count === 2) {
+        accessor.min = [0];
+        accessor.max = [1];
+      } else if (isGeometry) {
+        accessor.min = [0, 0, 0];
+        accessor.max = [1, 1, 1];
+      }
+      accessors.push(accessor);
+      return accessorIndex;
+    };
+
+    const timesAcc = addAccessor("SCALAR", 1, 2);
+    const transLinearAcc = addAccessor("VEC3", 3, 2);
+    const rotLinearAcc = addAccessor("VEC4", 4, 2);
+    const scaleCubicAcc = addAccessor("VEC3", 3, 6);
+    const weightLinearAcc = addAccessor("SCALAR", 1, 4);
+    const transStepAcc = addAccessor("VEC3", 3, 2);
+    const rotCubicAcc = addAccessor("VEC4", 4, 6);
+    const weightCubicAcc = addAccessor("SCALAR", 1, 12);
+    const posAcc = addAccessor("VEC3", 3, 3, true);
+    const target0Acc = addAccessor("VEC3", 3, 3, true);
+    const target1Acc = addAccessor("VEC3", 3, 3, true);
+
+    const bufferUrl = URL.createObjectURL(new Blob([bytes]));
+    const glTF = {
+      asset: { version: "2.0" },
+      scene: 0,
+      scenes: [{ nodes: [0] }],
+      nodes: [{ name: "Actor", mesh: 0 }],
+      meshes: [
+        {
+          weights: [0, 0],
+          primitives: [
+            { attributes: { POSITION: posAcc }, targets: [{ POSITION: target0Acc }, { POSITION: target1Acc }] }
+          ]
+        }
+      ],
+      buffers: [{ uri: bufferUrl, byteLength: bytes.byteLength }],
+      bufferViews,
+      accessors,
+      animations: [
+        {
+          name: "base",
+          samplers: [
+            { input: timesAcc, output: transLinearAcc, interpolation: "LINEAR" },
+            { input: timesAcc, output: rotLinearAcc, interpolation: "LINEAR" },
+            { input: timesAcc, output: scaleCubicAcc, interpolation: "CUBICSPLINE" },
+            { input: timesAcc, output: weightLinearAcc, interpolation: "LINEAR" }
+          ],
+          channels: [
+            { sampler: 0, target: { node: 0, path: "translation" } },
+            { sampler: 1, target: { node: 0, path: "rotation" } },
+            { sampler: 2, target: { node: 0, path: "scale" } },
+            { sampler: 3, target: { node: 0, path: "weights" } }
+          ]
+        },
+        {
+          name: "overlay",
+          samplers: [
+            { input: timesAcc, output: transStepAcc, interpolation: "STEP" },
+            { input: timesAcc, output: rotCubicAcc, interpolation: "CUBICSPLINE" },
+            { input: timesAcc, output: weightCubicAcc, interpolation: "CUBICSPLINE" }
+          ],
+          channels: [
+            { sampler: 0, target: { node: 0, path: "translation" } },
+            { sampler: 1, target: { node: 0, path: "rotation" } },
+            { sampler: 2, target: { node: 0, path: "weights" } }
+          ]
+        }
+      ]
+    };
+
+    const url = URL.createObjectURL(new Blob([JSON.stringify(glTF)], { type: "model/gltf+json" }));
+    const rootEntity = engine.sceneManager.activeScene.createRootEntity();
+    let resource: GLTFResource | undefined;
+    try {
+      resource = await engine.resourceManager.load<GLTFResource>({ type: AssetType.GLTF, url });
+      const instance = resource.instantiateSceneRoot();
+      rootEntity.addChild(instance);
+      const actor = instance.findByName("Actor")!;
+      const renderer = actor.getComponent(SkinnedMeshRenderer)!;
+      const animator = instance.getComponent(Animator)!;
+      const [baseClip, overlayClip] = resource.animations!;
+
+      const additiveLayer = new AnimatorControllerLayer("additive");
+      additiveLayer.blendingMode = AnimatorLayerBlendingMode.Additive;
+      const additiveSM = new AnimatorStateMachine();
+      const additiveState = additiveSM.addState("overlay");
+      additiveState.clip = overlayClip;
+      additiveState.wrapMode = WrapMode.Loop;
+      additiveLayer.stateMachine = additiveSM;
+      animator.animatorController.addLayer(additiveLayer);
+
+      const stepAnimator = (deltaTime: number) => {
+        (engine.time as any)._frameCount++;
+        animator.update(deltaTime);
+      };
+
+      animator.play("base", 0);
+      stepAnimator(0.5);
+      expect(actor.transform.position.x).toBeCloseTo(1, 5);
+      expect(actor.transform.scale.y).toBeCloseTo(2.5, 5);
+      expect(actor.transform.rotationQuaternion.y).toBeCloseTo(Math.sin(Math.PI / 8), 5);
+      expect(renderer.blendShapeWeights[0]).toBeCloseTo(0.5, 5);
+      expect(renderer.blendShapeWeights[1]).toBeCloseTo(0.5, 5);
+
+      animator.crossFade("overlay", 0.5, 0);
+      stepAnimator(0.25);
+      expect(actor.transform.position.x).toBeCloseTo(1.25, 5);
+      animator.play("overlay", 1);
+      stepAnimator(0.25);
+      expect(Array.from(renderer.blendShapeWeights)).toEqual([0.3125, 0.875]);
+      baseClip.sampleAnimation(instance, 0.4);
+      expect(actor.transform.position.x).toBeCloseTo(0.8, 5);
+
+      overlayClip.sampleAnimation(instance, 0.5);
+      const { rotationQuaternion, scale, localMatrix } = actor.transform;
+      const m = localMatrix.elements;
+      // At t=0.5: raw (0.05, 0.1, 0.65, 0.7) normalized -> invLen = 1 / sqrt(0.925)
+      const invNorm = 1 / Math.hypot(0.05, 0.1, 0.65, 0.7);
+      expect(rotationQuaternion.x).toBeCloseTo(0.05 * invNorm, 5);
+      expect(rotationQuaternion.y).toBeCloseTo(0.1 * invNorm, 5);
+      expect(rotationQuaternion.z).toBeCloseTo(0.65 * invNorm, 5);
+      expect(rotationQuaternion.w).toBeCloseTo(0.7 * invNorm, 5);
+      expect(rotationQuaternion.length()).toBeCloseTo(1, 5);
+      expect(Math.hypot(m[0], m[1], m[2])).toBeCloseTo(scale.x, 5);
+
+      const [freshTrans, , freshCubicScale] = baseClip.curveBindings.map((b) => b.curve!);
+      const freshStepTrans = overlayClip.curveBindings[0].curve!;
+
+      freshCubicScale.interpolation = InterpolationType.Step;
+      expect(freshCubicScale.evaluate(0.5)).toMatchObject({ x: 1, y: 1, z: 1 });
+      freshCubicScale.interpolation = InterpolationType.Linear;
+      expect(freshCubicScale.evaluate(0.5)).toMatchObject({ x: 1.5, y: 2, z: 2.5 });
+
+      // Switching a tangent-less curve to CubicSpline falls back to p0 cleanly.
+      freshTrans.interpolation = InterpolationType.CubicSpine;
+      expect(freshTrans.evaluate(0.5)).toMatchObject({ x: 0, y: 0, z: 0 });
+
+      // addKey and removeKey keep lengths and keyCount accurate on flat curves.
+      const extraKey = new Keyframe<Vector3>();
+      extraKey.time = 2;
+      extraKey.value = new Vector3(9, 9, 9);
+      freshStepTrans.addKey(extraKey);
+      expect(freshStepTrans.length).toBe(2);
+      expect(freshStepTrans.keyCount).toBe(3);
+      freshStepTrans.removeKey(2);
+      expect(freshStepTrans.keyCount).toBe(2);
+      expect(freshStepTrans.length).toBe(1);
+    } finally {
+      rootEntity.destroy();
+      resource?.destroy();
+      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(bufferUrl);
     }
   });
 
@@ -1315,7 +1808,9 @@ describe("glTF instance test", function () {
       await requested;
       await new Promise((resolve) => setTimeout(resolve, 20));
 
-      const inFlight = Object.values(referPool).find((r: any) => r instanceof GLTFResource && r.url === gltfUrl) as GLTFResource;
+      const inFlight = Object.values(referPool).find(
+        (r: any) => r instanceof GLTFResource && r.url === gltfUrl
+      ) as GLTFResource;
       expect(inFlight).to.exist;
       expect((inFlight as any)._isLoading).to.be.true;
       inFlight._addReferCount(1);

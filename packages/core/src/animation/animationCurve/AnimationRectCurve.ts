@@ -1,7 +1,9 @@
 import { Rect } from "@galacean/engine-math";
+import { TypedArray } from "../../base/Constant";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
+import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
 
@@ -11,9 +13,13 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<Rect>>()
 export class AnimationRectCurve extends AnimationCurve<Rect> {
   /** @internal */
-  static _isCopyMode: boolean = true;
+  static override readonly _keyValueSize = 4;
   /** @internal */
-  static _supportInterpolationMode: boolean = false;
+  static readonly _isCopyMode = true;
+  /** @internal */
+  static readonly _supportInterpolationMode = false;
+
+  protected declare _values: TypedArray;
 
   /**
    * @internal
@@ -43,5 +49,18 @@ export class AnimationRectCurve extends AnimationCurve<Rect> {
   constructor() {
     super();
     this._evaluateData.value = new Rect();
+  }
+
+  protected override _evaluateKey(index: number, out: Rect): Rect {
+    const values = this._values;
+    const offset = index * 4;
+    return out.set(values[offset], values[offset + 1], values[offset + 2], values[offset + 3]);
+  }
+
+  protected override _readKeyAt(offset: number, out: Keyframe<Rect>): void {
+    const values = this._values;
+    (out.value ||= new Rect()).set(values[offset], values[offset + 1], values[offset + 2], values[offset + 3]);
+    out.inTangent = undefined;
+    out.outTangent = undefined;
   }
 }

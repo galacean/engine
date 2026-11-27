@@ -761,7 +761,7 @@ export class Animator extends Component implements ICloneHook<Animator> {
         }
 
         const curve = curveBindings[i].curve;
-        if (curve!.keys.length) {
+        if (curve!.keyCount) {
           this._checkRevertOwner(owner, additive);
 
           const value = owner.evaluateValue(curve!, playData.clipTime, additive);

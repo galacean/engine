@@ -1,7 +1,7 @@
+import { TypedArray } from "../../base/Constant";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
-import { Keyframe } from "../Keyframe";
+import { evaluateHermiteScalar } from "../internal/AnimationCurvePack";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
 
@@ -11,9 +11,13 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<number>>()
 export class AnimationFloatCurve extends AnimationCurve<number> {
   /** @internal */
-  static _isCopyMode: boolean = false;
+  static override readonly _keyValueSize = 1;
   /** @internal */
-  static _supportInterpolationMode: boolean = true;
+  static readonly _isCopyMode = false;
+  /** @internal */
+  static readonly _supportInterpolationMode = true;
+
+  protected declare _values: TypedArray;
 
   /**
    * @internal
@@ -23,13 +27,6 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
     owner.fixedPoseValue = 0;
     owner.baseEvaluateData.value = 0;
     owner.crossEvaluateData.value = 0;
-  }
-
-  /**
-   * @internal
-   */
-  static _initializeLayerOwner(owner: AnimationCurveLayerOwner): void {
-    owner.finalValue = 0;
   }
 
   /**
@@ -60,39 +57,38 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
     return 0;
   }
 
-  /**
-   * @internal
-   */
-  static _setValue(source: number): number {
-    return source;
-  }
-
-  /**
-   * @internal
-   */
-  static _hermiteInterpolationValue(
-    frame: Keyframe<number>,
-    nextFrame: Keyframe<number>,
-    t: number,
-    dur: number
-  ): number {
-    const t0 = frame.outTangent!;
-    const t1 = nextFrame.inTangent!;
-    if (Number.isFinite(t0) && Number.isFinite(t1)) {
-      const t2 = t * t;
-      const t3 = t2 * t;
-      const a = 2.0 * t3 - 3.0 * t2 + 1.0;
-      const b = t3 - 2.0 * t2 + t;
-      const c = t3 - t2;
-      const d = -2.0 * t3 + 3.0 * t2;
-      return a * frame.value + b * t0 * dur + c * t1 * dur + d * nextFrame.value;
-    } else {
-      return frame.value;
-    }
-  }
-
   constructor() {
     super();
     this._evaluateData.value = 0;
+  }
+
+  protected override _evaluateKey(index: number): number {
+    return this._values[this._hasTangents ? index * 3 + 1 : index];
+  }
+
+  protected override _evaluateLinear(curIndex: number, nextIndex: number, t: number): number {
+    const values = this._values;
+    const stride = this._hasTangents ? 3 : 1;
+    const valueOffset = this._hasTangents ? 1 : 0;
+    const p0 = values[curIndex * stride + valueOffset];
+    return p0 + (values[nextIndex * stride + valueOffset] - p0) * t;
+  }
+
+  protected override _evaluateHermite(
+    curIndex: number,
+    nextIndex: number,
+    a: number,
+    bd: number,
+    cd: number,
+    d: number
+  ): number {
+    const values = this._values;
+    const o0 = curIndex * 3 + 1;
+    const o1 = nextIndex * 3;
+    return evaluateHermiteScalar(values[o0], values[o0 + 1], values[o1], values[o1 + 1], a, bd, cd, d);
+  }
+
+  protected override _subtractFirstKey(out: number): number {
+    return out - this._values[this._hasTangents ? 1 : 0];
   }
 }

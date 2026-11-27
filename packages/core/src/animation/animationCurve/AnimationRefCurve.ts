@@ -1,8 +1,5 @@
 import { ReferResource } from "../../asset/ReferResource";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
-import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
-import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
 
@@ -12,28 +9,20 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<ReferResource | null>>()
 export class AnimationRefCurve extends AnimationCurve<ReferResource | null> {
   /** @internal */
-  static _isCopyMode: boolean = false;
+  static readonly _isCopyMode = false;
   /** @internal */
-  static _supportInterpolationMode: boolean = false;
+  static readonly _supportInterpolationMode = false;
 
   /**
    * @internal
    */
-  static _initializeOwner(owner: AnimationCurveOwner<ReferResource | null>): void {}
+  static _initializeOwner(): void {}
 
-  /**
-   * @internal
-   */
-  static _initializeLayerOwner(owner: AnimationCurveLayerOwner): void {}
-
-  /**
-   * @internal
-   */
-  static _setValue(value: ReferResource | null): ReferResource | null {
-    return value;
-  }
-
-  constructor() {
-    super();
+  /** @inheritdoc */
+  override evaluate(time: number): ReferResource | null | undefined {
+    const result = super.evaluate(time);
+    // Clear cached reference so evaluating once does not retain the resource after curve edits.
+    this._evaluateData.value = null;
+    return result;
   }
 }

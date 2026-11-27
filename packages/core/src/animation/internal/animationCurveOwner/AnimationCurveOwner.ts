@@ -87,7 +87,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     }
 
     const srcValue =
-      srcCurve && srcCurve.keys.length
+      srcCurve && srcCurve.keyCount
         ? additive
           ? srcCurve._evaluateAdditive(srcTime, this.baseEvaluateData)
           : srcCurve._evaluate(srcTime, this.baseEvaluateData)
@@ -96,7 +96,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
           : this.defaultValue;
 
     const destValue =
-      destCurve && destCurve.keys.length
+      destCurve && destCurve.keyCount
         ? additive
           ? destCurve._evaluateAdditive(destTime, this.crossEvaluateData)
           : destCurve._evaluate(destTime, this.crossEvaluateData)
@@ -121,7 +121,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
       ? this.cureType._subtractValue!(this.fixedPoseValue, this.defaultValue, this.baseEvaluateData.value)
       : this.fixedPoseValue;
     const destValue =
-      destCurve && destCurve.keys.length
+      destCurve && destCurve.keyCount
         ? additive
           ? destCurve._evaluateAdditive(destTime, this.crossEvaluateData)
           : destCurve._evaluate(destTime, this.crossEvaluateData)
