@@ -868,6 +868,11 @@ export class SeedWorldVoiceHudController implements SeedWorldChatPanel {
     if (this._destroyed || this._pressPointerId !== undefined || this._state.kind === "voice") {
       return;
     }
+    const availability = this._asrClient.getDiagnostics().availability;
+    if (availability?.available === false) {
+      this._showFeedback("asr-unavailable", availability.message);
+      return;
+    }
     triggerVoiceHaptic("press");
     this._view.layout.cancelReading();
     this._pressPointerId = pointerId;

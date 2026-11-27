@@ -9,6 +9,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 
 import {
   AgentTraceStore,
+  createAsrClient,
   type AgentRunOptions,
   type AgentInputPreparation,
   type AgentEvent,
@@ -291,6 +292,27 @@ describe("SeedWorldVoiceHudController lifecycle", () => {
     f.controller.handlePointerCancel(57);
     await Promise.resolve();
     f.controller.destroy();
+  });
+
+  it("shows voice unavailable for the local SDK mock and keeps text input working", async () => {
+    const start = vi.fn(async () => undefined);
+    const host = {
+      location: new URL("http://127.0.0.1:4173/"),
+      lingguang: { asr: { start, stop: vi.fn(async () => undefined) } }
+    } as unknown as NonNullable<Parameters<typeof createAsrClient>[0]>;
+    const f = await createControllerFixture(undefined, undefined, createAsrClient(host));
+    try {
+      f.controller.handlePointerDown(57);
+      expect(f.view.layout.setTranscript).toHaveBeenLastCalledWith("暂不支持语音");
+      expect(f.view.layout.setTranscript).not.toHaveBeenCalledWith("我在听");
+      expect(start).not.toHaveBeenCalled();
+
+      f.controller.handlePointerUp(57);
+      await f.controller.submit("text task");
+      expect(f.runAgent).toHaveBeenCalledWith("text task", expect.objectContaining({ inputSource: "text" }), "next-step");
+    } finally {
+      f.controller.destroy();
+    }
   });
 
   it("forwards an explicit diagnostic compaction budget through submit and resets to server defaults", async () => {
@@ -594,7 +616,9 @@ describe("SeedWorldVoiceHudController lifecycle", () => {
   });
 });
 
-async function createControllerFixture(realSession?: AIChatSession, activity?: SeedWorldSessionActivity) {
+async function createControllerFixture(
+  realSession?: AIChatSession, activity?: SeedWorldSessionActivity, voiceClient?: AsrClient
+) {
   const { SeedWorldVoiceHudController } = await import("../../demos/seed-world/assistant/SeedWorldChatPanel");
   const traceStore = activity?.trace ?? new AgentTraceStore({ enabled: true });
   const asrClient = new ControlledAsrClient();
@@ -710,7 +734,7 @@ async function createControllerFixture(realSession?: AIChatSession, activity?: S
     activity,
     debugController as never,
     () => ({ minimumMilliseconds: 0, textSettleMilliseconds: 0, maximumMilliseconds: 0 }),
-    asrClient
+    voiceClient ?? asrClient
   );
   return { controller, traceStore, asrClient, runAgent, emit, session, application, view, activity };
 }
