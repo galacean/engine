@@ -1,0 +1,56 @@
+packages/terrain/src/data/seed-world/project.json
+  h_a3c79ce84ffdc2 235,241,253
+packages/terrain/src/data/seed-world/public/Shader/Water/WaterAotManifest.33fd940116738208ba281c4fb672c31bac490f82d7f86b4b8ee683b69c73892c.json
+  h_a3c79ce84ffdc2 23,32-36,75,84-88,122
+packages/terrain/src/data/seed-world/public/Shader/Water/lake-heightfield-high-hybrid-v2.5796ee546783af0e45d9dbbbc67b72b506efa76c0db313f1a5f2262a4a709cb4.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/seed-world/public/Shader/Water/ocean-near-detailed.8cedf974eea10fa1f4183811224ac949261af8a8623c0e919becda030c9b94ac.shaderc
+  h_a3c79ce84ffdc2 1
+packages/terrain/src/data/seed-world/source/Shader/Water/LakeHeightfieldHighHybrid.shader
+  h_a3c79ce84ffdc2 236-238,1424,1451,1661-1663,2051-2055,2057
+packages/terrain/src/data/seed-world/source/Shader/Water/OceanNearDetailed.shader
+  h_a3c79ce84ffdc2 354-356,1923-1925,2342-2346
+packages/water/src/water/native/assets/Water/Shaders/builtin/lake.json
+  h_a3c79ce84ffdc2 1
+packages/water/src/water/native/assets/Water/Shaders/builtin/ocean.json
+  h_a3c79ce84ffdc2 1
+packages/water/src/water/native/assets/Water/Shaders/builtin/river.json
+  h_a3c79ce84ffdc2 1
+packages/water/src/water/native/assets/Water/Shaders/builtin/sources.json
+  h_a3c79ce84ffdc2 2-4
+packages/water/src/water/native/assets/Water/Shaders/lake-heightfield-high-hybrid-v2.shaderc
+  h_a3c79ce84ffdc2 1
+packages/water/src/water/native/assets/Water/Shaders/lake.shader
+  h_a3c79ce84ffdc2 403-405,1451,1478,1655-1657,2045-2049,2051
+packages/water/src/water/native/assets/Water/Shaders/ocean-near-detailed.shaderc
+  h_a3c79ce84ffdc2 1
+packages/water/src/water/native/assets/Water/Shaders/ocean.shader
+  h_a3c79ce84ffdc2 390-392,1952-1954,2371-2375
+packages/water/src/water/native/assets/Water/Shaders/river.shader
+  h_a3c79ce84ffdc2 414-416,1731-1733,1951-1955,1958
+packages/water/src/water/native/assets/conversion.json
+  h_a3c79ce84ffdc2 275,277-278,282,284-285
+packages/water/src/water/shaders/heightfield/DiffuseLighting.glsl
+  h_a3c79ce84ffdc2 3-7,9
+packages/water/src/water/shaders/heightfield/ForwardPass.glsl
+  h_a3c79ce84ffdc2 107-109,177-179
+packages/water/src/water/shaders/heightfield/SurfaceLightingFunctions.glsl
+  h_a3c79ce84ffdc2 28,55
+packages/water/src/water/shaders/ocean/ForwardPass.glsl
+  h_a3c79ce84ffdc2 66-68,174-176,465-469
+packages/water/src/water/shaders/river/ForwardPass.glsl
+  h_a3c79ce84ffdc2 91-93,121-123,150-154,157
+packages/water/tests/WaterPerformanceOptimizations.test.ts
+  h_a3c79ce84ffdc2 875-919,1588,1593,1596,1599-1603,1617-1638,1640-1647,1657-1661,1663-1664,1667-1683,1776
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "71cb1e5c9c73d517a28ac3b76e214088d23c2a1b",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
