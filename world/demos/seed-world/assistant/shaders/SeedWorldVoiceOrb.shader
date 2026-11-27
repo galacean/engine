@@ -29,6 +29,22 @@ Shader "SeedWorld/VoiceOrbV5" {
       // and press expansion animate strictly on the GPU without mutating UITransform / chunkUI VBO.
       float material_OrbScaleExpandPixels;
 
+      // CPU-precomputed frame-constant 3x3 rotation matrices packed in upper-left of mat4.
+      mat4 material_OrbRotBase;
+      mat4 material_OrbRotInner;
+      mat4 material_OrbRotMid;
+      mat4 material_OrbRotOuter;
+
+      // CPU-precomputed wrapped FP16-safe ribbon phases & trig vectors.
+      vec4 material_OrbFramePhase2;
+      vec4 material_OrbFramePhase3;
+      vec4 material_OrbFrameTrig0;
+      vec4 material_OrbFrameTrig1;
+
+      // 64x1 cyclic bilinear sRGB LUT for aurora spectrum.
+      mediump sampler2D material_OrbSpectrumLut;
+      float material_OrbUseSpectrumLut;
+
       // Tunable pastel iridescent palette stops (sRGB)
       vec4 material_OrbCyan;
       vec4 material_OrbAzure;
@@ -71,309 +87,334 @@ Shader "SeedWorld/VoiceOrbV5" {
         return v;
       }
 
-      mat3 orbRotX(float a) {
-        float c = cos(a);
-        float s = sin(a);
-        return mat3(
-          1.0, 0.0, 0.0,
-          0.0,   c,  -s,
-          0.0,   s,   c
-        );
+      // Fast polynomial atan2 on unit-length (x, y) vectors (max error < 0.0003 rad, 0 SFU atan calls).
+      mediump float fastAtan2Unit(mediump float y, mediump float x) {
+        mediump float ax = abs(x);
+        mediump float ay = abs(y);
+        mediump float a = min(ax, ay) / max(ax, ay);
+        mediump float s = a * a;
+        mediump float r = ((-0.04649647 * s + 0.15931422) * s - 0.32762276) * s * a + a;
+        if (ay > ax) r = 1.5707963 - r;
+        if (x < 0.0) r = 3.1415927 - r;
+        return y < 0.0 ? -r : r;
       }
 
-      mat3 orbRotY(float a) {
-        float c = cos(a);
-        float s = sin(a);
-        return mat3(
-            c, 0.0,   s,
-          0.0, 1.0, 0.0,
-           -s, 0.0,   c
-        );
+      // Fast parabolic sin(x) in ALU (max error < 0.001, 0 SFU sin/cos calls).
+      mediump float fastSin(mediump float x) {
+        mediump float t = fract(x * 0.15915494 + 0.5) * 2.0 - 1.0;
+        mediump float y = 4.0 * t * (1.0 - abs(t));
+        return y * (0.775 + 0.225 * abs(y));
       }
 
-      mat3 orbRotZ(float a) {
-        float c = cos(a);
-        float s = sin(a);
-        return mat3(
-            c,  -s, 0.0,
-            s,   c, 0.0,
-          0.0, 0.0, 1.0
-        );
-      }
-
-      void blendOver(inout vec3 dstRgb, inout float dstA, vec3 srcRgb, float srcA) {
-        if (srcA <= 0.0005) return;
-        float outA = srcA + dstA * (1.0 - srcA);
-        dstRgb = (srcRgb * srcA + dstRgb * dstA * (1.0 - srcA)) / max(outA, 0.0001);
-        dstA = outA;
-      }
-
-      // Seamless, pinch-free cyclic pastel aurora palette weighted to Dribbble's exact visual balance:
-      // Broad luminous Cyan-Aqua -> Periwinkle/Cobalt -> Electric Violet -> Orchid/Rose -> Airy Aqua -> Cyan.
-      vec3 evalAuroraSpectrum(
-        float phase,
-        vec3 cCyan,
-        vec3 cAzure,
-        vec3 cViolet,
-        vec3 cOrchid,
-        vec3 cRose,
-        vec3 cCore
-      ) {
-        float u = fract(phase);
-        vec3 cAqua = mix(cCyan, cCore, 0.18);
-        if (u < 0.38) {
-          float k = smoothstep(0.0, 0.38, u);
-          return mix(cCyan, cAzure, k * 0.55);
-        } else if (u < 0.54) {
-          float k = smoothstep(0.38, 0.54, u);
-          return mix(mix(cCyan, cAzure, 0.55), cViolet, k);
-        } else if (u < 0.68) {
-          float k = smoothstep(0.54, 0.68, u);
-          return mix(cViolet, cOrchid, k);
-        } else if (u < 0.82) {
-          float k = smoothstep(0.68, 0.82, u);
-          return mix(cOrchid, cRose, k);
-        } else if (u < 0.91) {
-          float k = smoothstep(0.82, 0.91, u);
-          return mix(cRose, cAqua, k);
-        } else {
-          float k = smoothstep(0.91, 1.0, u);
-          return mix(cAqua, cCyan, k);
+      mediump vec3 sampleSpectrum(mediump float phase, mediump vec3 fallbackCyan) {
+        if (material_OrbUseSpectrumLut > 0.5) {
+          return texture2DLodEXT(material_OrbSpectrumLut, vec2(phase, 0.5), 0.0).rgb;
         }
+        return fallbackCyan;
       }
 
-      // Evaluates one 3D curved concentric silk ribbon shell inside the sphere.
-      // Tight glossy core ridge + broad airbrushed scatter creates Dribbble's layered curved silk folds!
-      float evalCurvedSilkRibbon(
-        vec3 qR,
-        float radius,
-        float radialThick,
-        float beltWidth,
-        float waveAmp,
-        float waveFreq,
-        float phaseTime,
-        float arcBias,
-        out float outPhi,
-        out float outCrest
+      // Single-exp2 Nyquist-filtered silk shell evaluator (0 SFU atan/sin/cos, 1 exp2/hit, squared-radius early out).
+      mediump float evalSilkStep(
+        mediump vec3 qR,
+        mediump float radius,
+        mediump float rMin2,
+        mediump float rMax2,
+        mediump float maxZ,
+        mediump float invSheetW,
+        mediump float invBeltW,
+        mediump float waveAmp,
+        mediump float wf24,
+        mediump float wf18,
+        mediump float ph2,
+        mediump float ph3,
+        mediump vec2 zShiftSC,
+        mediump vec2 arcCS,
+        mediump float coreEnergyRatio,
+        out mediump vec2 outDirXY,
+        out mediump float outPhi,
+        out mediump float outCrest
       ) {
-        float rXY = length(qR.xy);
-        outPhi = atan(qR.y, qR.x);
+        outCrest = 0.0;
+        if (abs(qR.z) > maxZ) return 0.0;
+        mediump float rXY2 = dot(qR.xy, qR.xy);
+        if (rXY2 < rMin2 || rXY2 > rMax2) return 0.0;
 
-        // Smooth helical radius modulation so the silk ribbon undulates organically in 3D
-        float rWave = waveAmp * (
-          0.65 * sin(2.0 * outPhi + phaseTime + qR.z * 2.4 * waveFreq)
-          + 0.35 * cos(3.0 * outPhi - phaseTime * 0.8 - qR.z * 1.8 * waveFreq)
+        mediump float invR = inversesqrt(rXY2);
+        mediump float rXY = rXY2 * invR;
+        outDirXY = qR.xy * invR;
+        outPhi = fastAtan2Unit(outDirXY.y, outDirXY.x);
+
+        mediump float rWave = waveAmp * (
+          0.65 * fastSin(2.0 * outPhi + ph2 + qR.z * wf24)
+          + 0.35 * fastSin(3.0 * outPhi + ph3 - qR.z * wf18 + 1.5707963)
         );
-        float dr = rXY - (radius + rWave);
+        mediump float dr = rXY - (radius + rWave);
+        mediump float zShift = 0.16 * dot(outDirXY, zShiftSC);
+        mediump float uZ = (qR.z - zShift) * invBeltW;
+        mediump float uR = dr * invSheetW;
 
-        // Crisp glossy silk crest + silky airbrushed body
-        float coreSheet = exp(-pow(dr / max(radialThick, 0.012), 2.0));
-        float softTail = exp(-pow(dr / max(radialThick * 2.8, 0.038), 2.0)) * 0.36;
-
-        // Finite ribbon width along local Z (tilted gently as it wraps around phi for a twisted Mobius feel)
-        float zShift = 0.16 * sin(outPhi + phaseTime * 0.7);
-        float zEnv = exp(-pow((qR.z - zShift) / max(beltWidth, 0.08), 2.0));
-
-        // Smooth 360-degree aurora brightness undulation (never creates an off-center lopsided gap)
-        float arcEnv = 0.56 + 0.44 * cos(outPhi - arcBias);
-
-        // Keep pole strictly zero so atan() can never pinch
-        float poleGuard = smoothstep(0.12, 0.26, rXY);
-
-        float env = zEnv * arcEnv * poleGuard;
-        outCrest = coreSheet * env;
-        return (coreSheet * 1.15 + softTail) * env;
+        mediump float gauss = exp2(-1.442695 * (uR * uR + uZ * uZ));
+        mediump float arcEnv = 0.56 + 0.44 * dot(outDirXY, arcCS);
+        mediump float env = arcEnv * smoothstep(0.12, 0.26, rXY);
+        outCrest = gauss * env * coreEnergyRatio;
+        return gauss * (1.15 * coreEnergyRatio + 0.36) * env;
       }
 
       void frag(Varyings v) {
         vec2 p = v.v_uv * 2.0 - 1.0;
-        float r = length(p);
-        float circleMask = 1.0 - smoothstep(0.980, 1.0, r);
-        if (circleMask <= 0.001) discard;
+        float r2 = dot(p, p);
+        // Both glassBevelClearance and topGlint are identically 0 for r >= 0.94 (r2 >= 0.8836).
+        if (r2 >= 0.8836) discard;
 
-        float t = material_Time * material_OrbMotion.x;
-        float zOuter = sqrt(max(0.0001, 1.0 - min(r * r, 0.9999)));
+        float r = sqrt(r2);
+        float zOuter = sqrt(max(0.0001, 1.0 - r2));
         vec3 N = vec3(p, zOuter);
         vec3 V = vec3(0.0, 0.0, -1.0);
 
-        float sway = material_OrbMotion.y;
-        float widthScale = clamp(material_OrbMotion.w, 0.35, 2.2);
-        float washStrength = max(material_OrbRibbon.x, 0.0);
-        float coreLift = clamp(material_OrbRibbon.y, 0.0, 1.0);
-        float crestStrength = max(material_OrbRibbon.z, 0.0);
-        float wf = max(material_OrbRibbon.w, 0.25);
+        mediump float sway = material_OrbMotion.y;
+        mediump float widthScale = clamp(material_OrbMotion.w, 0.35, 2.2);
+        mediump float washStrength = max(material_OrbRibbon.x, 0.0);
+        mediump float coreLift = clamp(material_OrbRibbon.y, 0.0, 1.0);
+        mediump float crestStrength = max(material_OrbRibbon.z, 0.0);
+        mediump float wf = max(material_OrbRibbon.w, 0.25);
+        mediump float wf24 = 2.4 * wf;
+        mediump float wf18 = 1.8 * wf;
 
         float shellThick = material_OrbShellThickness > 0.001
           ? clamp(material_OrbShellThickness, 0.015, 0.30)
           : 0.025;
         float glassIor = 1.04 + clamp(material_OrbMotion.z, 0.0, 1.2) * 0.22;
         vec3 D = refract(V, N, 1.0 / glassIor);
+        mediump float chordLen = max(0.02, -2.0 * dot(N, D));
 
-        // Exact chord length through the unit sphere along refracted ray D starting at O = N
-        float chordLen = max(0.02, -2.0 * dot(N, D));
+        mediump float dispAmount = material_OrbDisp.x + material_OrbDisp.y * r2;
+        mediump float dispTwist = material_OrbDisp.z;
 
-        float dispAmount = material_OrbDisp.x + material_OrbDisp.y * r * r;
-        float dispTwist = material_OrbDisp.z;
+        bool hasPre = material_OrbRotBase[3][3] > 0.5;
+        mediump mat3 rotBase = hasPre ? mat3(material_OrbRotBase) : mat3(1.0);
+        mediump mat3 rotInner = hasPre ? mat3(material_OrbRotInner) : mat3(1.0);
+        mediump mat3 rotMid = hasPre ? mat3(material_OrbRotMid) : mat3(1.0);
+        mediump mat3 rotOuter = hasPre ? mat3(material_OrbRotOuter) : mat3(1.0);
 
-        // Global slow vortex swirl + 3 nested counter-precessing, slightly eccentric 3D curved silk shells
-        mat3 rotBase = orbRotZ(-t * 0.48)
-          * orbRotX(0.22 + 0.14 * sway * sin(t * 0.38))
-          * orbRotY(0.18 * sway * cos(t * 0.33));
+        mediump vec3 cCyan = material_OrbCyan.rgb;
+        mediump vec3 cAzure = material_OrbAzure.rgb;
+        mediump vec3 cViolet = material_OrbViolet.rgb;
+        mediump float cavR = 1.0 - shellThick;
+        mediump float cavOuterR = min(1.0, cavR + 0.055);
 
-        // Inner Silk Shell (R ~ 0.44): centered strictly at (0, 0, 0) so aurora stays concentric with the LiquidGlass orb
-        mat3 rotInner = orbRotZ(t * 0.45 + 0.5)
-          * orbRotX(0.58 + 0.24 * sway * sin(t * 0.52 + 0.7))
-          * orbRotY(-0.38 * sway * cos(t * 0.44));
+        mediump vec3 accumRgb = vec3(0.0);
+        mediump float accumA = 0.0;
+        mediump float accumCrest = 0.0;
+        mediump float transmittance = 1.0;
 
-        // Mid Silk Shell (R ~ 0.64): centered strictly at (0, 0, 0)
-        mat3 rotMid = orbRotZ(-t * 0.56 + 1.8)
-          * orbRotX(-0.42 + 0.22 * sway * cos(t * 0.46 + 1.5))
-          * orbRotY(0.32 * sway * sin(t * 0.39 + 0.4));
+        float halfSpan2 = cavOuterR * cavOuterR - 1.0 + 0.25 * chordLen * chordLen;
+        if (halfSpan2 > 0.0001) {
+          const int STEPS = 6;
+          const mediump float INV_STEPS = 1.0 / 6.0;
+          const mediump float INV_TAU = 0.15915494;
 
-        // Outer Silk Shell (R ~ 0.79): centered strictly at (0, 0, 0)
-        mat3 rotOuter = orbRotZ(-t * 0.38 - 0.9)
-          * orbRotX(0.34 + 0.20 * sway * sin(t * 0.41 + 2.4))
-          * orbRotY(-0.26 * sway * cos(t * 0.35 + 1.1));
+          mediump float halfSpan = sqrt(halfSpan2);
+          mediump float ds = (2.0 * halfSpan) * INV_STEPS;
+          mediump float s = (0.5 * chordLen - halfSpan) + 0.5 * ds;
+          mediump float invChord = 1.0 / chordLen;
 
-        vec3 cCyan = material_OrbCyan.rgb;
-        vec3 cAzure = material_OrbAzure.rgb;
-        vec3 cViolet = material_OrbViolet.rgb;
-        vec3 cOrchid = material_OrbOrchid.rgb;
-        vec3 cRose = material_OrbRose.rgb;
-        vec3 cCore = material_OrbCore.rgb;
-        // Classic northern-lights emerald-aqua shimmer instead of yellow-lemon so aurora stays vivid over grass/sand.
-        vec3 cAuroraMint = vec3(0.04, 1.00, 0.72);
+          // Nyquist band-limiting merges core & soft tail into a single smooth Gaussian (0 slicing, 1 exp2/hit).
+          mediump float nyqW = ds * 0.42;
+          mediump float inOrigW = max(0.042 * widthScale, 0.012);
+          mediump float midOrigW = max(0.048 * widthScale, 0.012);
+          mediump float outOrigW = max(0.046 * widthScale, 0.012);
+          mediump float inW = max(max(inOrigW * 2.4, 0.04), nyqW);
+          mediump float midW = max(max(midOrigW * 2.4, 0.04), nyqW);
+          mediump float outW = max(max(outOrigW * 2.4, 0.04), nyqW);
 
-        // 18-step analytic 3D volumetric integration for razor-smooth curved silk crests
-        vec3 accumRgb = vec3(0.0);
-        float accumA = 0.0;
-        float accumCrest = 0.0;
-        float transmittance = 1.0;
+          mediump float invInW = 1.0 / inW;
+          mediump float invMidW = 1.0 / midW;
+          mediump float invOutW = 1.0 / outW;
+          mediump float inRatio = inOrigW * invInW;
+          mediump float midRatio = midOrigW * invMidW;
+          mediump float outRatio = outOrigW * invOutW;
 
-        float cavityR = 1.0 - shellThick;
-        const int STEPS = 20;
-        float invSteps = 1.0 / float(STEPS);
-        float ds = chordLen * invSteps;
+          mediump float rIn = 0.44 * cavR;
+          mediump float rMid = 0.64 * cavR;
+          mediump float rOut = 0.79 * cavR;
+          mediump float inWaveAmp = 0.056 * sway;
+          mediump float midWaveAmp = 0.060 * sway;
+          mediump float outWaveAmp = 0.054 * sway;
+          mediump float inBand = inWaveAmp + inW * 2.3;
+          mediump float midBand = midWaveAmp + midW * 2.3;
+          mediump float outBand = outWaveAmp + outW * 2.3;
 
-        for (int i = 0; i < STEPS; i++) {
-          float u = (float(i) + 0.5) * invSteps;
-          vec3 q = N + D * (u * chordLen);
-          float r3 = length(q);
+          mediump float inMin = max(0.12, rIn - inBand);
+          mediump float inMax = rIn + inBand;
+          mediump float midMin = max(0.12, rMid - midBand);
+          mediump float midMax = rMid + midBand;
+          mediump float outMin = max(0.12, rOut - outBand);
+          mediump float outMax = rOut + outBand;
+          mediump float inMin2 = inMin * inMin;
+          mediump float inMax2 = inMax * inMax;
+          mediump float midMin2 = midMin * midMin;
+          mediump float midMax2 = midMax * midMax;
+          mediump float outMin2 = outMin * outMin;
+          mediump float outMax2 = outMax * outMax;
+          mediump float inScale = crestStrength * 0.86;
+          mediump float midScale = crestStrength * 0.92;
+          mediump float outScale = crestStrength * 0.90;
 
-          // Softly feather inside the luminous white pearl outer cushion
-          float outerMask = 1.0 - smoothstep(cavityR - 0.07, cavityR + 0.055, r3);
-          if (outerMask <= 0.001) continue;
+          mediump float baseR = 0.68 * cavR;
+          mediump float invBaseW2 = 1.0 / ((0.28 * widthScale) * (0.28 * widthScale));
+          mediump float baseScale = washStrength * 0.52;
+          mediump float baseTwist = 0.12 * (1.0 + dispTwist);
 
-          // --- Base Layer: Lush 3D Toroidal Aurora Bed ---
-          vec3 q0 = rotBase * q;
-          float r0xy = length(q0.xy);
-          float phi0 = atan(q0.y, q0.x);
-          float dTorus = length(vec2(r0xy - 0.68 * cavityR, q0.z * 1.28));
-          float dBase = exp(-pow(dTorus / (0.28 * widthScale), 2.0))
-            * smoothstep(0.26, 0.54, r0xy)
-            * washStrength * 0.52;
-          float basePhase = (phi0 / 6.2831853) + 0.12 * q0.z * (1.0 + dispTwist) + dispAmount * 1.2 * (r3 - 0.55);
-          vec3 colBase = evalAuroraSpectrum(basePhase, cCyan, cAzure, cViolet, cOrchid, cRose, cCore);
+          mediump vec2 zShiftIn = hasPre ? material_OrbFrameTrig0.xy : vec2(0.0, 1.0);
+          mediump vec2 zShiftMid = hasPre ? material_OrbFrameTrig0.zw : vec2(0.0, 1.0);
+          mediump vec2 zShiftOut = hasPre ? material_OrbFrameTrig1.xy : vec2(0.0, 1.0);
+          mediump vec2 auroraCS = hasPre ? material_OrbFrameTrig1.zw : vec2(-0.275, -0.961);
 
-          // --- Concentric Silk Shell 1 (Inner Cyan-Aqua Curved Fold, R ~ 0.44, 0 deg phase) ---
-          float phiIn, crestIn;
-          vec3 qIn = rotInner * q;
-          float dIn = evalCurvedSilkRibbon(
-            qIn, 0.44 * cavityR, 0.042 * widthScale, 0.42, 0.056 * sway, wf, t * 0.85, 0.0, phiIn, crestIn
-          ) * crestStrength * 0.86;
-          vec3 colIn = mix(
-            cCyan,
-            mix(cAzure, cViolet, smoothstep(-0.1, 0.85, sin(phiIn + 0.5))),
-            smoothstep(-0.2, 0.75, cos(phiIn - 1.1) + dispAmount * 2.5) * 0.34
-          );
+          mediump vec3 q = N + D * s;
+          mediump vec3 dq = D * ds;
 
-          // --- Concentric Silk Shell 2 (Mid Periwinkle-Violet-Cyan Layered Ribbon, R ~ 0.64, 120 deg phase) ---
-          float phiMid, crestMid;
-          vec3 qMid = rotMid * q;
-          float dMid = evalCurvedSilkRibbon(
-            qMid, 0.64 * cavityR, 0.048 * widthScale, 0.48, 0.060 * sway, wf, -t * 0.75, 2.094395, phiMid, crestMid
-          ) * crestStrength * 0.92;
-          float midPhase = (phiMid / 6.2831853) + 0.14 + 0.14 * qMid.z + dispAmount * 1.8;
-          vec3 colMid = evalAuroraSpectrum(midPhase, cCyan, cAzure, cViolet, cOrchid, cRose, cCore);
+          for (int i = 0; i < STEPS; i++) {
+            mediump float r3 = sqrt(max(0.0001, 1.0 + s * (s - chordLen)));
+            mediump float outerMask = 1.0 - smoothstep(cavR - 0.07, cavOuterR, r3);
+            if (outerMask > 0.001) {
+              mediump vec3 q0 = rotBase * q;
+              mediump float dBase = 0.0;
+              mediump vec3 colBase = cCyan;
+              mediump vec2 dir0 = vec2(1.0, 0.0);
+              bool hasDir0 = false;
+              mediump float r0xy2 = dot(q0.xy, q0.xy);
+              if (r0xy2 > 0.0676) {
+                mediump float invR0 = inversesqrt(r0xy2);
+                mediump float r0xy = r0xy2 * invR0;
+                dir0 = q0.xy * invR0;
+                hasDir0 = true;
+                mediump float dtR = r0xy - baseR;
+                mediump float dtZ = q0.z * 1.28;
+                mediump float uBase2 = (dtR * dtR + dtZ * dtZ) * invBaseW2;
+                if (uBase2 < 5.5) {
+                  dBase = exp2(-1.442695 * uBase2) * smoothstep(0.26, 0.54, r0xy) * baseScale;
+                  mediump float phi0 = fastAtan2Unit(dir0.y, dir0.x);
+                  colBase = sampleSpectrum(phi0 * INV_TAU + baseTwist * q0.z + dispAmount * 1.2 * (r3 - 0.55), cCyan);
+                }
+              }
 
-          // --- Concentric Silk Shell 3 (Outer Orchid-Rose-Cyan-Mint Sweeping Veil, R ~ 0.79, 240 deg phase) ---
-          float phiOut, crestOut;
-          vec3 qOut = rotOuter * q;
-          float dOut = evalCurvedSilkRibbon(
-            qOut, 0.79 * cavityR, 0.046 * widthScale, 0.46, 0.054 * sway, wf, t * 0.68, 4.188790, phiOut, crestOut
-          ) * crestStrength * 0.90;
-          float outPhase = (phiOut / 6.2831853) + 0.52 - 0.12 * qOut.z - dispAmount * 1.6;
-          vec3 colOut = evalAuroraSpectrum(outPhase, cCyan, cAzure, cViolet, cOrchid, cRose, cCore);
+              mediump vec2 dirIn;
+              mediump float phiIn, crestIn;
+              mediump float dIn = evalSilkStep(
+                rotInner * q, rIn, inMin2, inMax2, 1.12,
+                invInW, 2.380952, inWaveAmp, wf24, wf18,
+                material_OrbFramePhase2.x, material_OrbFramePhase3.x,
+                zShiftIn, vec2(1.0, 0.0), inRatio, dirIn, phiIn, crestIn
+              ) * inScale;
+              mediump vec3 colIn = cCyan;
+              if (dIn > 0.001) {
+                mediump float sinIn = dot(dirIn, vec2(0.4794255, 0.8775826));
+                mediump float cosIn = dot(dirIn, vec2(0.4535961, 0.8912074));
+                colIn = mix(
+                  cCyan,
+                  mix(cAzure, cViolet, smoothstep(-0.1, 0.85, sinIn)),
+                  smoothstep(-0.2, 0.75, cosIn + dispAmount * 2.5) * 0.34
+                );
+              }
 
-          // Luminous emerald-aqua northern-lights shimmer along the outer cyan-to-magenta tangent
-          float auroraLobe = smoothstep(0.48, 0.88, r3)
-            * pow(max(0.0, cos(phi0 + 1.85 + 0.45 * sin(t * 0.35))), 2.0);
-          colOut = mix(colOut, cAuroraMint, auroraLobe * 0.76);
-          colBase = mix(colBase, cAuroraMint, auroraLobe * 0.56);
+              mediump vec2 dirMid;
+              mediump float phiMid, crestMid;
+              mediump vec3 qMid = rotMid * q;
+              mediump float dMid = evalSilkStep(
+                qMid, rMid, midMin2, midMax2, 1.26,
+                invMidW, 2.083333, midWaveAmp, wf24, wf18,
+                material_OrbFramePhase2.y, material_OrbFramePhase3.y,
+                zShiftMid, vec2(-0.5, 0.8660254), midRatio, dirMid, phiMid, crestMid
+              ) * midScale;
+              mediump vec3 colMid = cCyan;
+              if (dMid > 0.001) {
+                colMid = sampleSpectrum(phiMid * INV_TAU + 0.14 + 0.14 * qMid.z + dispAmount * 1.8, cCyan);
+              }
 
-          float totalD = dBase + dIn + dMid + dOut;
-          if (totalD <= 0.002) continue;
+              mediump vec2 dirOut;
+              mediump float phiOut, crestOut;
+              mediump vec3 qOut = rotOuter * q;
+              mediump float dOut = evalSilkStep(
+                qOut, rOut, outMin2, outMax2, 1.22,
+                invOutW, 2.173913, outWaveAmp, wf24, wf18,
+                material_OrbFramePhase2.z, material_OrbFramePhase3.z,
+                zShiftOut, vec2(-0.5, -0.8660254), outRatio, dirOut, phiOut, crestOut
+              ) * outScale;
+              mediump vec3 colOut = cCyan;
+              if (dOut > 0.001) {
+                colOut = sampleSpectrum(phiOut * INV_TAU + 0.52 - 0.12 * qOut.z - dispAmount * 1.6, cCyan);
+              }
 
-          vec3 stepCol = (colBase * dBase + colIn * dIn + colMid * dMid + colOut * dOut) / totalD;
-          float localCrest = clamp((crestIn + crestMid + crestOut) * crestStrength, 0.0, 1.0);
-          // Keep aurora veils rich & deeply chromatic (no milky white washout); lift glowing silk ridges cleanly.
-          vec3 deepVeil = pow(clamp(stepCol, 0.0, 1.0), vec3(1.18));
-          vec3 brightCrest = clamp(stepCol * 1.26 + vec3(0.04), 0.0, 1.0);
-          stepCol = mix(deepVeil, brightCrest, clamp(0.28 + localCrest * 0.72, 0.0, 1.0));
-          float depthLift = mix(1.06, 0.92, u);
-          stepCol = clamp(stepCol * depthLift, 0.0, 1.0);
+              mediump float totalD = dBase + dIn + dMid + dOut;
+              if (totalD > 0.002) {
+                if (r3 > 0.48 && (dOut > 0.001 || dBase > 0.001)) {
+                  if (!hasDir0 && r0xy2 > 0.0001) dir0 = q0.xy * inversesqrt(r0xy2);
+                  mediump float lCos = max(0.0, dot(dir0, auroraCS));
+                  mediump float lobe = smoothstep(0.48, 0.88, r3) * (lCos * lCos);
+                  colOut = mix(colOut, vec3(0.04, 1.00, 0.72), lobe * 0.76);
+                  colBase = mix(colBase, vec3(0.04, 1.00, 0.72), lobe * 0.56);
+                }
 
-          float stepAlpha = clamp(totalD * outerMask * ds * 1.85, 0.0, 0.56);
-          accumRgb += transmittance * stepAlpha * stepCol;
-          accumA += transmittance * stepAlpha;
-          accumCrest += transmittance * localCrest * outerMask * ds * 1.75;
-          transmittance *= (1.0 - stepAlpha * 0.72);
+                mediump vec3 stepCol = (colBase * dBase + colIn * dIn + colMid * dMid + colOut * dOut) / totalD;
+                mediump float localCrest = clamp((crestIn + crestMid + crestOut) * crestStrength, 0.0, 1.0);
+                mediump vec3 cc = clamp(stepCol, 0.0, 1.0);
+                stepCol = mix(cc * (0.79 + 0.21 * cc), clamp(stepCol * 1.26 + vec3(0.04), 0.0, 1.0), clamp(0.28 + localCrest * 0.72, 0.0, 1.0));
+                stepCol = clamp(stepCol * mix(1.06, 0.92, s * invChord), 0.0, 1.0);
+
+                mediump float stepAlpha = clamp(totalD * outerMask * ds * 1.85, 0.0, 0.64);
+                mediump float w = transmittance * stepAlpha;
+                accumRgb += w * stepCol;
+                accumA += w;
+                accumCrest += transmittance * localCrest * outerMask * ds * 1.75;
+                transmittance *= (1.0 - stepAlpha * 0.72);
+                if (transmittance < 0.04) break;
+              }
+            }
+            s += ds;
+            q += dq;
+          }
         }
 
-        // Pure translucent 3D aurora silk ribbons suspended inside the authentic Liquid Glass lens shell:
-        // Outer rim (r > 0.79) feathers cleanly to zero so the underlying LiquidGlass shader's
-        // signature thick curved refraction band, chromatic edge dispersion, and specular reflection ring shine unobstructed.
-        float listen = clamp(material_Listening, 0.0, 1.0);
-        const float listenBright = 0.16;
+        mediump float listen = clamp(material_Listening, 0.0, 1.0);
+        mediump vec3 silkCol = accumA > 0.0005 ? (accumRgb / accumA) : cCyan;
+        mediump float silkCoverage = clamp((accumA * 1.18 + accumCrest * 0.28) * (1.0 + listen * 0.10), 0.0, 0.95);
 
-        vec3 silkCol = accumA > 0.0005 ? (accumRgb / accumA) : cCyan;
-        float silkCoverage = clamp((accumA * 1.18 + accumCrest * 0.28) * (1.0 + listen * 0.10), 0.0, 0.95);
-
-        // Luminous colored aurora ridge boost (glows vibrantly without washing out to pastel white)
-        vec3 orbRgb = mix(
+        mediump vec3 orbRgb = mix(
           silkCol,
           clamp(silkCol * 1.32 + vec3(0.06, 0.08, 0.10), 0.0, 1.0),
           clamp(accumCrest * coreLift * (0.55 + listen * 0.14), 0.0, 0.56)
         );
 
-        // Rich jewel-aurora saturation & intensity tone adjustment
-        float luma = dot(orbRgb, vec3(0.299, 0.587, 0.114));
-        float activeSat = mix(material_OrbTone.y, max(material_OrbTone.y, 1.95), listen);
-        float activeIntensity = material_OrbTone.x * (1.0 + listen * listenBright);
+        mediump float luma = dot(orbRgb, vec3(0.299, 0.587, 0.114));
+        mediump float activeSat = mix(material_OrbTone.y, max(material_OrbTone.y, 1.95), listen);
+        mediump float activeIntensity = material_OrbTone.x * (1.0 + listen * 0.16);
         orbRgb = clamp(mix(vec3(luma), orbRgb, activeSat) * activeIntensity, 0.0, 1.0);
 
-        // Preserve transparent breathing gaps while keeping aurora curtains bold and vibrant inside the liquid glass
-        float centerClear = clamp(material_OrbTone.w, 0.0, 1.0);
-        float centerHollow = exp(-pow(r / 0.34, 2.0));
-        float hollowAtten = 1.0 - centerHollow * centerClear * 0.36;
-        float glassBevelClearance = 1.0 - smoothstep(0.79, 0.94, r);
-        float bodyAlpha = clamp(
+        mediump float centerClear = clamp(material_OrbTone.w, 0.0, 1.0);
+        mediump float rHollow = r * 2.9411765;
+        mediump float centerHollow = exp2(-1.442695 * rHollow * rHollow);
+        mediump float hollowAtten = 1.0 - centerHollow * centerClear * 0.36;
+        mediump float glassBevelClearance = 1.0 - smoothstep(0.79, 0.94, r);
+        mediump float bodyAlpha = clamp(
           silkCoverage * hollowAtten * material_OrbTone.z * glassBevelClearance,
           0.0,
           0.92
         );
 
-        // Ultra-subtle upper-left interior specular breath only (never covers the outer LiquidGlass refraction ring).
-        float angle = atan(p.y, p.x);
-        float topGlint = smoothstep(0.35, 0.96, cos(angle + 2.22))
+        mediump vec2 dirP = p / max(r, 0.0001);
+        mediump float cosGlint = dot(dirP, vec2(-0.6044884, -0.7966140));
+        mediump float topGlint = smoothstep(0.35, 0.96, cosGlint)
           * smoothstep(0.54, 0.78, r)
           * (1.0 - smoothstep(0.80, 0.94, r));
-        vec3 outSrgb = orbRgb;
-        float outAlpha = bodyAlpha;
-        float glintAlpha = clamp(topGlint * material_OrbRim.z * (1.0 + listen * 0.35), 0.0, 0.32);
-        blendOver(outSrgb, outAlpha, vec3(1.0, 0.998, 1.0), glintAlpha);
+        mediump vec3 outSrgb = orbRgb;
+        mediump float outAlpha = bodyAlpha;
+        mediump float glintAlpha = clamp(topGlint * material_OrbRim.z * (1.0 + listen * 0.35), 0.0, 0.32);
+        if (glintAlpha > 0.0005) {
+          mediump float nextA = glintAlpha + outAlpha * (1.0 - glintAlpha);
+          outSrgb = (vec3(1.0, 0.998, 1.0) * glintAlpha + outSrgb * outAlpha * (1.0 - glintAlpha)) / max(nextA, 0.0001);
+          outAlpha = nextA;
+        }
 
-        outAlpha *= circleMask;
         if (outAlpha <= 0.002) discard;
 
         vec3 linearRgb = sRGBToLinear(vec4(clamp(outSrgb, 0.0, 1.0), 1.0)).rgb;
