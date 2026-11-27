@@ -1,0 +1,22 @@
+packages/core/src/renderingHardwareInterface/IPlatformShaderProgram.ts
+  h_171a11afaf879a 17,32,35-36
+packages/core/src/shader/ShaderPass.ts
+  h_171a11afaf879a 237,242-248,253-256,278-279,290,303-306,312-314,317,415-416,459-460,462-470
+packages/core/src/shader/ShaderProgram.ts
+  h_171a11afaf879a 46-49,51,53-56,59,61-63,65,101-125,131-132,351
+packages/rhi-webgl/src/GLShaderProgram.ts
+  h_171a11afaf879a 40-41,43-50,59-65,67-95,97,101,109,114-186,225-226
+world/tests/seed-world/SeedWorldStartupShaderWarmup.spec.ts
+  h_171a11afaf879a 1528-1536
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7bb66ff0651bac11d907d47ef92f33b87841b2a2",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
