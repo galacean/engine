@@ -23,7 +23,8 @@ vec3 terrainProjectEvaluateVegetationTransmission(
   vec3 viewDirection,
   vec3 albedoColor,
   float shadowAttenuation,
-  float ambientVisibility
+  float ambientVisibility,
+  vec3 backEnvironmentIrradiance
 ) {
   if (material_TranslucencyIntensity <= 0.0) return vec3(0.0);
   vec3 transmission = vec3(0.0);
@@ -74,10 +75,7 @@ vec3 terrainProjectEvaluateVegetationTransmission(
       }
     #endif
     directTransmission *= clamp(material_TranslucencyDirect, 0.0, 1.0);
-    vec3 environmentIrradiance = terrainProjectVegetationDiffuseIrradiance(
-      -normalizedGeometryNormal
-    ) * scene_EnvMapLight.diffuseIntensity * RECIPROCAL_PI;
-    vec3 environmentTransmission = environmentIrradiance *
+    vec3 environmentTransmission = backEnvironmentIrradiance *
       clamp(material_TranslucencyAmbient, 0.0, 1.0);
     #ifdef MATERIAL_PROCEDURAL_TREE_CANOPY_OCCLUSION
       environmentTransmission *= mix(
@@ -125,13 +123,9 @@ vec3 terrainProjectEvaluateVegetationTransmission(
         vec3 directTransmission =
           wrappedBackLighting * visibility * directionalLight.color * albedoColor *
             translucencyTint * transmissionStrength;
-        // The engine resolves static SH, realtime SH, probe volumes, and the diffuse
-        // environment fallback behind this function. The Lambert factor keeps this
-        // separate transmission lobe on the same irradiance scale as diffuse PBR.
-        vec3 environmentIrradiance = terrainProjectVegetationDiffuseIrradiance(
-          -normalizedGeometryNormal
-        ) * scene_EnvMapLight.diffuseIntensity * RECIPROCAL_PI;
-        vec3 environmentTransmission = environmentIrradiance * albedoColor *
+        // Reuse the pre-scaled back-hemisphere irradiance computed in FoliageLighting's
+        // single-pass dual SH evaluation (identical to SH(-N) * diffuseIntensity / PI).
+        vec3 environmentTransmission = backEnvironmentIrradiance * albedoColor *
           translucencyTint * transmissionStrength * clamp(ambientVisibility, 0.0, 1.0);
         #ifdef MATERIAL_PROCEDURAL_TREE_CANOPY_OCCLUSION
           environmentTransmission *= mix(

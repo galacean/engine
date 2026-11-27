@@ -45,6 +45,9 @@ Shader "Masonry/FarProxy" {
    RasterState = { CullMode = CullMode.Off; }
    CompareFunction material_WorldPickDepthCompare;
    DepthState = { WriteEnabled = true; CompareFunction = material_WorldPickDepthCompare; }
+   #if !defined(RENDERER_WORLD_PICK) && defined(SCENE_VOLUMETRIC_CLOUD_SHADOW)
+     #define MASONRY_VERTEX_CLOUD_SHADOW
+   #endif
    #include "ShaderLibrary/Common/Common.glsl"
    #include "ShaderLibrary/Common/Transform.glsl"
    #include "Masonry/LodDither.glsl"
@@ -58,7 +61,9 @@ Shader "Masonry/FarProxy" {
     vec4 TANGENT;
     float TEXCOORD_1;
    };
-   vec4 renderer_MasonryLodDebugColor;
+   #ifdef RENDERER_MASONRY_LOD_DEBUG
+     vec4 renderer_MasonryLodDebugColor;
+   #endif
    #ifdef RENDERER_WORLD_PICK
      float renderer_WorldPickBase;
    #endif
@@ -68,6 +73,9 @@ Shader "Masonry/FarProxy" {
      vec4 color;
      vec2 uv;
      vec4 surfaceTag;
+     #ifdef MASONRY_VERTEX_CLOUD_SHADOW
+       float cloudShadow;
+     #endif
      #ifdef RENDERER_WORLD_PICK
        float worldPickOffset;
      #endif
@@ -95,6 +103,9 @@ Shader "Masonry/FarProxy" {
      MasonryFarProxyVaryings v;
      vec4 worldPos = renderer_ModelMat * vec4(a.POSITION, 1.0);
      v.positionWS = worldPos.xyz;
+     #ifdef MASONRY_VERTEX_CLOUD_SHADOW
+       v.cloudShadow = sampleVolumetricCloudShadow(v.positionWS);
+     #endif
      v.normalWS = normalize(mat3(renderer_NormalMat) * a.NORMAL.xyz);
      #ifdef RENDERER_ENABLE_VERTEXCOLOR
        v.color = vec4(a.COLOR_0.rgb * 2.0, a.COLOR_0.a * 8.0);
@@ -166,7 +177,11 @@ Shader "Masonry/FarProxy" {
        }
      }
      vec3 n = normalize(v.normalWS) * (gl_FrontFacing || (kind > 2.5 && kind < 3.5) ? 1.0 : -1.0);
-     vec3 baseLit = masonryFarProxyLight(kind > 5.5 ? vec3(0.05, 0.065, 0.075) : albedo, n, v.positionWS);
+     float masonryCloudShadow = 1.0;
+     #ifdef MASONRY_VERTEX_CLOUD_SHADOW
+       masonryCloudShadow = v.cloudShadow;
+     #endif
+     vec3 baseLit = masonryFarProxyLight(kind > 5.5 ? vec3(0.05, 0.065, 0.075) : albedo, n, v.positionWS, masonryCloudShadow);
      vec3 lit;
      if (kind > 5.5) {
        // Lightweight GPR-neutral glass shading (no cubemap sampler, no envDFGApprox, no GGX/fwidth)
@@ -186,9 +201,11 @@ Shader "Masonry/FarProxy" {
        lit = baseLit + vec3(1.0, 0.57, 0.18) * v.color.a;
      }
      vec3 outRgb = masonrySceneFog(lit, v.positionWS);
-     if (renderer_MasonryLodDebugColor.a > 0.0) {
-       outRgb = mix(outRgb, renderer_MasonryLodDebugColor.rgb, renderer_MasonryLodDebugColor.a);
-     }
+     #ifdef RENDERER_MASONRY_LOD_DEBUG
+       if (renderer_MasonryLodDebugColor.a > 0.0) {
+         outRgb = mix(outRgb, renderer_MasonryLodDebugColor.rgb, renderer_MasonryLodDebugColor.a);
+       }
+     #endif
      gl_FragColor = vec4(outRgb, 1.0);
      #endif
    }

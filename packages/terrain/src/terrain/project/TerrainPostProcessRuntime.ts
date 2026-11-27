@@ -253,6 +253,7 @@ export class TerrainPostProcessRuntime extends Script {
 
     const bloom = postProcess.addEffect(BloomEffect)!;
     bloom.downScale.value = BloomDownScaleMode.Quarter;
+    bloom.maxIterations.value = 4;
     bloom.threshold.value = config.bloomThreshold;
     bloom.intensity.value = config.bloomIntensity;
     bloom.scatter.value = config.bloomScatter;

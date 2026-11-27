@@ -1071,7 +1071,10 @@ export async function createBuildingDistanceView(
           }
           if (lastLodDebugEnabled) {
             const lod1Color = new Vector4(0.95, 0.78, 0.08, 0.82);
-            for (const batch of batches) batch.renderer.shaderData.setVector4(PROP_MASONRY_LOD_DEBUG_COLOR, lod1Color);
+            for (const batch of batches) {
+              batch.renderer.shaderData.enableMacro?.("RENDERER_MASONRY_LOD_DEBUG");
+              batch.renderer.shaderData.setVector4(PROP_MASONRY_LOD_DEBUG_COLOR, lod1Color);
+            }
           }
         }
         for (const binding of lodMaterialBindings) {
@@ -1459,7 +1462,11 @@ export async function createBuildingDistanceView(
       setLodDebugEnabled(enabled: boolean) {
         lastLodDebugEnabled = enabled;
         const lod1Color = enabled ? new Vector4(0.95, 0.78, 0.08, 0.82) : new Vector4(0, 0, 0, 0);
-        for (const batch of batches) batch.renderer.shaderData.setVector4(PROP_MASONRY_LOD_DEBUG_COLOR, lod1Color);
+        for (const batch of batches) {
+          if (enabled) batch.renderer.shaderData.enableMacro?.("RENDERER_MASONRY_LOD_DEBUG");
+          else batch.renderer.shaderData.disableMacro?.("RENDERER_MASONRY_LOD_DEBUG");
+          batch.renderer.shaderData.setVector4(PROP_MASONRY_LOD_DEBUG_COLOR, lod1Color);
+        }
         nativeDecorationView?.setLodDebugEnabled(enabled);
         if (enabled) farProxy?.setLodDebugColor(0.95, 0.2, 0.18, 0.82);
         else farProxy?.setLodDebugColor(0, 0, 0, 0);

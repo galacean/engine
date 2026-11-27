@@ -17,6 +17,9 @@ Shader "Terrain/Vegetation" {
       FragmentShader = VegetationFragment;
 
       #define TERRAIN_PROJECT_FORWARD_PASS
+      #if !defined(RENDERER_WORLD_PICK) && defined(SCENE_VOLUMETRIC_CLOUD_SHADOW)
+        #define TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
+      #endif
       #if defined(RENDERER_HAS_NORMAL) && defined(RENDERER_HAS_TANGENT) && defined(MATERIAL_HAS_NORMALTEXTURE)
         #define NEED_VERTEX_TANGENT
       #endif
@@ -91,21 +94,20 @@ Shader "Terrain/Vegetation" {
         #if SCENE_FOG_MODE != 0
           vec3 positionVS;
         #endif
+        #ifdef TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
+          float cloudShadow;
+        #endif
         vec3 normalWS;
         #ifdef NEED_VERTEX_TANGENT
           vec4 tangentWS;
         #endif
         vec4 positionCS;
-        #if defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX)
-          vec3 probeIrradiance;
-          float probeWeight;
-        #endif
         #if defined(NEED_CALCULATE_SHADOWS) && (SCENE_SHADOW_CASCADED_COUNT == 1)
           vec3 shadowCoord;
         #endif
       };
 
-      #include "ShaderLibrary/PBR/BSDF.glsl"
+      #include "shared/FoliageLighting.glsl"
       #ifdef MATERIAL_ENABLE_SECOND_COLOR
         #include "vegetation/VegetationSecondColor.glsl"
       #endif
@@ -117,7 +119,6 @@ Shader "Terrain/Vegetation" {
       #include "shared/VegetationWind.glsl"
       #include "shared/LodDither.glsl"
       #include "shared/EntranceWave.glsl"
-      #include "shared/Lighting.glsl"
       #ifdef MATERIAL_ENABLE_TRANSLUCENCY
         #include "vegetation/VegetationTranslucency.glsl"
       #endif
@@ -291,6 +292,9 @@ Shader "Terrain/Vegetation" {
         #if SCENE_FOG_MODE != 0
           varyings.positionVS = (camera_ViewMat * vec4(varyings.positionWS, 1.0)).xyz;
         #endif
+        #ifdef TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
+          varyings.cloudShadow = sampleVolumetricCloudShadow(varyings.positionWS);
+        #endif
         #ifdef NEED_VERTEX_TANGENT
           #if defined(RENDERER_PROCEDURAL_TREE_LEAF_BILLBOARD) && defined(RENDERER_PROCEDURAL_TREE_GPU_LEAF_FRAME)
             varyings.tangentWS = vec4(tangentWS, 1.0);
@@ -300,17 +304,6 @@ Shader "Terrain/Vegetation" {
         #endif
         varyings.positionCS = camera_VPMat * vec4(varyings.positionWS, 1.0);
 
-        #if defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX)
-          vec3 probeIrradiance;
-          bool hasProbe = sampleProbeVolume(
-            varyings.positionWS,
-            varyings.normalWS,
-            normalize(camera_Position - varyings.positionWS),
-            probeIrradiance
-          );
-          varyings.probeIrradiance = probeIrradiance;
-          varyings.probeWeight = hasProbe ? 1.0 : 0.0;
-        #endif
         #if defined(NEED_CALCULATE_SHADOWS) && (SCENE_SHADOW_CASCADED_COUNT == 1)
           varyings.shadowCoord = getShadowCoord(varyings.positionWS);
         #endif
@@ -360,7 +353,15 @@ Shader "Terrain/Vegetation" {
           gl_FragColor = vec4(mod(pickId, 256.0), mod(floor(pickId / 256.0), 256.0), floor(pickId / 65536.0), 255.0) / 255.0;
           return;
         #endif
-        TerrainProjectLightingResult lighting = evaluateTerrainProjectLighting(varyings, surfaceData);
+        float shadowAttenuation = sampleTerrainProjectShadow(varyings);
+        #ifdef TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
+          shadowAttenuation *= varyings.cloudShadow;
+        #endif
+        TerrainProjectLightingResult lighting = evaluateTerrainProjectLightingWithShadow(
+          varyings,
+          surfaceData,
+          shadowAttenuation
+        );
         #if (defined(RENDERER_PROCEDURAL_TREE_GPU_LEAF_FRAME) || defined(RENDERER_PROCEDURAL_PLANT_CANOPY_OCCLUSION)) && defined(MATERIAL_PROCEDURAL_TREE_CANOPY_OCCLUSION)
           float canopyOccludedFraction = 1.0 - clamp(surfaceData.ambientOcclusion, 0.0, 1.0);
           vec3 canopyOcclusionTint = mix(
@@ -386,7 +387,8 @@ Shader "Terrain/Vegetation" {
             surfaceData.viewDir,
             surfaceData.albedoColor,
             lighting.shadowAttenuation,
-            surfaceData.ambientOcclusion
+            surfaceData.ambientOcclusion,
+            lighting.backEnvironmentIrradiance
           );
         #endif
         vec4 color = vec4(

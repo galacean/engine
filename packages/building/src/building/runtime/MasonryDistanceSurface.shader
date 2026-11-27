@@ -57,11 +57,25 @@ Shader "Masonry/SupportSurface" {
    #endif
    CullMode rasterStateCullMode;
    RasterState = { CullMode = rasterStateCullMode; }
+   #if !defined(RENDERER_WORLD_PICK) && defined(SCENE_VOLUMETRIC_CLOUD_SHADOW)
+     #define MASONRY_VERTEX_CLOUD_SHADOW
+   #endif
    #include "ShaderLibrary/Common/Attributes.glsl"
    #include "ShaderLibrary/Common/Transform.glsl"
    vec4 material_BaseColor;
    float material_Roughness;
-   struct MasonrySurfaceVaryings { vec3 localPosition; vec2 uv; vec2 uv1; vec3 positionWS; vec3 normalWS; vec4 color; vec4 decorationData; };
+   struct MasonrySurfaceVaryings {
+     vec3 localPosition;
+     vec2 uv;
+     vec2 uv1;
+     vec3 positionWS;
+     vec3 normalWS;
+     vec4 color;
+     vec4 decorationData;
+     #ifdef MASONRY_VERTEX_CLOUD_SHADOW
+       float cloudShadow;
+     #endif
+   };
    #include "Masonry/LodDither.glsl"
    #include "Masonry/Entrance.glsl"
    #include "Masonry/EntranceCoverage.glsl"
@@ -79,7 +93,9 @@ Shader "Masonry/SupportSurface" {
    vec4 material_MasonryPlaster;
    float material_MasonryEmission;
    float material_MasonryUnit;
-   vec4 renderer_MasonryLodDebugColor;
+   #ifdef RENDERER_MASONRY_LOD_DEBUG
+     vec4 renderer_MasonryLodDebugColor;
+   #endif
    #ifdef MASONRY_LAYOUT_APPEARANCE
      sampler2D material_MasonryLayout;
      vec4 material_MasonryLayoutUV;
@@ -117,6 +133,9 @@ Shader "Masonry/SupportSurface" {
        }
      #endif
      v.positionWS=(renderer_ModelMat*vec4(positionOS,1.0)).xyz;
+     #ifdef MASONRY_VERTEX_CLOUD_SHADOW
+       v.cloudShadow=sampleVolumetricCloudShadow(v.positionWS);
+     #endif
      v.normalWS=normalize(mat3(renderer_NormalMat)*a.NORMAL);
      v.uv=a.TEXCOORD_0;
      #ifdef RENDERER_HAS_UV1
@@ -180,12 +199,19 @@ Shader "Masonry/SupportSurface" {
       #endif
       vec3 emission=vec3(1.0,.57,.18)*v.uv1.y;float roughness=.9;
       if(material_MasonryPattern > -1.5) albedo=masonryDecorationFinish(v.uv,v.decorationData.w,v.decorationData.xyz,v.positionWS,albedo,v.uv1.y,camera_Position,n,emission,roughness);
-      vec3 outRgb = masonrySceneFog(masonryResidentSceneLight(albedo,n,v.positionWS,roughness)+emission,v.positionWS);
+      #ifdef MASONRY_VERTEX_CLOUD_SHADOW
+        vec3 litRgb = masonryResidentSceneLight(albedo,n,v.positionWS,roughness,v.cloudShadow);
+      #else
+        vec3 litRgb = masonryResidentSceneLight(albedo,n,v.positionWS,roughness);
+      #endif
+      vec3 outRgb = masonrySceneFog(litRgb+emission,v.positionWS);
       #ifdef RENDERER_MASONRY_ENTRANCE
         float masonryRainbowW = clamp(masonryEntranceRainbowEdge(v.localPosition, masonryEntranceAmt) * 0.76, 0.0, 0.76);
         outRgb = outRgb * (1.0 - masonryRainbowW) + masonryEntranceRainbow(v.localPosition, masonryEntranceAmt);
       #endif
-      if (renderer_MasonryLodDebugColor.a > 0.0) outRgb = mix(outRgb, renderer_MasonryLodDebugColor.rgb, renderer_MasonryLodDebugColor.a);
+      #ifdef RENDERER_MASONRY_LOD_DEBUG
+        if (renderer_MasonryLodDebugColor.a > 0.0) outRgb = mix(outRgb, renderer_MasonryLodDebugColor.rgb, renderer_MasonryLodDebugColor.a);
+      #endif
       gl_FragColor=vec4(outRgb,1.0);
     } else {
     float surfaceRoughness=material_Roughness;
@@ -200,14 +226,20 @@ Shader "Masonry/SupportSurface" {
     vec3 gradient = sign(det)*(dFdx(detail.y)*r1+dFdy(detail.y)*r2);
     surfaceNormal = normalize(abs(det)*surfaceNormal-gradient+surfaceNormal*0.00000001);
     #endif
-    vec3 color=masonryResidentSceneLight(surfaceAlbedo,surfaceNormal,v.positionWS,surfaceRoughness);
+    #ifdef MASONRY_VERTEX_CLOUD_SHADOW
+      vec3 color=masonryResidentSceneLight(surfaceAlbedo,surfaceNormal,v.positionWS,surfaceRoughness,v.cloudShadow);
+    #else
+      vec3 color=masonryResidentSceneLight(surfaceAlbedo,surfaceNormal,v.positionWS,surfaceRoughness);
+    #endif
     color+=vec3(1.0,.57,.18)*material_MasonryEmission;
     vec3 outRgb=masonrySceneFog(color,v.positionWS);
     #ifdef RENDERER_MASONRY_ENTRANCE
       float masonryRainbowW = clamp(masonryEntranceRainbowEdge(v.localPosition, masonryEntranceAmt) * 0.76, 0.0, 0.76);
       outRgb = outRgb * (1.0 - masonryRainbowW) + masonryEntranceRainbow(v.localPosition, masonryEntranceAmt);
     #endif
-    if (renderer_MasonryLodDebugColor.a > 0.0) outRgb = mix(outRgb, renderer_MasonryLodDebugColor.rgb, renderer_MasonryLodDebugColor.a);
+    #ifdef RENDERER_MASONRY_LOD_DEBUG
+      if (renderer_MasonryLodDebugColor.a > 0.0) outRgb = mix(outRgb, renderer_MasonryLodDebugColor.rgb, renderer_MasonryLodDebugColor.a);
+    #endif
     gl_FragColor=vec4(outRgb,1.0);
     }
     #endif

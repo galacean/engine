@@ -238,11 +238,6 @@ SurfaceData evaluateVegetationMaterial(Varyings varyings, bool isFrontFacing, fl
     );
   #endif
 
-  float smoothness = material_Smoothness;
-  #ifdef MATERIAL_HAS_SMOOTHNESS_TEXTURE
-    smoothness *= texture2D(material_SmoothnessTexture, materialUv).g;
-  #endif
-
   vec3 geometryNormal = normalize(varyings.normalWS);
   vec3 shadingNormal = geometryNormal;
   #ifdef MATERIAL_HAS_NORMALTEXTURE
@@ -272,7 +267,7 @@ SurfaceData evaluateVegetationMaterial(Varyings varyings, bool isFrontFacing, fl
   surfaceData.albedoColor = albedoColor;
   surfaceData.emissiveColor = vec3(0.0);
   surfaceData.metallic = 0.0;
-  surfaceData.roughness = 1.0 - clamp(smoothness, 0.0, 1.0);
+  surfaceData.roughness = 0.85;
   surfaceData.ambientOcclusion = ambientOcclusion;
   surfaceData.opacity = 1.0;
   surfaceData.IOR = 1.5;

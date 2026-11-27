@@ -1,6 +1,7 @@
 #ifndef TERRAIN_PROJECT_SURFACE_RELIEF_INCLUDED
 #define TERRAIN_PROJECT_SURFACE_RELIEF_INCLUDED
 
+#ifdef CAMERA_SURFACE_RELIEF
 sampler2D camera_SurfaceReliefHeightTexture;
 sampler2D camera_SurfaceReliefMaskTexture;
 sampler2D camera_SurfaceReliefBakedNormal;
@@ -77,5 +78,22 @@ vec3 terrainProjectAttachedReliefNormal(vec3 positionWS, vec3 normal, float cove
   return normalize(mix(normal, terrainProjectApplyReliefGradient(normal,
     terrainProjectSurfaceReliefPatternGradient(positionWS.xz), clamp(coverage, 0.0, 1.0)), weight));
 }
+#else
+bool terrainProjectSurfaceReliefEnabled() {
+  return false;
+}
+
+float terrainProjectSurfaceReliefWeight(vec3 worldPosition) {
+  return 0.0;
+}
+
+vec3 terrainProjectSurfaceReliefNormal(vec3 worldPosition, vec3 terrainNormal, float grassCoverage) {
+  return terrainNormal;
+}
+
+vec3 terrainProjectAttachedReliefNormal(vec3 positionWS, vec3 normal, float coverage) {
+  return normal;
+}
+#endif
 
 #endif

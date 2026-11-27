@@ -183,6 +183,8 @@ export interface SeedWorldRendererWarmupOptions extends SeedWorldShaderWarmupOpt
   readonly includeGenerationReveal?: boolean;
   /** Whether opaque SSR receivers (e.g. wet terrain during rain) are active in this template. Defaults to false when dry. */
   readonly includeOpaqueScreenSpaceReflection?: boolean;
+  /** Whether to include CAMERA_SURFACE_RELIEF during warmup (matches SeedWorldSurfaceReliefRuntime default). */
+  readonly includeSurfaceRelief?: boolean;
   /**
    * Whether to also warm the history-color SSR fallback variants (Pass 1 `BuildHiZMip0` and
    * Pass 4 `HiZTrace` without `SSR_CURRENT_FRAME_COLOR`) when `canReuseCurrentFrameColor` is true,
@@ -270,6 +272,7 @@ const MASONRY_ENTRANCE_MACRO = ShaderMacro.getByName("RENDERER_MASONRY_ENTRANCE"
 const GLOBAL_PROXY_ENTRANCE_MACRO = ShaderMacro.getByName("GLOBAL_PROXY_ENTRANCE");
 const MASONRY_DITHER_MACRO = ShaderMacro.getByName("RENDERER_MASONRY_DITHER");
 const GLOBAL_PROXY_DITHER_MACRO = ShaderMacro.getByName("GLOBAL_PROXY_DITHER");
+const CAMERA_SURFACE_RELIEF_MACRO = ShaderMacro.getByName("CAMERA_SURFACE_RELIEF");
 const MASONRY_RESIDENT_SHADER_PATTERN = /^Masonry\/[0-9a-f]{64}$/;
 const SSR_ALL_FORWARD_MACROS = new Set([
   "CAMERA_ENABLE_SSR",
@@ -815,6 +818,14 @@ function collectSeedWorldRendererVariantsInternal(
     (camera.shaderData as unknown as RuntimeShaderData)._macroCollection,
     cameraMacros
   );
+  const surfaceReliefOptions = camera.shaderData.getVector4("camera_SurfaceReliefOptions");
+  const surfaceReliefExpected =
+    options.includeSurfaceRelief ?? (surfaceReliefOptions ? surfaceReliefOptions.x > 0.5 : true);
+  if (surfaceReliefExpected) {
+    cameraMacros.enable(CAMERA_SURFACE_RELIEF_MACRO);
+  } else {
+    cameraMacros.disable(CAMERA_SURFACE_RELIEF_MACRO);
+  }
   const buildingLights = options.buildingPointLights;
   const additionalPointLightCounts =
     options.additionalPointLightCounts ?? (buildingLights?.hasLights ? [1] : undefined);

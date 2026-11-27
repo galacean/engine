@@ -254,7 +254,9 @@ export function residentFragment(source: string) {
     lodDither.replace("float renderer_MasonryLodFade;", "") +
     "\n#else\nvoid masonryLodDither(){}\n#endif\n";
   return (
-    "uniform vec4 camera_ProjectionParams;\nuniform float renderer_WorldPickBase;\nuniform float renderer_MasonryPickObjects;\nuniform vec4 renderer_MasonryLodDebugColor;\n" +
+    "uniform vec4 camera_ProjectionParams;\n" +
+    "#ifdef RENDERER_WORLD_PICK\nuniform float renderer_WorldPickBase;\nuniform float renderer_MasonryPickObjects;\n#endif\n" +
+    "#ifdef RENDERER_MASONRY_LOD_DEBUG\nuniform vec4 renderer_MasonryLodDebugColor;\n#endif\n" +
     gatedLodDither +
     source
       .replace(encoded, "residentColor=vec4(v,1.0);")
@@ -263,9 +265,11 @@ export function residentFragment(source: string) {
       .replace(
         /}\s*$/,
         `
+#ifdef RENDERER_MASONRY_LOD_DEBUG
 if (renderer_MasonryLodDebugColor.a > 0.0) {
   residentColor.rgb = mix(residentColor.rgb, renderer_MasonryLodDebugColor.rgb, renderer_MasonryLodDebugColor.a);
 }
+#endif
 #ifdef RENDERER_WORLD_PICK
  float pickId=floor(renderer_WorldPickBase+0.5);
 ${source.includes("flat in float masonryPickIndex;") ? "pickId+=floor(masonryPickIndex+0.5)*renderer_MasonryPickObjects;" : ""}
@@ -1402,10 +1406,14 @@ export class EngineResidentScene {
     const detail = states.filter((s) => s.lodIndex < 2);
     for (const draw of this.draws.values()) {
       if (!enabled) {
+        draw.renderer.shaderData.disableMacro?.("RENDERER_MASONRY_LOD_DEBUG");
+        draw.lodRenderer?.shaderData.disableMacro?.("RENDERER_MASONRY_LOD_DEBUG");
         draw.renderer.shaderData.setVector4(PROP_MASONRY_LOD_DEBUG_COLOR, this.lodDebugColorOff);
         draw.lodRenderer?.shaderData.setVector4(PROP_MASONRY_LOD_DEBUG_COLOR, this.lodDebugColorOff);
         continue;
       }
+      draw.renderer.shaderData.enableMacro?.("RENDERER_MASONRY_LOD_DEBUG");
+      draw.lodRenderer?.shaderData.enableMacro?.("RENDERER_MASONRY_LOD_DEBUG");
       if (fixedLod !== undefined) {
         const c = fixedLod === 0 ? this.lodDebugColor0 : this.lodDebugColor1;
         draw.renderer.shaderData.setVector4(PROP_MASONRY_LOD_DEBUG_COLOR, c);

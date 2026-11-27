@@ -1151,6 +1151,8 @@ export function createBuildingFarProxy(
     },
     setLodDebugColor(r: number, g: number, b: number, a: number) {
       debugColor.set(r, g, b, a);
+      if (a > 0) renderer.shaderData?.enableMacro?.("RENDERER_MASONRY_LOD_DEBUG");
+      else renderer.shaderData?.disableMacro?.("RENDERER_MASONRY_LOD_DEBUG");
       renderer.shaderData.setVector4(PROP_FAR_LOD_DEBUG_COLOR, debugColor);
     },
     destroy() {

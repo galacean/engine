@@ -780,6 +780,8 @@ export class SeedWorldForwardGrass {
       ring.renderer.enabled = ring.valid;
       if (ring.appliedColorize !== params.colorizeLod) {
         ring.appliedColorize = params.colorizeLod;
+        if (params.colorizeLod) ring.renderer.shaderData.enableMacro?.("RENDERER_GRASS_LOD_DEBUG");
+        else ring.renderer.shaderData.disableMacro?.("RENDERER_GRASS_LOD_DEBUG");
         ring.renderer.shaderData.setVector4(
           params.lodDebugColorProperty,
           params.colorizeLod ? params.debugColors[ring.config.meshLod] : params.debugOffColor

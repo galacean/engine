@@ -617,6 +617,8 @@ export function syncGrassDetailGeometryLod(
   if (batch.grassLodLevel !== lod || batch.grassLodDebugColorized !== config.colorizeLod) {
     batch.grassLodLevel = lod;
     batch.grassLodDebugColorized = config.colorizeLod;
+    if (config.colorizeLod) batch.renderer.shaderData.enableMacro?.("RENDERER_GRASS_LOD_DEBUG");
+    else batch.renderer.shaderData.disableMacro?.("RENDERER_GRASS_LOD_DEBUG");
     batch.renderer.shaderData.setVector4(
       GRASS_LOD_DEBUG_COLOR,
       config.colorizeLod ? GRASS_LOD_DEBUG_COLORS[lod] : GRASS_LOD_DEBUG_OFF
