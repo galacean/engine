@@ -3,7 +3,7 @@ import { SpineSkeletonData } from "../SpineSkeletonData";
 import { SpineAnimationStateData } from "../SpineAnimationStateData";
 import type { SpineSkin } from "../SpineSkin";
 import type { ISpineRuntime } from "../runtime/ISpineRuntime";
-import { Engine, Entity, ReferResource, Texture2D } from "@galacean/engine";
+import { Engine, Entity, ReferResource, Texture2D } from "@galacean/engine-core";
 import { SpineAnimationRenderer } from "../renderer/SpineAnimationRenderer";
 
 /**

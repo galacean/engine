@@ -1,4 +1,5 @@
-import { Entity, MathUtil, Rect, Transform, TransformModifyFlags, Vector2, ignoreClone } from "@galacean/engine";
+import { Entity, Transform, TransformModifyFlags, ignoreClone } from "@galacean/engine-core";
+import { MathUtil, Rect, Vector2 } from "@galacean/engine-math";
 import { HorizontalAlignmentMode } from "../enums/HorizontalAlignmentMode";
 import { VerticalAlignmentMode } from "../enums/VerticalAlignmentMode";
 
@@ -242,7 +243,9 @@ export class UITransform extends Transform {
    */
   override _parentChange(): void {
     this._isParentDirty = true;
-    this._updateWorldFlagWithParentRectChange(TransformModifyFlags.WmWpWeWqWsWus);
+    this._updateWorldFlagWithParentRectChange(
+      TransformModifyFlags.WmWpWeWqWsWus | TransformModifyFlags.IsWorldFrontFaceInvert
+    );
   }
 
   /**
@@ -388,7 +391,13 @@ export class UITransform extends Transform {
     }
     const children = this.entity.children;
     for (let i = 0, n = children.length; i < n; i++) {
-      (children[i].transform as UITransform)?._updateWorldFlagWithParentRectChange?.(worldFlags);
+      const childTransform = children[i].transform;
+      if (!childTransform) continue;
+      if (childTransform instanceof UITransform) {
+        childTransform._updateWorldFlagWithParentRectChange(worldFlags);
+      } else if (worldFlags !== 0) {
+        childTransform._updateAllWorldFlag(worldFlags);
+      }
     }
   }
 
@@ -415,7 +424,13 @@ export class UITransform extends Transform {
     if (selfChange || !containDirtyFlags) {
       const children = this.entity.children;
       for (let i = 0, n = children.length; i < n; i++) {
-        (children[i].transform as UITransform)?._updateWorldFlagWithParentRectChange?.(flags, selfChange);
+        const childTransform = children[i].transform;
+        if (!childTransform) continue;
+        if (childTransform instanceof UITransform) {
+          childTransform._updateWorldFlagWithParentRectChange(flags, selfChange);
+        } else if (flags !== 0) {
+          childTransform._updateAllWorldFlag(flags);
+        }
       }
     }
     selfChange && this._entity._updateFlagManager.dispatch(UITransformModifyFlags.Size);
@@ -424,7 +439,7 @@ export class UITransform extends Transform {
 
 /**
  * @internal
- * extends TransformModifyFlags
+ * extends TransformModifyFlags (`0x200`–`0x8000`; core high internal flags start at `0x10000`).
  */
 export enum UITransformModifyFlags {
   Size = 0x200,

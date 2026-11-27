@@ -1,0 +1,6 @@
+{
+  "surfaceResolution": 1024,
+  "treeSpecies": ["birch", "broadleaf", "dead-tree"],
+  "grassDensityMultiplier": 1,
+  "flowerDensityMultiplier": 1
+}

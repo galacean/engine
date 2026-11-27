@@ -1,0 +1,224 @@
+{
+  "models": [
+    {
+      "id": "A01",
+      "size": [
+        11.148025035858154,
+        5.4006277322769165,
+        7.418612241744995
+      ],
+      "triangles": [
+        6888,
+        1956,
+        488
+      ],
+      "groundEmbeddingFraction": 0.487,
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*sV-aRpRJiV8AAAAARqAAAAgAehQnAQ/A01.glb"
+    },
+    {
+      "id": "A02",
+      "size": [
+        6.603872299194336,
+        5.133924305438995,
+        7.984249114990234
+      ],
+      "triangles": [
+        5274,
+        1496,
+        374
+      ],
+      "groundEmbeddingFraction": 0.535,
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*NtLbS5fAstgAAAAARSAAAAgAehQnAQ/A02.glb"
+    },
+    {
+      "id": "A03",
+      "size": [
+        9.236884355545044,
+        5.7636847496032715,
+        7.862856864929199
+      ],
+      "triangles": [
+        6758,
+        1920,
+        478
+      ],
+      "groundEmbeddingFraction": 0.488,
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*i_R_ToRJjIwAAAAARoAAAAgAehQnAQ/A03.glb"
+    },
+    {
+      "id": "A04",
+      "size": [
+        7.809265613555908,
+        5.62977796792984,
+        6.685183525085449
+      ],
+      "triangles": [
+        5076,
+        1442,
+        358
+      ],
+      "groundEmbeddingFraction": 0.479,
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*Kh2zRr0x8GMAAAAARPAAAAgAehQnAQ/A04.glb"
+    },
+    {
+      "id": "A05",
+      "size": [
+        7.8879053592681885,
+        5.891185939311981,
+        6.812183618545532
+      ],
+      "triangles": [
+        5844,
+        1662,
+        414
+      ],
+      "groundEmbeddingFraction": 0.453,
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*mkfvRb4OIh8AAAAARaAAAAgAehQnAQ/A05.glb"
+    },
+    {
+      "id": "A06",
+      "size": [
+        6.664040803909302,
+        5.489086955785751,
+        8.191195011138916
+      ],
+      "triangles": [
+        5374,
+        1528,
+        380
+      ],
+      "groundEmbeddingFraction": 0.476,
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*FTefRaVhWwcAAAAARUAAAAgAehQnAQ/A06.glb"
+    },
+    {
+      "id": "J03",
+      "groundEmbeddingFraction": 0.12,
+      "size": [
+        1.0262928009033203,
+        2.2624498903751373,
+        1.0468530654907227
+      ],
+      "triangles": [
+        1030,
+        523,
+        236
+      ],
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*B3XpQpMUyD0AAAAAdLAAAAgAehQnAQ/J03.glb"
+    }
+  ],
+  "geometry": [
+    {
+      "id": "A01",
+      "min": [
+        -5.574012756347656,
+        0,
+        -3.7140445709228516
+      ],
+      "max": [
+        5.579862594604492,
+        5.4134907722473145,
+        3.732158660888672
+      ],
+      "size": [
+        11.153875350952148,
+        5.4134907722473145,
+        7.446203231811523
+      ]
+    },
+    {
+      "id": "A02",
+      "min": [
+        -3.3100006580352783,
+        0,
+        -3.992124557495117
+      ],
+      "max": [
+        3.301936149597168,
+        5.1452555656433105,
+        3.992124557495117
+      ],
+      "size": [
+        6.611936807632446,
+        5.1452555656433105,
+        7.984249114990234
+      ]
+    },
+    {
+      "id": "A03",
+      "min": [
+        -4.62491512298584,
+        -0.00807267427444458,
+        -3.9418892860412598
+      ],
+      "max": [
+        4.618442058563232,
+        5.771267890930176,
+        3.931922674179077
+      ],
+      "size": [
+        9.243357181549072,
+        5.77934056520462,
+        7.873811960220337
+      ]
+    },
+    {
+      "id": "A04",
+      "min": [
+        -3.9314424991607666,
+        -0.032360970973968506,
+        -3.358384847640991
+      ],
+      "max": [
+        3.904632806777954,
+        5.629777908325195,
+        3.348726749420166
+      ],
+      "size": [
+        7.836075305938721,
+        5.662138879299164,
+        6.707111597061157
+      ]
+    },
+    {
+      "id": "A05",
+      "min": [
+        -3.944530487060547,
+        0,
+        -3.4161205291748047
+      ],
+      "max": [
+        3.954026699066162,
+        5.891185760498047,
+        3.4259467124938965
+      ],
+      "size": [
+        7.898557186126709,
+        5.891185760498047,
+        6.842067241668701
+      ]
+    },
+    {
+      "id": "A06",
+      "min": [
+        -3.334012031555176,
+        0,
+        -4.098712921142578
+      ],
+      "max": [
+        3.3320202827453613,
+        5.489087104797363,
+        4.095597267150879
+      ],
+      "size": [
+        6.666032314300537,
+        5.489087104797363,
+        8.194310188293457
+      ]
+    }
+  ],
+  "surface": {
+    "base": "https://mdn.alipayobjects.com/rms/afts/img/A*Ny-fSavfzw8AAAAAVWAAAAgAehQnAQ/original/SandSurfaceBase.ktx2",
+    "rippleNormal": "https://mdn.alipayobjects.com/rms/afts/img/A*a53ZTrJlyV4AAAAAWUAAAAgAehQnAQ/original/RippleNormal.png",
+    "microNormal": "https://mdn.alipayobjects.com/rms/afts/img/A*PZ93SqSmca4AAAAAYOAAAAgAehQnAQ/original/MicroNormal.png"
+  }
+}

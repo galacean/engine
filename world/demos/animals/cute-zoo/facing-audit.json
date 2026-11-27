@@ -1,0 +1,310 @@
+[
+  {
+    "id": "bull",
+    "method": "world-space Head-to-Root/center/pelvis heading from complete posed skeleton, each locomotion start vs idle; 49 samples also reported",
+    "clips": [
+      {
+        "clip": "Animal_TypeA@Idle",
+        "headingDegrees": 4.419408325671156e-06,
+        "differenceFromIdleDegrees": 0.0
+      },
+      {
+        "clip": "Animal_TypeA@Run",
+        "headingDegrees": 4.318811660310931e-06,
+        "differenceFromIdleDegrees": -1.0059667943096429e-07
+      },
+      {
+        "clip": "Animal_TypeA@Walk",
+        "headingDegrees": 7.343751698347961e-06,
+        "differenceFromIdleDegrees": 2.9243433630199434e-06
+      }
+    ],
+    "result": "no 180 degree reversal"
+  },
+  {
+    "id": "chameleon",
+    "method": "world-space Head-to-Root/center/pelvis heading from complete posed skeleton, each locomotion start vs idle; 49 samples also reported",
+    "clips": [
+      {
+        "clip": "Anim_Chameleon_Idle",
+        "headingDegrees": 6.0546705976378825e-06,
+        "differenceFromIdleDegrees": 0.0
+      },
+      {
+        "clip": "Anim_Chameleon_Run",
+        "headingDegrees": 6.624566102405246e-07,
+        "differenceFromIdleDegrees": -5.392213978439031e-06
+      },
+      {
+        "clip": "Anim_Chameleon_Walk",
+        "headingDegrees": -2.5666011512373236e-06,
+        "differenceFromIdleDegrees": -8.62127174627858e-06
+      }
+    ],
+    "result": "no 180 degree reversal"
+  },
+  {
+    "id": "fox",
+    "method": "world-space Head-to-Root/center/pelvis heading from complete posed skeleton, each locomotion start vs idle; 49 samples also reported",
+    "clips": [
+      {
+        "clip": "Animal_TypeA@Idle",
+        "headingDegrees": 1.278846453152877e-05,
+        "differenceFromIdleDegrees": 0.0
+      },
+      {
+        "clip": "Animal_TypeA@Run",
+        "headingDegrees": 6.166641336355628e-06,
+        "differenceFromIdleDegrees": -6.621823189334464e-06
+      },
+      {
+        "clip": "Animal_TypeA@Walk",
+        "headingDegrees": 4.2864200563863276e-06,
+        "differenceFromIdleDegrees": -8.50204446578573e-06
+      }
+    ],
+    "result": "no 180 degree reversal"
+  },
+  {
+    "id": "koala",
+    "method": "world-space Head-to-Root/center/pelvis heading from complete posed skeleton, each locomotion start vs idle; 49 samples also reported",
+    "clips": [
+      {
+        "clip": "Animal_TypeA@Idle",
+        "headingDegrees": 1.278846453152877e-05,
+        "differenceFromIdleDegrees": 0.0
+      },
+      {
+        "clip": "Animal_TypeA@Run",
+        "headingDegrees": 6.166641336355628e-06,
+        "differenceFromIdleDegrees": -6.621823189334464e-06
+      },
+      {
+        "clip": "Animal_TypeA@Walk",
+        "headingDegrees": 4.2864200563863276e-06,
+        "differenceFromIdleDegrees": -8.50204446578573e-06
+      }
+    ],
+    "result": "no 180 degree reversal"
+  },
+  {
+    "id": "leopard",
+    "method": "world-space Head-to-Root/center/pelvis heading from complete posed skeleton, each locomotion start vs idle; 49 samples also reported",
+    "clips": [
+      {
+        "clip": "Animal_TypeA@Idle",
+        "headingDegrees": 4.4606629954940295e-06,
+        "differenceFromIdleDegrees": 0.0
+      },
+      {
+        "clip": "Animal_TypeA@Run",
+        "headingDegrees": 4.3925276913162165e-06,
+        "differenceFromIdleDegrees": -6.813530717408867e-08
+      },
+      {
+        "clip": "Animal_TypeA@Walk",
+        "headingDegrees": 6.056214613374857e-06,
+        "differenceFromIdleDegrees": 1.5955516232679656e-06
+      }
+    ],
+    "result": "no 180 degree reversal"
+  },
+  {
+    "id": "meerkat",
+    "method": "world-space Head-to-Root/center/pelvis heading from complete posed skeleton, each locomotion start vs idle; 49 samples also reported",
+    "clips": [
+      {
+        "clip": "Anim_Meerkat_Idle",
+        "headingDegrees": -3.869269222191203e-05,
+        "differenceFromIdleDegrees": 0.0
+      },
+      {
+        "clip": "Anim_Meerkat_Move",
+        "headingDegrees": 5.3420099834923965e-06,
+        "differenceFromIdleDegrees": 4.4034702199269304e-05
+      },
+      {
+        "clip": "Anim_Meerkat_Run",
+        "headingDegrees": 5.342012859468341e-06,
+        "differenceFromIdleDegrees": 4.403470506986196e-05
+      }
+    ],
+    "result": "no 180 degree reversal"
+  },
+  {
+    "id": "mule",
+    "method": "world-space Head-to-Root/center/pelvis heading from complete posed skeleton, each locomotion start vs idle; 49 samples also reported",
+    "clips": [
+      {
+        "clip": "Animal_TypeB@Idle",
+        "headingDegrees": -2.00909990500623e-06,
+        "differenceFromIdleDegrees": 0.0
+      },
+      {
+        "clip": "Animal_TypeB@Run",
+        "headingDegrees": -2.60470340923311e-05,
+        "differenceFromIdleDegrees": -2.403793419603062e-05
+      },
+      {
+        "clip": "Animal_TypeB@Walk",
+        "headingDegrees": -4.906291698039074e-06,
+        "differenceFromIdleDegrees": -2.8971917913622747e-06
+      }
+    ],
+    "result": "no 180 degree reversal"
+  },
+  {
+    "id": "ostrich",
+    "method": "world-space Head-to-Root/center/pelvis heading from complete posed skeleton, each locomotion start vs idle; 49 samples also reported",
+    "clips": [
+      {
+        "clip": "Animal_Ostrich@Idle",
+        "headingDegrees": -7.569142733049055,
+        "differenceFromIdleDegrees": 0.0
+      },
+      {
+        "clip": "Animal_Ostrich@Run",
+        "headingDegrees": 4.571473628411635,
+        "differenceFromIdleDegrees": 12.140616361460701
+      },
+      {
+        "clip": "Animal_Ostrich@Walk",
+        "headingDegrees": 5.913482829370583,
+        "differenceFromIdleDegrees": 13.482625562419628
+      }
+    ],
+    "result": "no 180 degree reversal"
+  },
+  {
+    "id": "platypus",
+    "method": "world-space Head-to-Root/center/pelvis heading from complete posed skeleton, each locomotion start vs idle; 49 samples also reported",
+    "clips": [
+      {
+        "clip": "Animal_Platypus@Idle",
+        "headingDegrees": 2.3659177643670305e-06,
+        "differenceFromIdleDegrees": 0.0
+      },
+      {
+        "clip": "Animal_Platypus@Run",
+        "headingDegrees": 0.8027864692009915,
+        "differenceFromIdleDegrees": 0.8027841032832157
+      },
+      {
+        "clip": "Animal_Platypus@Walk",
+        "headingDegrees": -2.6732713127582994,
+        "differenceFromIdleDegrees": -2.673273678676054
+      }
+    ],
+    "result": "no 180 degree reversal"
+  },
+  {
+    "id": "porcupine",
+    "method": "world-space Head-to-Root/center/pelvis heading from complete posed skeleton, each locomotion start vs idle; 49 samples also reported",
+    "clips": [
+      {
+        "clip": "Animal_TypeA@Idle",
+        "headingDegrees": 3.930021977263614e-06,
+        "differenceFromIdleDegrees": 0.0
+      },
+      {
+        "clip": "Animal_TypeA@Run",
+        "headingDegrees": 3.846662063556381e-06,
+        "differenceFromIdleDegrees": -8.335990742125432e-08
+      },
+      {
+        "clip": "Animal_TypeA@Walk",
+        "headingDegrees": 7.6256610973385365e-06,
+        "differenceFromIdleDegrees": 3.6956391227249696e-06
+      }
+    ],
+    "result": "no 180 degree reversal"
+  },
+  {
+    "id": "raccoon",
+    "method": "world-space Head-to-Root/center/pelvis heading from complete posed skeleton, each locomotion start vs idle; 49 samples also reported",
+    "clips": [
+      {
+        "clip": "Animal_TypeA@Idle",
+        "headingDegrees": 1.278846453152877e-05,
+        "differenceFromIdleDegrees": 0.0
+      },
+      {
+        "clip": "Animal_TypeA@Run",
+        "headingDegrees": 6.166641336355628e-06,
+        "differenceFromIdleDegrees": -6.621823189334464e-06
+      },
+      {
+        "clip": "Animal_TypeA@Walk",
+        "headingDegrees": 4.2864200563863276e-06,
+        "differenceFromIdleDegrees": -8.50204446578573e-06
+      }
+    ],
+    "result": "no 180 degree reversal"
+  },
+  {
+    "id": "skunk",
+    "method": "world-space Head-to-Root/center/pelvis heading from complete posed skeleton, each locomotion start vs idle; 49 samples also reported",
+    "clips": [
+      {
+        "clip": "Animal_TypeA@Idle",
+        "headingDegrees": 4.352554285260119e-06,
+        "differenceFromIdleDegrees": 0.0
+      },
+      {
+        "clip": "Animal_TypeA@Run",
+        "headingDegrees": 4.2795761835763206e-06,
+        "differenceFromIdleDegrees": -7.297811066564464e-08
+      },
+      {
+        "clip": "Animal_TypeA@Walk",
+        "headingDegrees": -5.590654294315318e-07,
+        "differenceFromIdleDegrees": -4.9116197260445915e-06
+      }
+    ],
+    "result": "no 180 degree reversal"
+  },
+  {
+    "id": "squirrel",
+    "method": "world-space Head-to-Root/center/pelvis heading from complete posed skeleton, each locomotion start vs idle; 49 samples also reported",
+    "clips": [
+      {
+        "clip": "Anim_Squirrel_Idle",
+        "headingDegrees": 6.958328132848672e-06,
+        "differenceFromIdleDegrees": 0.0
+      },
+      {
+        "clip": "Anim_Squirrel_Move",
+        "headingDegrees": 1.2522165698230119e-05,
+        "differenceFromIdleDegrees": 5.563837561339824e-06
+      },
+      {
+        "clip": "Anim_Squirrel_Run",
+        "headingDegrees": 1.252216520052015e-05,
+        "differenceFromIdleDegrees": 5.5638370781707636e-06
+      }
+    ],
+    "result": "no 180 degree reversal"
+  },
+  {
+    "id": "wolf",
+    "method": "world-space Head-to-Root/center/pelvis heading from complete posed skeleton, each locomotion start vs idle; 49 samples also reported",
+    "clips": [
+      {
+        "clip": "Animal_TypeA@Idle",
+        "headingDegrees": 1.278846453152877e-05,
+        "differenceFromIdleDegrees": 0.0
+      },
+      {
+        "clip": "Animal_TypeA@Run",
+        "headingDegrees": 6.166641336355628e-06,
+        "differenceFromIdleDegrees": -6.621823189334464e-06
+      },
+      {
+        "clip": "Animal_TypeA@Walk",
+        "headingDegrees": 4.2864200563863276e-06,
+        "differenceFromIdleDegrees": -8.50204446578573e-06
+      }
+    ],
+    "result": "no 180 degree reversal"
+  }
+]

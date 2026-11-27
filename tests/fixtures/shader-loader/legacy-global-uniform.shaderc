@@ -1,0 +1,33 @@
+{
+  "name": "Legacy/LooseCamera",
+  "platformTarget": 0,
+  "subShaders": [
+    {
+      "name": "Default",
+      "tags": {},
+      "passes": [
+        {
+          "name": "Forward",
+          "isUsePass": false,
+          "tags": {},
+          "renderStates": {
+            "constantMap": {},
+            "variableMap": {}
+          },
+          "vertexShaderInstructions": [
+            [
+              0,
+              "struct Vertex {\nvec3 POSITION;\n};\nin vec3 POSITION;\nVertex read_Vertex() { Vertex interface_value;\ninterface_value.POSITION = POSITION;\nreturn interface_value; }\nuniform mat4 renderer_MVPMat;\nvoid vert ( Vertex a ) { gl_Position = renderer_MVPMat * vec4 ( a.POSITION , 1.0 ) ; }\nvoid main() {\n\nVertex input_a = read_Vertex();\nvert(input_a); }"
+            ]
+          ],
+          "fragmentShaderInstructions": [
+            [
+              0,
+              "layout(location = 0) out vec4 output_color;\nuniform vec4 camera_LegacyTint;\nvoid frag ( ) { output_color = camera_LegacyTint ; }\nvoid main() {\n\n\nfrag(); }"
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

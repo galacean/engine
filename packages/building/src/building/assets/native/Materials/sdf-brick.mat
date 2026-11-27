@@ -1,0 +1,1 @@
+{"name":"SDF brick","shader":"","shaderRef":{"url":"Building/Units/Shaders/sdf-brick.shaderc"},"shaderData":{"material_data_brick_sdf":{"type":"Texture","value":{"url":"Building/Units/Textures/brick-sdf-distance.tex"}},"material_data_brick_sdf_normal":{"type":"Texture","value":{"url":"Building/Units/Textures/brick-sdf-normal.tex"}}},"macros":[]}

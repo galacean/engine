@@ -41,6 +41,14 @@ export interface IXRSession {
    */
   onUpdate(): void;
 
+  /** Select the compositor attachment for a tracked eye. A missing view skips that camera for this frame. */
+  beginView?(eye: "left" | "right" | "none"): boolean;
+  /** Release the eye attachment after a camera draw. */
+  endView?(): void;
+  /** Clip planes of the projection supplied by the compositor, in world units. */
+  readonly depthNear?: number;
+  readonly depthFar?: number;
+
   /**
    * Set fixed foveation for camera.
    * @param value - The fixed foveation value

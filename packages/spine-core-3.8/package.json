@@ -20,7 +20,7 @@
   "umd": {
     "name": "Galacean.SpineCore38",
     "globals": {
-      "@galacean/engine": "Galacean"
+      "@galacean/engine-core": "Galacean"
     }
   },
   "files": [
@@ -28,12 +28,7 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@galacean/engine-design": "workspace:*"
-  },
-  "devDependencies": {
-    "@galacean/engine": "workspace:*"
-  },
-  "peerDependencies": {
-    "@galacean/engine": "workspace:*"
+    "@galacean/engine-design": "workspace:*",
+    "@galacean/engine-core": "workspace:*"
   }
 }

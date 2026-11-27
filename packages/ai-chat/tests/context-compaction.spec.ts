@@ -1,0 +1,310 @@
+import { fixtureBlob } from "./image-fixture";
+import { describe, expect, it } from "vitest";
+import { AgentContextTranscript, createContextCompactionRequest, parseContextCompaction } from "../src/ai-chat/context-compaction";
+import type { ContextCompactionResult } from "../src/ai-chat/context-compaction";
+import type { AgentMessage } from "../src/ai-chat/agent-types";
+import { formatContextTrace } from "../src/ai-chat/context-trace";
+
+const prefix: AgentMessage[] = [{ role: "system", content: "rules" }, { role: "user", content: '{"contextKind":"agent_task","instruction":"keep the task"}' }];
+const pair: AgentMessage[] = [
+  { role: "assistant", content: "", toolCalls: [{ id: "a", type: "function", function: { name: "execute", arguments: "{}" } }] },
+  { role: "tool", toolCallId: "a", content: "original tool receipt" }
+];
+const compacted: ContextCompactionResult = {
+  version: 2, status: "compacted", strategy: "summary", beforeTokens: 100, afterTokens: 40, durationMs: 2,
+  replacement: { prefixLength: 2, cutIndex: 2, summary: "server summary verbatim" }
+};
+
+function prepare(tail: AgentMessage[] = pair) {
+  const context = new AgentContextTranscript();
+  context.push(...tail);
+  const sent = [...structuredClone(prefix), ...context.active];
+  return { context, sent, request: context.captureRequest(sent) };
+}
+
+describe("compaction contract", () => {
+  it("uses only explicit budgets and server defaults", () => {
+    expect(createContextCompactionRequest()).toEqual({ version: 2, protectedPrefixLength: 2 });
+    expect(createContextCompactionRequest({ triggerTokens: 100, targetTokens: 30 })).toMatchObject({ triggerTokens: 100, targetTokens: 30 });
+    for (const bad of [{ triggerTokens: 0 }, { targetTokens: Infinity }, { triggerTokens: 2, targetTokens: 2 }, { targetTokens: -1 }]) {
+      expect(() => createContextCompactionRequest(bad)).toThrow();
+    }
+  });
+
+  it.each([
+    null, {}, { ...compacted, version: 3 }, { ...compacted, status: "unknown" }, { ...compacted, strategy: "truncate" },
+    { ...compacted, afterTokens: 100 }, { ...compacted, beforeTokens: NaN }, { ...compacted, durationMs: -1 },
+    { ...compacted, replacement: undefined }, { ...compacted, reason: 3 }, { ...compacted, messages: [] },
+    ...[
+      { prefixLength: 1 }, { cutIndex: 0 }, { cutIndex: -1 }, { cutIndex: 1.5 }, { summary: "  " }, { summary: null }, { messages: [] }
+    ].map(patch => ({ ...compacted, replacement: { ...compacted.replacement!, ...patch } })),
+    { ...compacted, status: "failed" }, { ...compacted, status: "not_needed", replacement: undefined }
+  ])("rejects malformed metadata without repairing or echoing it", bad => {
+    expect(() => parseContextCompaction(bad)).toThrow("Invalid contextCompaction");
+  });
+
+  it.each(["failed", "not_needed"] as const)("retains history for %s and missing old-server metadata", status => {
+    const { context, request, sent } = prepare();
+    const result = { version: 2, status, strategy: "summary", beforeTokens: 100, afterTokens: 100, durationMs: 0 };
+    expect(context.applyResponse(request, sent, result)).toEqual(result);
+    expect(context.active).toEqual(pair);
+    expect(parseContextCompaction(undefined)).toBeUndefined();
+  });
+
+  it("replaces only active history once, retains canonical evidence and opaque server summary", () => {
+    const { context, request, sent } = prepare();
+    context.applyResponse(request, sent, compacted);
+    expect(context.active).toEqual([{ role: "user", content: compacted.replacement!.summary }]);
+    expect(context.canonical).toEqual(pair);
+    expect(sent.slice(0, 2)).toEqual(prefix);
+    expect(() => context.applyResponse(request, sent, compacted)).toThrow("duplicate or stale");
+    expect(context.active).toHaveLength(1);
+  });
+
+  it("rejects stale state and mismatched sent prefix", () => {
+    const stale = prepare();
+    stale.context.push({ role: "user", content: "new state" });
+    expect(() => stale.context.applyResponse(stale.request, stale.sent, compacted)).toThrow("stale");
+    const changed = prepare();
+    changed.sent[1].content = "changed task";
+    expect(() => changed.context.applyResponse(changed.request, changed.sent, compacted)).toThrow("sent prefix");
+    expect(changed.context.active).toEqual(pair);
+  });
+
+  it.each([1, 3])("rejects split or out-of-range cut %s atomically", cutIndex => {
+    const { context, request, sent } = prepare();
+    expect(() => context.applyResponse(request, sent, { ...compacted, replacement: { ...compacted.replacement, cutIndex } })).toThrow();
+    expect(context.active).toEqual(pair);
+  });
+
+  it.each([
+    [{ role: "tool", toolCallId: "orphan", content: "x" }],
+    [pair[0], { role: "tool", toolCallId: "wrong", content: "x" }],
+    [pair[0], { role: "user", content: "interleaved" }, pair[1]],
+    [pair[0]]
+  ] as AgentMessage[][])("rejects invalid atomic tool groups", (...tail) => {
+    const { context, request, sent } = prepare(tail);
+    expect(() => context.applyResponse(request, sent, { ...compacted, replacement: { ...compacted.replacement, cutIndex: tail.length } })).toThrow();
+  });
+
+  it("allows reused IDs in completed exchanges but rejects duplicates within one assistant group", () => {
+    const valid = prepare([...pair, ...pair]);
+    valid.context.applyResponse(valid.request, valid.sent, compacted);
+    expect(valid.context.active.slice(1)).toEqual(pair);
+    const call = (pair[0] as Extract<AgentMessage, { role: "assistant" }>).toolCalls![0];
+    const invalid = prepare([{ role: "assistant", content: "", toolCalls: [call, call] }, pair[1], pair[1]]);
+    expect(() => invalid.context.applyResponse(invalid.request, invalid.sent, {
+      ...compacted, replacement: { ...compacted.replacement, cutIndex: 3 }
+    })).toThrow("duplicate Tool call within group");
+  });
+
+  it.each([
+    { role: "system", content: "fixed suffix" },
+    { role: "user", content: "image", image: { blob: fixtureBlob("data:image/png;base64,YQ=="), width: 1, height: 1 } }
+  ] as AgentMessage[])("preserves protected suffixes and rejects their removal", protectedMessage => {
+    const tail = [...pair, protectedMessage];
+    const good = prepare(tail);
+    good.context.applyResponse(good.request, good.sent, compacted);
+    expect(good.context.active[1]).toEqual(protectedMessage);
+    const bad = prepare(tail);
+    expect(() => bad.context.applyResponse(bad.request, bad.sent, {
+      ...compacted, replacement: { ...compacted.replacement, cutIndex: 3 }
+    })).toThrow("protected");
+    expect(bad.context.active).toEqual(tail);
+  });
+
+  it("displays compaction counters and the server reason without summary content", () => {
+    const text = formatContextTrace([{ elapsedMilliseconds: 0, event: { type: "model_finished", step: { step: 1, attempts: [{
+      attempt: 1, error: null, contextCompaction: { ...compacted, reason: "protected image prevents compaction" }
+    }] } } }]);
+    expect(text).toContain("compacted；100 → 40 token；2 ms");
+    expect(text).not.toContain("server summary");
+    expect(text).toContain("protected image prevents compaction");
+  });
+
+  it("extracts bounded read-path and committed-receipt anchors from dropped messages while keeping summary verbatim", () => {
+    const richTail: AgentMessage[] = [
+      {
+        role: "assistant",
+        content: "",
+        toolCalls: [
+          { id: "r1", type: "function", function: { name: "read", arguments: '{"file_path":"skills/water/SKILL.md"}' } },
+          { id: "e1", type: "function", function: { name: "execute", arguments: '{"code":"await tools.water.digRiver(...)"}' } }
+        ]
+      },
+      {
+        role: "tool",
+        toolCallId: "r1",
+        content:
+          '<path>skills/water/SKILL.md</path>\n<type>file</type>\n<content>\n1: water\n</content>\n<dependency path="declare/editor/world/tools/water.digRiver.d.ts">\n1: export {}\n</dependency>'
+      },
+      {
+        role: "tool",
+        toolCallId: "e1",
+        content: JSON.stringify({
+          ok: true,
+          result: { riverId: "r-1" },
+          receipt: {
+            executionId: "t1:1",
+            status: "committed",
+            transactionId: "tx-42",
+            revision: 7,
+            commands: [{ call: 1, tool: "water.digRiver", status: "settled", ok: true }]
+          }
+        })
+      }
+    ];
+    const { context, request, sent } = prepare(richTail);
+    expect(context.compactedAnchors).toBeUndefined();
+    context.applyResponse(request, sent, {
+      ...compacted,
+      replacement: { prefixLength: 2, cutIndex: 3, summary: "server summary verbatim" }
+    });
+    expect(context.active).toEqual([{ role: "user", content: "server summary verbatim" }]);
+    expect(context.compactedAnchors).toEqual({
+      readPaths: ["skills/water/SKILL.md", "declare/editor/world/tools/water.digRiver.d.ts"],
+      committed: [{ status: "committed", transactionId: "tx-42", revision: 7, commands: ["water.digRiver"] }]
+    });
+    context.clear();
+    expect(context.compactedAnchors).toBeUndefined();
+  });
+
+  it("retains settled and unknown independent commands from interrupted executions across compaction", () => {
+    const interruptedTail: AgentMessage[] = [
+      {
+        role: "assistant",
+        content: "",
+        toolCalls: [{ id: "e2", type: "function", function: { name: "execute", arguments: '{"code":"..."}' } }]
+      },
+      {
+        role: "tool",
+        toolCallId: "e2",
+        content: JSON.stringify({
+          ok: false,
+          error: "later step failed",
+          receipt: {
+            executionId: "t1:2",
+            status: "interrupted",
+            commands: [
+              { call: 1, tool: "water.digRiver", status: "settled", ok: true },
+              { call: 2, tool: "world.delete", status: "unknown" }
+            ]
+          }
+        })
+      }
+    ];
+    const { context, request, sent } = prepare(interruptedTail);
+    context.applyResponse(request, sent, {
+      ...compacted,
+      replacement: { prefixLength: 2, cutIndex: 2, summary: "server summary verbatim" }
+    });
+    expect(context.compactedAnchors).toEqual({
+      committed: [{ status: "interrupted", commands: ["water.digRiver", "world.delete:unknown"] }]
+    });
+  });
+
+  it("records native file mutation receipts, ignores tail-slice reads, and evicts oldest committed keys cleanly", () => {
+    const tail: AgentMessage[] = [
+      {
+        role: "assistant",
+        content: "",
+        toolCalls: [
+          { id: "r1", type: "function", function: { name: "read", arguments: '{"file_path":"declare/editor/Foo.d.ts","offset":30}' } },
+          { id: "w1", type: "function", function: { name: "write", arguments: '{"file_path":"Scripts/A.ts"}' } },
+          { id: "w2", type: "function", function: { name: "edit", arguments: '{"file_path":"Scripts/Large.ts"}' } }
+        ]
+      },
+      {
+        role: "tool",
+        toolCallId: "r1",
+        content: "<path>declare/editor/Foo.d.ts</path>\n<type>file</type>\n<content>\n30: export type TailOnly = number;\n</content>"
+      },
+      {
+        role: "tool",
+        toolCallId: "w1",
+        content: 'Created file: Scripts/A.ts\n{"receipt":{"executionId":"f1","status":"committed","transactionId":"tx-file-1","revision":2}}'
+      },
+      {
+        role: "tool",
+        toolCallId: "w2",
+        content:
+          'Updated file: Scripts/Large.ts\nFull result: .ai/outputs/edit-1.json\n{"receipt":{"executionId":"f2","status":"committed","transactionId":"tx-file-spilled","revision":3}}'
+      }
+    ];
+    const { context, request, sent } = prepare(tail);
+    context.applyResponse(request, sent, {
+      ...compacted,
+      replacement: { prefixLength: 2, cutIndex: 4, summary: "s1" }
+    });
+    expect(context.compactedAnchors).toEqual({
+      committed: [
+        { status: "committed", transactionId: "tx-file-1", revision: 2 },
+        { status: "committed", transactionId: "tx-file-spilled", revision: 3 }
+      ]
+    });
+
+    // Push 13 more commits with fallback keys (no executionId) to evict both tx-file-1 and tx-extra-1, then verify evicted key can be re-recorded.
+    const extra: AgentMessage[] = [];
+    for (let i = 1; i <= 13; i++) {
+      extra.push(
+        { role: "assistant", content: "", toolCalls: [{ id: `e${i}`, type: "function", function: { name: "write", arguments: "{}" } }] },
+        {
+          role: "tool",
+          toolCallId: `e${i}`,
+          content: `Updated file: Scripts/F${i}.ts\n{"receipt":{"status":"committed","transactionId":"tx-extra-${i}","revision":${i + 2}}}`
+        }
+      );
+    }
+    extra.push(
+      { role: "assistant", content: "", toolCalls: [{ id: "e-readd", type: "function", function: { name: "write", arguments: "{}" } }] },
+      {
+        role: "tool",
+        toolCallId: "e-readd",
+        content: 'Updated file: Scripts/F1.ts\n{"receipt":{"status":"committed","transactionId":"tx-extra-1","revision":3}}'
+      }
+    );
+    context.push(...extra);
+    const sent2 = [...structuredClone(prefix), ...context.active];
+    const req2 = context.captureRequest(sent2);
+    context.applyResponse(req2, sent2, {
+      ...compacted,
+      replacement: { prefixLength: 2, cutIndex: context.active.length, summary: "s2" }
+    });
+    expect(context.compactedAnchors?.committed).toHaveLength(12);
+    expect(context.compactedAnchors?.committed?.at(-1)).toEqual({
+      status: "committed",
+      transactionId: "tx-extra-1",
+      revision: 3
+    });
+  });
+
+  it("micro-compacts oversized completed-turn static reads when active context exceeds budget", () => {
+    const context = new AgentContextTranscript();
+    const bigDecl = `<path>declare/editor/world/tools/big.d.ts</path>\n<type>file</type>\n<content>\n1: ${"x".repeat(5000)}\n</content>`;
+    const bigNote = `<path>Notes/plan.md</path>\n<type>file</type>\n<content>\n1: ${"y".repeat(5000)}\n</content>`;
+    context.push(
+      { role: "user", content: "turn 1" },
+      {
+        role: "assistant",
+        content: "",
+        toolCalls: [
+          { id: "r1", type: "function", function: { name: "read", arguments: "{}" } },
+          { id: "r2", type: "function", function: { name: "read", arguments: "{}" } }
+        ]
+      },
+      { role: "tool", toolCallId: "r1", content: bigDecl },
+      { role: "tool", toolCallId: "r2", content: bigNote },
+      { role: "assistant", content: "done" }
+    );
+    // Below default 80k threshold, completeTurn leaves messages untouched.
+    context.completeTurn();
+    expect(context.active[2].content).toBe(bigDecl);
+
+    // Above threshold, static declare/skills read is trimmed while user note stays intact.
+    const trimmed = context.compactCompletedTurnReads(8000, 4000);
+    expect(trimmed).toBe(1);
+    expect(context.active[2]).toMatchObject({ role: "tool", toolCallId: "r1" });
+    expect(context.active[2].content).toContain("Omitted large read from an earlier completed turn");
+    expect(context.active[3].content).toBe(bigNote);
+  });
+});

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
+import type { IWebGPUShaderCompiler } from "@galacean/engine-design";
 
 /**
  * Converts a filesystem path to the slash-separated form used by shader asset keys.
@@ -44,10 +45,12 @@ function pathToIdentifier(rel: string, ext: string): string {
 
 /** Remove empty parent directories upward from `startDir` until `stopDir` is hit. */
 function pruneEmptyDirs(startDir: string, stopDir: string): void {
-  let dir = startDir;
-  while (dir !== stopDir && fs.existsSync(dir) && fs.readdirSync(dir).length === 0) {
+  for (
+    let dir = startDir;
+    dir !== stopDir && fs.existsSync(dir) && fs.readdirSync(dir).length === 0;
+    dir = path.dirname(dir)
+  ) {
     fs.rmdirSync(dir);
-    dir = path.dirname(dir);
   }
 }
 
@@ -67,12 +70,15 @@ export interface PrecompileOptions {
   emitIndex?: boolean;
   /** Generate raw-source indexes: `<input>/index.ts` (.shader) + sibling `ShaderLibrary/index.ts` (.glsl). */
   emitSources?: boolean;
+  /** Explicit GLSL library root for a staged shader tree. */
+  includeLibrary?: string;
   /** Optional shader platform target passed through to `precompile`. Defaults to GLSL ES 3.00. */
   platformTarget?: number;
 }
 
 interface ShaderPrecompilerInstance {
   precompile: (source: string, target?: number, sourceFile?: string) => unknown;
+  precompileAny?: (source: string, target?: number, sourceFile?: string) => unknown;
   setIncludeMap: (includeMap: Record<string, string>) => void;
 }
 
@@ -82,18 +88,12 @@ interface ShaderPrecompilerInstance {
  * @returns After a one-shot compile finishes or a watch has been installed.
  * @throws Error when a one-shot compile has failures or the source tree is invalid.
  */
-export async function precompile(options: PrecompileOptions): Promise<void> {
-  const { failed } = await runFull(options);
-
-  if (options.watch) {
-    await startWatcher(options);
-    return;
-  }
-
-  console.log("[shader-compiler-bundler] Done.");
-  if (failed > 0) {
-    throw new Error(`${failed} shader(s) failed to precompile.`);
-  }
+export function precompile(options: PrecompileOptions): Promise<void> {
+  return runFull(options).then(({ failed }) => {
+    if (options.watch) return startWatcher(options);
+    console.log("[shader-compiler-bundler] Done.");
+    if (failed > 0) throw new Error(`${failed} shader(s) failed to precompile.`);
+  });
 }
 
 /**
@@ -102,38 +102,20 @@ export async function precompile(options: PrecompileOptions): Promise<void> {
  * @returns An object containing the number of shader sources that failed to compile.
  * @throws Error when the input tree or an explicitly selected source is invalid.
  */
-export async function runFull(options: Omit<PrecompileOptions, "watch">): Promise<{ failed: number }> {
+export function runFull(options: Omit<PrecompileOptions, "watch">): Promise<{ failed: number }> {
   const inputDir = path.resolve(options.input);
   const outputDir = path.resolve(options.output);
-  const platformTarget = options.platformTarget;
-
-  if (!fs.existsSync(inputDir)) {
-    throw new Error(`Input directory does not exist: ${inputDir}`);
-  }
-
-  fs.mkdirSync(outputDir, { recursive: true });
-
-  // Emit source indexes before compile so collectIncludeMap can resolve the freshly-built sources.
-  if (options.emitSources) {
-    emitSources(inputDir);
-  }
-
-  const shaderCompiler = await loadShaderCompiler();
-  shaderCompiler.setIncludeMap(await collectIncludeMap(inputDir));
-
-  let failed = 0;
-  if (options.only) {
-    const target = path.resolve(options.only);
-    if (!compileSingle(shaderCompiler, target, inputDir, outputDir, platformTarget)) failed++;
-  } else {
-    failed = compileAll(shaderCompiler, inputDir, outputDir, platformTarget, options.clean);
-  }
-
-  if (options.emitIndex) {
-    emitIndex(outputDir);
-  }
-
-  return { failed };
+  const target = options.platformTarget;
+  return prepareCompiler(inputDir, outputDir, target, options.emitSources, options.includeLibrary)
+    .then((compiler) =>
+      options.only
+        ? compileSingle(compiler, path.resolve(options.only), inputDir, outputDir, target).then((ok) => (ok ? 0 : 1))
+        : compileAll(compiler, inputDir, outputDir, target, options.clean)
+    )
+    .then((failed) => {
+      if (options.emitIndex) emitIndex(outputDir);
+      return { failed };
+    });
 }
 
 /**
@@ -142,49 +124,69 @@ export async function runFull(options: Omit<PrecompileOptions, "watch">): Promis
  * @returns Once the filesystem watcher has been installed.
  * @throws Error when the initial include registry cannot be loaded.
  */
-export async function startWatcher(options: Omit<PrecompileOptions, "watch" | "only">): Promise<void> {
+export function startWatcher(options: Omit<PrecompileOptions, "watch" | "only">): Promise<void> {
   const inputDir = path.resolve(options.input);
   const outputDir = path.resolve(options.output);
-  const platformTarget = options.platformTarget;
-  if (!fs.existsSync(inputDir)) {
-    throw new Error(`Input directory does not exist: ${inputDir}`);
-  }
-  fs.mkdirSync(outputDir, { recursive: true });
-  const shaderCompiler = await loadShaderCompiler();
-  shaderCompiler.setIncludeMap(await collectIncludeMap(inputDir));
+  const target = options.platformTarget;
+  return prepareCompiler(inputDir, outputDir, target, false, options.includeLibrary).then((compiler) => {
+    function handleInputChange(filename: string | null): Promise<void> | void {
+      if (!filename) return;
+      const norm = normalizePath(filename);
+      const fullPath = path.join(inputDir, filename);
+      if (norm.endsWith(".glsl")) {
+        console.log(`[shader-compiler-bundler] Include changed (${norm}), full recompile...`);
+        if (options.emitSources) emitSources(inputDir);
+        return collectIncludeMap(inputDir, options.includeLibrary)
+          .then((includes) => {
+            compiler.setIncludeMap(includes);
+            return compileAll(compiler, inputDir, outputDir, target, options.clean);
+          })
+          .then((failed) => {
+            if (options.emitIndex) emitIndex(outputDir);
+            if (failed > 0) console.error(`[shader-compiler-bundler] ${failed} shader(s) failed to precompile.`);
+          });
+      }
 
-  // .glsl change → full recompile (can't cheaply track include graphs).
-  // .shader change → single-file recompile.
-  const handleInputChange = async (filename: string | null): Promise<void> => {
-    if (!filename) return;
-    const norm = normalizePath(filename);
-    const fullPath = path.join(inputDir, filename);
-
-    if (norm.endsWith(".glsl")) {
-      console.log(`[shader-compiler-bundler] Include changed (${norm}), full recompile...`);
-      if (options.emitSources) emitSources(inputDir);
-      shaderCompiler.setIncludeMap(await collectIncludeMap(inputDir));
-      const failed = compileAll(shaderCompiler, inputDir, outputDir, platformTarget, options.clean);
-      if (options.emitIndex) emitIndex(outputDir);
-      if (failed > 0) console.error(`[shader-compiler-bundler] ${failed} shader(s) failed to precompile.`);
-      return;
-    }
-
-    if (!norm.endsWith(".shader")) return;
-    if (!fs.existsSync(fullPath)) {
+      if (!norm.endsWith(".shader")) return;
+      const updateIndexes = () => {
+        if (options.emitSources) emitSources(inputDir);
+        if (options.emitIndex) emitIndex(outputDir);
+      };
+      if (fs.existsSync(fullPath))
+        return compileSingle(compiler, fullPath, inputDir, outputDir, target).then(updateIndexes);
       removeBundleFor(fullPath, inputDir, outputDir);
-    } else {
-      compileSingle(shaderCompiler, fullPath, inputDir, outputDir, platformTarget);
+      updateIndexes();
     }
-    if (options.emitSources) emitSources(inputDir);
-    if (options.emitIndex) emitIndex(outputDir);
-  };
 
-  console.log(`[shader-compiler-bundler] Watching ${inputDir} ...`);
-  let changeQueue = Promise.resolve();
-  fs.watch(inputDir, { recursive: true }, (_event, filename) => {
-    changeQueue = changeQueue.then(() => handleInputChange(filename)).catch((e) => console.error(e));
+    console.log(`[shader-compiler-bundler] Watching ${inputDir} ...`);
+    let changeQueue = Promise.resolve();
+    fs.watch(inputDir, { recursive: true }, (_event, filename) => {
+      changeQueue = changeQueue.then(() => handleInputChange(filename)).catch((e) => console.error(e));
+    });
   });
+}
+
+function prepareCompiler(
+  inputDir: string,
+  outputDir: string,
+  target?: number,
+  writeSources?: boolean,
+  includeLibrary?: string
+): Promise<ShaderPrecompilerInstance> {
+  return Promise.resolve()
+    .then(() => {
+      if (!fs.existsSync(inputDir)) throw new Error(`Input directory does not exist: ${inputDir}`);
+      fs.mkdirSync(outputDir, { recursive: true });
+      // Refresh source indexes before resolving the include registry.
+      if (writeSources) emitSources(inputDir);
+      return loadShaderCompiler(target);
+    })
+    .then((compiler) =>
+      collectIncludeMap(inputDir, includeLibrary).then((includes) => {
+        compiler.setIncludeMap(includes);
+        return compiler;
+      })
+    );
 }
 
 function compileAll(
@@ -193,50 +195,63 @@ function compileAll(
   outputDir: string,
   platformTarget: number | undefined,
   clean: boolean | undefined
-): number {
+): Promise<number> {
   const shaderFiles = findFiles(inputDir, ".shader");
   console.log(`[shader-compiler-bundler] Precompiling ${shaderFiles.length} shader(s)...`);
-  let failed = 0;
+  let count = Promise.resolve(0);
   for (const file of shaderFiles) {
-    if (!compileSingle(shaderCompiler, file, inputDir, outputDir, platformTarget)) failed++;
+    count = count.then((failed) =>
+      compileSingle(shaderCompiler, file, inputDir, outputDir, platformTarget).then((ok) => (ok ? failed : failed + 1))
+    );
   }
-  if (clean) {
-    const removed = cleanOrphanedBundles(shaderFiles, inputDir, outputDir);
-    if (removed > 0) console.log(`[shader-compiler-bundler] Cleaned ${removed} orphaned .shaderc file(s).`);
-  }
-  if (failed > 0) console.warn(`[shader-compiler-bundler] ${failed} shader(s) failed to precompile.`);
-  return failed;
+  return count.then((failed) => {
+    if (clean) {
+      const removed = cleanOrphanedBundles(shaderFiles, inputDir, outputDir);
+      if (removed > 0) console.log(`[shader-compiler-bundler] Cleaned ${removed} orphaned .shaderc file(s).`);
+    }
+    if (failed > 0) console.warn(`[shader-compiler-bundler] ${failed} shader(s) failed to precompile.`);
+    return failed;
+  });
 }
 
-async function loadShaderCompiler(): Promise<ShaderPrecompilerInstance> {
-  const mod = (await (process.env.GALACEAN_SHADER_COMPILER_BOOTSTRAP === "true"
-    ? importBootstrapPrecompiler()
-    : importReleasePrecompiler())) as { ShaderPrecompiler: new () => ShaderPrecompilerInstance };
-  const instance = new mod.ShaderPrecompiler();
-  if (typeof instance.precompile !== "function") {
-    throw new Error("ShaderPrecompiler is unavailable; rebuild @galacean/engine-shader-compiler first.");
-  }
-  return instance;
-}
-
-async function importBootstrapPrecompiler(): Promise<unknown> {
-  // @ts-expect-error generated repo-local runtime has no declaration file
-  return import("../.bootstrap/main.js");
-}
-
-async function importReleasePrecompiler(): Promise<unknown> {
-  // @ts-expect-error generated Node-only runtime has no declaration file
-  return import("../dist/precompile.main.js");
+function loadShaderCompiler(platformTarget?: number): Promise<ShaderPrecompilerInstance> {
+  const bootstrap = process.env.GALACEAN_SHADER_COMPILER_BOOTSTRAP === "true";
+  type CompilerModule = { ShaderPrecompiler: new (webgpu?: IWebGPUShaderCompiler) => ShaderPrecompilerInstance };
+  const runtime = bootstrap ? "../.bootstrap/main.js" : "../dist/precompile.main.js";
+  const module: Promise<CompilerModule> = import(runtime);
+  return module.then(({ ShaderPrecompiler }) => {
+    function create(webgpu?: IWebGPUShaderCompiler): ShaderPrecompilerInstance {
+      const compiler = new ShaderPrecompiler(webgpu);
+      if (typeof compiler.precompile !== "function")
+        throw new Error("ShaderPrecompiler is unavailable; rebuild @galacean/engine-shader-compiler first.");
+      return compiler;
+    }
+    if (platformTarget !== 1) return create();
+    const localRequire = createRequire(import.meta.url);
+    const { createWebGPUShaderCompiler }: typeof import("../webgpu") = localRequire(
+      bootstrap ? "../.bootstrap/webgpu.js" : "../dist/webgpu.main.js"
+    );
+    return createWebGPUShaderCompiler().then(create);
+  });
 }
 
 // Local .glsl come from inputDir; standard library comes from
 // `@galacean/engine-shader/sources` with a sibling-dir fallback for engine self-build cold-start.
-async function collectIncludeMap(inputDir: string): Promise<Record<string, string>> {
+async function collectIncludeMap(inputDir: string, includeLibrary?: string): Promise<Record<string, string>> {
   const map = Object.create(null) as Record<string, string>;
 
   for (const file of findFiles(inputDir, ".glsl")) {
     const relPath = normalizePath(path.relative(inputDir, file));
     addIncludeSource(map, relPath, fs.readFileSync(file, "utf-8"));
+  }
+
+  if (includeLibrary) {
+    const library = path.resolve(includeLibrary);
+    if (!fs.statSync(library).isDirectory()) {
+      throw new Error(`Shader include library is not a directory: ${library}`);
+    }
+    addLibrarySources(map, library);
+    return map;
   }
 
   // Resolve from inputDir's node_modules so consumers without transitive linkage to shader-compiler can still find it.
@@ -258,14 +273,18 @@ async function collectIncludeMap(inputDir: string): Promise<Record<string, strin
     // Engine self-build cold-start has no generated sources entry yet.
     const siblingLibrary = path.join(path.dirname(inputDir), "ShaderLibrary");
     if (fs.existsSync(siblingLibrary)) {
-      for (const file of findFiles(siblingLibrary, ".glsl")) {
-        const rel = normalizePath(path.relative(siblingLibrary, file));
-        addIncludeSource(map, `ShaderLibrary/${rel}`, fs.readFileSync(file, "utf-8"));
-      }
+      addLibrarySources(map, siblingLibrary);
     }
   }
 
   return map;
+}
+
+function addLibrarySources(map: Record<string, string>, library: string): void {
+  for (const file of findFiles(library, ".glsl")) {
+    const rel = normalizePath(path.relative(library, file));
+    addIncludeSource(map, `ShaderLibrary/${rel}`, fs.readFileSync(file, "utf-8"));
+  }
 }
 
 function addIncludeSource(map: Record<string, string>, key: string, source: string): void {
@@ -281,7 +300,7 @@ function compileSingle(
   inputDir: string,
   outputDir: string,
   platformTarget: number | undefined
-): boolean {
+): Promise<boolean> {
   const relativePath = shaderSourceRelativePath(shaderPath, inputDir);
   const source = fs.readFileSync(shaderPath, "utf-8");
   const bundleRelative = relativePath.replace(/\.shader$/, ".shaderc");
@@ -289,16 +308,28 @@ function compileSingle(
 
   fs.mkdirSync(path.dirname(bundlePath), { recursive: true });
 
-  try {
-    const precompiled = shaderCompiler.precompile(source, platformTarget, relativePath);
-    fs.writeFileSync(bundlePath, JSON.stringify(precompiled));
-    console.log(`  ${relativePath} -> ${bundleRelative}`);
-    return true;
-  } catch (e) {
-    console.error(`  FAILED: ${relativePath}`);
-    console.error(e);
-    return false;
-  }
+  return Promise.resolve()
+    .then(() => {
+      const precompiled = shaderCompiler.precompileAny
+        ? shaderCompiler.precompileAny(source, platformTarget, relativePath)
+        : shaderCompiler.precompile(source, platformTarget, relativePath);
+      if (precompiled === null) {
+        if (fs.existsSync(bundlePath)) {
+          fs.unlinkSync(bundlePath);
+          pruneEmptyDirs(path.dirname(bundlePath), outputDir);
+        }
+        console.log(`  Skipped (compute, non-WGSL target): ${relativePath}`);
+        return true;
+      }
+      fs.writeFileSync(bundlePath, JSON.stringify(precompiled));
+      console.log(`  ${relativePath} -> ${bundleRelative}`);
+      return true;
+    })
+    .catch((e) => {
+      console.error(`  FAILED: ${relativePath}`);
+      console.error(e);
+      return false;
+    });
 }
 
 function shaderSourceRelativePath(shaderPath: string, inputDir: string): string {
@@ -336,14 +367,33 @@ function emitIndex(outputDir: string): void {
   const entries = bundleFiles
     .map((file) => {
       const rel = normalizePath(path.relative(outputDir, file));
-      return { varName: shadercPathToVarName(rel), importPath: `./${rel}` };
+      let isCompute = false;
+      try {
+        const parsed = JSON.parse(fs.readFileSync(file, "utf-8")) as { kind?: string };
+        isCompute = parsed.kind === "compute";
+      } catch {
+        // Treat malformed/legacy payloads as graphics shaders; compilation catches invalid files earlier.
+      }
+      return { varName: shadercPathToVarName(rel), importPath: `./${rel}`, isCompute };
     })
     .sort((a, b) => a.varName.localeCompare(b.varName));
   assertUniqueIdentifiers(entries.map(({ varName, importPath }) => ({ identifier: varName, path: importPath })));
 
+  const hasCompute = entries.some((e) => e.isCompute);
+  const hasGraphics = entries.some((e) => !e.isCompute);
+  const typeNames: string[] = [];
+  if (hasGraphics || !hasCompute) typeNames.push("IPrecompiledShader");
+  if (hasCompute) typeNames.push("IPrecompiledComputeShader");
+
   const imports = entries.map((e) => `import ${e.varName}Data from "${e.importPath}";`).join("\n");
-  const exports = entries.map((e) => `export const ${e.varName}: IPrecompiledShader = ${e.varName}Data;`).join("\n");
-  const content = `// Auto-generated by shader-compiler-precompile --emit-index — do not edit.\nimport type { IPrecompiledShader } from "@galacean/engine-design";\n${imports}\n\n${exports}\n`;
+  const exports = entries
+    .map((e) =>
+      e.isCompute
+        ? `export const ${e.varName}: IPrecompiledComputeShader = ${e.varName}Data as unknown as IPrecompiledComputeShader;`
+        : `export const ${e.varName}: IPrecompiledShader = ${e.varName}Data as unknown as IPrecompiledShader;`
+    )
+    .join("\n");
+  const content = `// Auto-generated by shader-compiler-precompile --emit-index — do not edit.\nimport type { ${typeNames.join(", ")} } from "@galacean/engine-design";\n${imports}\n\n${exports}\n`;
 
   const indexPath = path.join(outputDir, "index.ts");
   const existing = fs.existsSync(indexPath) ? fs.readFileSync(indexPath, "utf-8") : "";

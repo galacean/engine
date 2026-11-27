@@ -1,4 +1,4 @@
-import { Entity } from "@galacean/engine";
+import { Entity } from "@galacean/engine-core";
 import { RootCanvasModifyFlags, UICanvas } from "./component/UICanvas";
 import { GroupModifyFlags, UIGroup } from "./component/UIGroup";
 import { IElement } from "./interface/IElement";

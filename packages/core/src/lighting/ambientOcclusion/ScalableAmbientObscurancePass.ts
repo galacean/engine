@@ -6,6 +6,7 @@ import { Blitter } from "../../RenderPipeline/Blitter";
 import { PipelinePass } from "../../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
+import { RenderPassLoadAction } from "../../renderingHardwareInterface";
 import { Shader, ShaderData, ShaderProperty } from "../../shader";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../../texture";
 import { AmbientOcclusionQuality } from "../enums/AmbientOcclusionQuality";
@@ -15,6 +16,8 @@ import { AmbientOcclusionQuality } from "../enums/AmbientOcclusionQuality";
  * Scalable Ambient Obscurance render pass.
  */
 export class ScalableAmbientObscurancePass extends PipelinePass {
+  static readonly SHADER_NAME = "Lighting/ScalableAmbientOcclusion";
+
   private static _invRadiusSquaredProp = ShaderProperty.getByName("material_invRadiusSquared");
   private static _intensityProp = ShaderProperty.getByName("material_intensity");
   private static _projectionScaleRadiusProp = ShaderProperty.getByName("material_projectionScaleRadius");
@@ -40,6 +43,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   private _offsetX = new Vector4();
   private _offsetY = new Vector4();
   private _quality: AmbientOcclusionQuality;
+  private _destroyed = false;
 
   constructor(engine: Engine, shader: Shader) {
     super(engine);
@@ -55,7 +59,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
 
     this._depthRenderTarget = depthRenderTarget;
 
-    const format = TextureFormat.R8G8B8_UNorm;
+    const format = TextureFormat.R8G8B8A8_UNorm;
 
     this._saoRenderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
       engine,
@@ -132,22 +136,35 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     shaderData.setFloat(ScalableAmbientObscurancePass._projectionScaleRadiusProp, radius * projectionScale);
     shaderData.setFloat(ScalableAmbientObscurancePass._farPlaneOverEdgeDistanceProp, farPlaneOverEdgeDistance);
 
-    const { _material: material } = this;
+    const { _material: material, _passDescriptor: passDescriptor } = this;
     const saoTarget = this._saoRenderTarget!;
+    const blurTarget = this._blurRenderTarget!;
 
     // Draw ambient occlusion texture
     const sourceTexture = <Texture2D>this._depthRenderTarget!.depthTexture;
-    Blitter.blitTexture(engine, sourceTexture, saoTarget, 0, undefined, material, 0);
+    passDescriptor.reset(saoTarget);
+    passDescriptor.colorLoadAction = RenderPassLoadAction.DontCare;
+    context.beginRenderPass(passDescriptor);
+    Blitter.draw(engine, sourceTexture, 0, material, 0);
+    context.endRenderPass();
 
     // Horizontal blur, saoRenderTarget -> blurRenderTarget
     const saoTexture = <Texture2D>saoTarget.getColorTexture();
     const offsetX = this._offsetX.set(1, 1, this._blurStepPixels / saoTexture.width, 0);
-    Blitter.blitTexture(engine, saoTexture, this._blurRenderTarget, 0, undefined, material, 1, offsetX);
+    passDescriptor.reset(blurTarget);
+    passDescriptor.colorLoadAction = RenderPassLoadAction.DontCare;
+    context.beginRenderPass(passDescriptor);
+    Blitter.draw(engine, saoTexture, 0, material, 1, offsetX);
+    context.endRenderPass();
 
     // Vertical blur, blurRenderTarget -> saoRenderTarget
-    const horizontalBlur = <Texture2D>this._blurRenderTarget!.getColorTexture();
+    const horizontalBlur = <Texture2D>blurTarget.getColorTexture();
     const offsetY = this._offsetY.set(1, 1, 0, this._blurStepPixels / saoTexture.height);
-    Blitter.blitTexture(engine, horizontalBlur, saoTarget, 0, undefined, material, 1, offsetY);
+    passDescriptor.reset(saoTarget);
+    passDescriptor.colorLoadAction = RenderPassLoadAction.DontCare;
+    context.beginRenderPass(passDescriptor);
+    Blitter.draw(engine, horizontalBlur, 0, material, 1, offsetY);
+    context.endRenderPass();
 
     // Set the SAO texture
     camera.shaderData.setTexture(Camera._cameraAOTextureProperty, saoTexture);
@@ -164,6 +181,14 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
       this._blurRenderTarget = null;
     }
     this._depthRenderTarget = null;
+  }
+
+  destroy(): void {
+    if (this._destroyed) return;
+    this._destroyed = true;
+    this.release();
+    this._material._addReferCount(-1);
+    this._material.destroy();
   }
 
   private _updateBlurKernel(blurShaderData: ShaderData, quality: AmbientOcclusionQuality): void {

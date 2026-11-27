@@ -68,6 +68,8 @@ export class ShaderCoreInfo {
   readonly vertexEntry: ShaderEntryPointInfo;
   /** Fragment entry facts. */
   readonly fragmentEntry: ShaderEntryPointInfo;
+  /** Compute entry facts when created for a `ComputeShader` kernel. */
+  readonly computeEntry?: ShaderEntryPointInfo;
   /** Valid, unambiguous stage IO consumed by backends. */
   readonly io: ShaderIOInfo;
   /** IO role conflicts excluded from `io`. */
@@ -98,18 +100,31 @@ export class ShaderCoreInfo {
     return new ShaderCoreInfo(ir, vertexEntry, fragmentEntry, getDeclarationCoexistence, getBranchCoverage);
   }
 
+  /**
+   * Derives backend-required facts for a compute kernel from a neutral shader IR.
+   */
+  static createCompute(
+    ir: ShaderClueIR,
+    computeEntry: string,
+    getDeclarationCoexistence: DeclarationCoexistenceResolver = getLexicalDeclarationCoexistence,
+    getBranchCoverage: BranchCoverageResolver = getLexicalBranchCoverage
+  ): ShaderCoreInfo {
+    return new ShaderCoreInfo(ir, "", "", getDeclarationCoexistence, getBranchCoverage, computeEntry);
+  }
+
   private constructor(
     ir: ShaderClueIR,
     vertexEntry: string,
     fragmentEntry: string,
     readonly getDeclarationCoexistence: DeclarationCoexistenceResolver,
-    readonly getBranchCoverage: BranchCoverageResolver
+    readonly getBranchCoverage: BranchCoverageResolver,
+    computeEntry?: string
   ) {
     const symbolTable = ir.shaderData.symbolTable;
     const ownership = ir.shaderData.declarationOwnership;
     this.deferredDeclarationOwnership = ownership.declarations;
-    const vertexFunctions = findFunctions(symbolTable, vertexEntry);
-    const fragmentFunctions = findFunctions(symbolTable, fragmentEntry);
+    const vertexFunctions = vertexEntry ? findFunctions(symbolTable, vertexEntry) : [];
+    const fragmentFunctions = fragmentEntry ? findFunctions(symbolTable, fragmentEntry) : [];
     this.vertexEntry = createEntryPointInfo(
       EShaderStage.VERTEX,
       vertexEntry,
@@ -124,6 +139,16 @@ export class ShaderCoreInfo {
       getDeclarationCoexistence,
       ownership
     );
+    if (computeEntry !== undefined) {
+      const computeFunctions = findFunctions(symbolTable, computeEntry);
+      this.computeEntry = createEntryPointInfo(
+        EShaderStage.COMPUTE,
+        computeEntry,
+        computeFunctions,
+        getDeclarationCoexistence,
+        ownership
+      );
+    }
 
     const mutableIO = createIOInfo();
     collectEntryIO(vertexFunctions, fragmentFunctions, mutableIO);

@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "target": "esnext",
+    "declaration": true,
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "experimentalDecorators": true,
+    "declarationDir": "types",
+    "emitDeclarationOnly": true,
+    "noImplicitOverride": true,
+    "sourceMap": true,
+    "incremental": false,
+    "skipLibCheck": true,
+    "types": ["@webgpu/types"]
+  },
+  "include": ["src/**/*"]
+}

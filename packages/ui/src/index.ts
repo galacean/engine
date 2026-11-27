@@ -1,4 +1,4 @@
-import { Engine, Entity, Loader, Material } from "@galacean/engine";
+import { Engine, Entity, Loader, Material } from "@galacean/engine-core";
 import * as GUIComponent from "./component";
 export * from "./component";
 export { CanvasRenderMode } from "./enums/CanvasRenderMode";
@@ -14,7 +14,7 @@ export class EngineExtension {
   _uiDefaultMaterial: Material;
   _getUIDefaultMaterial(this: Engine): Material {
     if (!this._uiDefaultMaterial) {
-      const material = new Material(this, Engine._builtinShaders.ui);
+      const material = new Material(this, this._builtinShaders.ui);
       material.isGCIgnored = true;
       this._uiDefaultMaterial = material;
     }
@@ -36,7 +36,7 @@ export class EntityExtension {
   }
 }
 
-declare module "@galacean/engine" {
+declare module "@galacean/engine-core" {
   interface Engine {
     /** @internal */
     _uiDefaultMaterial: Material;

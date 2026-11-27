@@ -18,7 +18,7 @@ Shader "PBR" {
         /** G scales roughness; B scales metalness. */
         material_RoughnessMetallicTexture("RoughnessMetallicTexture", Texture2D);
       }
-      
+
       Header("Specular") {
         /** Strength multiplier for specular reflection. */
         material_SpecularIntensity( "Intensity", Range(0,2,0.01) ) = 1;
@@ -61,7 +61,7 @@ Shader "PBR" {
         /** UV set used to sample the occlusion texture. */
         material_OcclusionTextureCoord("OcclusionTextureCoord", Enum(UV0:0, UV1:1)) = 0;
       }
-      
+
       Header("Clear Coat") {
         /** Strength of the additional clear-coat reflection layer. */
         material_ClearCoat("ClearCoat", Range(0, 1, 0.01)) = 0;
@@ -131,15 +131,15 @@ Shader "PBR" {
         material_TilingOffset("TilingOffset", Vector4) = (1, 1, 0, 0);
       }
     }
-      
+
   }
-        
+
     SubShader "Default" {
       UsePass "Pipeline/ShadowCaster/Default/ShadowCaster"
-      UsePass "Pipeline/DepthOnly/Default/DepthOnly"
+      UsePass "Pipeline/DepthOnly/Default/DepthOnlyVertexColor"
 
       Pass "Forward Pass" {
-        Tags { pipelineStage = "Forward"} 
+        Tags { pipelineStage = "Forward"}
 
         RenderQueueType renderQueueType;
         BlendFactor sourceColorBlendFactor;
@@ -167,11 +167,14 @@ Shader "PBR" {
         }
 
         RenderQueueType = renderQueueType;
-        
+
         VertexShader = PBRVertex;
         FragmentShader = PBRFragment;
 
         #include "ShaderLibrary/PBR/ForwardPassPBR.glsl"
       }
+
+      UsePass "Pipeline/SSRReceiver/Default/SSRReceiver"
+      UsePass "Pipeline/SSRContributionDepth/Default/SSRContributionDepth"
     }
   }

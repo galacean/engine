@@ -9,16 +9,12 @@ import {
   EntityModifyFlags,
   Layer,
   Logger,
-  MathUtil,
-  Matrix,
-  Ray,
   RenderElement,
-  Vector2,
-  Vector3,
   dependentComponents,
   ignoreClone
-} from "@galacean/engine";
-import type { ICloneHook } from "@galacean/engine";
+} from "@galacean/engine-core";
+import { MathUtil, Matrix, Ray, Vector2, Vector3 } from "@galacean/engine-math";
+import type { ICloneHook } from "@galacean/engine-core";
 import { Utils } from "../Utils";
 import { UIBatchSorter } from "./UIBatchSorter";
 import { CanvasRenderMode } from "../enums/CanvasRenderMode";

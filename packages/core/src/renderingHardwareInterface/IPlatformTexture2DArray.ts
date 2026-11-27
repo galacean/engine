@@ -65,4 +65,14 @@ export interface IPlatformTexture2DArray extends IPlatformTexture {
     mipLevel: number,
     out: ArrayBufferView
   ): void;
+
+  getPixelBufferAsync?(
+    elementIndex: number,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    mipLevel: number,
+    out: ArrayBufferView
+  ): Promise<void>;
 }

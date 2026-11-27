@@ -12,6 +12,7 @@ import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { ASTNode, TreeNode } from "./AST";
 import { Grammar } from "./Grammar";
 import { NoneTerminal } from "./GrammarSymbol";
+import { layoutUniformBlocks } from "./UniformBlockLayout";
 import SemanticAnalyzer from "./SemanticAnalyzer";
 import type { SemanticDiagnostics } from "./SemanticDiagnostics";
 import { ESymbolType, SymbolInfo } from "./symbolTable";
@@ -183,6 +184,13 @@ export class ShaderTargetParser {
           semanticAnalyzer.acceptRule?.(semanticAnalyzer);
           semanticAnalyzer.finalizeInheritance();
           const program = semanticAnalyzer.semanticStack.pop() as ASTNode.GLShaderProgram;
+          const blocks = program.shaderData.uniformBlocks;
+          const error = blocks && layoutUniformBlocks(blocks, this._source);
+          if (error) {
+            this.semanticAnalyzer.errors.push(error);
+            this.blockingErrors.push(error);
+            return null;
+          }
           return program;
         } else if (actionInfo?.action === EAction.Reduce) {
           const target = actionInfo.target!;

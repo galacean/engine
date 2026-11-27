@@ -49,7 +49,7 @@ Shader "BlinnPhong" {
 
   SubShader "Default" {
     UsePass "Pipeline/ShadowCaster/Default/ShadowCaster"
-    UsePass "Pipeline/DepthOnly/Default/DepthOnly"
+    UsePass "Pipeline/DepthOnly/Default/DepthOnlyVertexColor"
 
     Pass "Forward Pass" {
       Tags { pipelineStage = "Forward" }

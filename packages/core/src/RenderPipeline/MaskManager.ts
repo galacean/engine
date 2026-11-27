@@ -39,6 +39,11 @@ export class MaskManager {
 
   hasStencilWritten = false;
 
+  /** Only a stencil reader that follows drawn sprite masks needs to remove their contribution. */
+  get hasActiveMaskLayer(): boolean {
+    return this._preMaskLayer !== SpriteMaskLayer.Nothing;
+  }
+
   private _preMaskLayer = SpriteMaskLayer.Nothing;
   private _allSpriteMasks = new DisorderedArray<SpriteMask>();
 
@@ -97,7 +102,7 @@ export class MaskManager {
 
   isStencilWritten(material: Material): boolean {
     const data = material.shaderData;
-    if (!data.getFloat(MaskManager._stencilEnabledProp)) return false;
+    if (!data._propertyValueMap[MaskManager._stencilEnabledProp._uniqueId]) return false;
     if ((data.getFloat(MaskManager._stencilWriteMaskProp) ?? 0xff) === 0) return false;
 
     const keep = StencilOperation.Keep;

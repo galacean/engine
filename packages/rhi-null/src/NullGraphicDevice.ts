@@ -1,4 +1,4 @@
-import { GLCapabilityType } from "@galacean/engine";
+import { GLCapabilityType, RHIBackend, SetDataOptions } from "@galacean/engine";
 import type {
   IHardwareRenderer,
   IPlatformRenderTarget,
@@ -12,16 +12,31 @@ import { NullTexture2D, NullTexture2DArray, NullTextureCube } from "./NullTextur
 
 /** Graphics resource adapter that never opens a GPU context. */
 export class NullGraphicDevice implements IHardwareRenderer {
+  readonly backend = RHIBackend.Null;
+  beginFrame(): void {}
+  endFrame(): void {}
+  applyRenderState(): void {}
+  createPlatformShaderProgram(): never {
+    throw new Error("Shader programs require a graphics device.");
+  }
+  readonly supportsCompute = false;
+  readonly supportsTransformFeedback = false;
   readonly supportsRendering = false;
   readonly maxUniformBlockSize = 0;
+  readonly maxUniformBufferBindings = 0;
+  readonly maxVertexUniformBlocks = 0;
+  readonly maxFragmentUniformBlocks = 0;
+  readonly resolveShaderConstant = (): undefined => undefined;
+  readonly uniformBufferOffsetAlignment = 1;
   readonly _options = {};
   readonly capability = {
     maxTextureSize: 0,
+    maxDrawBuffers: 0,
     maxAntiAliasing: 1,
-    maxVertexUniformVectors: 0
+    maxVertexUniformVectors: 0,
+    maxFragmentTextureUnits: 16
   };
   _currentBindShaderProgram = null;
-  _enableGlobalDepthBias = false;
 
   get gl(): never {
     throw new Error("A WebGL context is unavailable on a null graphics device.");
@@ -78,6 +93,8 @@ export class NullGraphicDevice implements IHardwareRenderer {
     throw new Error("Transform feedback requires a graphics device.");
   }
   activeRenderTarget(): void {}
+  beginRenderPass(): void {}
+  endRenderPass(): void {}
   clearRenderTarget(): void {}
   drawPrimitive(): void {}
   blitInternalRTByBlitFrameBuffer(): void {}
@@ -89,7 +106,22 @@ export class NullGraphicDevice implements IHardwareRenderer {
   activeTexture(): void {}
   bindTexture(): void {}
   bindUniformBufferBase(): void {}
-  setGlobalDepthBias(): void {}
+  bindUniformBufferRange(
+    _binding: number,
+    buffer: NullBuffer,
+    byteOffset: number,
+    _byteSize: number,
+    data?: ArrayBufferView,
+    discard?: boolean
+  ): void {
+    if (data) {
+      const options = discard ? SetDataOptions.Discard : SetDataOptions.None;
+      buffer.setData(buffer.byteLength, data, byteOffset, 0, undefined, options);
+    }
+  }
+  tryBindUniformBlock(): boolean {
+    return false;
+  }
   enableRasterizerDiscard(): void {}
   disableRasterizerDiscard(): void {}
   invalidateShaderProgramState(): void {}

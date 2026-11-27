@@ -2,6 +2,7 @@ export { Platform } from "./Platform";
 export { Engine } from "./Engine";
 export { SystemInfo } from "./SystemInfo";
 export { Canvas } from "./Canvas";
+export { WebCanvas } from "./WebCanvas";
 
 export { DisorderedArray } from "./utils/DisorderedArray";
 
@@ -72,6 +73,7 @@ export * from "./Layer";
 export { deepClone, assignmentClone, ignoreClone } from "./clone/CloneDecorators";
 export type { ICloneHook } from "./clone/ICloneHook";
 export * from "./renderingHardwareInterface/index";
+export type { RenderStateElementMap } from "./BasicResources";
 export * from "./physics/index";
 export * from "./Utils";
 export * from "./audio/index";

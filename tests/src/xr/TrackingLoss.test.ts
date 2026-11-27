@@ -105,12 +105,13 @@ describe("WebXR tracking loss", () => {
 
   it("rejects a missing WebGL context before trying to make it XR compatible", async () => {
     const descriptor = Object.getOwnPropertyDescriptor(navigator, "xr");
-    const requestSession = vi.fn().mockResolvedValue({});
+    const end = vi.fn().mockResolvedValue(undefined);
+    const requestSession = vi.fn().mockResolvedValue({ end });
     const makeXRCompatible = vi.fn();
     Object.defineProperty(navigator, "xr", { configurable: true, value: { requestSession } });
     try {
       await expect(new WebXRDevice().requestSession(new NullGraphicDevice(), XRSessionMode.AR, [])).rejects.toThrow(
-        "WebXR requires a WebGL graphics device."
+        "WebXR requires a WebGL2 or WebGPU graphics device."
       );
       expect(requestSession).not.toHaveBeenCalled();
 
@@ -120,10 +121,11 @@ describe("WebXR tracking loss", () => {
         makeXRCompatible
       } as unknown as WebGL2RenderingContext);
       await expect(new WebXRDevice().requestSession(rhi, XRSessionMode.AR, [])).rejects.toThrow(
-        "GetContextAttributes Error!"
+        "WebXR could not access the WebGL2 context attributes."
       );
       expect(requestSession).toHaveBeenCalledOnce();
       expect(makeXRCompatible).not.toHaveBeenCalled();
+      expect(end).toHaveBeenCalledOnce();
     } finally {
       if (descriptor) {
         Object.defineProperty(navigator, "xr", descriptor);

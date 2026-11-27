@@ -10,19 +10,37 @@ import Blit_Blit from "./Blit/Blit.shader";
 import Blit_BlitScreen from "./Blit/BlitScreen.shader";
 import Effect_Particle from "./Effect/Particle.shader";
 import Effect_ParticleFeedback from "./Effect/ParticleFeedback.shader";
+import Effect_ParticleSimulationCompute from "./Effect/ParticleSimulationCompute.shader";
+import Effect_ParticleSubEmitterGatherCompute from "./Effect/ParticleSubEmitterGatherCompute.shader";
 import Effect_Trail from "./Effect/Trail.shader";
+import Lighting_ProbeDepthCapture from "./Lighting/ProbeDepthCapture.shader";
+import Lighting_RealtimeIBLAccumulate from "./Lighting/RealtimeIBLAccumulate.shader";
+import Lighting_RealtimeIBLProjectSH from "./Lighting/RealtimeIBLProjectSH.shader";
+import Lighting_RealtimeIBLProjectSHCompute from "./Lighting/RealtimeIBLProjectSHCompute.shader";
+import Lighting_RealtimeIBLResolve from "./Lighting/RealtimeIBLResolve.shader";
 import Lighting_ScalableAmbientOcclusion from "./Lighting/ScalableAmbientOcclusion.shader";
+import Lighting_ScreenSpaceReflection from "./Lighting/ScreenSpaceReflection.shader";
 import PBR from "./PBR.shader";
 import Pipeline_DepthOnly from "./Pipeline/DepthOnly.shader";
+import Pipeline_SSRContributionDepth from "./Pipeline/SSRContributionDepth.shader";
+import Pipeline_SSRReceiver from "./Pipeline/SSRReceiver.shader";
 import Pipeline_ShadowCaster from "./Pipeline/ShadowCaster.shader";
 import PostProcess_Bloom from "./PostProcess/Bloom.shader";
 import PostProcess_FinalAntiAliasing from "./PostProcess/FinalAntiAliasing.shader";
 import PostProcess_FinalSRGB from "./PostProcess/FinalSRGB.shader";
+import PostProcess_SunLensFlare from "./PostProcess/SunLensFlare.shader";
+import PostProcess_SunLensFlareVisibility from "./PostProcess/SunLensFlareVisibility.shader";
+import PostProcess_SunLensFlareVisibilityCompute from "./PostProcess/SunLensFlareVisibilityCompute.shader";
 import PostProcess_Uber from "./PostProcess/Uber.shader";
+import PostProcess_VolumetricLight from "./PostProcess/VolumetricLight.shader";
 import Sky_BackgroundTexture from "./Sky/BackgroundTexture.shader";
 import Sky_SkyProcedural from "./Sky/SkyProcedural.shader";
 import Sky_Skybox from "./Sky/Skybox.shader";
 import Unlit from "./Unlit.shader";
+import World_VolumetricCloud from "./World/VolumetricCloud.shader";
+import World_WindGpuField from "./World/WindGpuField.shader";
+import World_WindGpuGroundResponse from "./World/WindGpuGroundResponse.shader";
+import World_WindGpuTreeResponse from "./World/WindGpuTreeResponse.shader";
 
 export interface IShaderSource {
   path: string;
@@ -41,17 +59,35 @@ export const shaders: IShaderSource[] = [
   { source: Blit_BlitScreen, path: "Shaders/Blit/BlitScreen.shader" },
   { source: Effect_Particle, path: "Shaders/Effect/Particle.shader" },
   { source: Effect_ParticleFeedback, path: "Shaders/Effect/ParticleFeedback.shader" },
+  { source: Effect_ParticleSimulationCompute, path: "Shaders/Effect/ParticleSimulationCompute.shader" },
+  { source: Effect_ParticleSubEmitterGatherCompute, path: "Shaders/Effect/ParticleSubEmitterGatherCompute.shader" },
   { source: Effect_Trail, path: "Shaders/Effect/Trail.shader" },
+  { source: Lighting_ProbeDepthCapture, path: "Shaders/Lighting/ProbeDepthCapture.shader" },
+  { source: Lighting_RealtimeIBLAccumulate, path: "Shaders/Lighting/RealtimeIBLAccumulate.shader" },
+  { source: Lighting_RealtimeIBLProjectSH, path: "Shaders/Lighting/RealtimeIBLProjectSH.shader" },
+  { source: Lighting_RealtimeIBLProjectSHCompute, path: "Shaders/Lighting/RealtimeIBLProjectSHCompute.shader" },
+  { source: Lighting_RealtimeIBLResolve, path: "Shaders/Lighting/RealtimeIBLResolve.shader" },
   { source: Lighting_ScalableAmbientOcclusion, path: "Shaders/Lighting/ScalableAmbientOcclusion.shader" },
+  { source: Lighting_ScreenSpaceReflection, path: "Shaders/Lighting/ScreenSpaceReflection.shader" },
   { source: PBR, path: "Shaders/PBR.shader" },
   { source: Pipeline_DepthOnly, path: "Shaders/Pipeline/DepthOnly.shader" },
+  { source: Pipeline_SSRContributionDepth, path: "Shaders/Pipeline/SSRContributionDepth.shader" },
+  { source: Pipeline_SSRReceiver, path: "Shaders/Pipeline/SSRReceiver.shader" },
   { source: Pipeline_ShadowCaster, path: "Shaders/Pipeline/ShadowCaster.shader" },
   { source: PostProcess_Bloom, path: "Shaders/PostProcess/Bloom.shader" },
   { source: PostProcess_FinalAntiAliasing, path: "Shaders/PostProcess/FinalAntiAliasing.shader" },
   { source: PostProcess_FinalSRGB, path: "Shaders/PostProcess/FinalSRGB.shader" },
+  { source: PostProcess_SunLensFlare, path: "Shaders/PostProcess/SunLensFlare.shader" },
+  { source: PostProcess_SunLensFlareVisibility, path: "Shaders/PostProcess/SunLensFlareVisibility.shader" },
+  { source: PostProcess_SunLensFlareVisibilityCompute, path: "Shaders/PostProcess/SunLensFlareVisibilityCompute.shader" },
   { source: PostProcess_Uber, path: "Shaders/PostProcess/Uber.shader" },
+  { source: PostProcess_VolumetricLight, path: "Shaders/PostProcess/VolumetricLight.shader" },
   { source: Sky_BackgroundTexture, path: "Shaders/Sky/BackgroundTexture.shader" },
   { source: Sky_SkyProcedural, path: "Shaders/Sky/SkyProcedural.shader" },
   { source: Sky_Skybox, path: "Shaders/Sky/Skybox.shader" },
   { source: Unlit, path: "Shaders/Unlit.shader" },
+  { source: World_VolumetricCloud, path: "Shaders/World/VolumetricCloud.shader" },
+  { source: World_WindGpuField, path: "Shaders/World/WindGpuField.shader" },
+  { source: World_WindGpuGroundResponse, path: "Shaders/World/WindGpuGroundResponse.shader" },
+  { source: World_WindGpuTreeResponse, path: "Shaders/World/WindGpuTreeResponse.shader" },
 ];

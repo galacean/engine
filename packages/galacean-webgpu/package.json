@@ -1,0 +1,31 @@
+{
+  "name": "@galacean/engine-webgpu",
+  "version": "2.0.0-alpha.64",
+  "repository": {
+    "url": "https://github.com/galacean/engine.git"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "license": "MIT",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "debug": "src/index.ts",
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "types": "types/index.d.ts",
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
+  "dependencies": {
+    "@galacean/engine-core": "workspace:*",
+    "@galacean/engine-loader": "workspace:*",
+    "@galacean/engine-math": "workspace:*",
+    "@galacean/engine-rhi-webgpu": "workspace:*",
+    "@galacean/engine-shader": "workspace:*",
+    "@galacean/engine-shader-compiler": "workspace:*"
+  }
+}

@@ -1,4 +1,5 @@
 import type { Engine } from "../Engine";
+import { EngineEventType } from "../EngineEventType";
 import { Buffer } from "../graphic/Buffer";
 import { Primitive } from "../graphic/Primitive";
 import { SubPrimitive } from "../graphic/SubPrimitive";
@@ -9,26 +10,63 @@ import type { ElementRangeMapping } from "../graphic/ElementRangeMapping";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
+import { ComputeShader } from "../shader/ComputeShader";
 import type { Shader } from "../shader/Shader";
+import { ShaderData } from "../shader/ShaderData";
+import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import type { ShaderPass } from "../shader/ShaderPass";
 import type { ShaderProgram } from "../shader/ShaderProgram";
+import { ShaderProperty } from "../shader/ShaderProperty";
 import { ParticleBufferUtils } from "./ParticleBufferUtils";
 
 const GATHER_PASS_NAME = "SubEmitterTrajectoryGather";
+const SUB_EMITTER_GATHER_COMPUTE_NAME = "Effect/ParticleSubEmitterGatherCompute";
+
+const gatherComputeShaderCache = new WeakMap<Engine, ComputeShader>();
+
+function getOrCreateGatherComputeShader(engine: Engine): ComputeShader {
+  let cs = gatherComputeShaderCache.get(engine);
+  if (!cs || cs.destroyed) {
+    const precompiled = engine._builtinShaders.computeByName[SUB_EMITTER_GATHER_COMPUTE_NAME];
+    if (!precompiled) {
+      throw new Error(`Built-in ComputeShader "${SUB_EMITTER_GATHER_COMPUTE_NAME}" is not registered.`);
+    }
+    cs = ComputeShader.createFromPrecompiled(precompiled, engine);
+    gatherComputeShaderCache.set(engine, cs);
+    engine.once(EngineEventType.Shutdown, () => {
+      if (gatherComputeShaderCache.get(engine) === cs) {
+        gatherComputeShaderCache.delete(engine);
+      }
+      cs!.destroy();
+    });
+  }
+  return cs;
+}
 
 /**
  * Maintains parent trajectory state aligned with sub-emitted particle slots.
+ * Dispatches native `ComputeShader` on WebGPU or Transform Feedback on WebGL2.
  * @internal
  */
 export class ParticleSubEmitterSpawnState {
   private static readonly _gatherVaryings = ["v_ParentSampleWorldPosition", "v_ParentTrajectoryVelocity"];
   private static readonly _gatherMacros = new ShaderMacroCollection();
+  private static readonly _firstParentProp = ShaderProperty.getByName("u_firstParent");
+  private static readonly _firstChildProp = ShaderProperty.getByName("u_firstChild");
+  private static readonly _childrenPerParentProp = ShaderProperty.getByName("u_childrenPerParent");
+  private static readonly _countProp = ShaderProperty.getByName("u_count");
+  private static readonly _parentStrideProp = ShaderProperty.getByName("u_parentFloatStride");
+  private static readonly _childStrideProp = ShaderProperty.getByName("u_childFloatStride");
 
-  private readonly _gatherPass: ShaderPass;
-  private readonly _primitive: Primitive;
+  private readonly _engine: Engine;
+  private readonly _useCompute: boolean;
+  private readonly _gatherPass?: ShaderPass;
+  private readonly _primitive?: Primitive;
   private readonly _subPrimitive = new SubPrimitive(0, 0, MeshTopology.Points);
-  private readonly _transformFeedback: TransformFeedback;
+  private readonly _transformFeedback?: TransformFeedback;
+  private readonly _gatherCompute?: ComputeShader;
+  private readonly _gatherShaderData?: ShaderData;
   private _simulationBinding: VertexBufferBinding;
   private _renderBinding: VertexBufferBinding | null = null;
   private _pendingParentTrajectoryBinding: VertexBufferBinding | null = null;
@@ -47,25 +85,35 @@ export class ParticleSubEmitterSpawnState {
   }
 
   constructor(engine: Engine, shader: Shader, particleCapacity: number, needsRenderBinding: boolean) {
-    const gatherPass = !shader.destroyed && shader.subShaders[0]?.passes.find((pass) => pass.name === GATHER_PASS_NAME);
-    if (!gatherPass) {
-      throw new Error(`${GATHER_PASS_NAME} pass is not available in ${shader.name}.`);
-    }
-    this._gatherPass = gatherPass;
+    this._engine = engine;
+    this._useCompute = engine._hardwareRenderer.supportsCompute;
 
-    const primitive = (this._primitive = new Primitive(engine));
-    const gatherInputLayout = ParticleBufferUtils.subEmitterTrajectoryGatherInputVertexElements;
-    for (let i = 0, n = gatherInputLayout.length; i < n; i++) {
-      const element = gatherInputLayout[i];
-      primitive.addVertexElement(
-        new VertexElement(element.attribute, element.offset, element.format, 0, element.instanceStepRate)
-      );
+    if (this._useCompute) {
+      this._gatherCompute = getOrCreateGatherComputeShader(engine);
+      this._gatherShaderData = new ShaderData(ShaderDataGroup.Renderer);
+    } else {
+      const gatherPass =
+        !shader.destroyed && shader.subShaders[0]?.passes.find((pass) => pass.name === GATHER_PASS_NAME);
+      if (!gatherPass) {
+        throw new Error(`${GATHER_PASS_NAME} pass is not available in ${shader.name}.`);
+      }
+      this._gatherPass = gatherPass;
+
+      const primitive = (this._primitive = new Primitive(engine));
+      const gatherInputLayout = ParticleBufferUtils.subEmitterTrajectoryGatherInputVertexElements;
+      for (let i = 0, n = gatherInputLayout.length; i < n; i++) {
+        const element = gatherInputLayout[i];
+        primitive.addVertexElement(
+          new VertexElement(element.attribute, element.offset, element.format, 0, element.instanceStepRate)
+        );
+      }
+      // Source offsets vary per batch, so a cached VAO would retain stale attribute pointers
+      primitive.enableVAO = false;
+      primitive.isGCIgnored = true;
+      this._transformFeedback = new TransformFeedback(engine);
+      this._transformFeedback.isGCIgnored = true;
     }
-    // Source offsets vary per batch, so a cached VAO would retain stale attribute pointers
-    primitive.enableVAO = false;
-    primitive.isGCIgnored = true;
-    this._transformFeedback = new TransformFeedback(engine);
-    this._transformFeedback.isGCIgnored = true;
+
     this._simulationBinding = this._createSpawnStateBinding(particleCapacity);
     this._renderBinding = needsRenderBinding ? this._createSpawnStateBinding(particleCapacity) : null;
   }
@@ -159,24 +207,24 @@ export class ParticleSubEmitterSpawnState {
       return;
     }
 
-    this._transformFeedback.end();
-    this._transformFeedback.unbindBuffer(0);
-    this._transformFeedback.unbind();
-    this._primitive.engine._hardwareRenderer.disableRasterizerDiscard();
+    this._transformFeedback!.end();
+    this._transformFeedback!.unbindBuffer(0);
+    this._transformFeedback!.unbind();
+    this._engine._hardwareRenderer.disableRasterizerDiscard();
     this._activeGatherProgram = null;
-    this._primitive.vertexBufferBindings.length = 0;
+    this._primitive!.vertexBufferBindings.length = 0;
   }
 
   destroy(): void {
     this._simulationBinding.buffer.destroy();
     this._renderBinding?.buffer.destroy();
-    this._primitive.destroy();
-    this._transformFeedback.destroy();
+    this._primitive?.destroy();
+    this._transformFeedback?.destroy();
   }
 
   private _createSpawnStateBinding(particleCapacity: number): VertexBufferBinding {
     const buffer = new Buffer(
-      this._primitive.engine,
+      this._engine,
       BufferBindFlag.VertexBuffer,
       particleCapacity * ParticleBufferUtils.subEmitterSpawnStateVertexStride,
       BufferUsage.Dynamic,
@@ -209,13 +257,34 @@ export class ParticleSubEmitterSpawnState {
     childrenPerParent: number,
     parentCount: number
   ): void {
+    if (this._useCompute) {
+      const count = parentCount * childrenPerParent;
+      if (count <= 0) return;
+      const data = this._gatherShaderData!;
+      data.setInt(ParticleSubEmitterSpawnState._firstParentProp, parentStart);
+      data.setInt(ParticleSubEmitterSpawnState._firstChildProp, childStart);
+      data.setInt(ParticleSubEmitterSpawnState._childrenPerParentProp, childrenPerParent);
+      data.setInt(ParticleSubEmitterSpawnState._countProp, count);
+      data.setInt(ParticleSubEmitterSpawnState._parentStrideProp, parentTrajectoryBinding.stride / 4);
+      data.setInt(ParticleSubEmitterSpawnState._childStrideProp, this._simulationBinding.stride / 4);
+      data.setBuffer("ParentBuf", parentTrajectoryBinding.buffer);
+      data.setBuffer("ChildBuf", this._simulationBinding.buffer);
+      try {
+        this._gatherCompute!.dispatch(Math.ceil(count / 64), 1, 1, data);
+      } finally {
+        data.setBuffer("ParentBuf", null);
+        data.setBuffer("ChildBuf", null);
+      }
+      return;
+    }
+
     const activeGatherProgram = this._activeGatherProgram;
     const program = activeGatherProgram ?? this._beginGatherScope();
     if (!program) {
       return;
     }
 
-    const primitive = this._primitive;
+    const primitive = this._primitive!;
     if (parentTrajectoryBinding !== primitive.vertexBufferBindings[0]) {
       primitive.setVertexBufferBinding(0, parentTrajectoryBinding);
     }
@@ -226,7 +295,7 @@ export class ParticleSubEmitterSpawnState {
     boundElements[1].offset = parentByteOffset + inputLayout[1].offset;
     primitive.instanceCount = parentCount;
 
-    const transformFeedback = this._transformFeedback;
+    const transformFeedback = this._transformFeedback!;
     // Target slots are enqueued in ring order, so only index 0 starts a new output range
     if (!activeGatherProgram || childStart === 0) {
       if (activeGatherProgram) {
@@ -243,15 +312,15 @@ export class ParticleSubEmitterSpawnState {
       );
       transformFeedback.begin(MeshTopology.Points);
     }
+
     const subPrimitive = this._subPrimitive;
     subPrimitive.count = childrenPerParent;
-    primitive.draw(program, subPrimitive);
+    this._engine._hardwareRenderer.drawPrimitive(primitive, subPrimitive, program._platformProgram);
   }
 
   private _beginGatherScope(): ShaderProgram | null {
-    const engine = this._primitive.engine;
-    const program = this._gatherPass._getShaderProgram(
-      engine,
+    const program = this._gatherPass!._getShaderProgram(
+      this._engine,
       ParticleSubEmitterSpawnState._gatherMacros,
       ParticleSubEmitterSpawnState._gatherVaryings
     );
@@ -260,8 +329,8 @@ export class ParticleSubEmitterSpawnState {
     }
 
     program.bind();
-    engine._hardwareRenderer.enableRasterizerDiscard();
-    this._transformFeedback.bind();
+    this._engine._hardwareRenderer.enableRasterizerDiscard();
+    this._transformFeedback!.bind();
     this._activeGatherProgram = program;
     return program;
   }

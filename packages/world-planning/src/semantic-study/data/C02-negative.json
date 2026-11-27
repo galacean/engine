@@ -1,0 +1,6 @@
+{
+  "label": "将遮挡山肩降至0，检验暂隐是否失效",
+  "values": {
+    "shoulder-height": 0
+  }
+}

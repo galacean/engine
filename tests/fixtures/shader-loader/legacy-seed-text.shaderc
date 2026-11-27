@@ -1,0 +1,57 @@
+{
+  "name": "Legacy/SeedTextInstructions",
+  "platformTarget": 0,
+  "subShaders": [
+    {
+      "name": "Default",
+      "tags": {},
+      "passes": [
+        {
+          "name": "Forward",
+          "isUsePass": false,
+          "tags": {},
+          "renderStates": {
+            "constantMap": {},
+            "variableMap": {}
+          },
+          "vertexShaderInstructions": [
+            [
+              0,
+              "attribute vec3 POSITION;\nvarying float visibility;\nuniform mat4 renderer_MVPMat;\nvoid main() { visibility = 1.0; gl_Position = renderer_MVPMat * vec4(POSITION, 1.0); }"
+            ]
+          ],
+          "fragmentShaderInstructions": [
+            [
+              0,
+              "varying float visibility;\nuniform vec4 camera_LegacyTint;\nvoid frag() {\n"
+            ],
+            [
+              1,
+              "LEGACY_SHOW_TINT",
+              4
+            ],
+            [
+              0,
+              "gl_FragColor = camera_LegacyTint * visibility;\n"
+            ],
+            [
+              5,
+              6
+            ],
+            [
+              0,
+              "gl_FragColor = vec4(0.0, 0.0, visibility, 1.0);\n"
+            ],
+            [
+              6
+            ],
+            [
+              0,
+              " }\nvoid main() {\n\n\nfrag(); }"
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

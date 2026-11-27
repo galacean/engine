@@ -10,7 +10,9 @@ Shader "Sky/BackgroundTexture" {
       VertexShader = BackgroundTextureVertex;
       FragmentShader = BackgroundTextureFragment;
 
-      #include "ShaderLibrary/Common/Common.glsl"
+      uniform Camera {
+        vec4 camera_ProjectionParams;
+      };
 
       struct Attributes {
         vec3 POSITION;

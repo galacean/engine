@@ -9,7 +9,7 @@ declare module "*.shader" {
 }
 
 declare module "*.shaderc" {
-  import { IPrecompiledShader } from "@galacean/engine-design";
-  const value: IPrecompiledShader;
+  import { IPrecompiledComputeShader, IPrecompiledShader } from "@galacean/engine-design";
+  const value: IPrecompiledShader | IPrecompiledComputeShader;
   export default value;
 }

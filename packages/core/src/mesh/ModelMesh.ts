@@ -734,18 +734,23 @@ export class ModelMesh extends Mesh {
   /**
    * @internal
    */
-  _getVertexTypedArray(vertexDataBuffer: ArrayBufferLike, dataType: DataType): TypedArray | undefined {
+  _getVertexTypedArray(
+    vertexDataBuffer: ArrayBufferLike,
+    dataType: DataType,
+    byteOffset = 0,
+    byteLength = vertexDataBuffer.byteLength - byteOffset
+  ): TypedArray | undefined {
     switch (dataType) {
       case DataType.BYTE:
-        return new Int8Array(vertexDataBuffer);
+        return new Int8Array(vertexDataBuffer, byteOffset, byteLength);
       case DataType.UNSIGNED_BYTE:
-        return new Uint8Array(vertexDataBuffer);
+        return new Uint8Array(vertexDataBuffer, byteOffset, byteLength);
       case DataType.SHORT:
-        return new Int16Array(vertexDataBuffer);
+        return new Int16Array(vertexDataBuffer, byteOffset, Math.floor(byteLength / 2));
       case DataType.UNSIGNED_SHORT:
-        return new Uint16Array(vertexDataBuffer);
+        return new Uint16Array(vertexDataBuffer, byteOffset, Math.floor(byteLength / 2));
       case DataType.FLOAT:
-        return new Float32Array(vertexDataBuffer);
+        return new Float32Array(vertexDataBuffer, byteOffset, Math.floor(byteLength / 4));
     }
   }
 

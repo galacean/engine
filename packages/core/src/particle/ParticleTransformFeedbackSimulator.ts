@@ -1,25 +1,54 @@
 import type { Engine } from "../Engine";
+import { EngineEventType } from "../EngineEventType";
+import { Buffer } from "../graphic/Buffer";
 import type { ElementRangeMapping } from "../graphic/ElementRangeMapping";
+import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
+import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { TransformFeedbackSimulator } from "../graphic/TransformFeedbackSimulator";
-import type { VertexBufferBinding } from "../graphic/VertexBufferBinding";
+import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import type { VertexElement } from "../graphic/VertexElement";
+import { ComputeShader } from "../shader/ComputeShader";
 import type { Shader } from "../shader/Shader";
 import type { ShaderData } from "../shader/ShaderData";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { ParticleBufferUtils } from "./ParticleBufferUtils";
 
 const FEEDBACK_PASS_NAME = "TransformFeedback";
+const PARTICLE_SIMULATE_COMPUTE_NAME = "Effect/ParticleSimulationCompute";
+
+const particleComputeShaderCache = new WeakMap<Engine, ComputeShader>();
+
+function getOrCreateParticleComputeShader(engine: Engine): ComputeShader {
+  let cs = particleComputeShaderCache.get(engine);
+  if (!cs || cs.destroyed) {
+    const precompiled = engine._builtinShaders.computeByName[PARTICLE_SIMULATE_COMPUTE_NAME];
+    if (!precompiled) {
+      throw new Error(`Built-in ComputeShader "${PARTICLE_SIMULATE_COMPUTE_NAME}" is not registered.`);
+    }
+    cs = ComputeShader.createFromPrecompiled(precompiled, engine);
+    particleComputeShaderCache.set(engine, cs);
+    engine.once(EngineEventType.Shutdown, () => {
+      if (particleComputeShaderCache.get(engine) === cs) {
+        particleComputeShaderCache.delete(engine);
+      }
+      cs!.destroy();
+    });
+  }
+  return cs;
+}
 
 /**
  * @internal
- * Particle-specific Transform Feedback simulation.
+ * Particle GPU state simulation: dispatches native `ComputeShader` on WebGPU or Transform Feedback on WebGL2.
  */
 export class ParticleTransformFeedbackSimulator {
   private static readonly _deltaTimeProperty = ShaderProperty.getByName("renderer_DeltaTime");
   private static readonly _resetTrajectoryProperty = ShaderProperty.getByName("renderer_ResetTrajectory");
   private static readonly _firstNewParticleProperty = ShaderProperty.getByName("renderer_FirstNewParticle");
   private static readonly _firstFreeParticleProperty = ShaderProperty.getByName("renderer_FirstFreeParticle");
+  private static readonly _dispatchStartProperty = ShaderProperty.getByName("renderer_DispatchStart");
+  private static readonly _dispatchCountProperty = ShaderProperty.getByName("renderer_DispatchCount");
   private static readonly _stateVaryings = ["v_FeedbackPosition", "v_FeedbackVelocity"];
   private static readonly _trajectoryStateVaryings = [
     ...ParticleTransformFeedbackSimulator._stateVaryings,
@@ -31,23 +60,34 @@ export class ParticleTransformFeedbackSimulator {
   /** Whether parent trajectory data is captured for sub-emitters. */
   readonly trajectoryEnabled: boolean;
 
-  private readonly _simulator: TransformFeedbackSimulator;
+  private readonly _engine: Engine;
+  private readonly _useCompute: boolean;
+  private readonly _vertexStride: number;
+
+  // WebGL2 Transform Feedback path
+  private readonly _simulator?: TransformFeedbackSimulator;
   private readonly _stateInputVertexElements: VertexElement[];
+
+  // WebGPU ComputeShader path
+  private readonly _computeShader?: ComputeShader;
+  private _computeBindingA?: VertexBufferBinding;
+  private _computeBindingB?: VertexBufferBinding;
+  private _computeReadIsA = true;
 
   /**
    * The current read buffer binding for the render pass.
    */
   get readBinding(): VertexBufferBinding {
-    return this._simulator.readBinding;
+    if (this._useCompute) {
+      return this._computeReadIsA ? this._computeBindingA! : this._computeBindingB!;
+    }
+    return this._simulator!.readBinding;
   }
 
   constructor(engine: Engine, shader: Shader, trajectoryEnabled: boolean, particleCount: number) {
+    this._engine = engine;
     this.trajectoryEnabled = trajectoryEnabled;
-    const feedbackPass =
-      !shader.destroyed && shader.subShaders[0]?.passes.find((pass) => pass.name === FEEDBACK_PASS_NAME);
-    if (!feedbackPass) {
-      throw new Error(`${FEEDBACK_PASS_NAME} pass is not available in ${shader.name}.`);
-    }
+    this._useCompute = engine._hardwareRenderer.supportsCompute;
 
     let vertexStride: number;
     let feedbackVaryings: string[];
@@ -60,13 +100,26 @@ export class ParticleTransformFeedbackSimulator {
       this._stateInputVertexElements = ParticleBufferUtils.feedbackStateInputVertexElements;
       feedbackVaryings = ParticleTransformFeedbackSimulator._stateVaryings;
     }
-    this._simulator = new TransformFeedbackSimulator(
-      engine,
-      vertexStride,
-      particleCount,
-      feedbackPass,
-      feedbackVaryings
-    );
+    this._vertexStride = vertexStride;
+
+    if (this._useCompute) {
+      this._computeShader = getOrCreateParticleComputeShader(engine);
+      this._computeBindingA = this._createComputeBinding(particleCount);
+      this._computeBindingB = this._createComputeBinding(particleCount);
+    } else {
+      const feedbackPass =
+        !shader.destroyed && shader.subShaders[0]?.passes.find((pass) => pass.name === FEEDBACK_PASS_NAME);
+      if (!feedbackPass) {
+        throw new Error(`${FEEDBACK_PASS_NAME} pass is not available in ${shader.name}.`);
+      }
+      this._simulator = new TransformFeedbackSimulator(
+        engine,
+        vertexStride,
+        particleCount,
+        feedbackPass,
+        feedbackVaryings
+      );
+    }
   }
 
   /**
@@ -75,21 +128,32 @@ export class ParticleTransformFeedbackSimulator {
    * @param mappings - Ranges to preserve from the previous buffers
    */
   resize(particleCount: number, mappings: ReadonlyArray<ElementRangeMapping>): void {
-    this._simulator.resize(particleCount, mappings);
+    if (this._useCompute) {
+      const oldA = this._computeBindingA!;
+      const oldB = this._computeBindingB!;
+      const oldRead = this.readBinding.buffer;
+      this._computeBindingA = this._createComputeBinding(particleCount);
+      this._computeBindingB = this._createComputeBinding(particleCount);
+      const stride = this._vertexStride;
+      const newRead = this.readBinding.buffer;
+      for (let i = 0, n = mappings.length; i < n; i++) {
+        const mapping = mappings[i];
+        newRead.copyFromBuffer(
+          oldRead,
+          mapping.sourceStart * stride,
+          mapping.targetStart * stride,
+          mapping.count * stride
+        );
+      }
+      oldA.buffer.destroy();
+      oldB.buffer.destroy();
+      return;
+    }
+    this._simulator!.resize(particleCount, mappings);
   }
 
   /**
    * Run one simulation step.
-   * @param shaderData - Shader data with current macros and uniforms
-   * @param particleCount - Total particle slot count
-   * @param firstElement - First particle index to update in the ring buffer
-   * @param firstFree - First free particle index in ring buffer
-   * @param firstNew - First particle initialized during this update
-   * @param deltaTime - Frame delta time
-   * @param resetTrajectory - Whether to discard the trajectory baseline from before a culling pause, or undefined when
-   * trajectory feedback is disabled
-   * @param particleInputBinding - Particle input vertex buffer binding
-   * @param subEmitterSpawnStateBinding - Resolved sub-emitter spawn state, when present
    */
   update(
     shaderData: ShaderData,
@@ -108,6 +172,46 @@ export class ParticleTransformFeedbackSimulator {
     }
     shaderData.setInt(ParticleTransformFeedbackSimulator._firstNewParticleProperty, firstNew);
     shaderData.setInt(ParticleTransformFeedbackSimulator._firstFreeParticleProperty, firstFree);
+
+    if (this._useCompute) {
+      const readBinding = this._computeReadIsA ? this._computeBindingA! : this._computeBindingB!;
+      const writeBinding = this._computeReadIsA ? this._computeBindingB! : this._computeBindingA!;
+      shaderData.setBuffer("PrevStateBuf", readBinding.buffer);
+      shaderData.setBuffer("NextStateBuf", writeBinding.buffer);
+      shaderData.setBuffer("InstanceBuf", particleInputBinding.buffer);
+      if (subEmitterSpawnStateBinding) {
+        shaderData.setBuffer("SpawnStateBuf", subEmitterSpawnStateBinding.buffer);
+      }
+
+      const cs = this._computeShader!;
+      const dispatchRange = (start: number, count: number) => {
+        if (count <= 0) return;
+        shaderData.setInt(ParticleTransformFeedbackSimulator._dispatchStartProperty, start);
+        shaderData.setInt(ParticleTransformFeedbackSimulator._dispatchCountProperty, count);
+        cs.dispatch(Math.ceil(count / 64), 1, 1, shaderData);
+      };
+
+      try {
+        if (firstElement < firstFree) {
+          dispatchRange(firstElement, firstFree - firstElement);
+        } else {
+          dispatchRange(firstElement, particleCount - firstElement);
+          if (firstFree > 0) {
+            dispatchRange(0, firstFree);
+          }
+        }
+      } finally {
+        shaderData.setBuffer("PrevStateBuf", null);
+        shaderData.setBuffer("NextStateBuf", null);
+        shaderData.setBuffer("InstanceBuf", null);
+        if (subEmitterSpawnStateBinding) {
+          shaderData.setBuffer("SpawnStateBuf", null);
+        }
+      }
+      this._computeReadIsA = !this._computeReadIsA;
+      return;
+    }
+
     const inputBindings = ParticleTransformFeedbackSimulator._inputBindings;
     inputBindings[0] = particleInputBinding;
     if (subEmitterSpawnStateBinding) {
@@ -116,7 +220,7 @@ export class ParticleTransformFeedbackSimulator {
     } else {
       inputBindings.length = 1;
     }
-    const didBeginUpdate = this._simulator.beginUpdate(
+    const didBeginUpdate = this._simulator!.beginUpdate(
       shaderData,
       this._stateInputVertexElements,
       inputBindings,
@@ -130,17 +234,33 @@ export class ParticleTransformFeedbackSimulator {
     }
 
     if (firstElement < firstFree) {
-      this._simulator.draw(MeshTopology.Points, firstElement, firstFree - firstElement);
+      this._simulator!.draw(MeshTopology.Points, firstElement, firstFree - firstElement);
     } else {
-      this._simulator.draw(MeshTopology.Points, firstElement, particleCount - firstElement);
+      this._simulator!.draw(MeshTopology.Points, firstElement, particleCount - firstElement);
       if (firstFree > 0) {
-        this._simulator.draw(MeshTopology.Points, 0, firstFree);
+        this._simulator!.draw(MeshTopology.Points, 0, firstFree);
       }
     }
-    this._simulator.endUpdate();
+    this._simulator!.endUpdate();
   }
 
   destroy(): void {
-    this._simulator.destroy();
+    this._simulator?.destroy();
+    this._computeBindingA?.buffer.destroy();
+    this._computeBindingB?.buffer.destroy();
+    this._computeBindingA = undefined;
+    this._computeBindingB = undefined;
+  }
+
+  private _createComputeBinding(particleCount: number): VertexBufferBinding {
+    const buffer = new Buffer(
+      this._engine,
+      BufferBindFlag.VertexBuffer,
+      Math.max(1, particleCount) * this._vertexStride,
+      BufferUsage.Dynamic,
+      false
+    );
+    buffer.isGCIgnored = true;
+    return new VertexBufferBinding(buffer, this._vertexStride);
   }
 }

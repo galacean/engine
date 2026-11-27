@@ -31,10 +31,24 @@ export class ShaderProperty {
     }
   }
 
+  /** @internal Built-in global uniforms retain their ShaderData override order when packed in their owner's block. */
+  static _getBuiltinGlobal(name: string, group: ShaderDataGroup.Camera | ShaderDataGroup.Scene): ShaderProperty {
+    const property = ShaderProperty.getByName(name);
+    property._builtinGlobalGroup = group;
+    property._requiresSharedInstanceValue = true;
+    return property;
+  }
+
   /** @internal */
   _uniqueId: number;
   /** @internal */
   _groups: ShaderDataGroup = ShaderDataGroup.None;
+  /** @internal */
+  _builtinGlobalGroup: ShaderDataGroup = ShaderDataGroup.None;
+  /** @internal A renderer override for this field remains shared by an entire instanced draw. */
+  _requiresSharedInstanceValue: boolean;
+  /** @internal Set when a shader pass uses this property to control its render state. */
+  _controlsRenderState = false;
   /** @internal */
   _types: ShaderPropertyType = ShaderPropertyType.None;
 
@@ -53,6 +67,7 @@ export class ShaderProperty {
    */
   constructor(name: string) {
     this.name = name;
+    this._requiresSharedInstanceValue = name.includes(".") || name.includes("[");
     this._uniqueId = ShaderProperty._propertyNameCounter++;
   }
 

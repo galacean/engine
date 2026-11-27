@@ -9,7 +9,7 @@ import {
   LoadItem,
   resourceLoader,
   ResourceManager
-} from "@galacean/engine";
+} from "@galacean/engine-core";
 import { SpineResource } from "./SpineResource";
 
 type SpineAssetPath = {
@@ -165,7 +165,7 @@ export class SpineLoader extends Loader<SpineResource> {
   }
 }
 
-declare module "@galacean/engine" {
+declare module "@galacean/engine-core" {
   interface EngineConfiguration {
     /** Initial Spine backend. Import engine-spine before creating the engine. */
     spine?: ISpineRuntime;

@@ -1,6 +1,6 @@
 import * as LoaderObject from "./loader";
 import * as RendererObject from "./renderer";
-import { Loader } from "@galacean/engine";
+import { Loader } from "@galacean/engine-core";
 
 for (const key in RendererObject) {
   Loader.registerClass(key, RendererObject[key]);

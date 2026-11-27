@@ -1,10 +1,11 @@
 import { Color, MathUtil, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Logger } from "../base";
-import { ShaderMacro, ShaderProperty } from "../shader";
+import { ShaderData, ShaderMacro, ShaderProperty } from "../shader";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { Texture2D } from "../texture/Texture2D";
 import { BaseMaterial } from "./BaseMaterial";
+import { Material } from "./Material";
 import { RefractionMode } from "./enums/Refraction";
 import { TextureCoordinate } from "./enums/TextureCoordinate";
 
@@ -25,6 +26,8 @@ export class PBRMaterial extends BaseMaterial {
   private static _metallicProp = ShaderProperty.getByName("material_Metal");
   private static _roughnessProp = ShaderProperty.getByName("material_Roughness");
   private static _roughnessMetallicTextureProp = ShaderProperty.getByName("material_RoughnessMetallicTexture");
+  private static _hasRoughnessTexMacro = ShaderMacro.getByName("MATERIAL_HAS_ROUGHNESS_METALLIC_TEXTURE");
+  private static _enableClearCoatMacro = ShaderMacro.getByName("MATERIAL_ENABLE_CLEAR_COAT");
 
   private static _iorProp = ShaderProperty.getByName("material_IOR");
 
@@ -571,6 +574,7 @@ export class PBRMaterial extends BaseMaterial {
     if (this.transmission > 0) {
       // If transmission enabled, always use transparent queue to ensure get correct opaque texture
       this.shaderData.setInt("renderQueueType", RenderQueueType.Transparent);
+      this.shaderData.setFloat(BaseMaterial._depthOnlyRenderQueueProp, RenderQueueType.Transparent);
     }
   }
 
@@ -586,6 +590,7 @@ export class PBRMaterial extends BaseMaterial {
     if (this.transmission > 0) {
       // If transmission enabled, always use transparent queue to ensure get correct opaque texture
       this.shaderData.setInt("renderQueueType", RenderQueueType.Transparent);
+      this.shaderData.setFloat(BaseMaterial._depthOnlyRenderQueueProp, RenderQueueType.Transparent);
     }
   }
 
@@ -603,6 +608,7 @@ export class PBRMaterial extends BaseMaterial {
       if (value > 0) {
         this.shaderData.enableMacro(PBRMaterial._transmissionMacro);
         this.shaderData.setInt("renderQueueType", RenderQueueType.Transparent);
+        this.shaderData.setFloat(BaseMaterial._depthOnlyRenderQueueProp, RenderQueueType.Transparent);
       } else {
         this.shaderData.disableMacro(PBRMaterial._transmissionMacro);
         // Restore renderQueueType based on isTransparent / alphaCutoff state
@@ -615,6 +621,7 @@ export class PBRMaterial extends BaseMaterial {
           queue = RenderQueueType.Opaque;
         }
         this.shaderData.setInt("renderQueueType", queue);
+        this.shaderData.setFloat(BaseMaterial._depthOnlyRenderQueueProp, queue);
       }
     }
     this.shaderData.setFloat(PBRMaterial._transmissionProp, value);
@@ -766,7 +773,7 @@ export class PBRMaterial extends BaseMaterial {
    * @param engine - Engine to which the material belongs
    */
   constructor(engine: Engine) {
-    super(engine, Engine._builtinShaders.pbr);
+    super(engine, engine._builtinShaders.pbr);
 
     const shaderData = this.shaderData;
 
@@ -797,11 +804,35 @@ export class PBRMaterial extends BaseMaterial {
     shaderData.setColor(PBRMaterial._attenuationColorProp, new Color(1, 1, 1));
     shaderData.setFloat(PBRMaterial._specularIntensityProp, 1);
     shaderData.setColor(PBRMaterial._specularColorProp, new Color(1, 1, 1));
+    this.screenSpaceReflectionIntensity = 1.0;
 
     // @ts-ignore
     this._iridescenceRange._onValueChanged = this._onIridescenceRangeChanged.bind(this);
     // @ts-ignore
     sheenColor._onValueChanged = this._onSheenColorChanged.bind(this);
+  }
+
+  /**
+   * @internal
+   */
+  static _isRoughnessEligibleForSSR(shaderData: ShaderData, maxRoughness: number): boolean {
+    const macros = shaderData._macroCollection;
+    if (!macros.isEnable(PBRMaterial._hasRoughnessTexMacro) && !macros.isEnable(PBRMaterial._enableClearCoatMacro)) {
+      const roughness = shaderData.getFloat(PBRMaterial._roughnessProp);
+      if (roughness !== undefined && roughness >= maxRoughness) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * @internal
+   */
+  override _canReceiveScreenSpaceReflection(maxRoughness: number): boolean {
+    return (
+      this.screenSpaceReflectionIntensity > 0 && PBRMaterial._isRoughnessEligibleForSSR(this.shaderData, maxRoughness)
+    );
   }
 
   /**
@@ -832,3 +863,5 @@ export class PBRMaterial extends BaseMaterial {
     }
   }
 }
+
+Material._pbrSSREligibilityChecker = PBRMaterial._isRoughnessEligibleForSSR;

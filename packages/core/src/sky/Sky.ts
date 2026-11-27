@@ -116,17 +116,24 @@ export class Sky {
     ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
 
     const pass = shader.subShaders[0].passes[0];
-    const program = pass._getShaderProgram(engine, compileMacros);
+    const program = pass._getShaderProgram(
+      engine,
+      compileMacros,
+      undefined,
+      mesh._primitive,
+      undefined,
+      materialShaderData
+    );
     program.bind();
     program.regroupUniformBlocks();
     program.uploadAll(program.sceneUniformBlock, sceneData);
     program.uploadAll(program.cameraUniformBlock, cameraShaderData);
     program.uploadAll(program.materialUniformBlock, materialShaderData);
-    program.uploadMultiGroupUniforms(sceneData, cameraShaderData, undefined, materialShaderData, undefined);
+    program.uploadSharedUniforms(sceneData, cameraShaderData, undefined, materialShaderData);
     program.uploadUnGroupTextures();
 
     pass._renderState._applyStates(engine, false, pass._renderStateDataMap, materialShaderData);
-    rhi.drawPrimitive(mesh._primitive, mesh.subMesh, program);
+    rhi.drawPrimitive(mesh._primitive, mesh.subMesh, program._platformProgram);
     cameraShaderData.setMatrix(RenderContext.vpMatrixProperty, originViewProjMatrix);
   }
 }

@@ -2,11 +2,13 @@ import { Matrix, Vector4 } from "@galacean/engine-math";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
+import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { RenderQueue } from "../RenderPipeline";
 import { ContextRendererUpdateFlag } from "../RenderPipeline/RenderContext";
 import { Scene } from "../Scene";
 import { VirtualCamera } from "../VirtualCamera";
 import { EngineObject } from "../base";
+import { RenderPassDescriptor, RenderPassLoadAction } from "../renderingHardwareInterface";
 import { RenderQueueType, ShaderData, ShaderDataGroup, ShaderMacro } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { DisorderedArray } from "../utils/DisorderedArray";
@@ -19,10 +21,11 @@ export class UIUtils {
   private static _virtualCamera: VirtualCamera;
   private static _viewport: Vector4;
   private static _overlayCamera: OverlayCamera;
+  private static _passDescriptor = new RenderPassDescriptor();
 
   static renderOverlay(engine: Engine, scene: Scene, uiCanvases: DisorderedArray<IUICanvas>): void {
     engine._macroCollection.enable(UIUtils._shouldSRGBCorrect);
-    const { canvas, _hardwareRenderer: rhi, _renderContext: renderContext, _batcherManager: batcherManager } = engine;
+    const { canvas, _renderContext: renderContext, _batcherManager: batcherManager } = engine;
     const uiRenderQueue = (this._renderQueue ||= new RenderQueue(RenderQueueType.Transparent));
     const virtualCamera = (this._virtualCamera ||= new VirtualCamera());
     const viewport = (this._viewport ||= new Vector4(0, 0, 1, 1));
@@ -34,7 +37,13 @@ export class UIUtils {
     const { elements: projectE } = virtualCamera.projectionMatrix;
     const { elements: viewE } = virtualCamera.viewMatrix;
     (projectE[0] = 2 / canvas.width), (projectE[5] = 2 / canvas.height), (projectE[10] = 0);
-    renderContext.setRenderTarget(null, viewport, 0);
+    // Screen overlays share the scene color but use their own depth and stencil ordering.
+    const passDescriptor = UIUtils._passDescriptor.reset(null, viewport, false, 0);
+    passDescriptor.colorLoadAction = RenderPassLoadAction.Load;
+    passDescriptor.depthLoadAction = RenderPassLoadAction.Clear;
+    passDescriptor.stencilLoadAction = RenderPassLoadAction.Clear;
+    passDescriptor.label = "UI Overlay";
+    renderContext.beginRenderPass(passDescriptor);
     for (let i = 0, n = uiCanvases.length; i < n; i++) {
       const uiCanvas = uiCanvases.get(i);
       if (uiCanvas) {
@@ -55,6 +64,7 @@ export class UIUtils {
         engine._renderCount++;
       }
     }
+    renderContext.endRenderPass();
     renderContext.camera = null!;
     engine._macroCollection.disable(UIUtils._shouldSRGBCorrect);
   }

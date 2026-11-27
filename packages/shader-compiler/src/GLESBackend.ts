@@ -3,6 +3,7 @@ import { Logger, ReturnableObjectPool, ShaderLanguage } from "@galacean/engine-c
 import {
   GSError,
   GLESShaderInfo,
+  ShaderCapability,
   type ShaderClueIR,
   type ShaderCoreInfo
 } from "@galacean/engine-shader-parser/internal";
@@ -30,6 +31,18 @@ export class GLESBackend {
     if (target !== ShaderLanguage.GLSLES300) {
       Logger.error("Unsupported shader language target.");
       return undefined;
+    }
+    const caps = ir.shaderData.requiredCapabilities;
+    if (caps !== ShaderCapability.None) {
+      const names: string[] = [];
+      if (caps & ShaderCapability.Compute) names.push("Compute");
+      if (caps & ShaderCapability.StorageBuffer) names.push("StorageBuffer");
+      if (caps & ShaderCapability.StorageTexture) names.push("StorageTexture");
+      if (caps & ShaderCapability.Atomic) names.push("Atomic");
+      if (caps & ShaderCapability.Subgroup) names.push("Subgroup");
+      const message = `Shader requires WebGPU-only capabilities (${names.join(", ")}) which are not supported by GLSLES300.`;
+      Logger.error(message);
+      throw new Error(message);
     }
     const glesInfo = new GLESShaderInfo(ir, coreInfo);
     if (glesInfo.mrtOutputIssues.length || glesInfo.invalidMrtReturnLocations.length) {

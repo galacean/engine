@@ -1,4 +1,5 @@
 import type { ICodeGenVisitor } from "./ICodeGenVisitor";
+import type { IShaderUniformBlock } from "@galacean/engine-design";
 import { ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from "../common";
 import { BaseToken, BranchSignature, EMPTY_BRANCH, sameBranch } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
@@ -10,8 +11,9 @@ import { NoneTerminal } from "./GrammarSymbol";
 import SemanticAnalyzer from "./SemanticAnalyzer";
 import { ShaderData } from "./ShaderInfo";
 import { ShaderBuiltinSemantic } from "../ir/ShaderBuiltinSemantic";
+import { ShaderCapability } from "../ir/ShaderCapability";
 import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo, VarSymbol } from "./symbolTable";
-import { IParamInfo, NodeChild, StructProp, SymbolType, type MacroExpansionSyntax } from "./types";
+import { IParamInfo, NodeChild, type ParamDirection, StructProp, SymbolType, type MacroExpansionSyntax } from "./types";
 
 /** Texture-sampling builtins whose first argument is a sampler — used to flag a non-sampler arg0. */
 const TEXTURE_SAMPLING_BUILTINS = new Set([
@@ -348,13 +350,31 @@ namespace ASTNodes {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (sa.diagnosticsEnabled) sa.popScope();
     }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return visitor.visitIterationStatement
+        ? visitor.cache(this, visitor.visitIterationStatement(this))
+        : super.codeGen(visitor);
+    }
   }
 
   @ASTNodeDecorator(NoneTerminal.selection_statement)
-  export class SelectionStatement extends TreeNode {}
+  export class SelectionStatement extends TreeNode {
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return visitor.visitSelectionStatement
+        ? visitor.cache(this, visitor.visitSelectionStatement(this))
+        : super.codeGen(visitor);
+    }
+  }
 
   @ASTNodeDecorator(NoneTerminal.expression_statement)
-  export class ExpressionStatement extends TreeNode {}
+  export class ExpressionStatement extends TreeNode {
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return visitor.visitExpressionStatement
+        ? visitor.cache(this, visitor.visitExpressionStatement(this))
+        : super.codeGen(visitor);
+    }
+  }
 
   export abstract class ExpressionAstNode extends TreeNode {
     protected _type?: GalaceanDataType;
@@ -376,6 +396,12 @@ namespace ASTNodes {
       const init = this.children[0] as Initializer | InitializerList;
       this.type = init.type;
     }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return visitor.visitInitializerList
+        ? visitor.cache(this, visitor.visitInitializerList(this))
+        : super.codeGen(visitor);
+    }
   }
 
   @ASTNodeDecorator(NoneTerminal.initializer)
@@ -386,6 +412,10 @@ namespace ASTNodes {
       } else {
         this.type = (<InitializerList>this.children[1]).type;
       }
+    }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return visitor.visitInitializer ? visitor.cache(this, visitor.visitInitializer(this)) : super.codeGen(visitor);
     }
   }
 
@@ -480,10 +510,25 @@ namespace ASTNodes {
     type: GalaceanDataType;
     /** Whether the declaration is `const`-qualified — drives the const-initializer / array-size checks. */
     isConst: boolean;
+    /** Whether the declaration is `shared` workgroup memory (compute-only). */
+    isShared: boolean;
+    /** Storage access qualifier for storage textures/buffers. */
+    storageAccess?: "read-only" | "write-only" | "read-write";
 
     override semanticAnalyze(_: SemanticAnalyzer): void {
       const children = this.children;
-      this.isConst = children.length === 2 && ParserUtils.hasQualifier(children[0] as TreeNode, Keyword.CONST);
+      const qual = children.length === 2 ? (children[0] as TreeNode) : undefined;
+      this.isConst = !!qual && ParserUtils.hasQualifier(qual, Keyword.CONST);
+      this.isShared = !!qual && ParserUtils.hasQualifier(qual, Keyword.SHARED);
+      this.storageAccess = qual
+        ? ParserUtils.hasQualifier(qual, Keyword.READONLY)
+          ? "read-only"
+          : ParserUtils.hasQualifier(qual, Keyword.WRITEONLY)
+            ? "write-only"
+            : ParserUtils.hasQualifier(qual, Keyword.READWRITE)
+              ? "read-write"
+              : undefined
+        : undefined;
       this.typeSpecifier = (children.length === 1 ? children[0] : children[1]) as TypeSpecifier;
       this.type = this.typeSpecifier.type;
     }
@@ -778,6 +823,12 @@ namespace ASTNodes {
         sa.reportRedefinition(id.location, sm, insertResult);
       }
     }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return visitor.visitInitDeclaratorList
+        ? visitor.cache(this, visitor.visitInitDeclaratorList(this))
+        : super.codeGen(visitor);
+    }
   }
 
   @ASTNodeDecorator(NoneTerminal.identifier_list)
@@ -893,7 +944,12 @@ namespace ASTNodes {
 
       if (children[0] instanceof ParameterDeclaration) {
         const decl = children[0];
-        parameterInfoList.push({ ident: decl.ident, typeInfo: decl.typeInfo, astNode: decl });
+        parameterInfoList.push({
+          ident: decl.ident,
+          typeInfo: decl.typeInfo,
+          direction: decl.direction,
+          astNode: decl
+        });
         paramSig.push(decl.typeInfo?.type ?? TypeAny);
       } else if (children[2] instanceof ParameterDeclaration) {
         const list = children[0] as FunctionParameterList;
@@ -902,6 +958,7 @@ namespace ASTNodes {
         parameterInfoList.push(...list.parameterInfoList, {
           ident: decl.ident,
           typeInfo: decl.typeInfo,
+          direction: decl.direction,
           astNode: decl
         });
         paramSig.push(...list.paramSig, decl.typeInfo?.type ?? TypeAny);
@@ -934,12 +991,16 @@ namespace ASTNodes {
     // `#define TEXTURE2D_SHADOW_PARAM(shadowMap) mediump sampler2D shadowMap`
     typeInfo?: SymbolType;
     ident?: BaseToken;
+    direction: ParamDirection = "in";
+    isConst = false;
     /** Exact variable symbol inserted for this parameter. @internal */
     symbol?: VarSymbol;
 
     override init(): void {
       this.typeInfo = undefined;
       this.ident = undefined;
+      this.direction = "in";
+      this.isConst = false;
       this.symbol = undefined;
     }
 
@@ -950,6 +1011,10 @@ namespace ASTNodes {
       if (children[0] instanceof ParameterDeclarator) {
         parameterDeclarator = children[0];
       } else if (children[1] instanceof ParameterDeclarator) {
+        const qualifier = children[0] as TreeNode;
+        if (ParserUtils.hasQualifier(qualifier, Keyword.INOUT)) this.direction = "inout";
+        else if (ParserUtils.hasQualifier(qualifier, Keyword.OUT)) this.direction = "out";
+        this.isConst = ParserUtils.hasQualifier(qualifier, Keyword.CONST);
         parameterDeclarator = children[1];
       }
 
@@ -960,11 +1025,18 @@ namespace ASTNodes {
           parameterDeclarator.ident.lexeme,
           parameterDeclarator.typeInfo,
           false,
-          parameterDeclarator
+          parameterDeclarator,
+          this.isConst
         );
         this.symbol = varSymbol;
         sa.symbolTableStack.insert(varSymbol, parameterDeclarator.ident.branch);
       }
+    }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return visitor.visitParameterDeclaration
+        ? visitor.cache(this, visitor.visitParameterDeclaration(this))
+        : super.codeGen(visitor);
     }
   }
 
@@ -991,10 +1063,22 @@ namespace ASTNodes {
   export class SimpleStatement extends TreeNode {}
 
   @ASTNodeDecorator(NoneTerminal.compound_statement)
-  export class CompoundStatement extends TreeNode {}
+  export class CompoundStatement extends TreeNode {
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return visitor.visitCompoundStatement
+        ? visitor.cache(this, visitor.visitCompoundStatement(this))
+        : super.codeGen(visitor);
+    }
+  }
 
   @ASTNodeDecorator(NoneTerminal.compound_statement_no_scope)
-  export class CompoundStatementNoScope extends TreeNode {}
+  export class CompoundStatementNoScope extends TreeNode {
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return visitor.visitCompoundStatementNoScope
+        ? visitor.cache(this, visitor.visitCompoundStatementNoScope(this))
+        : super.codeGen(visitor);
+    }
+  }
 
   @ASTNodeDecorator(NoneTerminal.statement)
   export class Statement extends TreeNode {}
@@ -1214,6 +1298,11 @@ namespace ASTNodes {
         leftSignature.every((type, index) => type === rightSignature[index])
       );
     }
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return visitor.visitFunctionCallGeneric
+        ? visitor.cache(this, visitor.visitFunctionCallGeneric(this))
+        : super.codeGen(visitor);
+    }
   }
 
   @ASTNodeDecorator(NoneTerminal.function_call_parameter_list)
@@ -1261,6 +1350,12 @@ namespace ASTNodes {
         sa.shaderData.globalPrecisions.push(this);
       }
     }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return visitor.visitPrecisionSpecifier
+        ? visitor.cache(this, visitor.visitPrecisionSpecifier(this))
+        : super.codeGen(visitor);
+    }
   }
 
   @ASTNodeDecorator(NoneTerminal.function_identifier)
@@ -1293,6 +1388,12 @@ namespace ASTNodes {
         this.type = rhs.type ?? TypeAny;
       }
     }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return visitor.visitAssignmentExpression
+        ? visitor.cache(this, visitor.visitAssignmentExpression(this))
+        : super.codeGen(visitor);
+    }
   }
 
   @ASTNodeDecorator(NoneTerminal.assignment_operator)
@@ -1310,6 +1411,10 @@ namespace ASTNodes {
         this.type = expr.type;
       }
     }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return visitor.visitExpression ? visitor.cache(this, visitor.visitExpression(this)) : super.codeGen(visitor);
+    }
   }
 
   @ASTNodeDecorator(NoneTerminal.primary_expression)
@@ -1320,9 +1425,10 @@ namespace ASTNodes {
         if (id instanceof VariableIdentifier) {
           this.type = id.typeInfo ?? TypeAny;
         } else {
-          switch ((<BaseToken>id).type) {
+          const tok = id as BaseToken;
+          switch (tok.type) {
             case ETokenType.INT_CONSTANT:
-              this._type = Keyword.INT;
+              this._type = tok.lexeme.endsWith("u") || tok.lexeme.endsWith("U") ? Keyword.UINT : Keyword.INT;
               break;
             case ETokenType.FLOAT_CONSTANT:
               this.type = Keyword.FLOAT;
@@ -1337,6 +1443,12 @@ namespace ASTNodes {
         const expression = this.children[1] as Expression;
         this.type = expression.type;
       }
+    }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return visitor.visitPrimaryExpression
+        ? visitor.cache(this, visitor.visitPrimaryExpression(this))
+        : super.codeGen(visitor);
     }
   }
 
@@ -1440,7 +1552,13 @@ namespace ASTNodes {
   @ASTNodeDecorator(NoneTerminal.unary_expression)
   export class UnaryExpression extends ExpressionAstNode {
     override init(): void {
-      this.type = (this.children[0] as PostfixExpression).type;
+      this.type = (this.children[this.children.length - 1] as ExpressionAstNode).type;
+    }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return visitor.visitUnaryExpression
+        ? visitor.cache(this, visitor.visitUnaryExpression(this))
+        : super.codeGen(visitor);
     }
   }
 
@@ -1458,6 +1576,12 @@ namespace ASTNodes {
         );
       }
     }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return this.children.length === 3 && visitor.visitBinaryExpression
+        ? visitor.cache(this, visitor.visitBinaryExpression(this))
+        : super.codeGen(visitor);
+    }
   }
 
   @ASTNodeDecorator(NoneTerminal.additive_expression)
@@ -1474,6 +1598,12 @@ namespace ASTNodes {
         );
       }
     }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return this.children.length === 3 && visitor.visitBinaryExpression
+        ? visitor.cache(this, visitor.visitBinaryExpression(this))
+        : super.codeGen(visitor);
+    }
   }
 
   @ASTNodeDecorator(NoneTerminal.shift_expression)
@@ -1481,6 +1611,12 @@ namespace ASTNodes {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const expr = this.children[0] as ExpressionAstNode;
       this.type = expr.type;
+    }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return this.children.length === 3 && visitor.visitBinaryExpression
+        ? visitor.cache(this, visitor.visitBinaryExpression(this))
+        : super.codeGen(visitor);
     }
   }
 
@@ -1493,6 +1629,12 @@ namespace ASTNodes {
         this.type = Keyword.BOOL;
       }
     }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return this.children.length === 3 && visitor.visitBinaryExpression
+        ? visitor.cache(this, visitor.visitBinaryExpression(this))
+        : super.codeGen(visitor);
+    }
   }
 
   @ASTNodeDecorator(NoneTerminal.equality_expression)
@@ -1504,6 +1646,12 @@ namespace ASTNodes {
         this.type = Keyword.BOOL;
       }
     }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return this.children.length === 3 && visitor.visitBinaryExpression
+        ? visitor.cache(this, visitor.visitBinaryExpression(this))
+        : super.codeGen(visitor);
+    }
   }
 
   @ASTNodeDecorator(NoneTerminal.and_expression)
@@ -1512,8 +1660,16 @@ namespace ASTNodes {
       if (this.children.length === 1) {
         this.type = (<AndExpression>this.children[0]).type;
       } else {
-        this.type = Keyword.UINT;
+        const lt = (<ExpressionAstNode>this.children[0]).type;
+        const rt = (<ExpressionAstNode>this.children[2]).type;
+        this.type = lt !== TypeAny ? lt : rt !== TypeAny ? rt : Keyword.UINT;
       }
+    }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return this.children.length === 3 && visitor.visitBinaryExpression
+        ? visitor.cache(this, visitor.visitBinaryExpression(this))
+        : super.codeGen(visitor);
     }
   }
 
@@ -1523,8 +1679,16 @@ namespace ASTNodes {
       if (this.children.length === 1) {
         this.type = (<AndExpression>this.children[0]).type;
       } else {
-        this.type = Keyword.UINT;
+        const lt = (<ExpressionAstNode>this.children[0]).type;
+        const rt = (<ExpressionAstNode>this.children[2]).type;
+        this.type = lt !== TypeAny ? lt : rt !== TypeAny ? rt : Keyword.UINT;
       }
+    }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return this.children.length === 3 && visitor.visitBinaryExpression
+        ? visitor.cache(this, visitor.visitBinaryExpression(this))
+        : super.codeGen(visitor);
     }
   }
 
@@ -1534,8 +1698,16 @@ namespace ASTNodes {
       if (this.children.length === 1) {
         this.type = (<ExclusiveOrExpression>this.children[0]).type;
       } else {
-        this.type = Keyword.UINT;
+        const lt = (<ExpressionAstNode>this.children[0]).type;
+        const rt = (<ExpressionAstNode>this.children[2]).type;
+        this.type = lt !== TypeAny ? lt : rt !== TypeAny ? rt : Keyword.UINT;
       }
+    }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return this.children.length === 3 && visitor.visitBinaryExpression
+        ? visitor.cache(this, visitor.visitBinaryExpression(this))
+        : super.codeGen(visitor);
     }
   }
 
@@ -1548,6 +1720,12 @@ namespace ASTNodes {
         this.type = Keyword.BOOL;
       }
     }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return this.children.length === 3 && visitor.visitBinaryExpression
+        ? visitor.cache(this, visitor.visitBinaryExpression(this))
+        : super.codeGen(visitor);
+    }
   }
 
   @ASTNodeDecorator(NoneTerminal.logical_xor_expression)
@@ -1558,6 +1736,12 @@ namespace ASTNodes {
       } else {
         this.type = Keyword.BOOL;
       }
+    }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return this.children.length === 3 && visitor.visitBinaryExpression
+        ? visitor.cache(this, visitor.visitBinaryExpression(this))
+        : super.codeGen(visitor);
     }
   }
 
@@ -1570,6 +1754,12 @@ namespace ASTNodes {
         this.type = Keyword.BOOL;
       }
     }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return this.children.length === 3 && visitor.visitBinaryExpression
+        ? visitor.cache(this, visitor.visitBinaryExpression(this))
+        : super.codeGen(visitor);
+    }
   }
 
   @ASTNodeDecorator(NoneTerminal.conditional_expression)
@@ -1577,7 +1767,16 @@ namespace ASTNodes {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<LogicalOrExpression>this.children[0]).type;
+      } else {
+        const thenType = (this.children[2] as Expression).type;
+        this.type = thenType !== TypeAny ? thenType : (this.children[4] as AssignmentExpression).type;
       }
+    }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return visitor.visitConditionalExpression
+        ? visitor.cache(this, visitor.visitConditionalExpression(this))
+        : super.codeGen(visitor);
     }
   }
 
@@ -1680,6 +1879,9 @@ namespace ASTNodes {
       }
       const firstChild = children[0];
       const { type, lexeme } = this._typeSpecifier;
+      if (type === Keyword.ATOMIC_UINT || type === Keyword.ATOMIC_INT) {
+        sa.shaderData.requiredCapabilities |= ShaderCapability.Atomic;
+      }
       const isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
       if (firstChild instanceof LayoutQualifier) {
         const declarator = children[2] as StructDeclarator;
@@ -1690,6 +1892,7 @@ namespace ASTNodes {
         // `type_qualifier type_specifier struct_declarator_list ;` — the qualifier (children[0]) may carry
         // `flat`, which integer varyings need; the 3-child form has no qualifier so it can't be flat.
         const isFlat = children.length === 4 && ParserUtils.hasQualifier(children[0] as TreeNode, Keyword.FLAT);
+        const isCentroid = children.length === 4 && ParserUtils.hasQualifier(children[0] as TreeNode, Keyword.CENTROID);
         const declaratorList = this._declaratorList.declaratorList;
         const declaratorListLength = declaratorList.length;
         props.length = declaratorListLength;
@@ -1701,7 +1904,7 @@ namespace ASTNodes {
             declarator.arraySpecifier,
             this._typeSpecifier.structDeclarations
           );
-          const prop = new StructProp(typeInfo, declarator.ident, undefined, isInMacroBranch, isFlat);
+          const prop = new StructProp(typeInfo, declarator.ident, undefined, isInMacroBranch, isFlat, isCentroid);
           props[i] = prop;
         }
       }
@@ -1817,16 +2020,113 @@ namespace ASTNodes {
     }
   }
 
+  @ASTNodeDecorator(NoneTerminal.uniform_block)
+  export class UniformBlock extends TreeNode {
+    name: string;
+    members: VariableDeclaration[] = [];
+    layout: IShaderUniformBlock;
+
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      this.name = (this.children[1] as BaseToken).lexeme;
+      this.members.length = 0;
+      let list = this.children[3] as TreeNode;
+      for (; list.children.length === 3; list = list.children[0] as TreeNode) {
+        this.members.push(list.children[1] as VariableDeclaration);
+      }
+      this.members.push(list.children[0] as VariableDeclaration);
+      this.members.reverse();
+      for (const member of this.members) member.uniformBlock = this;
+      (sa.shaderData.uniformBlocks ??= []).push(this);
+    }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return visitor.visitUniformBlock ? visitor.cache(this, visitor.visitUniformBlock(this)) : super.codeGen(visitor);
+    }
+  }
+
+  @ASTNodeDecorator(NoneTerminal.storage_block)
+  export class StorageBlock extends TreeNode {
+    name: string;
+    readonly = false;
+    members: VariableDeclaration[] = [];
+
+    override init(): void {
+      this.readonly = false;
+      this.members.length = 0;
+    }
+
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      const hasReadonly = this.children[0] instanceof BaseToken && this.children[0].type === Keyword.READONLY;
+      this.readonly = hasReadonly;
+      const offset = hasReadonly ? 1 : 0;
+      this.name = (this.children[offset + 1] as BaseToken).lexeme;
+      this.members.length = 0;
+      let list = this.children[offset + 3] as TreeNode;
+      for (; list.children.length === 3; list = list.children[0] as TreeNode) {
+        this.members.push(list.children[1] as VariableDeclaration);
+      }
+      this.members.push(list.children[0] as VariableDeclaration);
+      this.members.reverse();
+      for (const member of this.members) member.storageBlock = this;
+      (sa.shaderData.storageBlocks ??= []).push(this);
+      sa.shaderData.requiredCapabilities |= ShaderCapability.StorageBuffer;
+    }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return visitor.visitStorageBlock ? visitor.cache(this, visitor.visitStorageBlock(this)) : super.codeGen(visitor);
+    }
+  }
+
+  @ASTNodeDecorator(NoneTerminal.storage_texture_declaration)
+  export class StorageTextureDeclaration extends TreeNode {
+    format: string;
+    declaration: VariableDeclaration;
+
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      this.format = (this.children[2] as BaseToken).lexeme;
+      const stmt = this.children[4] as TreeNode;
+      const list = stmt.children[0] as TreeNode;
+      let declNode: TreeNode = list;
+      while (declNode && !(declNode instanceof VariableDeclaration)) {
+        declNode = declNode.children[0] as TreeNode;
+      }
+      if (declNode instanceof VariableDeclaration) {
+        declNode.storageFormat = this.format;
+        this.declaration = declNode;
+      }
+      sa.shaderData.requiredCapabilities |= ShaderCapability.StorageTexture;
+    }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return visitor.visitStorageTextureDeclaration
+        ? visitor.cache(this, visitor.visitStorageTextureDeclaration(this))
+        : super.codeGen(visitor);
+    }
+  }
+
   @ASTNodeDecorator(NoneTerminal.variable_declaration)
   export class VariableDeclaration extends TreeNode {
     type: FullySpecifiedType;
     isStatic: boolean;
+    /** Whether this global is workgroup-shared memory (`shared`). */
+    isShared: boolean;
+    /** Storage texture access qualifier (`read-only` / `write-only` / `read-write`). */
+    storageAccess?: "read-only" | "write-only" | "read-write";
+    /** Storage texture format from `layout(<format>)` (e.g. `rgba8unorm`). */
+    storageFormat?: string;
     /** Canonical information for this shader-global declarator. */
     declarator: VariableDeclaratorInfo;
+    uniformBlock?: UniformBlock;
+    storageBlock?: StorageBlock;
 
     override init(): void {
       this.isStatic = false;
+      this.isShared = false;
+      this.storageAccess = undefined;
+      this.storageFormat = undefined;
       this.declarator = undefined;
+      this.uniformBlock = undefined;
+      this.storageBlock = undefined;
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
@@ -1834,15 +2134,33 @@ namespace ASTNodes {
       const type = children[0] as FullySpecifiedType;
       const ident = children[1] as BaseToken;
       this.type = type;
+      this.isShared = type.isShared;
+      this.storageAccess = type.storageAccess;
+      if (type.isShared) {
+        sa.shaderData.requiredCapabilities |= ShaderCapability.Compute;
+      }
+      if (type.type === Keyword.ATOMIC_UINT || type.type === Keyword.ATOMIC_INT) {
+        sa.shaderData.requiredCapabilities |= ShaderCapability.Atomic;
+      }
+      if (type.type === Keyword.IMAGE2D || type.type === Keyword.I_IMAGE2D || type.type === Keyword.U_IMAGE2D) {
+        sa.shaderData.requiredCapabilities |= ShaderCapability.StorageTexture;
+      }
       // A global variable without an initializer is Galacean's implicit uniform (bound at runtime
       // by the material system). With an initializer, `this.isStatic` becomes true — it's a
-      // compile-time value, not a uniform. `const`-qualified is a separate read-only path.
-      const hasInitializer = children.length === 4;
-      // Grammar `fully_specified_type ID array_specifier` — children[2] is the array specifier.
-      // Without it, `float arr[3]` at global scope stored as scalar `float`, then every `arr[i]`
-      // ref misfires `NonIndexableType`. Recover the array-ness at symbol level.
-      const arraySpecifier = children.length === 3 ? (children[2] as ArraySpecifier) : undefined;
-      const initializer = hasInitializer ? (children[3] as Initializer) : undefined;
+      // compile-time value, not a uniform. `const`-qualified and `shared` are separate paths.
+      const hasInitializer = children.length === 4 || children.length === 5;
+      // Grammar `fully_specified_type ID [array_specifier] ['=' initializer]` — recover array-ness
+      // from either the declarator suffix (`float arr[3]`) or the type specifier (`float[3] arr`).
+      const arraySpecifier =
+        children.length === 3 || children.length === 5
+          ? (children[2] as ArraySpecifier)
+          : type.typeSpecifier.arraySpecifier;
+      const initializer =
+        children.length === 4
+          ? (children[3] as Initializer)
+          : children.length === 5
+            ? (children[4] as Initializer)
+            : undefined;
       const typeInfo = new SymbolType(
         type.type,
         type.typeSpecifier.lexeme,
@@ -1850,7 +2168,14 @@ namespace ASTNodes {
         type.typeSpecifier.structDeclarations
       );
       const sm = sa.assignSourceScope(
-        new VarSymbol(ident.lexeme, typeInfo, true, this, type.isConst, !hasInitializer && !type.isConst),
+        new VarSymbol(
+          ident.lexeme,
+          typeInfo,
+          true,
+          this,
+          type.isConst,
+          !hasInitializer && !type.isConst && !type.isShared
+        ),
         ident.location
       );
       this.declarator = {
@@ -1871,11 +2196,7 @@ namespace ASTNodes {
     }
 
     override codeGen(visitor: ICodeGenVisitor): string {
-      if (this.isStatic) {
-        return super.codeGen(visitor);
-      } else {
-        return visitor.cache(this, visitor.visitGlobalVariableDeclaration(this));
-      }
+      return visitor.cache(this, visitor.visitGlobalVariableDeclaration(this));
     }
   }
 

@@ -33,13 +33,18 @@ export class BuiltinVariable {
   }
 }
 
-BuiltinVariable.createVariable("gl_VertexID", Keyword.INT, EShaderStage.VERTEX);
-BuiltinVariable.createVariable("gl_InstanceID", Keyword.INT, EShaderStage.VERTEX);
+BuiltinVariable.createVariable("gl_VertexID", Keyword.INT, EShaderStage.VERTEX, ShaderBuiltinSemantic.VertexID);
+BuiltinVariable.createVariable("gl_InstanceID", Keyword.INT, EShaderStage.VERTEX, ShaderBuiltinSemantic.InstanceID);
 BuiltinVariable.createVariable("gl_Position", Keyword.VEC4, EShaderStage.VERTEX, ShaderBuiltinSemantic.VertexPosition);
-BuiltinVariable.createVariable("gl_PointSize", Keyword.FLOAT, EShaderStage.VERTEX);
+BuiltinVariable.createVariable("gl_PointSize", Keyword.FLOAT, EShaderStage.VERTEX, ShaderBuiltinSemantic.PointSize);
 
-BuiltinVariable.createVariable("gl_FragCoord", Keyword.VEC4, EShaderStage.FRAGMENT);
-BuiltinVariable.createVariable("gl_FrontFacing", Keyword.BOOL, EShaderStage.FRAGMENT);
+BuiltinVariable.createVariable("gl_FragCoord", Keyword.VEC4, EShaderStage.FRAGMENT, ShaderBuiltinSemantic.FragCoord);
+BuiltinVariable.createVariable(
+  "gl_FrontFacing",
+  Keyword.BOOL,
+  EShaderStage.FRAGMENT,
+  ShaderBuiltinSemantic.FrontFacing
+);
 BuiltinVariable.createVariable(
   "gl_FragDepth",
   Keyword.FLOAT,
@@ -52,7 +57,7 @@ BuiltinVariable.createVariable(
   EShaderStage.FRAGMENT,
   ShaderBuiltinSemantic.FragmentDepth
 );
-BuiltinVariable.createVariable("gl_PointCoord", Keyword.VEC2, EShaderStage.FRAGMENT);
+BuiltinVariable.createVariable("gl_PointCoord", Keyword.VEC2, EShaderStage.FRAGMENT, ShaderBuiltinSemantic.PointCoord);
 BuiltinVariable.createVariable(
   "gl_FragColor",
   Keyword.VEC4,
@@ -66,14 +71,95 @@ BuiltinVariable.createVariable(
   ShaderBuiltinSemantic.FragmentOutputArray
 );
 
-BuiltinVariable.createVariable("gl_MaxVertexAttribs", Keyword.INT);
-BuiltinVariable.createVariable("gl_MaxVertexUniformVectors", Keyword.INT);
-BuiltinVariable.createVariable("gl_MaxVertexOutputVectors", Keyword.INT);
-BuiltinVariable.createVariable("gl_MaxFragmentInputVectors", Keyword.INT);
-BuiltinVariable.createVariable("gl_MaxVertexTextureImageUnits", Keyword.INT);
-BuiltinVariable.createVariable("gl_MaxCombinedTextureImageUnits", Keyword.INT);
-BuiltinVariable.createVariable("gl_MaxTextureImageUnits", Keyword.INT);
-BuiltinVariable.createVariable("gl_MaxFragmentUniformVectors", Keyword.INT);
-BuiltinVariable.createVariable("gl_MaxDrawBuffers", Keyword.INT);
-BuiltinVariable.createVariable("gl_MinProgramTexelOffset", Keyword.INT);
-BuiltinVariable.createVariable("gl_MaxProgramTexelOffset", Keyword.INT);
+BuiltinVariable.createVariable(
+  "gl_GlobalInvocationID",
+  Keyword.UVEC3,
+  EShaderStage.COMPUTE,
+  ShaderBuiltinSemantic.GlobalInvocationID
+);
+BuiltinVariable.createVariable(
+  "gl_LocalInvocationID",
+  Keyword.UVEC3,
+  EShaderStage.COMPUTE,
+  ShaderBuiltinSemantic.LocalInvocationID
+);
+BuiltinVariable.createVariable(
+  "gl_WorkGroupID",
+  Keyword.UVEC3,
+  EShaderStage.COMPUTE,
+  ShaderBuiltinSemantic.WorkGroupID
+);
+BuiltinVariable.createVariable(
+  "gl_NumWorkGroups",
+  Keyword.UVEC3,
+  EShaderStage.COMPUTE,
+  ShaderBuiltinSemantic.NumWorkGroups
+);
+BuiltinVariable.createVariable(
+  "gl_LocalInvocationIndex",
+  Keyword.UINT,
+  EShaderStage.COMPUTE,
+  ShaderBuiltinSemantic.LocalInvocationIndex
+);
+
+BuiltinVariable.createVariable(
+  "gl_MaxVertexAttribs",
+  Keyword.INT,
+  EShaderStage.ALL,
+  ShaderBuiltinSemantic.BuiltinLimit
+);
+BuiltinVariable.createVariable(
+  "gl_MaxVertexUniformVectors",
+  Keyword.INT,
+  EShaderStage.ALL,
+  ShaderBuiltinSemantic.BuiltinLimit
+);
+BuiltinVariable.createVariable(
+  "gl_MaxVertexOutputVectors",
+  Keyword.INT,
+  EShaderStage.ALL,
+  ShaderBuiltinSemantic.BuiltinLimit
+);
+BuiltinVariable.createVariable(
+  "gl_MaxFragmentInputVectors",
+  Keyword.INT,
+  EShaderStage.ALL,
+  ShaderBuiltinSemantic.BuiltinLimit
+);
+BuiltinVariable.createVariable(
+  "gl_MaxVertexTextureImageUnits",
+  Keyword.INT,
+  EShaderStage.ALL,
+  ShaderBuiltinSemantic.BuiltinLimit
+);
+BuiltinVariable.createVariable(
+  "gl_MaxCombinedTextureImageUnits",
+  Keyword.INT,
+  EShaderStage.ALL,
+  ShaderBuiltinSemantic.BuiltinLimit
+);
+BuiltinVariable.createVariable(
+  "gl_MaxTextureImageUnits",
+  Keyword.INT,
+  EShaderStage.ALL,
+  ShaderBuiltinSemantic.BuiltinLimit
+);
+BuiltinVariable.createVariable(
+  "gl_MaxFragmentUniformVectors",
+  Keyword.INT,
+  EShaderStage.ALL,
+  ShaderBuiltinSemantic.BuiltinLimit
+);
+BuiltinVariable.createVariable("gl_MaxDrawBuffers", Keyword.INT, EShaderStage.ALL, ShaderBuiltinSemantic.BuiltinLimit);
+BuiltinVariable.createVariable(
+  "gl_MinProgramTexelOffset",
+  Keyword.INT,
+  EShaderStage.ALL,
+  ShaderBuiltinSemantic.BuiltinLimit
+);
+BuiltinVariable.createVariable(
+  "gl_MaxProgramTexelOffset",
+  Keyword.INT,
+  EShaderStage.ALL,
+  ShaderBuiltinSemantic.BuiltinLimit
+);

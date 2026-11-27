@@ -1,0 +1,225 @@
+{
+  "schema": "galacean/procedural-tree-source-analysis-v1",
+  "assetId": "measured-white-birch",
+  "coordinateSystem": "right-handed, Y-up, meters; trunk base centered at XZ origin",
+  "height": 13.4467512,
+  "branchCounts": [
+    1,
+    28,
+    27
+  ],
+  "lodBranchCounts": [
+    [
+      1,
+      28,
+      27
+    ],
+    [
+      1,
+      21,
+      10
+    ],
+    [
+      1,
+      11,
+      2
+    ]
+  ],
+  "lodLeafCounts": [
+    1377,
+    918,
+    459
+  ],
+  "inferredRules": {
+    "trunk": {
+      "count": 1,
+      "height": 13.4467512,
+      "pathLength": 13.132236,
+      "curveToHeightRatio": 0.9766103,
+      "baseRadius": 0.1744045,
+      "tipRadius": 0.0515172,
+      "radiusQuantiles": [
+        0.0709963,
+        0.0945532,
+        0.125877,
+        0.1518345,
+        0.165696
+      ],
+      "centerlineSamples": 16
+    },
+    "primaryBranches": {
+      "count": 28,
+      "rootHeightRatioQuantiles": [
+        0.3360732,
+        0.4302577,
+        0.585877,
+        0.7819722,
+        0.8895216
+      ],
+      "pathLengthRatioQuantiles": [
+        0.1000513,
+        0.1622406,
+        0.1826968,
+        0.219546,
+        0.2235551
+      ],
+      "endpointLengthRatioQuantiles": [
+        0.0990969,
+        0.1559946,
+        0.1795864,
+        0.2143186,
+        0.2164063
+      ],
+      "curveToChordRatioQuantiles": [
+        1.014079,
+        1.0234621,
+        1.0312429,
+        1.0351291,
+        1.0409472
+      ],
+      "upAngleDegreesQuantiles": [
+        32.199753,
+        40.6721682,
+        47.4338695,
+        51.1661636,
+        55.5574423
+      ],
+      "rootRadiusRatioQuantiles": [
+        0.0063285,
+        0.0070608,
+        0.0086609,
+        0.0140252,
+        0.0144857
+      ],
+      "attachmentProgressQuantiles": [
+        0.3441011,
+        0.4406041,
+        0.6001816,
+        0.8010992,
+        0.911457
+      ]
+    },
+    "secondaryBranches": {
+      "count": 27,
+      "rootHeightRatioQuantiles": [
+        0.3673102,
+        0.4971701,
+        0.6013727,
+        0.824481,
+        0.8794624
+      ],
+      "pathLengthRatioQuantiles": [
+        0.0654592,
+        0.0830821,
+        0.0903419,
+        0.110626,
+        0.1131122
+      ],
+      "endpointLengthRatioQuantiles": [
+        0.0642192,
+        0.0813444,
+        0.0879937,
+        0.1059038,
+        0.1089914
+      ],
+      "curveToChordRatioQuantiles": [
+        1.0013937,
+        1.0270027,
+        1.0316703,
+        1.039058,
+        1.0443206
+      ],
+      "upAngleDegreesQuantiles": [
+        27.5459664,
+        28.9659303,
+        31.4595821,
+        34.2481231,
+        52.1024041
+      ],
+      "rootRadiusRatioQuantiles": [
+        0.0029369,
+        0.0033959,
+        0.0042483,
+        0.0044192,
+        0.0055011
+      ],
+      "attachmentProgressQuantiles": [
+        0.2976304,
+        0.3070126,
+        0.3697803,
+        0.4382038,
+        0.5047219
+      ]
+    },
+    "leaves": {
+      "cards": 1377,
+      "cardWidthQuantiles": [
+        0.6670083,
+        0.6673539,
+        0.6682126,
+        0.6686157,
+        0.669088
+      ],
+      "cardHeightQuantiles": [
+        0.6670084,
+        0.6673538,
+        0.6682126,
+        0.6686157,
+        0.669088
+      ],
+      "cardAreaQuantiles": [
+        0.4449002,
+        0.4453611,
+        0.4465081,
+        0.4470471,
+        0.4476788
+      ],
+      "centerHeightRatioQuantiles": [
+        0.4067112,
+        0.5544273,
+        0.6955949,
+        0.8933911,
+        0.9455697
+      ],
+      "centerRadiusRatioQuantiles": [
+        0.0626724,
+        0.0951979,
+        0.1311445,
+        0.1649407,
+        0.1838222
+      ],
+      "normalAbsoluteUpQuantiles": [
+        0.0882146,
+        0.2437733,
+        0.4239485,
+        0.7991702,
+        0.9236235
+      ],
+      "lowestCenterHeightRatio": 0.2808113,
+      "nearestStemDistanceRatioQuantiles": [
+        0.019871,
+        0.0301748,
+        0.0401473,
+        0.0506958,
+        0.0585915
+      ],
+      "branchProgressQuantiles": [
+        0.7607749,
+        0.8959655,
+        0.9857769,
+        1,
+        1
+      ],
+      "terminalLeafRatio": 0.9041394,
+      "leafBearingStemRatio": 1,
+      "leavesPerStemQuantiles": [
+        10.5,
+        12,
+        21,
+        36,
+        42
+      ],
+      "authoredLeafBearingStemRatio": 1
+    }
+  }
+}

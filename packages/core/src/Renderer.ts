@@ -1,9 +1,15 @@
 // @ts-ignore
-import { BoundingBox, Matrix, Vector3, Vector4 } from "@galacean/engine-math";
+import { BoundingBox, type BoundingFrustum, Matrix, Vector4 } from "@galacean/engine-math";
 import { SpriteMaskInteraction } from "./2d/enums/SpriteMaskInteraction";
 import { Component } from "./Component";
 import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
+import {
+  MatrixSnapshot,
+  createCalculatedMatrix,
+  restoreCalculatedMatrix,
+  saveCalculatedMatrix
+} from "./RenderPipeline/MatrixSnapshot";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { RenderElement } from "./RenderPipeline/RenderElement";
 import { Transform, TransformModifyFlags } from "./Transform";
@@ -11,9 +17,9 @@ import { ignoreClone } from "./clone/CloneDecorators";
 import type { ICloneHook } from "./clone/ICloneHook";
 import { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 import { Material } from "./material";
-import { ShaderMacro, ShaderProperty } from "./shader";
+import { ShaderMacro } from "./shader/ShaderMacro";
+import { ShaderProperty } from "./shader/ShaderProperty";
 import { ShaderData } from "./shader/ShaderData";
-import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 
 /**
@@ -22,8 +28,6 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
  */
 @dependentComponents(Transform, DependentMode.CheckOnly)
 export class Renderer extends Component implements ICloneHook<Renderer> {
-  private static _tempVector0 = new Vector3();
-
   /** @internal */
   static _worldMatrixProperty = ShaderProperty.getByName("renderer_ModelMat");
   /** @internal */
@@ -45,9 +49,6 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
   _rendererIndex: number = -1;
   /** @internal */
   @ignoreClone
-  _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
-  /** @internal */
-  @ignoreClone
   _renderFrameCount: number;
   /** @internal */
   _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
@@ -67,13 +68,27 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
   @ignoreClone
   protected _transformEntity: Entity | null;
 
+  @ignoreClone
+  private _visibility?: {
+    frustum: number;
+    bounds: Float64Array;
+    visible: boolean;
+  };
+  @ignoreClone
+  private _transformCache?: {
+    world: MatrixSnapshot;
+    normalDirty: boolean;
+    viewRevision: number;
+    viewProjectionRevision: number;
+  };
+
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
   @ignoreClone
-  private _mvMatrix: Matrix = new Matrix();
+  private _mvMatrix = createCalculatedMatrix();
   @ignoreClone
-  private _mvpMatrix: Matrix = new Matrix();
+  private _mvpMatrix = createCalculatedMatrix();
   @ignoreClone
-  private _normalMatrix: Matrix = new Matrix();
+  private _normalMatrix = createCalculatedMatrix();
   @ignoreClone
   private _materialsInstanced: boolean[] = [];
   private _priority: number = 0;
@@ -138,6 +153,32 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
       this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     }
     return this._bounds;
+  }
+
+  /** @internal Cache the plane tests while both the camera and this world-space bounding box stay unchanged. */
+  _intersectsFrustum(frustum: BoundingFrustum, revision: number): boolean {
+    const bounds = this.bounds;
+    const { min, max } = bounds;
+    const cache = (this._visibility ??= { frustum: -1, bounds: new Float64Array(6), visible: false });
+    const box = cache.bounds;
+    if (
+      cache.frustum === revision &&
+      min.x === box[0] &&
+      min.y === box[1] &&
+      min.z === box[2] &&
+      max.x === box[3] &&
+      max.y === box[4] &&
+      max.z === box[5]
+    )
+      return cache.visible;
+    box[0] = min.x;
+    box[1] = min.y;
+    box[2] = min.z;
+    box[3] = max.x;
+    box[4] = max.y;
+    box[5] = max.z;
+    cache.frustum = revision;
+    return (cache.visible = frustum.intersectsBox(bounds));
   }
 
   /**
@@ -295,6 +336,10 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
    * @internal
    */
   override _onEnableInScene(): void {
+    // Treat a newly enabled renderer as visible until the first culling result.
+    const engine = this.engine;
+    const frameCount = engine.time.frameCount;
+    this._renderFrameCount = engine._frameInProcess ? frameCount - 1 : frameCount;
     const componentsManager = this.scene!._componentsManager;
     if (this._overrideUpdate) {
       componentsManager.addOnUpdateRenderers(this);
@@ -321,25 +366,31 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
       this._update(context);
     }
 
-    const virtualCamera = context.virtualCamera;
-    const cameraPosition = virtualCamera.position;
-    const boundsCenter = this.bounds.getCenter(Renderer._tempVector0);
-
-    if (virtualCamera.isOrthographic) {
-      Vector3.subtract(boundsCenter, cameraPosition, boundsCenter);
-      this._distanceForSort = Vector3.dot(boundsCenter, virtualCamera.forward);
-    } else {
-      this._distanceForSort = Vector3.distanceSquared(boundsCenter, cameraPosition);
-    }
-
+    this._distanceForSort = NaN;
     this._render(context);
+  }
 
-    // union camera global macro and renderer macro.
-    ShaderMacroCollection.unionCollection(
-      context.camera._globalShaderMacro,
-      this.shaderData._macroCollection,
-      this._globalShaderMacro
-    );
+  /**
+   * @internal
+   */
+  _updateDistanceForSort(context: RenderContext): number {
+    let distance = this._distanceForSort;
+    if (distance !== distance) {
+      const virtualCamera = context.virtualCamera;
+      const cameraPosition = virtualCamera.position;
+      const { min, max } = this.bounds;
+      const dx = (min.x + max.x) * 0.5 - cameraPosition.x;
+      const dy = (min.y + max.y) * 0.5 - cameraPosition.y;
+      const dz = (min.z + max.z) * 0.5 - cameraPosition.z;
+      if (virtualCamera.isOrthographic) {
+        const forward = virtualCamera.forward;
+        distance = dx * forward.x + dy * forward.y + dz * forward.z;
+      } else {
+        distance = dx * dx + dy * dy + dz * dz;
+      }
+      this._distanceForSort = distance;
+    }
+    return distance;
   }
 
   /**
@@ -375,7 +426,6 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
       material && this._addResourceReferCount(material, -1);
     }
 
-    this._globalShaderMacro = null!;
     this._bounds = null!;
     this._materials = null!;
     this._shaderData = null!;
@@ -392,26 +442,52 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
   _updateTransformShaderData(context: RenderContext, onlyMVP: boolean): void {
     const worldMatrix = this._transformEntity!.transform.worldMatrix;
     const { shaderData } = this;
-    if (onlyMVP) {
-      const mvpMatrix = this._mvpMatrix;
-      Matrix.multiply(context.viewProjectionMatrix, worldMatrix, mvpMatrix);
-      shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
-    } else {
-      const mvMatrix = this._mvMatrix;
-      const normalMatrix = this._normalMatrix;
-
-      Matrix.multiply(context.viewMatrix, worldMatrix, mvMatrix);
-      Matrix.invert(worldMatrix, normalMatrix);
-      normalMatrix.transpose();
-
-      shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
-      shaderData.setMatrix(Renderer._mvMatrixProperty, mvMatrix);
-      shaderData.setMatrix(Renderer._normalMatrixProperty, normalMatrix);
-
-      const mvpMatrix = this._mvpMatrix;
-      Matrix.multiply(context.viewProjectionMatrix, worldMatrix, mvpMatrix);
-      shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
+    const cache = (this._transformCache ??= {
+      world: new MatrixSnapshot(),
+      normalDirty: true,
+      viewRevision: -1,
+      viewProjectionRevision: -1
+    });
+    if (cache.world.update(worldMatrix)) {
+      cache.normalDirty = true;
+      cache.viewRevision = cache.viewProjectionRevision = -1;
     }
+
+    // ShaderData exposes the result matrices to callers. Restore the calculated values even when their inputs are stable.
+    const values = shaderData._propertyValueMap;
+    if (!onlyMVP) {
+      const normal = this._normalMatrix;
+      if (cache.normalDirty) {
+        Matrix.invert(worldMatrix, normal);
+        normal.transpose();
+        saveCalculatedMatrix(normal);
+        cache.normalDirty = false;
+      } else {
+        restoreCalculatedMatrix(normal);
+      }
+      const mv = this._mvMatrix;
+      if (cache.viewRevision !== context.viewRevision) {
+        Matrix.multiply(context.viewMatrix, worldMatrix, mv);
+        saveCalculatedMatrix(mv);
+        cache.viewRevision = context.viewRevision;
+      } else {
+        restoreCalculatedMatrix(mv);
+      }
+      if (values[Renderer._worldMatrixProperty._uniqueId] !== worldMatrix)
+        shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
+      if (values[Renderer._mvMatrixProperty._uniqueId] !== mv) shaderData.setMatrix(Renderer._mvMatrixProperty, mv);
+      if (values[Renderer._normalMatrixProperty._uniqueId] !== normal)
+        shaderData.setMatrix(Renderer._normalMatrixProperty, normal);
+    }
+    const mvp = this._mvpMatrix;
+    if (cache.viewProjectionRevision !== context.viewProjectionRevision) {
+      Matrix.multiply(context.viewProjectionMatrix, worldMatrix, mvp);
+      saveCalculatedMatrix(mvp);
+      cache.viewProjectionRevision = context.viewProjectionRevision;
+    } else {
+      restoreCalculatedMatrix(mvp);
+    }
+    if (values[Renderer._mvpMatrixProperty._uniqueId] !== mvp) shaderData.setMatrix(Renderer._mvpMatrixProperty, mvp);
   }
 
   /**
@@ -432,6 +508,7 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
   protected _update(context: RenderContext): void {
     const { layer } = this.entity;
     this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
+    this.scene!.environmentLighting._updateRendererProbeData(this.shaderData, this.entity.transform.worldPosition);
   }
 
   /**

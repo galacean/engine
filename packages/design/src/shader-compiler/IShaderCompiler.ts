@@ -1,4 +1,5 @@
 import { IShaderProgramSource } from "./IShaderProgramSource";
+import type { IComputeProgramSource } from "./IWebGPUShaderProgram";
 import { IShaderSource } from "./shaderSource/IShaderSource";
 
 /**
@@ -40,4 +41,16 @@ export interface IShaderCompiler {
     sourceFile?: string,
     sourceScopeStarts?: readonly number[]
   ): IShaderProgramSource | undefined;
+
+  /**
+   * @internal
+   * Parse and compile a single compute kernel from a `ComputeShader` source block (WebGPU-only).
+   */
+  _parseComputeKernel?(
+    kernelSource: string,
+    computeEntry: string,
+    workgroupSize: readonly [number, number, number],
+    sourceFile?: string,
+    sourceScopeStarts?: readonly number[]
+  ): IComputeProgramSource | undefined;
 }

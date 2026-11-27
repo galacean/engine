@@ -1,4 +1,4 @@
-import { Camera, CameraClearFlags, CameraType, Matrix } from "@galacean/engine";
+import { Camera, CameraClearFlags, CameraType, Matrix, Vector4 } from "@galacean/engine";
 import { XRManagerExtended } from "../../XRManagerExtended";
 import { XRCamera } from "../../input/XRCamera";
 import { XRTrackedInputDevice } from "../../input/XRTrackedInputDevice";
@@ -8,6 +8,11 @@ import { XRSessionState } from "../../session/XRSessionState";
  * The manager of XR camera.
  */
 export class XRCameraManager {
+  private readonly _cameraSettings = new Map<
+    Camera,
+    { viewport: Vector4; projection?: Matrix; near: number; far: number }
+  >();
+
   /**
    * Fixed foveation, or `undefined` if unsupported by the active session.
    */
@@ -47,7 +52,10 @@ export class XRCameraManager {
     const xrCamera = this._xrManager.inputManager.getTrackedDevice<XRCamera>(type);
     const preCamera = xrCamera._camera;
     if (preCamera !== camera) {
-      preCamera && (preCamera._cameraType = CameraType.Normal);
+      if (preCamera) {
+        this._restoreCamera(preCamera);
+        preCamera._cameraType = CameraType.Normal;
+      }
       switch (type) {
         case XRTrackedInputDevice.Camera:
           camera._cameraType = CameraType.XRCenterCamera;
@@ -75,7 +83,10 @@ export class XRCameraManager {
   ): Camera | null {
     const xrCamera = this._xrManager.inputManager.getTrackedDevice<XRCamera>(type);
     const preCamera = xrCamera._camera;
-    preCamera && (preCamera._cameraType = CameraType.Normal);
+    if (preCamera) {
+      this._restoreCamera(preCamera);
+      preCamera._cameraType = CameraType.Normal;
+    }
     xrCamera._camera = null;
     return preCamera;
   }
@@ -91,10 +102,21 @@ export class XRCameraManager {
   _onUpdate(): void {
     const cameras = this._xrManager.inputManager._cameras;
     const platformSession = this._xrManager.sessionManager._platformSession;
+    if (!platformSession) return;
     for (let i = 0, n = cameras.length; i < n; i++) {
       const cameraDevice = cameras[i];
       const { _camera: camera } = cameraDevice;
       if (!camera) continue;
+      if (!this._cameraSettings.has(camera)) {
+        this._cameraSettings.set(camera, {
+          viewport: camera.viewport.clone(),
+          projection: camera._isCustomProjectionMatrix ? camera.projectionMatrix.clone() : undefined,
+          near: camera.nearClipPlane,
+          far: camera.farClipPlane
+        });
+      }
+      if (platformSession.depthNear !== undefined) camera.nearClipPlane = platformSession.depthNear;
+      if (platformSession.depthFar !== undefined) camera.farClipPlane = platformSession.depthFar;
       // sync position and rotation
       const { transform } = camera.entity;
       const { pose } = cameraDevice;
@@ -122,11 +144,21 @@ export class XRCameraManager {
    * @internal
    */
   _onSessionExit(): void {
-    const cameras = this._xrManager.inputManager._cameras;
-    for (let i = 0, n = cameras.length; i < n; i++) {
-      // @ts-ignore
-      cameras[i]._camera?._updatePixelViewport();
-    }
+    for (const camera of this._cameraSettings.keys()) this._restoreCamera(camera);
+  }
+
+  private _restoreCamera(camera: Camera): void {
+    const settings = this._cameraSettings.get(camera);
+    if (!settings) return;
+    this._cameraSettings.delete(camera);
+    if (camera.destroyed) return;
+    camera.viewport = settings.viewport;
+    camera.nearClipPlane = settings.near;
+    camera.farClipPlane = settings.far;
+    if (settings.projection) camera.projectionMatrix = settings.projection;
+    else camera.resetProjectionMatrix();
+    // @ts-ignore
+    camera._updatePixelViewport();
   }
 
   /**

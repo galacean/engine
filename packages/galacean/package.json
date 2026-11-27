@@ -40,6 +40,9 @@
   "repository": {
     "url": "https://github.com/galacean/engine"
   },
+  "devDependencies": {
+    "@webgpu/types": "^0.1.71"
+  },
   "dependencies": {
     "@galacean/engine-core": "workspace:*",
     "@galacean/engine-loader": "workspace:*",

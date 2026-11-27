@@ -1,5 +1,4 @@
 import {
-  BoundingBox,
   CharRenderInfo,
   Engine,
   Entity,
@@ -16,9 +15,9 @@ import {
   TextUtils,
   TextVerticalAlignment,
   Texture2D,
-  Vector3,
   ignoreClone
-} from "@galacean/engine";
+} from "@galacean/engine-core";
+import { BoundingBox, Vector3 } from "@galacean/engine-math";
 import { CanvasRenderMode } from "../../enums/CanvasRenderMode";
 import { RootCanvasModifyFlags } from "../UICanvas";
 import { UIRenderer, UIRendererUpdateFlags } from "../UIRenderer";

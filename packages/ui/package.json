@@ -21,7 +21,8 @@
   "umd": {
     "name": "Galacean.UI",
     "globals": {
-      "@galacean/engine": "Galacean"
+      "@galacean/engine-core": "Galacean",
+      "@galacean/engine-math": "Galacean"
     }
   },
   "files": [
@@ -29,10 +30,8 @@
     "libs/**/*",
     "types/**/*"
   ],
-  "devDependencies": {
-    "@galacean/engine": "workspace:*"
-  },
-  "peerDependencies": {
-    "@galacean/engine": "workspace:*"
+  "dependencies": {
+    "@galacean/engine-core": "workspace:*",
+    "@galacean/engine-math": "workspace:*"
   }
 }

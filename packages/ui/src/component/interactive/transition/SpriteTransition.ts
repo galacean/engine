@@ -1,4 +1,4 @@
-import { Sprite } from "@galacean/engine";
+import { Sprite } from "@galacean/engine-core";
 import { Image } from "../../advanced/Image";
 import { Transition } from "./Transition";
 

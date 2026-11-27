@@ -9,7 +9,7 @@ import {
   Skeleton,
   SkeletonClipping
 } from "@esotericsoftware/spine-core";
-import type { Texture2D } from "@galacean/engine";
+import type { Texture2D } from "@galacean/engine-core";
 import { SpineTexture } from "./SpineTexture";
 
 /**

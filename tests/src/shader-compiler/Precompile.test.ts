@@ -997,7 +997,7 @@ describe("ShaderCompiler Precompile", async () => {
       }
     });
 
-    it("simple shader (noFragArgs) keeps one text instruction", async () => {
+    it("a simple shader keeps text instructions and isolates its vertex uniform declaration", async () => {
       const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
       const precompiled = shaderPrecompiler.precompile(source, ShaderLanguage.GLSLES300);
 
@@ -1005,10 +1005,12 @@ describe("ShaderCompiler Precompile", async () => {
         for (const pass of subShader.passes) {
           if (pass.isUsePass) continue;
           for (const instructions of [pass.vertexShaderInstructions!, pass.fragmentShaderInstructions!]) {
-            expect(instructions).toHaveLength(1);
-            expect(instructions[0][0]).toBe(ShaderPreprocessorDirective.Text);
+            expect(instructions.every(([directive]) => directive === ShaderPreprocessorDirective.Text)).toBe(true);
             expect(ShaderMacroProcessor.evaluate(instructions, new Map())).toMatch(/void\s+main\s*\(/);
           }
+          expect(pass.fragmentShaderInstructions).toHaveLength(1);
+          const matrix = pass.uniformPlan!.vertex.find((site) => site.name === "renderer_MVPMat")!;
+          expect(pass.vertexShaderInstructions![matrix.instruction][1]).toMatch(/^uniform mat4 renderer_MVPMat;$/);
         }
       }
     });

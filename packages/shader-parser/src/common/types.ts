@@ -144,6 +144,11 @@ export type GalaceanDataType =
   | Keyword.U_SAMPLER3D
   | Keyword.U_SAMPLER_CUBE
   | Keyword.U_SAMPLER2D_ARRAY
+  | Keyword.IMAGE2D
+  | Keyword.I_IMAGE2D
+  | Keyword.U_IMAGE2D
+  | Keyword.ATOMIC_UINT
+  | Keyword.ATOMIC_INT
   | Keyword.VEC4_ARRAY
   | typeof TypeAny
   | string;

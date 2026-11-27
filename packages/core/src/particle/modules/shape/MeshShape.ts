@@ -2,7 +2,7 @@ import { Rand, Vector3, Vector4 } from "@galacean/engine-math";
 import { TypedArray } from "../../../base";
 import { ignoreClone } from "../../../clone/CloneDecorators";
 import type { ICloneHook } from "../../../clone/ICloneHook";
-import { VertexElement } from "../../../graphic";
+import type { Buffer, VertexElement } from "../../../graphic";
 import { MeshModifyFlags } from "../../../graphic/Mesh";
 import { ModelMesh, VertexAttribute } from "../../../mesh";
 import { BaseShape } from "./BaseShape";
@@ -24,6 +24,28 @@ export class MeshShape extends BaseShape implements ICloneHook<MeshShape> {
   private _positionElementInfo = new Vector4(); // x:offset, y:stride, z:isNormalized, w:normalizedScaleFactor
   @ignoreClone
   private _normalElementInfo = new Vector4(); // x:offset, y:stride, z:isNormalized, w:normalizedScaleFactor
+
+  @ignoreClone
+  private _revision = 0;
+  @ignoreClone
+  private _pending?: Promise<void>;
+  @ignoreClone
+  private _readError?: Error;
+
+  /** Resolve once the shape can sample this mesh, including GPU-only vertex buffers. */
+  prepare(): Promise<void> {
+    const pending = this._pending;
+    return Promise.resolve(pending).then(() => {
+      if (pending !== this._pending) return this.prepare();
+      if (this._readError) throw this._readError;
+    });
+  }
+
+  /** @internal */
+  get _ready(): boolean {
+    if (this._readError) throw this._readError;
+    return !!this._positionBuffer && !!this._normalBuffer;
+  }
 
   /**
    * Mesh to emit particles from.
@@ -103,74 +125,60 @@ export class MeshShape extends BaseShape implements ICloneHook<MeshShape> {
     bounds.max.copyTo(outMax);
   }
 
-  private _getAttributeBuffer(
-    mesh: ModelMesh,
-    vertexElement: VertexElement,
-    reusePositionBuffer: boolean,
-    outVertexElementInfo: Vector4
-  ): TypedArray | null {
-    const vertexBufferBinding = mesh.vertexBufferBindings[vertexElement.bindingIndex];
-    const formatMetaInfo = vertexElement._formatMetaInfo;
-
-    let typedBuffer: TypedArray | null;
-    if (reusePositionBuffer) {
-      typedBuffer = this._positionBuffer;
-    } else {
-      const buffer = vertexBufferBinding?.buffer;
-      if (!buffer) {
-        throw `${vertexElement.attribute} buffer not found.`;
-      }
-
-      if (buffer.readable) {
-        // If buffer is readable, we can get the data directly
-        typedBuffer = mesh._getVertexTypedArray(buffer.data!.buffer, formatMetaInfo.type)!;
-      } else {
-        // Must read from GPU
-        const unit8Buffer = new Uint8Array(buffer.byteLength);
-        typedBuffer = mesh._getVertexTypedArray(unit8Buffer.buffer, formatMetaInfo.type)!;
-        buffer.getData(typedBuffer);
-      }
-    }
-
-    outVertexElementInfo.set(
-      vertexElement.offset / typedBuffer!.BYTES_PER_ELEMENT,
-      vertexBufferBinding!.stride / typedBuffer!.BYTES_PER_ELEMENT,
-      formatMetaInfo.normalized ? 1 : 0,
-      formatMetaInfo.normalizedScaleFactor
+  private _setAttribute(mesh: ModelMesh, element: VertexElement, bytes: Uint8Array, info: Vector4): TypedArray {
+    const format = element._formatMetaInfo;
+    const view = mesh._getVertexTypedArray(bytes.buffer, format.type, bytes.byteOffset, bytes.byteLength);
+    if (!view) throw new Error("Unsupported mesh emission attribute format for " + element.attribute);
+    const unit = view.BYTES_PER_ELEMENT;
+    info.set(
+      element.offset / unit,
+      mesh.vertexBufferBindings[element.bindingIndex]!.stride / unit,
+      format.normalized ? 1 : 0,
+      format.normalizedScaleFactor
     );
-
-    return typedBuffer;
+    return view;
   }
 
   @ignoreClone
-  private _onMeshChanged(type: MeshModifyFlags): void {
-    if (type & MeshModifyFlags.VertexElements) {
-      const mesh = this._mesh!;
-      if (mesh) {
-        const positionElement = mesh.getVertexElement(VertexAttribute.Position);
-        const normalElement = mesh.getVertexElement(VertexAttribute.Normal);
-
-        if (!positionElement || !normalElement) {
-          throw `Mesh must have both ${VertexAttribute.Position} and ${VertexAttribute.Normal} attribute.`;
-        }
-
-        this._positionBuffer = this._getAttributeBuffer(mesh, positionElement, false, this._positionElementInfo);
-        // If the position and normal use the same buffer, we can reuse the position buffer
-        const reusePositionBuffer = positionElement.bindingIndex === normalElement.bindingIndex;
-        this._normalBuffer = this._getAttributeBuffer(
-          mesh,
-          normalElement,
-          reusePositionBuffer,
-          this._normalElementInfo
-        );
-      } else {
-        this._positionElementInfo.set(-1, -1, -1, -1);
-        this._positionBuffer = null;
-        this._normalElementInfo.set(-1, -1, -1, -1);
-        this._normalBuffer = null;
-      }
+  private _onMeshChanged = (type: MeshModifyFlags): void => {
+    if (!(type & MeshModifyFlags.VertexElements)) return;
+    const revision = ++this._revision;
+    this._positionBuffer = this._normalBuffer = null;
+    this._pending = this._readError = undefined;
+    const mesh = this._mesh;
+    if (!mesh) return;
+    const position = mesh.getVertexElement(VertexAttribute.Position);
+    const normal = mesh.getVertexElement(VertexAttribute.Normal);
+    if (!position || !normal) throw new Error("Mesh must have both POSITION and NORMAL attributes.");
+    const bindings = mesh.vertexBufferBindings;
+    const posBuffer = bindings[position.bindingIndex]?.buffer;
+    const normalBuffer = bindings[normal.bindingIndex]?.buffer;
+    if (!posBuffer || !normalBuffer) throw new Error("Mesh emission attributes require bound vertex buffers.");
+    const pending: Promise<void>[] = [];
+    const read = (buffer: Buffer): Uint8Array => {
+      const source = buffer._getVertexSource();
+      if (source) return source;
+      const bytes = new Uint8Array(buffer.byteLength);
+      pending.push(buffer.getDataAsync(bytes));
+      return bytes;
+    };
+    const posBytes = read(posBuffer);
+    const normalBytes = posBuffer === normalBuffer ? posBytes : read(normalBuffer);
+    const apply = () => {
+      if (revision !== this._revision) return;
+      this._positionBuffer = this._setAttribute(mesh, position, posBytes, this._positionElementInfo);
+      this._normalBuffer = this._setAttribute(mesh, normal, normalBytes, this._normalElementInfo);
+    };
+    if (pending.length) {
+      this._pending = Promise.all(pending)
+        .then(apply)
+        .catch((error) => {
+          if (revision === this._revision) this._readError = error instanceof Error ? error : new Error(String(error));
+        });
+    } else {
+      apply();
     }
-  }
+  };
 
   /**
    * @internal

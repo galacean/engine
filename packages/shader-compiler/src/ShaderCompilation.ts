@@ -1,5 +1,10 @@
 import { Logger, ShaderLanguage } from "@galacean/engine-core";
-import type { IRenderStates, IShaderSource } from "@galacean/engine-design";
+import type {
+  IComputeProgramSource,
+  IRenderStates,
+  IShaderSource,
+  IWebGPUShaderCompiler
+} from "@galacean/engine-design";
 import type { IShaderProgramSource } from "@galacean/engine-design/types/shader-compiler/IShaderProgramSource";
 import { Color } from "@galacean/engine-math";
 import {
@@ -36,7 +41,7 @@ export function requireValidShaderSource(result: ShaderSourceParseResult): IShad
  * @param parsed - Neutral parser output.
  * @param vertexEntry - Vertex entry name.
  * @param fragmentEntry - Fragment entry name.
- * @param backend - Target GLES language.
+ * @param backend - Target shader language.
  * @param coreInfo - Optional stage facts already derived from this exact parser result.
  * @returns Generated program, or `undefined` when parser or entry admission fails.
  * @internal
@@ -46,7 +51,9 @@ export function generateParsedShaderPassData(
   vertexEntry: string,
   fragmentEntry: string,
   backend: ShaderLanguage,
-  coreInfo?: ShaderCoreInfo
+  coreInfo?: ShaderCoreInfo,
+  webgpu?: IWebGPUShaderCompiler,
+  requireDefaultVariant = true
 ): IShaderProgramSource | undefined {
   if (parsed.blockingErrors.length) {
     for (const error of parsed.blockingErrors) Logger.error(error.toString());
@@ -54,7 +61,126 @@ export function generateParsedShaderPassData(
   }
   if (!parsed.ir) return undefined;
   const resolvedCoreInfo = coreInfo ?? ShaderCoreInfo.create(parsed.ir, vertexEntry, fragmentEntry);
+  if (backend === ShaderLanguage.WGSL) {
+    if (!webgpu?.generateWGSL) {
+      throw new Error("WGSL compilation requires a backend from createWebGPUShaderCompiler().");
+    }
+    return generateWGSLShaderProgram(
+      parsed.ir,
+      resolvedCoreInfo,
+      parsed.preprocessorExpressions,
+      webgpu,
+      requireDefaultVariant
+    );
+  }
   return generateShaderProgram(parsed.ir, resolvedCoreInfo, backend, parsed.preprocessorExpressions);
+}
+
+/**
+ * Generates one WebGPU compute kernel from a parser-owned single-AST IR (WebGPU-only).
+ * @internal
+ */
+export function generateParsedComputeKernelData(
+  parsed: ParsedShaderPassData,
+  computeEntry: string,
+  workgroupSize: readonly [number, number, number],
+  webgpu?: IWebGPUShaderCompiler,
+  requireDefaultVariant = false
+): IComputeProgramSource | undefined {
+  if (parsed.blockingErrors.length) {
+    for (const error of parsed.blockingErrors) Logger.error(error.toString());
+    return undefined;
+  }
+  if (!parsed.ir) return undefined;
+  if (!webgpu?.generateWGSLCompute || !webgpu?.compileWebGPUComputeVariant) {
+    throw new Error("ComputeShader compilation requires a backend from createWebGPUShaderCompiler().");
+  }
+  const coreInfo = ShaderCoreInfo.createCompute(parsed.ir, computeEntry);
+  if (!coreInfo.computeEntry?.functions.length) {
+    Logger.error(`Compute entry function '${computeEntry}' not found.`);
+    return undefined;
+  }
+  if (coreInfo.computeEntry.hasDefiniteAmbiguity) {
+    Logger.error(`Compute entry function '${computeEntry}' resolves to multiple declarations.`);
+    return undefined;
+  }
+  const result = webgpu.generateWGSLCompute(parsed.ir, coreInfo, workgroupSize);
+  if (!result) return undefined;
+  result.wgslComputeInstructions = ShaderInstructionEncoder.parse(result.compute, parsed.preprocessorExpressions);
+  if (requireDefaultVariant) {
+    const wgsl = webgpu.compileWebGPUComputeVariant(result.compute, {
+      uniformBlocks: result.uniformBlocks,
+      workgroupSize
+    });
+    result.wgsl = wgsl;
+    result.compute = wgsl.compute;
+  } else {
+    try {
+      const wgsl = webgpu.compileWebGPUComputeVariant(result.compute, {
+        uniformBlocks: result.uniformBlocks,
+        workgroupSize
+      });
+      result.wgsl = wgsl;
+      result.compute = wgsl.compute;
+    } catch {
+      // Runtime ComputeShader sources may require macros before linking.
+    }
+  }
+  return result;
+}
+
+function validateStageEntries(coreInfo: ShaderCoreInfo): boolean {
+  if (!coreInfo.vertexEntry.functions.length) {
+    Logger.error(`Vertex entry function '${coreInfo.vertexEntry.name}' not found.`);
+    return false;
+  }
+  if (!coreInfo.fragmentEntry.functions.length) {
+    Logger.error(`Fragment entry function '${coreInfo.fragmentEntry.name}' not found.`);
+    return false;
+  }
+  if (coreInfo.vertexEntry.hasDefiniteAmbiguity) {
+    Logger.error(`Vertex entry function '${coreInfo.vertexEntry.name}' resolves to multiple declarations.`);
+    return false;
+  }
+  if (coreInfo.fragmentEntry.hasDefiniteAmbiguity) {
+    Logger.error(`Fragment entry function '${coreInfo.fragmentEntry.name}' resolves to multiple declarations.`);
+    return false;
+  }
+  if (coreInfo.roleConflicts.length) {
+    Logger.error("A shader IO struct cannot serve multiple stage-interface roles.");
+    return false;
+  }
+  return true;
+}
+
+function generateWGSLShaderProgram(
+  ir: ShaderClueIR,
+  coreInfo: ShaderCoreInfo,
+  preprocessorExpressions: ParsedShaderPassData["preprocessorExpressions"],
+  webgpu: IWebGPUShaderCompiler,
+  requireDefaultVariant = true
+): IShaderProgramSource | undefined {
+  if (!validateStageEntries(coreInfo)) return undefined;
+  const result = webgpu.generateWGSL!(ir, coreInfo);
+  if (!result) return undefined;
+  result.wgslVertexInstructions = ShaderInstructionEncoder.parse(result.vertex, preprocessorExpressions);
+  result.wgslFragmentInstructions = ShaderInstructionEncoder.parse(result.fragment, preprocessorExpressions);
+  if (requireDefaultVariant) {
+    const wgsl = webgpu.compileDefaultVariant(result);
+    result.wgsl = wgsl;
+    result.vertex = wgsl.vertex;
+    result.fragment = wgsl.fragment;
+  } else {
+    try {
+      const wgsl = webgpu.compileDefaultVariant(result);
+      result.wgsl = wgsl;
+      result.vertex = wgsl.vertex;
+      result.fragment = wgsl.fragment;
+    } catch {
+      // Runtime ShaderLab sources may require renderer/material macros before linking.
+    }
+  }
+  return result;
 }
 
 function generateShaderProgram(
@@ -63,30 +189,26 @@ function generateShaderProgram(
   backend: ShaderLanguage,
   preprocessorExpressions: ParsedShaderPassData["preprocessorExpressions"]
 ): IShaderProgramSource | undefined {
-  if (!coreInfo.vertexEntry.functions.length) {
-    Logger.error(`Vertex entry function '${coreInfo.vertexEntry.name}' not found.`);
-    return undefined;
-  }
-  if (!coreInfo.fragmentEntry.functions.length) {
-    Logger.error(`Fragment entry function '${coreInfo.fragmentEntry.name}' not found.`);
-    return undefined;
-  }
-  if (coreInfo.vertexEntry.hasDefiniteAmbiguity) {
-    Logger.error(`Vertex entry function '${coreInfo.vertexEntry.name}' resolves to multiple declarations.`);
-    return undefined;
-  }
-  if (coreInfo.fragmentEntry.hasDefiniteAmbiguity) {
-    Logger.error(`Fragment entry function '${coreInfo.fragmentEntry.name}' resolves to multiple declarations.`);
-    return undefined;
-  }
-  if (coreInfo.roleConflicts.length) {
-    Logger.error("A shader IO struct cannot serve multiple stage-interface roles.");
-    return undefined;
-  }
+  if (!validateStageEntries(coreInfo)) return undefined;
   const result = GLESBackend.generate(ir, coreInfo, backend);
   if (result) {
-    result.vertexShaderInstructions = ShaderInstructionEncoder.parse(result.vertex, preprocessorExpressions);
-    result.fragmentShaderInstructions = ShaderInstructionEncoder.parse(result.fragment, preprocessorExpressions);
+    result.vertexShaderInstructions = ShaderInstructionEncoder.parse(
+      result.vertex,
+      preprocessorExpressions,
+      result.uniformPlan?.vertex
+    );
+    result.fragmentShaderInstructions = ShaderInstructionEncoder.parse(
+      result.fragment,
+      preprocessorExpressions,
+      result.uniformPlan?.fragment
+    );
+    if (
+      result.uniformPlan &&
+      (!ShaderInstructionEncoder.supportsUniformPlan(result.vertexShaderInstructions, result.uniformPlan.vertex) ||
+        !ShaderInstructionEncoder.supportsUniformPlan(result.fragmentShaderInstructions, result.uniformPlan.fragment))
+    ) {
+      delete result.uniformPlan;
+    }
     result.vertex = ShaderInstructionEncoder.source(result.vertex);
     result.fragment = ShaderInstructionEncoder.source(result.fragment);
   }

@@ -91,9 +91,16 @@ export class Background {
    */
   destroy(): void {
     this.texture = null;
-    this._mesh._addReferCount(-1);
+    const mesh = this._mesh;
+    const buffers = new Set(mesh.vertexBufferBindings.filter(Boolean).map((binding) => binding!.buffer));
+    const indexBuffer = mesh._primitive.indexBufferBinding?.buffer;
+    if (indexBuffer) buffers.add(indexBuffer);
+    mesh._addReferCount(-1);
+    mesh.destroy(true);
+    buffers.forEach((buffer) => buffer.destroy(true));
     this._mesh = null!;
     this._material._addReferCount(-1);
+    this._material.destroy(true);
     this._material = null!;
     this.sky.destroy();
   }
@@ -104,7 +111,7 @@ export class Background {
    */
   constructor(private _engine: Engine) {
     this._initMesh(_engine);
-    this._initMaterial(_engine, Engine._builtinShaders.backgroundTexture);
+    this._initMaterial(_engine, _engine._builtinShaders.backgroundTexture);
   }
 
   /**
@@ -169,7 +176,7 @@ export class Background {
 
   private _createPlane(engine: Engine): ModelMesh {
     const mesh = new ModelMesh(engine);
-    const indices = new Uint8Array([1, 2, 0, 1, 3, 2]);
+    const indices = new Uint16Array([1, 2, 0, 1, 3, 2]);
 
     const positions: Vector3[] = new Array(4);
     const uvs: Vector2[] = new Array(4);

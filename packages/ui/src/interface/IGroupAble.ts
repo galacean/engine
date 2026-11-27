@@ -1,4 +1,4 @@
-import { Entity } from "@galacean/engine";
+import { Entity } from "@galacean/engine-core";
 import { GroupModifyFlags, UIGroup } from "../component/UIGroup";
 import { IElement } from "./IElement";
 

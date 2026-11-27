@@ -115,6 +115,24 @@ export class DisorderedArray<T> {
     this._endLoop(swapFn);
   }
 
+  /** Iterate with an invocation-local argument, including during nested dispatch. @internal */
+  _forEachWithContext<C>(
+    context: C,
+    visit: (element: T, context: C) => void,
+    swap: (element: T, index: number) => void
+  ): void {
+    this._startLoop();
+    try {
+      const elements = this._elements;
+      for (let i = 0, n = this.length; i < n; i++) {
+        const element = elements[i];
+        if (element) visit(element, context);
+      }
+    } finally {
+      this._endLoop(swap);
+    }
+  }
+
   /**
    * Loop through all elements and clean up the blank elements.
    * @param callbackFn - The callback function

@@ -392,7 +392,7 @@ vec3 envBRDFApprox(vec3 f0, float f90, float roughness, float dotNV ) {
 
         // We calculate the screen space position of the refracted point
         vec4 samplingPositionNDC = camera_ProjMat * camera_ViewMat * vec4( refractedRayExit, 1.0 );
-        vec2 refractionCoords = (samplingPositionNDC.xy / samplingPositionNDC.w) * 0.5 + 0.5;
+        vec2 refractionCoords = cameraTextureUV(samplingPositionNDC);
 
         // Sample the opaque texture to get the transmitted light
         vec3 refractionTransmitted = texture2D(camera_OpaqueTexture, refractionCoords).rgb;
@@ -464,7 +464,7 @@ void initBSDFData(SurfaceData surfaceData, out BSDFData bsdfData){
     bsdfData.diffuseAO = surfaceData.ambientOcclusion;
 
     #ifdef SCENE_ENABLE_AMBIENT_OCCLUSION
-        float ambientAO = evaluateAmbientOcclusion((surfaceData.positionCS.xy / surfaceData.positionCS.w) * 0.5 + 0.5);
+        float ambientAO = evaluateAmbientOcclusion(cameraTextureUV(surfaceData.positionCS));
         bsdfData.diffuseAO = min(bsdfData.diffuseAO, ambientAO);
     #endif
 

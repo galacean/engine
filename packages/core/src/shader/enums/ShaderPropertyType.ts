@@ -26,5 +26,7 @@ export enum ShaderPropertyType {
   /** Int array type. */
   IntArray = 0x200,
   /** Texture array type. */
-  TextureArray = 0x400
+  TextureArray = 0x400,
+  /** Storage/GPU buffer type (WebGPU). */
+  Buffer = 0x800
 }

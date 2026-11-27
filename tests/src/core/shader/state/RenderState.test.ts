@@ -3,6 +3,7 @@ import {
   CompareFunction,
   CullMode,
   Material,
+  RenderState,
   RenderStateElementKey,
   Shader,
   ShaderData,
@@ -17,6 +18,7 @@ import { DepthState } from "@galacean/engine-core/src/shader/state/DepthState";
 import { RasterState } from "@galacean/engine-core/src/shader/state/RasterState";
 import { StencilState } from "@galacean/engine-core/src/shader/state/StencilState";
 import { WebGLEngine } from "@galacean/engine";
+import { Color } from "@galacean/engine-math";
 import { beforeAll, describe, expect, it } from "vitest";
 
 /**
@@ -41,6 +43,54 @@ describe("RenderState per-property priority", () => {
   });
 
   const createShaderData = () => new Material(engine, Shader.find("BlinnPhong")).shaderData;
+
+  it("refreshes cached material state after assignment, in-place color edits and cloning", () => {
+    const state = new RenderState();
+    const first = createShaderData();
+    const second = createShaderData();
+    const cull = ShaderProperty.getByName("test_CachedCull");
+    const tint = ShaderProperty.getByName("test_CachedBlendColor");
+    const variables = {
+      [RenderStateElementKey.RasterStateCullMode]: cull,
+      [RenderStateElementKey.BlendStateBlendColor]: tint
+    };
+    first.setInt(cull, CullMode.Front);
+    first.setColor(tint, new Color(1, 0, 0, 1));
+    expect(state._resolve(engine, variables, first).rasterState.cullMode).toBe(CullMode.Front);
+    expect(state._resolve(engine, variables, second).rasterState.cullMode).toBe(CullMode.Back);
+    first.getColor(tint).g = 0.5;
+    expect(state._resolve(engine, variables, first).blendState.blendColor.g).toBe(0.5);
+    first.setInt(cull, CullMode.Off);
+    expect(state._resolve(engine, variables, first).rasterState.cullMode).toBe(CullMode.Off);
+    second.cloneTo(first);
+    const cloned = state._resolve(engine, variables, first);
+    expect(cloned.rasterState.cullMode).toBe(CullMode.Back);
+    expect(cloned.blendState.blendColor.g).toBe(0);
+  });
+
+  it("keeps authored constants live while isolating render-element and shadow overrides", () => {
+    const state = new RenderState();
+    const data = createShaderData();
+    const element = new ShaderData(ShaderDataGroup.RenderElement);
+    const input = ShaderProperty.getByName("test_ElementBlendFactor");
+    const variables = { [RenderStateElementKey.BlendStateSourceColorBlendFactor0]: input };
+    element.setInt(input, BlendFactor.SourceAlpha);
+    const resolved = state._resolve(engine, variables, data, element);
+    expect(resolved.blendState.targetBlendState.sourceColorBlendFactor).toBe(BlendFactor.SourceAlpha);
+    expect(state.blendState.targetBlendState.sourceColorBlendFactor).toBe(BlendFactor.One);
+    state.blendState.targetBlendState.colorWriteMask = 0;
+    state.rasterState.depthBias = 3;
+    engine._renderContext.shadowDepthBias = true;
+    try {
+      const shadow = state._resolve(engine, variables, data);
+      expect(shadow.rasterState.depthBias).toBe(1);
+      expect(shadow.blendState.targetBlendState.colorWriteMask).toBe(0);
+      expect(shadow.blendState.targetBlendState.sourceColorBlendFactor).toBe(BlendFactor.One);
+    } finally {
+      engine._renderContext.shadowDepthBias = false;
+    }
+    expect(state._resolve(engine, variables, data).rasterState.depthBias).toBe(3);
+  });
 
   describe("BlendState", () => {
     it("resolves material and batch variables independently without leaking a prior batch into fixed states", () => {

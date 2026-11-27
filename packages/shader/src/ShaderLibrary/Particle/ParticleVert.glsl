@@ -27,14 +27,15 @@ vec3 renderer_PositionScale;
 vec3 renderer_SizeScale;
 vec3 renderer_PivotOffset;
 
-mat4 camera_ViewMat;
-mat4 camera_ProjMat;
-
+uniform Camera {
+    mat4 camera_ViewMat;
+    mat4 camera_ProjMat;
+    vec3 camera_Forward;
+    vec3 camera_Up;
+};
 #ifdef RENDERER_MODE_STRETCHED_BILLBOARD
     vec3 camera_Position;
 #endif
-vec3 camera_Forward;
-vec3 camera_Up;
 
 float renderer_StretchedBillboardLengthScale;
 float renderer_StretchedBillboardSpeedScale;
@@ -75,7 +76,7 @@ struct Attributes {
 
     #ifdef RENDERER_TRANSFORM_FEEDBACK
         vec3 a_FeedbackPosition;
-        #ifdef RENDERER_MODE_STRETCHED_BILLBOARD
+        #if defined(RENDERER_MODE_STRETCHED_BILLBOARD) || defined(PARTICLE_NEED_FEEDBACK_VELOCITY)
             vec3 a_FeedbackVelocity;
         #endif
     #endif
@@ -116,6 +117,8 @@ struct Varyings {
 #include "ShaderLibrary/Particle/ParticleCommon.glsl"
 #if !defined(RENDERER_TRANSFORM_FEEDBACK) || defined(RENDERER_MODE_STRETCHED_BILLBOARD)
     #include "ShaderLibrary/Particle/Module/InheritVelocity.glsl"
+#endif
+#if !defined(RENDERER_TRANSFORM_FEEDBACK) || defined(RENDERER_MODE_STRETCHED_BILLBOARD) || defined(PARTICLE_NEED_FEEDBACK_VELOCITY)
     #include "ShaderLibrary/Particle/Module/VelocityOverLifetime.glsl"
 #endif
 #ifndef RENDERER_TRANSFORM_FEEDBACK

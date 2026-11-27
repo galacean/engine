@@ -7,5 +7,7 @@ export enum BufferBindFlag {
   /** Index buffer binding flag. */
   IndexBuffer,
   /** Constant buffer binding flag. */
-  ConstantBuffer
+  ConstantBuffer,
+  /** Storage buffer shared by compute and rendering commands. */
+  StorageBuffer
 }

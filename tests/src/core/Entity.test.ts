@@ -800,7 +800,12 @@ describe("Entity", async () => {
 
       expect(() => {
         A.isActive = false;
-      }).toThrow();
+      }).toThrow("Cannot detach an Entity while its active state is changing");
+      expect(A.parent).toBe(root);
+      expect(A.scene).toBe(scene);
+      A.isActive = true;
+      expect(A.isActiveInHierarchy).toBe(true);
+      expect(B.isActiveInHierarchy).toBe(true);
     });
 
     it("should not crash when setting sibling isActive=false during onDisable", () => {

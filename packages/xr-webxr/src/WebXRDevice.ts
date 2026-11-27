@@ -1,7 +1,8 @@
-import { WebGLGraphicDevice } from "@galacean/engine";
+import { RHIBackend, type WebGLGraphicDevice } from "@galacean/engine";
 import { IXRDevice } from "@galacean/engine-design";
 import { XRFeatureType, XRSessionMode } from "@galacean/engine-xr";
 import { parseXRMode } from "./Util";
+import { getXRGPUBinding, type XRProjectionDevice } from "./WebXRProjection";
 import { WebXRSession } from "./WebXRSession";
 import { WebXRFeature } from "./feature/WebXRFeature";
 
@@ -45,53 +46,82 @@ export class WebXRDevice implements IXRDevice {
     return platformFeatureConstructor ? new platformFeatureConstructor(...args) : null;
   }
 
-  requestSession(rhi: unknown, mode: XRSessionMode, platformFeatures: WebXRFeature[]): Promise<WebXRSession> {
-    if (!(rhi instanceof WebGLGraphicDevice)) {
-      return Promise.reject(new Error("WebXR requires a WebGL graphics device."));
+  requestSession(
+    graphicsDevice: unknown,
+    mode: XRSessionMode,
+    platformFeatures: WebXRFeature[]
+  ): Promise<WebXRSession> {
+    const rhi = graphicsDevice as WebGLGraphicDevice | XRProjectionDevice | null;
+    const gpu = rhi?.backend === RHIBackend.WebGPU;
+    const Binding = getXRGPUBinding();
+    if (gpu && !Binding)
+      return Promise.reject(new Error("WebXR with WebGPU requires browser support for XRGPUBinding."));
+    if (!rhi || (!gpu && rhi.backend !== RHIBackend.WebGL2))
+      return Promise.reject(new Error("WebXR requires a WebGL2 or WebGPU graphics device."));
+    const options: XRSessionInit = { requiredFeatures: gpu ? ["local", "webgpu"] : ["local"], optionalFeatures: [] };
+    const featuresReady = new Promise<void[]>((resolve) => {
+      resolve(Promise.all(platformFeatures.map((feature) => feature._assembleOptions(options))));
+    });
+    return featuresReady
+      .then(() =>
+        navigator.xr!.requestSession(parseXRMode(mode)!, options).catch((error) => {
+          if (gpu && error?.name === "NotSupportedError")
+            throw new Error("The XR runtime does not support the required WebGPU session feature.");
+          throw error;
+        })
+      )
+      .then((session) =>
+        Promise.resolve()
+          .then(() => this._createSession(rhi, session, Binding))
+          .catch((error) =>
+            session
+              .end()
+              .catch(() => {})
+              .then(() => {
+                throw error;
+              })
+          )
+      );
+  }
+
+  private _createSession(
+    rhi: WebGLGraphicDevice | XRProjectionDevice,
+    session: XRSession,
+    Binding: ReturnType<typeof getXRGPUBinding>
+  ): Promise<WebXRSession> {
+    if (rhi.backend === RHIBackend.WebGPU) {
+      const binding = new Binding!(session, rhi.device);
+      const { depth, stencil } = rhi._options;
+      const layer = binding.createProjectionLayer({
+        colorFormat: binding.getPreferredColorFormat(),
+        depthStencilFormat: stencil ? "depth24plus-stencil8" : depth ? "depth24plus" : undefined,
+        // RENDER_ATTACHMENT | TEXTURE_BINDING | COPY_SRC allows overlay and opaque-copy passes to read the eye.
+        textureUsage: 0x10 | 0x04 | 0x01
+      });
+      session.updateRenderState({ layers: [layer] });
+      return session
+        .requestReferenceSpace("local")
+        .then((space) => new WebXRSession(rhi, session, layer, space, binding));
     }
-    return new Promise((resolve, reject) => {
-      const sessionMode = parseXRMode(mode)!;
-      const options: XRSessionInit = { requiredFeatures: ["local"], optionalFeatures: [] };
-      const promiseArr: Promise<void>[] = [];
-      for (let i = 0, n = platformFeatures.length; i < n; i++) {
-        const promise = platformFeatures[i]._assembleOptions(options);
-        promise && promiseArr.push(promise);
+    const { gl } = rhi;
+    const attributes = gl.getContextAttributes();
+    if (!attributes) throw new Error("WebXR could not access the WebGL2 context attributes.");
+    return gl.makeXRCompatible().then(() => {
+      let layer: XRWebGLLayer;
+      if (session.renderState.layers === undefined) {
+        layer = new XRWebGLLayer(session, gl, {
+          antialias: attributes.antialias,
+          alpha: true,
+          depth: attributes.depth,
+          stencil: attributes.stencil,
+          framebufferScaleFactor: XRWebGLLayer.getNativeFramebufferScaleFactor(session)
+        });
+        session.updateRenderState({ baseLayer: layer });
+      } else {
+        layer = new XRWebGLLayer(session, gl);
+        session.updateRenderState({ layers: [layer] });
       }
-      Promise.all(promiseArr).then(() => {
-        navigator.xr!.requestSession(sessionMode, options).then((session) => {
-          const { gl } = rhi;
-          const attributes = gl.getContextAttributes();
-          if (!attributes) {
-            reject(Error("GetContextAttributes Error!"));
-            return;
-          }
-          gl.makeXRCompatible().then(() => {
-            const scaleFactor = XRWebGLLayer.getNativeFramebufferScaleFactor(session);
-            let layer: XRWebGLLayer;
-            if (session.renderState.layers === undefined) {
-              const layerInit = {
-                antialias: attributes.antialias,
-                alpha: true,
-                depth: attributes.depth,
-                stencil: attributes.stencil,
-                framebufferScaleFactor: scaleFactor
-              };
-              layer = new XRWebGLLayer(session, gl, layerInit);
-              session.updateRenderState({
-                baseLayer: layer
-              });
-            } else {
-              layer = new XRWebGLLayer(session, gl);
-              session.updateRenderState({
-                layers: [layer]
-              });
-            }
-            session.requestReferenceSpace("local").then((referenceSpace: XRReferenceSpace) => {
-              resolve(new WebXRSession(rhi, session, layer, referenceSpace));
-            }, reject);
-          }, reject);
-        }, reject);
-      }, reject);
+      return session.requestReferenceSpace("local").then((space) => new WebXRSession(rhi, session, layer, space));
     });
   }
 }

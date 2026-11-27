@@ -43,7 +43,9 @@ export default class GrammarUtils {
     options: GrammarSymbol[][],
     analyzerType: ASTNodeConstructor
   ) {
-    return this._createProductionWithOptions(goal, options, undefined, analyzerType);
+    // Preserve typed AST nodes in both runtime and analyzer parses so multi-backend
+    // visitors (GLES300Visitor and WGSLVisitor) operate on one unified AST.
+    return this._createProductionWithOptions(goal, options, analyzerType, analyzerType);
   }
 
   private static _createProductionWithOptions(

@@ -1,0 +1,30 @@
+{
+ "default house": {
+  "count": 728,
+  "digest": "a2001b3f529f8b6659edb3771216c8344f73c3eb"
+ },
+ "flat roof": {
+  "count": 560,
+  "digest": "3806535338c89e52ebe5c5aa189e8e14645fc908"
+ },
+ "tall house": {
+  "count": 1680,
+  "digest": "1209d586d36ccc993693248fb3d9d21398cd8743"
+ },
+ "rotated house": {
+  "count": 884,
+  "digest": "60497d7d0d60520118aa795c4568139536df33a6"
+ },
+ "round tower": {
+  "count": 1366,
+  "digest": "d743a51bd40f3b7b469f0ae91a59e2e0a348fc88"
+ },
+ "steep roof": {
+  "count": 728,
+  "digest": "4d08ee4365bb692811901af80393faa19b729db6"
+ },
+ "house on hills": {
+  "count": 943,
+  "digest": "72ae06f6bb6340e8451b3ebbc327205c85636237"
+ }
+}

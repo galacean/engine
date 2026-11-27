@@ -1,0 +1,7 @@
+{
+  "schema": "galacean/procedural-tree-capability-gap-report-v1",
+  "parameterOnlyReconstruction": true,
+  "measuredGeometryUsedAtRuntime": false,
+  "passesTenPercent": true,
+  "missingCapabilities": []
+}

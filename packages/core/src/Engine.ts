@@ -1,8 +1,8 @@
+import { renderCamera, setCameraIndex } from "./ComponentDispatch";
 import { IInputOptions, IPhysics, IPhysicsManager, IShaderCompiler, IXRDevice } from "@galacean/engine-design";
 import { CharRenderInfo } from "./2d/text/CharRenderInfo";
 import { Font } from "./2d/text/Font";
 import { BasicResources } from "./BasicResources";
-import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
 import { EngineEventType } from "./EngineEventType";
 import { EngineSettings } from "./EngineSettings";
@@ -17,11 +17,14 @@ import { RenderingStatistics } from "./asset/RenderingStatistics";
 import { ResourceManager } from "./asset/ResourceManager";
 import { EngineObject, EventDispatcher, Logger, Time } from "./base";
 import { InputManager } from "./input";
+import { AudioManager } from "./audio/AudioManager";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
 import { ColliderShape } from "./physics/shape/ColliderShape";
 import { PostProcessPass } from "./postProcess/PostProcessPass";
 import { PostProcessUberPass } from "./postProcess/PostProcessUberPass";
 import { Shader } from "./shader/Shader";
+import type { GlobalUniformBlock } from "./shader/GlobalUniformBlock";
+import type { IWebGPUShaderCompiler } from "@galacean/engine-design";
 import type { BuiltinShaders } from "./shader/BuiltinShaders";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -29,7 +32,7 @@ import { ShaderProgramMap } from "./shader/ShaderProgramMap";
 import { ShaderFactory } from "./shader/ShaderFactory";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureFormat } from "./texture";
-import type { IHardwareRenderer } from "./renderingHardwareInterface";
+import { RHIBackend, type IHardwareRenderer } from "./renderingHardwareInterface";
 import { UIUtils } from "./ui/UIUtils";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
@@ -41,6 +44,13 @@ import { XRManager } from "./xr/XRManager";
 export class Engine extends EventDispatcher {
   /** @internal */
   static _builtinShaders: BuiltinShaders;
+  /** @internal Built-in shader assets selected by this engine's distribution. */
+  get _builtinShaders(): BuiltinShaders {
+    return this._configuredBuiltinShaders ?? Engine._builtinShaders;
+  }
+  private readonly _configuredBuiltinShaders?: BuiltinShaders;
+  /** @internal */
+  readonly _shaderCompiler?: IShaderCompiler;
 
   /** @internal */
   static _outputSRGBCorrectMacro = ShaderMacro.getByName("ENGINE_OUTPUT_SRGB_CORRECT");
@@ -77,10 +87,17 @@ export class Engine extends EventDispatcher {
   _nativePhysicsManager: IPhysicsManager;
   /** @internal */
   _hardwareRenderer: IHardwareRenderer;
+  /** @internal Shared by programs with identical global block layouts. */
+  _globalUniformBlocks?: Map<string, GlobalUniformBlock>;
+  /** @internal Reserved storage for bounded renderer uniform candidates and their GPU pages. */
+  _rendererUniformCacheBytes = 0;
   /** @internal */
   _renderTargetPool: RenderTargetPool;
   /** @internal */
   _lastRenderState: RenderState = new RenderState();
+  /** @internal Backend-specific specialization belongs to the device's engine. */
+  readonly _webGPUShaderCompiler?: IWebGPUShaderCompiler;
+  private _frameDepth = 0;
 
   /** @internal */
   _renderElementPool = new ClearableObjectPool(RenderElement);
@@ -198,7 +215,7 @@ export class Engine extends EventDispatcher {
 
   /**
    * The number of vertical synchronization means the number of vertical blanking for one frame.
-   * @remarks 0 means that the vertical synchronization is turned off. Hosts without animation-frame scheduling use `targetFrameRate`.
+   * @remarks 0 means that the vertical synchronization is turned off.
    */
   get vSyncCount(): number {
     return this._vSyncCount;
@@ -211,8 +228,8 @@ export class Engine extends EventDispatcher {
   /**
    * Set the target frame rate you want to achieve.
    * @remarks
-   * It takes effect when `vSyncCount = 0` or the host does not provide animation-frame scheduling.
-   * The larger the value, the higher the target frame rate, `Number.POSITIVE_INFINITY` represents the infinite target frame rate.
+   * It only takes effect when vSyncCount = 0 (ie, vertical synchronization is turned off).
+   * The larger the value, the higher the target frame rate, Number.POSITIVE_INFINITY represents the infinite target frame rate.
    */
   get targetFrameRate(): number {
     return this._targetFrameRate;
@@ -238,9 +255,17 @@ export class Engine extends EventDispatcher {
     return this._destroyed;
   }
 
+  /** The graphics backend actually rendering this engine. */
+  get graphicsBackend(): IHardwareRenderer["backend"] {
+    return this._hardwareRenderer.backend;
+  }
+
   protected constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, configuration: EngineConfiguration) {
     super();
     this._hardwareRenderer = hardwareRenderer;
+    this._webGPUShaderCompiler = configuration.webGPUShaderCompiler;
+    this._configuredBuiltinShaders = configuration.builtinShaders;
+    this._shaderCompiler = configuration.shaderCompiler;
     this._hardwareRenderer.init(canvas, this._onDeviceLost.bind(this), this._onDeviceRestored.bind(this));
 
     this._canvas = canvas;
@@ -263,7 +288,7 @@ export class Engine extends EventDispatcher {
     depthTexture2D.isGCIgnored = true;
     this._depthTexture2D = depthTexture2D;
 
-    this._basicResources = new BasicResources(this, Engine._builtinShaders);
+    this._basicResources = new BasicResources(this, this._builtinShaders);
     this._particleBufferUtils = new ParticleBufferUtils(this);
 
     const uberPass = new PostProcessUberPass(this);
@@ -371,10 +396,20 @@ export class Engine extends EventDispatcher {
       scene._componentsManager.callScriptOnLateUpdate(deltaTime);
     }
 
+    // Audio follows the final transforms after animation and late scripts.
+    AudioManager._update(this);
+
     // Render scene and fire `onBeginRender` and `onEndRender`
     if (!this._hardwareRenderer.isContextLost()) {
-      this._render(scenes);
+      this._beginFrame();
+      try {
+        this._render(scenes);
+      } finally {
+        this._endFrame();
+      }
     }
+
+    this._renderTargetPool.trim();
 
     // Process pending destroys
     this._processPendingDestroyObjects();
@@ -389,6 +424,17 @@ export class Engine extends EventDispatcher {
       this._gc();
       this._waitingGC = false;
     }
+  }
+
+  /** @internal All cameras, including nested captures, submit to the enclosing frame. */
+  _beginFrame(): void {
+    if (this._frameDepth === 0) this._hardwareRenderer.beginFrame();
+    ++this._frameDepth;
+  }
+
+  /** @internal */
+  _endFrame(): void {
+    if (--this._frameDepth === 0) this._hardwareRenderer.endFrame();
   }
 
   /**
@@ -500,7 +546,7 @@ export class Engine extends EventDispatcher {
 
     this.inputManager._destroy();
     this._batcherManager.destroy();
-    this._renderTargetPool.gc();
+    this._renderTargetPool.destroy();
     this.xrManager?._destroy();
     this.dispatch(EngineEventType.Shutdown, this);
 
@@ -571,31 +617,7 @@ export class Engine extends EventDispatcher {
       if (cameras.length === 0) {
         Logger.debug("No active camera in scene.");
       } else {
-        cameras.forEach(
-          (camera: Camera) => {
-            componentsManager.callCameraOnBeginRender(camera);
-
-            const { pixelViewport } = camera;
-            // `pixelViewport` width or height is `0` will cause internal render target create error and return can save performance
-            if (pixelViewport.width !== 0 && pixelViewport.height !== 0) {
-              // Update post process manager
-              scene.postProcessManager._update(camera);
-              camera.render();
-            } else {
-              Logger.warn("Camera pixelViewport width or height is 0.");
-            }
-
-            componentsManager.callCameraOnEndRender(camera);
-
-            // Temp solution for webgl implement bug
-            if (this._hardwareRenderer._options._forceFlush) {
-              this._hardwareRenderer.flush();
-            }
-          },
-          (camera: Camera, index: number) => {
-            camera._cameraIndex = index;
-          }
-        );
+        cameras._forEachWithContext(scene, renderCamera, setCameraIndex);
       }
 
       const uiCanvas = componentsManager._overlayCanvases;
@@ -623,14 +645,10 @@ export class Engine extends EventDispatcher {
   protected _initialize(configuration: EngineConfiguration): Promise<this> {
     const { shaderCompiler, physics } = configuration;
 
-    if (shaderCompiler && !Shader._shaderCompiler) {
-      // Bind the runtime include map so the preprocessor sees every chunk
-      // the umbrella package's ShaderPool registered into ShaderFactory.
-      // shader-compiler defaults to an empty map and stays free of any direct
-      // ShaderFactory dependency, so the binding has to be wired here at the
-      // runtime boundary.
-      shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
-      Shader._shaderCompiler = shaderCompiler;
+    if (shaderCompiler) {
+      shaderCompiler._setIncludeMap(ShaderFactory._getRuntimeIncludes(configuration.builtinShaderIncludes));
+      if (this._hardwareRenderer.backend !== RHIBackend.WebGPU || !Shader._shaderCompiler)
+        Shader._shaderCompiler = shaderCompiler;
     }
 
     const initializePromises: (Promise<unknown> | void)[] = [];
@@ -675,6 +693,10 @@ export class Engine extends EventDispatcher {
 
   private _onDeviceLost(): void {
     this._isDeviceLost = true;
+    // Release programs and their shared uniform buffers while their context is lost.
+    // Deleting those handles after restoration targets the newly created context.
+    Shader._clear(this);
+    this._shaderProgramMaps.length = 0;
     // Lose graphic resources
     this.resourceManager._lostGraphicResources();
     this._renderingStatistics._reset();
@@ -685,7 +707,7 @@ export class Engine extends EventDispatcher {
   private _onDeviceRestored(): void {
     this._hardwareRenderer.resetState();
     this._lastRenderState = new RenderState();
-    // Clear shader program maps
+    // Discard any programs requested while the device was unavailable.
     Shader._clear(this);
     this._shaderProgramMaps.length = 0;
 
@@ -730,6 +752,12 @@ export class Engine extends EventDispatcher {
  * Engine configuration.
  */
 export interface EngineConfiguration {
+  /** @internal Built-in include sources selected by the engine distribution. */
+  builtinShaderIncludes?: readonly { path: string; source: string }[];
+  /** Built-in shader assets supplied by the engine distribution. */
+  builtinShaders?: BuiltinShaders;
+  /** Optional WebGPU shader specialization supported by this engine's device. */
+  webGPUShaderCompiler?: IWebGPUShaderCompiler;
   /** Physics. */
   physics?: IPhysics;
   /** XR Device. */

@@ -1,0 +1,188 @@
+import { RHIBackend, type Engine } from "@galacean/engine";
+import { simplifySpirvNoise } from "./SimplifySpirvNoise";
+import { flattenShaderSource, optimizeStorageReads } from "./OptimizeStorageReads";
+
+/** Adapt the recovered ES shader's read-only std140 blocks to engine-managed
+ * integer textures. All field offsets follow std140; unsupported declarations
+ * reject instead of guessing. Original deformation/clipping expressions remain.
+ */
+export interface UniformTextureBlock {
+  name: string;
+  sampler: string;
+  byteLength: number;
+}
+interface Field {
+  type: string;
+  name: string;
+  rowMajor: boolean;
+}
+interface Layout {
+  align: number;
+  size: number;
+  fields?: Array<Field & { offset: number }>;
+}
+export function engineShaderSource(source: string, backend: Engine["graphicsBackend"] = RHIBackend.WebGL2) {
+  source = simplifySpirvNoise(source);
+  source = optimizeStorageReads(source);
+  // EngineResidentScene publishes the ordinary column-vector camera transform
+  // (encoded as std140 row-major bytes). Storage order does not change the
+  // multiplication convention: the recovered shaders use row-vector eye reads,
+  // whereas our wood-cut shaders already use column-vector reads. Normalize the
+  // recovered reads here, at the Engine ABI boundary, for BOTH shader stages.
+  source = source.replaceAll(
+    "vec4(0.0, 0.0, 0.0, 1.0) * current_view.view_to_world",
+    "current_view.view_to_world * vec4(0.0, 0.0, 0.0, 1.0)"
+  );
+  // Share the compiler's local spatial domain with every recovered roof material.
+  // Only address lookup changes; Hole48 and the native cubic predicate do not.
+  const cell = /\((v0|world)\.xz\s*\+\s*vec2\(65\.0\)\)\s*\*\s*vec2\(0\.1153846085071563720703125\)/g;
+  const adapted = source.replace(cell, "(($1.xz - renderer_DormerGrid.xy) * renderer_DormerGrid.zw)");
+  const dormerUniform = adapted !== source ? "uniform highp vec4 renderer_DormerGrid;\n" : "";
+  source = adapted;
+  const definitions = new Map<string, string>(),
+    layouts = new Map<string, Layout>();
+  const parse = (body: string): Field[] =>
+    body
+      .split(";")
+      .map((x) => x.trim())
+      .filter(Boolean)
+      .map((s) => {
+        const m = /^(?:layout\(row_major\)\s*)?(\w+)\s+(\w+)$/.exec(s);
+        if (!m) throw Error("Unsupported reflected uniform declaration: " + s);
+        return { type: m[1], name: m[2], rowMajor: s.startsWith("layout") };
+      });
+  for (const m of source.matchAll(/struct (\w+)\s*\{([^}]+)\};/g)) definitions.set(m[1], m[2]);
+  const round = (x: number, a: number) => Math.ceil(x / a) * a;
+  function layout(type: string): Layout {
+    const prior = layouts.get(type);
+    if (prior) return prior;
+    if (["float", "uint", "int", "bool"].includes(type)) return { align: 4, size: 4 };
+    const vector = /^[uib]?vec([234])$/.exec(type);
+    if (vector) {
+      const n = Number(vector[1]);
+      return { align: n === 2 ? 8 : 16, size: n * 4 };
+    }
+    const matrix = /^mat([234])$/.exec(type);
+    if (matrix) return { align: 16, size: Number(matrix[1]) * 16 };
+    const body = definitions.get(type);
+    if (!body) throw Error("Unsupported uniform type " + type);
+    let offset = 0,
+      align = 16;
+    const members = parse(body).map((f) => {
+      const l = layout(f.type);
+      align = Math.max(align, l.align);
+      offset = round(offset, l.align);
+      const member = { ...f, offset };
+      offset += l.size;
+      return member;
+    });
+    const result = { align, size: round(offset, align), fields: members };
+    layouts.set(type, result);
+    return result;
+  }
+  interface ParsedBlock {
+    name: string;
+    type: string;
+    sampler: string;
+    variable: string;
+    layout: Layout;
+  }
+  const blocks: UniformTextureBlock[] = [],
+    parsedBlocks: ParsedBlock[] = [],
+    readers: string[] = [],
+    initializers: string[] = [];
+  source = source.replace(/layout\(std140\) uniform (\w+)\s*\{([^}]+)\}\s*(\w+);/g, (_all, name, body, variable) => {
+    const type = "Engine_" + name;
+    definitions.set(type, body);
+    const l = layout(type),
+      sampler = "uniform_" + name;
+    blocks.push({ name, sampler, byteLength: l.size });
+    parsedBlocks.push({ name, type, sampler, variable, layout: l });
+    return `struct ${type}{${body.replace(/layout\(row_major\)\s*/g, "")}};\n${type} ${variable};\nuniform highp usampler2D ${sampler};`;
+  });
+  if (source.includes("layout(std140)")) throw Error("Unconverted uniform block");
+  const start = source.indexOf("void original_main()");
+  if (start < 0) throw Error("Missing original shader entry");
+  // Scan shader code outside struct/global declarations so only referenced fields
+  // are unpacked and each uvec4 texel is fetched at most once per invocation.
+  let scanSource = source.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, "").replace(/struct\s+\w+\s*\{[^}]*\}\s*;/g, "");
+  for (const b of parsedBlocks) {
+    scanSource = scanSource.replace(`${b.type} ${b.variable};`, "");
+  }
+  const laneNames = "xyzw";
+  for (const b of parsedBlocks) {
+    const { sampler, variable, layout: l } = b;
+    const fields = l.fields ?? [];
+    const refRegex = new RegExp(`\\b${variable}\\b(?:\\.(\\w+))?`, "g");
+    const referencedFields = new Set<string>();
+    let hasBareRef = false;
+    for (const m of scanSource.matchAll(refRegex)) {
+      if (m[1]) referencedFields.add(m[1]);
+      else hasBareRef = true;
+    }
+    const selectedFields = hasBareRef ? fields : fields.filter((f) => referencedFields.has(f.name));
+    if (selectedFields.length === 0) continue;
+    const texels = new Set<number>();
+    function value(t: string, offset: number, rowMajor = false): string {
+      const member = layout(t);
+      if (member.fields)
+        return `${t}(${member.fields.map((f) => value(f.type, offset + f.offset, f.rowMajor)).join(",")})`;
+      const scalar = (i: number) => {
+        const wordIndex = (offset >> 2) + i;
+        const texelIndex = wordIndex >> 2;
+        texels.add(texelIndex);
+        const s = `es_t${texelIndex}.${laneNames[wordIndex & 3]}`;
+        return t === "uint" || t.startsWith("uvec")
+          ? s
+          : t === "int" || t.startsWith("ivec")
+            ? `int(${s})`
+            : t === "bool" || t.startsWith("bvec")
+              ? `(${s}!=0u)`
+              : `uintBitsToFloat(${s})`;
+      };
+      const matrix = /^mat([234])$/.exec(t);
+      if (matrix) {
+        const n = Number(matrix[1]);
+        return `${t}(${Array.from({ length: n * n }, (_, k) => scalar(rowMajor ? (k % n) * 4 + Math.floor(k / n) : Math.floor(k / n) * 4 + (k % n))).join(",")})`;
+      }
+      const v = /^[uib]?vec([234])$/.exec(t);
+      return v ? `${t}(${Array.from({ length: Number(v[1]) }, (_, i) => scalar(i)).join(",")})` : scalar(0);
+    }
+    const assignments = selectedFields.map((f) => `${variable}.${f.name}=${value(f.type, f.offset, f.rowMajor)};`);
+    const fetches = [...texels]
+      .sort((a, c) => a - c)
+      .map((t) => `uvec4 es_t${t}=texelFetch(${sampler},ivec2(${t}%es_s.x,${t}/es_s.x),0);`);
+    readers.push(
+      `void read_${sampler}(){\nivec2 es_s=textureSize(${sampler},0);\n${fetches.join("\n")}\n${assignments.join("\n")}\n}`
+    );
+    initializers.push(`read_${sampler}();`);
+  }
+  source = source.slice(0, start) + readers.join("\n") + "\n" + source.slice(start);
+  source = source.replace("void main(){", `void main(){${initializers.join("")}`);
+  if (backend === RHIBackend.WebGPU) source = normalizeRecoveredAggregates(source);
+  return { source: flattenShaderSource(dormerUniform + source.replace(/^#version 300 es\s*/, "")), blocks };
+}
+
+/** Preserve SPIRV-Cross' packed building data when translating recovered GLSL to WGSL. */
+function normalizeRecoveredAggregates(source: string): string {
+  // Normalize scalar swizzle assignments on indexed matrix columns to double subscript
+  // so column-major coordinates remain explicit on reads and writes.
+  const matrices = new Set(Array.from(source.matchAll(/\bmat[234](?:x[234])?\s+(\w+)/g), (match) => match[1]));
+  source = source.replace(/\b(\w+)\s*\[\s*(\d+)\s*\]\s*\.\s*([xyzw])\b/g, (match, name, col, component) =>
+    matrices.has(name) ? `${name}[${col}][${"xyzw".indexOf(component)}]` : match
+  );
+
+  // Normalize packed-array struct constructors into explicit helper functions so fixed
+  // array members copy cleanly by value while keeping every reader argument evaluated once.
+  const wrappers = source.matchAll(/\bstruct\s+(\w+)\s*\{\s*(\w+)\s+(\w+)\s*\[\s*(\d+)\s*\]\s*;\s*\}\s*;/g);
+  for (const [declaration, name, type, field, count] of wrappers) {
+    const constructor = new RegExp(`\\b${name}\\s*(?=\\()`, "g");
+    if (!constructor.test(source)) continue;
+    const make = "masonryMake" + name;
+    const copy = Array.from({ length: Number(count) }, (_, index) => `r.${field}[${index}]=v[${index}];`).join("");
+    source = source
+      .replace(constructor, make)
+      .replace(declaration, `${declaration}\n${name} ${make}(${type} v[${count}]){${name} r;${copy}return r;}\n`);
+  }
+  return source;
+}

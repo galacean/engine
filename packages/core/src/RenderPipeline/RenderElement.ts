@@ -40,7 +40,7 @@ export class RenderElement implements IPoolElement {
     this.shaderData = shaderData;
     this.texture = texture;
     this.subChunk = subChunk;
-    this.instancedRenderers.length = 0;
+    if (this.instancedRenderers.length) this.instancedRenderers.length = 0;
     this.subDistancePriority = 0;
     this._isBatched = false;
   }

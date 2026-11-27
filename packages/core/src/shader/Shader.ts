@@ -2,11 +2,13 @@ import { IShaderCompiler, IPrecompiledShader } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { IReferable } from "../asset/IReferable";
+import { RHIBackend } from "../renderingHardwareInterface";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPass } from "./ShaderPass";
 import { ShaderProperty } from "./ShaderProperty";
 import { SubShader } from "./SubShader";
+import { productFragmentInstructions } from "./WorldShaderInstructions";
 import { BlendFactor } from "./enums/BlendFactor";
 import { BlendOperation } from "./enums/BlendOperation";
 import { ColorWriteMask } from "./enums/ColorWriteMask";
@@ -53,6 +55,9 @@ export class Shader implements IReferable {
    */
   static create(shaderSource: string, platformTarget?: ShaderLanguage): Shader;
 
+  /** Compile source using the engine's backend, compiler and built-in UsePass catalog. */
+  static create(shaderSource: string, engine: Engine): Shader;
+
   /**
    * Create a shader.
    * @param name - Name of the shader
@@ -71,19 +76,36 @@ export class Shader implements IReferable {
 
   static create(
     nameOrShaderSource: string,
-    shaderPassesOrSubShadersOrPlatformTarget?: ShaderLanguage | SubShader[] | ShaderPass[]
+    shaderPassesOrSubShadersOrPlatformTarget?: Engine | ShaderLanguage | SubShader[] | ShaderPass[]
   ): Shader {
     if (
       shaderPassesOrSubShadersOrPlatformTarget == undefined ||
       typeof shaderPassesOrSubShadersOrPlatformTarget === "number"
     ) {
+      const hasWebGPUCompiler = Boolean((Shader._shaderCompiler as unknown as { webgpu?: unknown })?.webgpu);
       const platformTarget =
         typeof shaderPassesOrSubShadersOrPlatformTarget === "number"
           ? shaderPassesOrSubShadersOrPlatformTarget
-          : ShaderLanguage.GLSLES300;
+          : hasWebGPUCompiler
+            ? ShaderLanguage.WGSL
+            : ShaderLanguage.GLSLES300;
       return Shader._createFromSource(nameOrShaderSource, platformTarget);
     }
 
+    if (!Array.isArray(shaderPassesOrSubShadersOrPlatformTarget)) {
+      const engine = shaderPassesOrSubShadersOrPlatformTarget;
+      if (!engine._shaderCompiler) throw new Error("This engine was created without a shader compiler.");
+      const target =
+        engine._hardwareRenderer.backend === RHIBackend.WebGPU ? ShaderLanguage.WGSL : ShaderLanguage.GLSLES300;
+      return Shader._createFromSource(
+        nameOrShaderSource,
+        target,
+        undefined,
+        engine._shaderCompiler,
+        engine._builtinShaders.byName,
+        target
+      );
+    }
     if (shaderPassesOrSubShadersOrPlatformTarget.length === 0) {
       throw "SubShader or ShaderPass count must large than 0.";
     }
@@ -100,6 +122,7 @@ export class Shader implements IReferable {
    * @param shaderSource - Complete ShaderLab source.
    * @param platformTarget - Shader backend target.
    * @param sourceFile - Canonical source location supplied by an asset loader or authoring tool.
+   * @param instructionTarget - Engine-bound sources keep selectable GLSL instructions until renderer macros are known.
    * @returns A new shader.
    * @throws When the shader compiler is unavailable or a pass cannot be compiled.
    * @internal
@@ -107,25 +130,32 @@ export class Shader implements IReferable {
   static _createFromSource(
     shaderSource: string,
     platformTarget: ShaderLanguage = ShaderLanguage.GLSLES300,
-    sourceFile?: string
+    sourceFile?: string,
+    shaderCompiler = Shader._shaderCompiler,
+    builtinShaders?: Readonly<Record<string, Shader>>,
+    instructionTarget = platformTarget
   ): Shader {
-    const shaderCompiler = Shader._shaderCompiler;
     if (!shaderCompiler) {
       throw "ShaderCompiler has not been set up yet.";
     }
 
     const parsedSource = shaderCompiler._parseShaderSource(shaderSource);
+    if (parsedSource.kind === "compute") {
+      throw new Error(
+        `ComputeShader "${parsedSource.name}" cannot be created with Shader.create(); use ComputeShader.create() instead.`
+      );
+    }
     const subShaderList = parsedSource.subShaders.map((subShaderSource) => {
       const passList = subShaderSource.passes.map((passSource) => {
         if (passSource.isUsePass) {
-          return Shader._resolveUsePass(passSource.name);
+          return Shader._resolveUsePass(passSource.name, builtinShaders);
         }
 
         const shaderPassSource = shaderCompiler._parseShaderPass(
           passSource.contents,
           passSource.vertexEntry,
           passSource.fragmentEntry,
-          platformTarget,
+          instructionTarget,
           sourceFile,
           passSource.contentScopeStarts
         );
@@ -136,12 +166,27 @@ export class Shader implements IReferable {
 
         const shaderPass = new ShaderPass(
           passSource.name,
-          shaderPassSource.vertexShaderInstructions!,
-          shaderPassSource.fragmentShaderInstructions!,
+          shaderPassSource.vertexShaderInstructions ?? [],
+          shaderPassSource.fragmentShaderInstructions ?? [],
           platformTarget,
           passSource.tags,
-          shaderPassSource.vertexOutputNames
+          shaderPassSource.vertexOutputNames,
+          shaderPassSource.uniformBlocks,
+          shaderPassSource.uniformPlan,
+          shaderPassSource.wgsl,
+          undefined,
+          shaderPassSource.wgslVertexInstructions,
+          shaderPassSource.wgslFragmentInstructions
         );
+        if (!shaderPassSource.wgslVertexInstructions || !shaderPassSource.vertexShaderInstructions?.length) {
+          shaderPass._shaderLabSource = {
+            contents: passSource.contents,
+            vertexEntry: passSource.vertexEntry,
+            fragmentEntry: passSource.fragmentEntry,
+            sourceFile,
+            contentScopeStarts: passSource.contentScopeStarts
+          };
+        }
 
         Shader._applyRenderStates(
           shaderPass,
@@ -173,20 +218,30 @@ export class Shader implements IReferable {
   /**
    * @internal
    */
-  static _createFromPrecompiled(data: IPrecompiledShader): Shader {
+  static _createFromPrecompiled(data: IPrecompiledShader, builtinShaders?: Readonly<Record<string, Shader>>): Shader {
     const subShaderList = data.subShaders.map((subData) => {
       const passList = subData.passes.map((passData) => {
         if (passData.isUsePass) {
-          return Shader._resolveUsePass(passData.name);
+          return Shader._resolveUsePass(passData.name, builtinShaders);
         }
 
         const shaderPass = new ShaderPass(
           passData.name,
-          passData.vertexShaderInstructions!,
-          passData.fragmentShaderInstructions!,
+          passData.vertexShaderInstructions ?? [],
+          passData.fragmentShaderInstructions ?? [],
           data.platformTarget as ShaderLanguage,
           passData.tags,
-          passData.vertexOutputNames
+          passData.vertexOutputNames,
+          passData.uniformBlocks,
+          passData.uniformPlan,
+          passData.wgsl,
+          passData.fragmentShaderInstructions
+            ? productFragmentInstructions(data.name, passData.fragmentShaderInstructions)
+            : undefined,
+          passData.wgslVertexInstructions,
+          passData.wgslFragmentInstructions
+            ? productFragmentInstructions(data.name, passData.wgslFragmentInstructions)
+            : undefined
         );
 
         Shader._applyRenderStates(
@@ -230,7 +285,7 @@ export class Shader implements IReferable {
     }
   }
 
-  private static _resolveUsePass(passName: string): ShaderPass {
+  private static _resolveUsePass(passName: string, builtinShaders?: Readonly<Record<string, Shader>>): ShaderPass {
     const lastSlash = passName.lastIndexOf("/");
     const secondLastSlash = passName.lastIndexOf("/", lastSlash - 1);
     if (secondLastSlash <= 0) {
@@ -240,7 +295,7 @@ export class Shader implements IReferable {
     const subShaderName = passName.substring(secondLastSlash + 1, lastSlash);
     const passNamePart = passName.substring(lastSlash + 1);
 
-    const shader = Shader.find(shaderName);
+    const shader = builtinShaders?.[shaderName] ?? Shader.find(shaderName);
     if (!shader) {
       throw new Error(`UsePass "${passName}": shader "${shaderName}" not found.`);
     }

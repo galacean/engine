@@ -15,6 +15,7 @@ Shader "Blit/BlitScreen" {
 
       mediump sampler2D renderer_BlitTexture;
         float renderer_BlitMipLevel;
+      vec4 renderer_SourceScaleOffset;
 
       struct Attributes {
         vec4 POSITION_UV;
@@ -32,9 +33,7 @@ Shader "Blit/BlitScreen" {
       }
 
       void frag(Varyings v) {
-        vec2 uv = v.v_uv;
-        // Screen uv is flipped
-        uv.y = 1.0 - uv.y;
+        vec2 uv = v.v_uv * renderer_SourceScaleOffset.xy + renderer_SourceScaleOffset.zw;
 
         gl_FragColor = textureLod(renderer_BlitTexture, uv, renderer_BlitMipLevel);
 

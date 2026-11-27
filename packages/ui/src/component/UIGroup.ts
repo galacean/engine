@@ -1,4 +1,4 @@
-import { Component, DisorderedArray, Entity, EntityModifyFlags, ignoreClone } from "@galacean/engine";
+import { Component, DisorderedArray, Entity, EntityModifyFlags, ignoreClone } from "@galacean/engine-core";
 import { Utils } from "../Utils";
 import { IGroupAble } from "../interface/IGroupAble";
 import { EntityUIModifyFlags, UICanvas } from "./UICanvas";

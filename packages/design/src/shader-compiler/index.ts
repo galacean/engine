@@ -14,11 +14,32 @@ export type {
 } from "./ICondition";
 export * from "./PreprocessorExpression";
 export * from "./ShaderIncludePath";
-export type { IPrecompiledShader, IPrecompiledSubShader, IPrecompiledPass } from "./IPrecompiledShader";
-export type { IShaderProgramSource as IShaderInfo } from "./IShaderProgramSource";
+export type {
+  IShaderUniformPlan,
+  IShaderUniformSite,
+  IShaderUniformSelection,
+  IShaderUniformVariable
+} from "./IShaderUniformPlan";
+export * from "./ShaderInstancing";
+export * from "./ShaderUniformVariant";
+export { shaderConstant, type ShaderConstant } from "./ShaderConstant";
+export type {
+  IPrecompiledShader,
+  IPrecompiledSubShader,
+  IPrecompiledPass,
+  IPrecompiledComputeShader,
+  IPrecompiledComputeKernel
+} from "./IPrecompiledShader";
+export type {
+  IShaderProgramSource as IShaderInfo,
+  IShaderUniformBlock,
+  IShaderUniformBlockMember
+} from "./IShaderProgramSource";
+export type { IComputeKernelSource } from "./shaderSource/IComputeKernelSource";
 export type { IRenderStates } from "./shaderSource/IRenderStates";
 export type { IShaderPassSource } from "./shaderSource/IShaderPassSource";
 export type { IShaderPosition } from "./shaderSource/IShaderPosition";
 export type { IShaderSource } from "./shaderSource/IShaderSource";
 export type { IStatement } from "./shaderSource/IStatement";
 export type { ISubShaderSource } from "./shaderSource/ISubShaderSource";
+export type * from "./IWebGPUShaderProgram";

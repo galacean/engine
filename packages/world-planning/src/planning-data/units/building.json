@@ -1,0 +1,47 @@
+{
+  "unitId": "building",
+  "label": "建筑",
+  "footprintM": {
+    "width": {
+      "min": 8,
+      "max": 12
+    },
+    "depth": {
+      "min": 8,
+      "max": 12
+    }
+  },
+  "footprintAreaM2": { "min": 89, "max": 144 },
+  "storeys": {
+    "heightM": {
+      "min": 3.5,
+      "max": 4
+    },
+    "choices": [
+      {
+        "count": 1,
+        "weight": 0.65
+      },
+      {
+        "count": 2,
+        "weight": 0.3
+      },
+      {
+        "count": 3,
+        "weight": 0.05
+      }
+    ]
+  },
+  "door": {
+    "widthM": 1.08,
+    "heightM": 2.1
+  },
+  "perception": {
+    "wallTraverseSeconds": {
+      "min": 3,
+      "max": 5
+    },
+    "referenceSpeed": "actor.walkMps",
+    "purpose": "Audit footprint at design walk speed; never rescale buildings when the actor runs."
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "Terrain detiling extension diagnostics Material",
+  "shader": "Terrain/Debug/Extension/Detiling",
+  "shaderRef": { "url": "Shader/debug/Extension/Detiling.shaderc" },
+  "shaderData": {
+    "material_DetilingStrength": { "type": "Float", "value": 1 }
+  },
+  "macros": [{ "name": "MATERIAL_ENABLE_DETILING" }]
+}

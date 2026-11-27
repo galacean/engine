@@ -1,0 +1,459 @@
+import { registerWaterContentRestorer } from "../resources/WaterContentRestorer";
+import { bindWaterSurfaceCaustics } from "../surface/WaterSurfaceCausticsBinding";
+import { registerWaterSurfacePicking } from "../surface/WaterSurfacePicking";
+import { bindRiverFlowNormalStrength, bindRiverFoamSampling } from "./RiverMaterialBinding";
+import { resolveRiverSurfaceShader } from "./RiverSurfaceShader";
+export {
+  RIVER_WATER_SURFACE_GEOMETRY_ADAPTER,
+  createRiverGeometryShaderFunctions,
+  createRiverSurfaceAppearanceV2ShaderSource
+} from "./RiverSurfaceShader";
+/** River shader creation and material binding. */
+import {
+  Engine,
+  Material,
+  SystemInfo,
+  Texture2D,
+  TextureFilterMode,
+  TextureFormat,
+  TextureWrapMode
+} from "@galacean/engine-core";
+import { Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import { WaterSurfaceCompositionV2 } from "../../authoring/surface/WaterSurfaceAppearanceTypes";
+import type { RiverMaterialConfig } from "../../authoring/river/RiverAuthoringTypes";
+import type { RiverCompiledSurfaceMotionData } from "../../compiler/river/types";
+import type { WaterReflectionBinding } from "../optics/WaterReflectionService";
+import {
+  applyWaterSurfaceOpticsBinding,
+  applyWaterSurfaceReflectionBinding,
+  applyWaterSurfaceTransientOpticalProfile,
+  createWaterSurfaceOpticsBindingState
+} from "../optics/WaterSurfaceOpticsBinding";
+import {
+  type WaterOpticsTier,
+  type WaterSurfaceOpticsBinding,
+  type WaterSurfaceOpticsBindingReadback,
+  type WaterSurfaceOpticsBindingState,
+  type WaterSurfaceOpticsReflectionReadback
+} from "../optics/WaterSurfaceOpticsTypes";
+import type { WaterSurfaceAppearanceBindingV2 } from "../surface/WaterSurfaceAppearanceRuntimeTypes";
+import {
+  WATER_SURFACE_APPEARANCE_V2_SHADER_PROPERTY,
+  getWaterSurfaceAppearanceV2BoundaryProperty,
+  getWaterSurfaceAppearanceV2DetailProperty
+} from "../surface/WaterSurfaceAppearanceV2Shader";
+import {
+  applyWaterPatternUniformsV2,
+  applyWaterSurfaceDepthResponseV2Uniforms,
+  bindWaterSurfaceAppearanceV2Clock,
+  updateWaterSurfaceAppearanceV2Clock
+} from "../surface/WaterSurfaceAppearanceV2UniformBinding";
+import { RIVER_SHADER_PROPERTY } from "./constants";
+import {
+  bindRiverFlowClock,
+  updateRiverFlowClock,
+  updateRiverMaterial,
+  updateRiverSurfaceMotion
+} from "./RiverMaterialBinding";
+
+export { hexToColor, updateRiverMaterial, updateRiverSurfaceMotion } from "./RiverMaterialBinding";
+const RIVER_SCREEN_SPACE_REFLECTION_COMPOSITE_INTENSITY_PROPERTY =
+  "material_WaterScreenSpaceReflectionCompositeIntensity";
+
+const riverSurfaceOpticsBindingStates = new WeakMap<Material, WaterSurfaceOpticsBindingState>();
+const riverSurfaceAppearanceStates = new WeakMap<Material, Readonly<{ useLocalMap: boolean }>>();
+
+function getRiverSurfaceOpticsBindingState(material: Material): WaterSurfaceOpticsBindingState {
+  const existing = riverSurfaceOpticsBindingStates.get(material);
+  if (existing) return existing;
+  const state = createWaterSurfaceOpticsBindingState();
+  riverSurfaceOpticsBindingStates.set(material, state);
+  return state;
+}
+
+const surfaceNormalTextures = new WeakMap<Engine, Texture2D>();
+
+const foamTextures = new WeakMap<Engine, Texture2D>();
+
+const uploadedRiverTextures = new WeakSet<Texture2D>();
+const pendingRiverTextureUploads = new WeakSet<Texture2D>();
+
+let loadedRiverNormalPixels: string | undefined;
+let loadedRiverFoamPixels: string | undefined;
+let loadingRiverDefaultTextures: Promise<void> | undefined;
+
+/** Loads legacy base64 fallback textures off the main startup bundle on demand. */
+export function preloadRiverDefaultTextures(): Promise<void> {
+  if (loadedRiverNormalPixels !== undefined && loadedRiverFoamPixels !== undefined) {
+    return Promise.resolve();
+  }
+  loadingRiverDefaultTextures ??= Promise.all([
+    import("../../resources/river/assets/normals.rgba.base64?raw"),
+    import("../../resources/river/assets/foam.rgba.base64?raw")
+  ])
+    .then(([normalModule, foamModule]) => {
+      loadedRiverNormalPixels = normalModule.default;
+      loadedRiverFoamPixels = foamModule.default;
+    })
+    .catch((error) => {
+      loadingRiverDefaultTextures = undefined;
+      throw error;
+    });
+  return loadingRiverDefaultTextures;
+}
+
+function uploadBase64RiverTexture(texture: Texture2D, data: string): void {
+  const decoded = atob(data.trim());
+  const len = decoded.length;
+  const pixels = new Uint8Array(len);
+  for (let i = 0; i < len; i++) pixels[i] = decoded.charCodeAt(i);
+  texture.setPixelBuffer(pixels);
+  texture.generateMipmaps();
+  uploadedRiverTextures.add(texture);
+}
+
+function fillNeutralRiverTexture(texture: Texture2D, kind: "normals" | "foam"): void {
+  const pixels = new Uint8Array(texture.width * texture.height * 4);
+  if (kind === "normals") {
+    // Both .rg (regular flow) and .ba (slope flow) unpack around 0.5 -> neutral (0, 0, 1).
+    pixels.fill(128);
+  }
+  texture.setPixelBuffer(pixels);
+  texture.generateMipmaps();
+}
+
+function scheduleBase64RiverTextureUpload(texture: Texture2D, readData: () => string | undefined): void {
+  if (uploadedRiverTextures.has(texture) || pendingRiverTextureUploads.has(texture)) return;
+  pendingRiverTextureUploads.add(texture);
+  void preloadRiverDefaultTextures()
+    .then(
+      () => {
+        const data = readData();
+        if (!texture.destroyed && data !== undefined) {
+          uploadBase64RiverTexture(texture, data);
+        }
+      },
+      () => {
+        // Keep neutral placeholder pixels intact and allow retry on a subsequent access/restore.
+      }
+    )
+    .finally(() => {
+      pendingRiverTextureUploads.delete(texture);
+    });
+}
+
+function getRiverTexture(
+  engine: Engine,
+  cache: WeakMap<Engine, Texture2D>,
+  kind: "normals" | "foam",
+  name: string
+): Texture2D {
+  const readData = () => (kind === "normals" ? loadedRiverNormalPixels : loadedRiverFoamPixels);
+  const existing = cache.get(engine);
+  if (existing && !existing.destroyed) {
+    if (!uploadedRiverTextures.has(existing)) {
+      const data = readData();
+      if (data !== undefined) uploadBase64RiverTexture(existing, data);
+      else scheduleBase64RiverTextureUpload(existing, readData);
+    }
+    return existing;
+  }
+  const texture = new Texture2D(engine, 512, 512, undefined, true, false);
+  texture.name = name;
+  texture.isGCIgnored = true;
+  texture.filterMode = TextureFilterMode.Trilinear;
+  texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Repeat;
+  const initialData = readData();
+  if (initialData !== undefined) {
+    uploadBase64RiverTexture(texture, initialData);
+  } else {
+    fillNeutralRiverTexture(texture, kind);
+    scheduleBase64RiverTextureUpload(texture, readData);
+  }
+  registerWaterContentRestorer(engine, texture, () => {
+    uploadedRiverTextures.delete(texture);
+    const data = readData();
+    if (data !== undefined) {
+      uploadBase64RiverTexture(texture, data);
+    } else {
+      fillNeutralRiverTexture(texture, kind);
+      scheduleBase64RiverTextureUpload(texture, readData);
+    }
+  });
+  cache.set(engine, texture);
+  return texture;
+}
+
+function configureSurfaceMaterial(
+  engine: Engine,
+  material: Material,
+  config: RiverMaterialConfig,
+  flowSpeedMultiplier: number,
+  motion: RiverCompiledSurfaceMotionData,
+  useLocalMap: boolean,
+  binding: Readonly<WaterSurfaceAppearanceBindingV2>,
+  opticsBinding: Readonly<WaterSurfaceOpticsBinding>
+): Material {
+  registerWaterSurfacePicking(material, "depthWriteEnabled");
+  riverSurfaceAppearanceStates.set(material, Object.freeze({ useLocalMap }));
+  material.shaderData.setTexture(
+    RIVER_SHADER_PROPERTY.surfaceNormalTexture,
+    getRiverTexture(engine, surfaceNormalTextures, "normals", "RiverNormals")
+  );
+  material.shaderData.setTexture(
+    "material_RiverFoamTexture",
+    getRiverTexture(engine, foamTextures, "foam", "RiverFoam")
+  );
+  updateRiverMaterial(material, config, flowSpeedMultiplier);
+  material.shaderData.setInt(RIVER_SHADER_PROPERTY.blendEnabled, 1);
+  setRiverSurfaceDepthWriteEnabled(material, false);
+  updateRiverSurfaceMotion(material, motion);
+  setRiverSurfaceFeatureFlags(material, true, true);
+  setRiverSurfaceTimeOverride(material);
+  bindRiverFlowClock(material);
+  setRiverSurfaceOpticsBinding(material, opticsBinding);
+  setRiverScreenSpaceReflectionReceiver(material, false);
+  material.screenSpaceReflectionBilateral = false;
+  setRiverSurfaceAppearanceBinding(material, binding);
+  return material;
+}
+
+export function createRiverMaterial(
+  engine: Engine,
+  config: RiverMaterialConfig,
+  flowSpeedMultiplier: number,
+  motion: RiverCompiledSurfaceMotionData,
+  binding: Readonly<WaterSurfaceAppearanceBindingV2>,
+  opticsBinding: Readonly<WaterSurfaceOpticsBinding>
+): Material {
+  // R8 support is the public SystemInfo capability that requires WebGL2.
+  if (!SystemInfo.supportsTextureFormat(engine, TextureFormat.R8_UNorm))
+    throw new Error("River requires WebGL2 integer shader support.");
+  return configureSurfaceMaterial(
+    engine,
+    new Material(engine, resolveRiverSurfaceShader(binding, false)),
+    config,
+    flowSpeedMultiplier,
+    motion,
+    false,
+    binding,
+    opticsBinding
+  );
+}
+
+export function createRiverLocalMapMaterial(
+  engine: Engine,
+  config: RiverMaterialConfig,
+  flowSpeedMultiplier: number,
+  motion: RiverCompiledSurfaceMotionData,
+  localMapTexture: Texture2D,
+  binding: Readonly<WaterSurfaceAppearanceBindingV2>,
+  opticsBinding: Readonly<WaterSurfaceOpticsBinding>
+): Material {
+  // R8 support is the public SystemInfo capability that requires WebGL2.
+  if (!SystemInfo.supportsTextureFormat(engine, TextureFormat.R8_UNorm))
+    throw new Error("River requires WebGL2 integer shader support.");
+  const material = configureSurfaceMaterial(
+    engine,
+    new Material(engine, resolveRiverSurfaceShader(binding, true)),
+    config,
+    flowSpeedMultiplier,
+    motion,
+    true,
+    binding,
+    opticsBinding
+  );
+  material.shaderData.setTexture(RIVER_SHADER_PROPERTY.localMapTexture, localMapTexture);
+  return material;
+}
+
+/** Applies one compiled Surface Appearance V2 closure without importing case-owned values. */
+export function setRiverSurfaceAppearanceBinding(
+  material: Material,
+  binding: Readonly<WaterSurfaceAppearanceBindingV2>
+): void {
+  const state = riverSurfaceAppearanceStates.get(material);
+  if (!state) throw new Error("River Surface Appearance requires a V2 River surface material.");
+  const appearance = binding.appearance;
+  material.shader = resolveRiverSurfaceShader(binding, state.useLocalMap);
+  const shaderData = material.shaderData;
+  shaderData.setInt(
+    RIVER_SHADER_PROPERTY.blendEnabled,
+    appearance.composition === WaterSurfaceCompositionV2.PrecomposedReplace ? 0 : 1
+  );
+  shaderData.setFloat(
+    WATER_SURFACE_APPEARANCE_V2_SHADER_PROPERTY.detailEnabled,
+    appearance.detailLayers.length > 0 ? 1 : 0
+  );
+  shaderData.setFloat(WATER_SURFACE_APPEARANCE_V2_SHADER_PROPERTY.depthResponseEnabled, 1);
+  shaderData.setFloat(WATER_SURFACE_APPEARANCE_V2_SHADER_PROPERTY.boundaryAlphaEnabled, 1);
+  shaderData.setFloat(WATER_SURFACE_APPEARANCE_V2_SHADER_PROPERTY.boundaryMaterialEnabled, 1);
+  shaderData.setFloat(WATER_SURFACE_APPEARANCE_V2_SHADER_PROPERTY.refractionUvScale, appearance.refraction.uvScale);
+  shaderData.setFloat(
+    "material_AppearanceDirectSpecularEnabled",
+    binding.featureFlags?.directSpecular === false ? 0 : 1
+  );
+  const renderContract = binding.renderContract;
+  if (!renderContract) throw new Error("River Surface Appearance binding requires its compiled Render Contract.");
+  bindRiverFoamSampling(shaderData, renderContract.look.foam);
+  bindRiverFlowNormalStrength(shaderData, appearance);
+
+  appearance.detailLayers.forEach((layer, index) => {
+    const textureBinding = binding.textureBindings.find((candidate) => candidate.layerId === layer.id);
+    if (layer.textureAssetId && !textureBinding)
+      throw new Error(`River Surface Appearance layer '${layer.id}' has no texture binding.`);
+    shaderData.setTexture(
+      getWaterSurfaceAppearanceV2DetailProperty(index, "texture"),
+      textureBinding?.texture ?? null!
+    );
+    shaderData.setFloat(getWaterSurfaceAppearanceV2DetailProperty(index, "enabled"), textureBinding ? 1 : 0);
+    shaderData.setVector4(
+      getWaterSurfaceAppearanceV2DetailProperty(index, "transform"),
+      new Vector4(layer.scale[0], layer.scale[1], layer.velocity[0], layer.velocity[1])
+    );
+    const rotationRadians = (layer.rotationDegrees * Math.PI) / 180;
+    shaderData.setVector2(
+      getWaterSurfaceAppearanceV2DetailProperty(index, "rotation"),
+      new Vector2(Math.cos(rotationRadians), Math.sin(rotationRadians))
+    );
+    shaderData.setFloat(getWaterSurfaceAppearanceV2DetailProperty(index, "strength"), layer.strength);
+  });
+
+  shaderData.setFloat("material_AppearanceV2DetailNormalStrength", appearance.detailNormalStrength ?? 1);
+  applyWaterSurfaceDepthResponseV2Uniforms(shaderData, appearance.depthResponse);
+  bindWaterSurfaceCaustics(shaderData, binding);
+
+  appearance.boundaryEffects.forEach((effect, index) => {
+    shaderData.setFloat(getWaterSurfaceAppearanceV2BoundaryProperty(index, "range"), effect.rangeMeters);
+    if (effect.exponent !== undefined) {
+      shaderData.setFloat(getWaterSurfaceAppearanceV2BoundaryProperty(index, "exponent"), effect.exponent);
+    }
+    if (effect.outputs.alpha !== undefined) {
+      shaderData.setFloat(getWaterSurfaceAppearanceV2BoundaryProperty(index, "alpha"), effect.outputs.alpha);
+    }
+    if (effect.outputs.color !== undefined) {
+      shaderData.setVector3(
+        getWaterSurfaceAppearanceV2BoundaryProperty(index, "color"),
+        new Vector3(effect.outputs.color[0], effect.outputs.color[1], effect.outputs.color[2])
+      );
+    }
+    if (effect.outputs.roughness !== undefined) {
+      shaderData.setFloat(getWaterSurfaceAppearanceV2BoundaryProperty(index, "roughness"), effect.outputs.roughness);
+    }
+    if (effect.outputs.refractionSuppression !== undefined) {
+      shaderData.setFloat(
+        getWaterSurfaceAppearanceV2BoundaryProperty(index, "refractionSuppression"),
+        effect.outputs.refractionSuppression
+      );
+    }
+    if (!effect.pattern) return;
+    applyWaterPatternUniformsV2(shaderData, index, effect.pattern);
+  });
+  bindWaterSurfaceAppearanceV2Clock(material, appearance, true);
+  updateRiverFlowClock(material);
+}
+
+/** Applies the shared profile/refraction/reflection contract */
+export function setRiverSurfaceOpticsBinding(
+  material: Material,
+  binding: Readonly<WaterSurfaceOpticsBinding>
+): Readonly<WaterSurfaceOpticsBindingReadback> {
+  return applyWaterSurfaceOpticsBinding(material.shaderData, getRiverSurfaceOpticsBindingState(material), binding);
+}
+
+/** Updates only the reflection subset while preserving the existing River Look and refraction state. */
+export function setRiverSurfaceReflectionBinding(
+  material: Material,
+  tier: WaterOpticsTier,
+  binding: Readonly<WaterReflectionBinding> | undefined
+): Readonly<WaterSurfaceOpticsReflectionReadback> {
+  return applyWaterSurfaceReflectionBinding(
+    material.shaderData,
+    getRiverSurfaceOpticsBindingState(material),
+    tier,
+    binding
+  );
+}
+
+/** Updates only the numeric uniforms exposed by V2 live Look tuning. */
+export function updateRiverSurfaceTransientOpticalProfile(
+  material: Material,
+  profile: WaterSurfaceOpticsBinding["opticalProfile"]
+): Readonly<WaterSurfaceOpticsBindingReadback> {
+  const state = getRiverSurfaceOpticsBindingState(material);
+  applyWaterSurfaceTransientOpticalProfile(material.shaderData, state, profile);
+  return state.bindingReadback;
+}
+
+function riverShaderHasSSRReceiverPass(material: Material): boolean {
+  const shader = material.shader;
+  if (!shader) return true;
+  for (let subIndex = 0; subIndex < shader.subShaders.length; subIndex++) {
+    const passes = shader.subShaders[subIndex].passes;
+    for (let passIndex = 0; passIndex < passes.length; passIndex++) {
+      const pass = passes[passIndex];
+      if (pass.name === "SSRReceiver" || pass.getTagValue("pipelineStage") === "SSRReceiver") {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/** Registers River's explicit SSRv2 receiver intensity without owning Camera SSR resources. */
+export function setRiverScreenSpaceReflectionReceiver(
+  material: Material,
+  enabled: boolean,
+  compositeIntensity?: number
+): void {
+  const existingComposite = material.shaderData.getFloat(RIVER_SCREEN_SPACE_REFLECTION_COMPOSITE_INTENSITY_PROPERTY);
+  const effectiveComposite =
+    compositeIntensity !== undefined
+      ? Number.isFinite(compositeIntensity)
+        ? Math.min(1, Math.max(0, compositeIntensity))
+        : 0
+      : (existingComposite ?? 1);
+  if (compositeIntensity !== undefined || existingComposite === undefined) {
+    material.shaderData.setFloat(RIVER_SCREEN_SPACE_REFLECTION_COMPOSITE_INTENSITY_PROPERTY, effectiveComposite);
+  }
+  // Material.shader is mandatory in the Engine. This guard only permits the narrow
+  // ShaderData harnesses used by DOM-free runtime ownership tests.
+  if (!material.shader) return;
+  if (!riverShaderHasSSRReceiverPass(material)) {
+    throw new Error(`River shader '${material.shader.name}' does not implement the Core SSRReceiver pass.`);
+  }
+  material.screenSpaceReflectionIntensity = enabled && effectiveComposite > 0 ? 1 : 0;
+}
+
+/** Changes River's forward SSR contribution while syncing SSRv2 receiver participation. */
+export function setRiverScreenSpaceReflectionCompositeIntensity(
+  material: Material,
+  intensity: number,
+  receiverEnabled = material.screenSpaceReflectionIntensity > 0
+): void {
+  const resolved = Number.isFinite(intensity) ? Math.min(1, Math.max(0, intensity)) : 0;
+  material.shaderData.setFloat(RIVER_SCREEN_SPACE_REFLECTION_COMPOSITE_INTENSITY_PROPERTY, resolved);
+  material.screenSpaceReflectionIntensity = receiverEnabled && resolved > 0 ? 1 : 0;
+}
+
+export function setRiverSurfaceDepthWriteEnabled(material: Material, enabled: boolean): void {
+  material.shaderData.setInt(RIVER_SHADER_PROPERTY.depthWriteEnabled, enabled ? 1 : 0);
+}
+
+export function setRiverSurfaceFeatureFlags(
+  material: Material,
+  macroDisplacementEnabled: boolean,
+  microSurfaceEnabled: boolean
+): void {
+  material.shaderData.setFloat(RIVER_SHADER_PROPERTY.macroDisplacementEnabled, macroDisplacementEnabled ? 1 : 0);
+  material.shaderData.setFloat(RIVER_SHADER_PROPERTY.microSurfaceEnabled, microSurfaceEnabled ? 1 : 0);
+}
+
+export function setRiverSurfaceTimeOverride(material: Material, elapsedTime?: number): void {
+  if (elapsedTime !== undefined && !Number.isFinite(elapsedTime)) {
+    throw new RangeError("River surface time must be finite.");
+  }
+  material.shaderData.setFloat(RIVER_SHADER_PROPERTY.surfaceTimeOverride, elapsedTime ?? -1);
+  updateWaterSurfaceAppearanceV2Clock(material, undefined, true);
+  updateRiverFlowClock(material);
+}

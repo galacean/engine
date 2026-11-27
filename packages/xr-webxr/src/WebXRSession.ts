@@ -1,7 +1,8 @@
-import type { WebGLGraphicDevice } from "@galacean/engine";
+import { RHIBackend, type WebGLGraphicDevice } from "@galacean/engine";
 import { IXRInputEvent, IXRSession } from "@galacean/engine-design";
 import { XRInputEventType, XRTargetRayMode, XRTrackedInputDevice } from "@galacean/engine-xr";
 import { getInputSource } from "./Util";
+import type { WebXRGPUBinding, XRProjectionDevice, XRProjectionTarget } from "./WebXRProjection";
 import { WebXRFrame } from "./WebXRFrame";
 
 export class WebXRSession implements IXRSession {
@@ -13,7 +14,8 @@ export class WebXRSession implements IXRSession {
   /** @internal */
   _platformSession: XRSession;
   /** @internal */
-  _platformLayer: XRWebGLLayer;
+  _platformLayer: XRWebGLLayer | XRProjectionLayer;
+  private _targets: Partial<Record<XREye, XRProjectionTarget>> = {};
   /** @internal */
   _platformReferenceSpace: XRReferenceSpace;
 
@@ -39,11 +41,23 @@ export class WebXRSession implements IXRSession {
   }
 
   get framebufferWidth(): number {
-    return this._platformLayer.framebufferWidth;
+    return "textureWidth" in this._platformLayer
+      ? this._platformLayer.textureWidth
+      : this._platformLayer.framebufferWidth;
   }
 
   get framebufferHeight(): number {
-    return this._platformLayer.framebufferHeight;
+    return "textureHeight" in this._platformLayer
+      ? this._platformLayer.textureHeight
+      : this._platformLayer.framebufferHeight;
+  }
+
+  get depthNear(): number | undefined {
+    return this._platformSession.renderState?.depthNear;
+  }
+
+  get depthFar(): number | undefined {
+    return this._platformSession.renderState?.depthFar;
   }
 
   get frameRate(): number | undefined {
@@ -76,10 +90,11 @@ export class WebXRSession implements IXRSession {
   }
 
   constructor(
-    private _rhi: WebGLGraphicDevice,
+    private _rhi: WebGLGraphicDevice | XRProjectionDevice,
     session: XRSession,
-    layer: XRWebGLLayer,
-    referenceSpace: XRReferenceSpace
+    layer: XRWebGLLayer | XRProjectionLayer,
+    referenceSpace: XRReferenceSpace,
+    readonly gpuBinding?: WebXRGPUBinding
   ) {
     this._frame = new WebXRFrame(this);
     this._platformSession = session;
@@ -88,7 +103,15 @@ export class WebXRSession implements IXRSession {
     const xrRequestAnimationFrame = session.requestAnimationFrame.bind(session);
     const onFrame = function (time: number, frame: XRFrame, callback: FrameRequestCallback) {
       this._frame._platformFrame = frame;
-      callback(time);
+      try {
+        callback(time);
+      } finally {
+        if (this.gpuBinding) {
+          this.endView();
+          this._targets.left = this._targets.right = this._targets.none = undefined;
+          this._frame._platformFrame = null;
+        }
+      }
     }.bind(this);
     this.requestAnimationFrame = (callback: FrameRequestCallback) => {
       return xrRequestAnimationFrame((time: number, frame: XRFrame) => {
@@ -110,9 +133,33 @@ export class WebXRSession implements IXRSession {
 
   onUpdate(): void {
     const { _rhi: rhi, _platformLayer: layer } = this;
-    rhi._mainFrameBuffer = layer.framebuffer;
-    rhi._mainFrameWidth = layer.framebufferWidth;
-    rhi._mainFrameHeight = layer.framebufferHeight;
+    if (rhi.backend === RHIBackend.WebGL2 && "framebuffer" in layer)
+      rhi.setExternalFramebuffer(layer.framebuffer, layer.framebufferWidth, layer.framebufferHeight);
+  }
+
+  /** Record this frame's compositor images while the XRView is valid. */
+  getViewport(view: XRView): XRViewport {
+    const binding = this.gpuBinding;
+    if (!binding) return (this._platformLayer as XRWebGLLayer).getViewport(view)!;
+    const image = binding.getViewSubImage(this._platformLayer as XRProjectionLayer, view);
+    this._targets[view.eye] = {
+      color: image.colorTexture,
+      depthStencil: image.depthStencilTexture ?? undefined,
+      viewDescriptor: image.getViewDescriptor()
+    };
+    return image.viewport;
+  }
+
+  beginView(eye: XREye): boolean {
+    if (this._rhi.backend === RHIBackend.WebGL2) return true;
+    const target = this._targets[eye];
+    if (!target) return false;
+    this._rhi.setExternalProjectionTarget(target);
+    return true;
+  }
+
+  endView(): void {
+    if (this._rhi.backend === RHIBackend.WebGPU) this._rhi.setExternalProjectionTarget(null);
   }
 
   start(): void {}
@@ -168,9 +215,11 @@ export class WebXRSession implements IXRSession {
   }
 
   private _clearMainFrameBuffer(): void {
-    const rhi = this._rhi;
-    rhi._mainFrameBuffer = null;
-    rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
+    if (this._rhi.backend === RHIBackend.WebGL2) this._rhi.setExternalFramebuffer(null, 0, 0);
+    else {
+      this.endView();
+      this._targets.left = this._targets.right = this._targets.none = undefined;
+    }
   }
 
   private _onSessionEvent(inputSourceEvent: XRInputSourceEvent): void {

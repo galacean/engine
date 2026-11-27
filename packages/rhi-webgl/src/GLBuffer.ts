@@ -5,19 +5,22 @@ export class GLBuffer implements IPlatformBuffer {
   /** @internal */
   _glBuffer: WebGLBuffer | null;
 
+  private _rhi: WebGLGraphicDevice;
   private _gl: WebGL2RenderingContext;
   private _glBindTarget: number;
   private _glBufferUsage: number;
+  private _isIndexBuffer: boolean;
 
   constructor(
     rhi: WebGLGraphicDevice,
     type: BufferBindFlag,
-    byteLength: number,
+    private _byteLength: number,
     bufferUsage: BufferUsage = BufferUsage.Static,
     data?: ArrayBuffer | ArrayBufferView
   ) {
     const gl = rhi.gl;
     const glBuffer = gl.createBuffer();
+    if (!glBuffer) throw new Error("Failed to allocate WebGL buffer.");
     const glBufferUsage = this._getGLBufferUsage(gl, bufferUsage);
     let glBindTarget: number;
     switch (type) {
@@ -30,24 +33,47 @@ export class GLBuffer implements IPlatformBuffer {
       case BufferBindFlag.ConstantBuffer:
         glBindTarget = gl.UNIFORM_BUFFER;
         break;
+      case BufferBindFlag.StorageBuffer:
+        glBindTarget = gl.COPY_WRITE_BUFFER;
+        break;
     }
+    this._rhi = rhi;
     this._gl = gl;
     this._glBuffer = glBuffer;
     this._glBufferUsage = glBufferUsage;
     this._glBindTarget = glBindTarget;
+    this._isIndexBuffer = type === BufferBindFlag.IndexBuffer;
 
-    this.bind();
-
-    if (data) {
-      gl.bufferData(glBindTarget, data, glBufferUsage);
-    } else {
-      gl.bufferData(glBindTarget, byteLength, glBufferUsage);
+    try {
+      this.bind();
+      if (data) gl.bufferData(glBindTarget, data, glBufferUsage);
+      else gl.bufferData(glBindTarget, this._byteLength, glBufferUsage);
+    } catch (error) {
+      gl.deleteBuffer(glBuffer);
+      throw error;
+    } finally {
+      gl.bindBuffer(glBindTarget, null);
     }
-    gl.bindBuffer(glBindTarget, null);
   }
 
   bind(): void {
+    // Binding an index buffer mutates the active VAO; unbind any cached VAO first.
+    if (this._isIndexBuffer) {
+      this._rhi._bindVertexArray(null);
+    }
     this._gl.bindBuffer(this._glBindTarget, this._glBuffer);
+  }
+
+  /** @internal A failed native range binding must never direct a write into a different generic buffer. */
+  canUploadUniformRange(gl: WebGL2RenderingContext, end: number): boolean {
+    return this._gl === gl && !!this._glBuffer && this._glBindTarget === gl.UNIFORM_BUFFER && end <= this._byteLength;
+  }
+
+  /** @internal A native bindBufferRange has already bound this buffer to the generic uniform target. */
+  uploadBoundUniformRange(offset: number, data: ArrayBufferView, discard?: boolean): void {
+    const gl = this._gl;
+    if (discard) gl.bufferData(gl.UNIFORM_BUFFER, this._byteLength, this._glBufferUsage);
+    gl.bufferSubData(gl.UNIFORM_BUFFER, offset, data);
   }
 
   setData(
@@ -65,11 +91,17 @@ export class GLBuffer implements IPlatformBuffer {
 
     if (options === SetDataOptions.Discard) {
       gl.bufferData(glBindTarget, byteLength, this._glBufferUsage);
+      this._byteLength = byteLength;
     }
 
     // TypeArray is BYTES_PER_ELEMENT, unTypeArray is 1
     const byteSize = (<Uint8Array>data).BYTES_PER_ELEMENT || 1;
-    const dataByteLength = dataLength ? byteSize * dataLength : data.byteLength;
+    const dataByteLength =
+      dataLength === undefined ? data.byteLength - (dataOffset ?? 0) * byteSize : byteSize * dataLength;
+    if (dataByteLength === 0) {
+      gl.bindBuffer(glBindTarget, null);
+      return;
+    }
 
     if (dataOffset !== 0 || dataByteLength < data.byteLength) {
       const isArrayBufferView = (<ArrayBufferView>data).byteOffset !== undefined;
@@ -94,6 +126,60 @@ export class GLBuffer implements IPlatformBuffer {
   getData(data: ArrayBufferView, bufferByteOffset?: number, dataOffset?: number, dataLength?: number): void {
     this.bind();
     this._gl.getBufferSubData(this._glBindTarget, bufferByteOffset!, data, dataOffset, dataLength);
+  }
+
+  getDataAsync(data: ArrayBufferView, offset = 0, dataOffset = 0, dataLength?: number): Promise<void> {
+    const gl = this._gl;
+    let staging: WebGLBuffer | null = null;
+    let fence: WebGLSync | null = null;
+    return new Promise<void>((resolve) => {
+      const unit = (data as Uint8Array).BYTES_PER_ELEMENT || 1;
+      const length = dataLength === undefined ? data.byteLength - dataOffset * unit : dataLength * unit;
+      if (
+        offset < 0 ||
+        dataOffset < 0 ||
+        length < 0 ||
+        offset + length > this._byteLength ||
+        dataOffset * unit + length > data.byteLength
+      ) {
+        throw new RangeError("Buffer read exceeds the source or destination range.");
+      }
+      if (!length) return resolve();
+      staging = gl.createBuffer();
+      if (!staging) throw new Error("Unable to allocate a WebGL readback buffer.");
+      if (this._glBindTarget === gl.ELEMENT_ARRAY_BUFFER) {
+        const previous = gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, staging);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, previous);
+      }
+      gl.bindBuffer(gl.COPY_READ_BUFFER, this._glBuffer);
+      gl.bindBuffer(gl.COPY_WRITE_BUFFER, staging);
+      gl.bufferData(gl.COPY_WRITE_BUFFER, length, gl.STREAM_READ);
+      gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.COPY_WRITE_BUFFER, offset, 0, length);
+      gl.bindBuffer(gl.COPY_READ_BUFFER, null);
+      gl.bindBuffer(gl.COPY_WRITE_BUFFER, null);
+      fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+      if (!fence) throw new Error("Unable to fence a WebGL buffer readback.");
+      gl.flush();
+      const readWhenReady = (): void | Promise<void> => {
+        const status = gl.clientWaitSync(fence!, 0, 0);
+        if (status === gl.WAIT_FAILED) throw new Error("WebGL buffer readback failed.");
+        if (status === gl.TIMEOUT_EXPIRED) {
+          return new Promise<void>((ready) => setTimeout(ready, 0)).then(readWhenReady);
+        }
+        gl.bindBuffer(gl.COPY_READ_BUFFER, staging);
+        gl.getBufferSubData(
+          gl.COPY_READ_BUFFER,
+          0,
+          new Uint8Array(data.buffer, data.byteOffset + dataOffset * unit, length)
+        );
+        gl.bindBuffer(gl.COPY_READ_BUFFER, null);
+      };
+      resolve(readWhenReady());
+    }).finally(() => {
+      if (fence) gl.deleteSync(fence);
+      if (staging) gl.deleteBuffer(staging);
+    });
   }
 
   copyFromBuffer(srcBuffer: IPlatformBuffer, srcByteOffset: number, dstByteOffset: number, byteLength: number): void {

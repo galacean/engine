@@ -1,22 +1,16 @@
 import {
   VertexMergeBatcher,
-  Color,
   DependentMode,
   Entity,
   EntityModifyFlags,
-  Matrix,
-  Plane,
-  Ray,
   Renderer,
   RendererUpdateFlags,
-  ShaderMacroCollection,
   ShaderProperty,
-  Vector3,
-  Vector4,
   dependentComponents,
   ignoreClone
-} from "@galacean/engine";
-import type { PrimitiveChunkManager } from "@galacean/engine";
+} from "@galacean/engine-core";
+import { Color, Matrix, Plane, Ray, Vector3, Vector4 } from "@galacean/engine-math";
+import type { PrimitiveChunkManager } from "@galacean/engine-core";
 import { Utils } from "../Utils";
 import { UIHitResult } from "../input/UIHitResult";
 import { IGraphics } from "../interface/IGraphics";
@@ -140,13 +134,6 @@ export class UIRenderer extends Renderer implements IGraphics {
     }
 
     this._render(context);
-
-    // union camera global macro and renderer macro.
-    ShaderMacroCollection.unionCollection(
-      context.camera._globalShaderMacro,
-      this.shaderData._macroCollection,
-      this._globalShaderMacro
-    );
   }
 
   /**

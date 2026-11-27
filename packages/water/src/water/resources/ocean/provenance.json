@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 2,
+  "product": "Stylized Water 2",
+  "version": "1.7.0",
+  "sourcePackage": {
+    "name": "Stylized Water 2 v1.7.0.unitypackage",
+    "sha256": "893dffea45af9930780137d6af23a254ae3b7c2593d883e2b13399d0d29d868b",
+    "byteLength": 40836698
+  },
+  "authorization": {
+    "basis": "explicit-written-authorization-held-privately",
+    "notice": "RIGHTS-NOTICE.md"
+  },
+  "runtimeEncoding": {
+    "container": "KTX2",
+    "tool": "Khronos KTX-Software",
+    "version": "4.4.2",
+    "codec": "UASTC",
+    "quality": 4,
+    "supercompression": "Zstd 18",
+    "runtimeDimensions": [512, 512],
+    "release": "https://github.com/KhronosGroup/KTX-Software/releases/tag/v4.4.2",
+    "darwinArm64PackageSha256": "500bd8f9d63358c3f3a0d83b724c8574436a72c37dc0e4bad90ec1ca38032c3c",
+    "reproduction": "KTX2.md"
+  },
+  "files": [
+    {
+      "source": "Assets/StylizedWater2/Materials/Textures/Normals/SmoothWaves.png",
+      "destination": "textures/Normals/SmoothWaves.png",
+      "sha256": "3fe63002b7f87c275045d03cd241752ec81b3f14b71777c4d59b43fa1cd273d1",
+      "byteLength": 622344,
+      "runtimeDerivative": {
+        "destination": "textures/Normals/SmoothWaves.ktx2",
+        "encoding": "uastc-linear-rgb-quality-4-zstd-18",
+        "dimensions": [512, 512],
+        "mipmapFilter": "lanczos4-wrap",
+        "sha256": "bd94e75f43569ad0bcd91fd1501a764a7494f58917b4d4fdeeb6910af0d5befa",
+        "byteLength": 281210
+      }
+    },
+    {
+      "source": "Assets/StylizedWater2/Materials/Textures/Normals/RoughWaves.png",
+      "destination": "textures/Normals/RoughWaves.png",
+      "sha256": "d61ccc7c32ed7c2f66a09cd22cf9c12b9315a18a7553f9a24b5adc7fa0490462",
+      "byteLength": 1167802,
+      "runtimeDerivative": {
+        "destination": "textures/Normals/RoughWaves.ktx2",
+        "encoding": "uastc-linear-rgb-quality-4-zstd-18",
+        "dimensions": [512, 512],
+        "mipmapFilter": "lanczos4-wrap",
+        "sha256": "da14041d0a05f4fb140c61d9a5f05a09f1b5b57d1dd9bafa8ae1155bf11134c5",
+        "byteLength": 317838
+      }
+    },
+    {
+      "source": "Assets/StylizedWater2/Materials/Textures/Caustics/Caustics_1.png",
+      "destination": "textures/Caustics/Caustics_1.png",
+      "sha256": "80d7cc9947e2c6ee9d8f86cd4e9096a2aa04a953ed5f2a808ed2e18c960e5baa",
+      "byteLength": 892206,
+      "runtimeDerivative": {
+        "destination": "textures/Caustics/Caustics_1.ktx2",
+        "encoding": "uastc-srgb-rgb-quality-4-zstd-18",
+        "dimensions": [512, 512],
+        "mipmapFilter": "lanczos4-wrap",
+        "sha256": "a28dacc3fc5e44171c260eb883aad18b459525e8937394fb2432d875762d52b6",
+        "byteLength": 303869
+      }
+    },
+    {
+      "source": "Assets/StylizedWater2/Materials/Textures/Foam/Foam1.png",
+      "destination": "textures/Foam/Foam1.png",
+      "sha256": "f75f9ac860bff2c2ad0e480bea5f7bedee842ca06535a02f64f89dfae598692d",
+      "byteLength": 558337,
+      "runtimeDerivative": {
+        "destination": "textures/Foam/Foam1.ktx2",
+        "encoding": "uastc-srgb-rgb-quality-4-zstd-18",
+        "dimensions": [512, 512],
+        "mipmapFilter": "lanczos4-wrap",
+        "sha256": "5317854e2beec731f7421fe9068733cdd0da4ff82304c3fb04501aa51a4a4ad3",
+        "byteLength": 278154
+      }
+    },
+    {
+      "source": "Assets/StylizedWater2/Materials/Textures/IntersectionNoise.png",
+      "destination": "textures/IntersectionNoise.png",
+      "sha256": "451267b89684405511cdcac2eda4d82a99117ad318c642099dd7a2f33d845ca3",
+      "byteLength": 61550,
+      "runtimeDerivative": {
+        "destination": "textures/IntersectionNoise.ktx2",
+        "encoding": "uastc-srgb-rgb-quality-4-zstd-18",
+        "dimensions": [512, 512],
+        "mipmapFilter": "lanczos4-wrap",
+        "sha256": "88f78af80bc3eda5442073c2f50be8cbe6ca2eed629852c41d17386d74d88a59",
+        "byteLength": 223429
+      }
+    }
+  ]
+}

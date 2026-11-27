@@ -2,6 +2,7 @@ import type { BranchSignature } from "../common/BaseToken";
 import { SymbolInfo, SymbolTable, type FnSymbol, type VarSymbol } from "../parser/symbolTable";
 import { ASTNode } from "./AST";
 import type { ShaderDeclarationOwnershipInfo } from "../ir/ShaderDeclarationOwnership";
+import { ShaderCapability } from "../ir/ShaderCapability";
 
 /**
  * Immutable candidates retained for one reference lookup.
@@ -45,6 +46,10 @@ export class ShaderData {
   declarationOwnership: ShaderDeclarationOwnershipInfo;
 
   globalPrecisions: ASTNode.PrecisionSpecifier[] = [];
+  uniformBlocks?: ASTNode.UniformBlock[];
+  storageBlocks?: ASTNode.StorageBlock[];
+  /** Bitmask of backend capabilities required by declarations in this shader. */
+  requiredCapabilities: ShaderCapability = ShaderCapability.None;
 
   globalMacroDeclarations: ASTNode.GlobalDeclaration[] = [];
 

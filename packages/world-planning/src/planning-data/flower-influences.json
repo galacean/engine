@@ -1,0 +1,7 @@
+{
+  "backgroundMultiplier": 0.45,
+  "bindings": [
+    { "collection": "routes", "regionOwner": false, "label": "沿线花丛区域", "bandM": 8, "multiplier": 1.8, "falloff": 1, "legacyBand": "roadBandM", "legacyMultiplier": "roadMultiplier" },
+    { "collection": "plazas", "regionOwner": true, "label": "区域花丛", "bandM": 8, "multiplier": 2.5, "falloff": 0, "legacyMultiplier": "plazaMultiplier" }
+  ]
+}

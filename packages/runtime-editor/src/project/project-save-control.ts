@@ -1,0 +1,228 @@
+import { PointerButton, Script, TextHorizontalAlignment, type PointerEventData, type Scene } from "@galacean/engine";
+import {
+  CanvasRenderMode,
+  HorizontalAlignmentMode,
+  ResolutionAdaptationMode,
+  Text,
+  UICanvas,
+  UITransform,
+  VerticalAlignmentMode
+} from "@galacean/engine-ui";
+import type { RuntimeProjectSession } from "./runtime-project-session.ts";
+
+/** Flush already-dirty work when hidden, immediately flush async hidden commits, and guard unload. */
+export function attachProjectSaveLifecycle(
+  project: Pick<RuntimeProjectSession, "persistenceStatus" | "subscribePersistence" | "flush"> & {
+    readonly isPersistent?: boolean;
+    readonly userEditSeq?: number;
+  },
+  targetWindow: Pick<Window, "addEventListener">,
+  targetDocument: Pick<Document, "addEventListener" | "visibilityState">,
+  onStatusChange: () => void = () => {},
+  signal?: AbortSignal
+): () => void {
+  if (signal?.aborted) return () => {};
+  const baselineCommitSeq = project.persistenceStatus.commitSeq;
+  const lifecycle = new AbortController();
+  const flush = () => {
+    void project.flush().catch(() => {
+      /* Persistence owns failure and publishes it to the view. */
+    });
+  };
+  targetDocument.addEventListener(
+    "visibilitychange",
+    () => {
+      if (targetDocument.visibilityState === "hidden") flush();
+    },
+    { signal: lifecycle.signal }
+  );
+  targetWindow.addEventListener(
+    "beforeunload",
+    (event) => {
+      const status = project.persistenceStatus;
+      if (status.state === "disposed") return;
+      const hasUnsaved =
+        project.isPersistent === false
+          ? typeof project.userEditSeq === "number"
+            ? project.userEditSeq > 0
+            : status.commitSeq > baselineCommitSeq
+          : status.commitSeq > status.savedSeq;
+      if (hasUnsaved) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    },
+    { signal: lifecycle.signal }
+  );
+  const unsubscribe = project.subscribePersistence(() => {
+    onStatusChange();
+    // Flush async commits (e.g. FarmingService checkpoint) that land after visibilitychange -> hidden fires.
+    if (targetDocument.visibilityState === "hidden" && project.persistenceStatus.state === "pending") {
+      flush();
+    }
+  });
+  let disposed = false;
+  const dispose = () => {
+    if (disposed) return;
+    disposed = true;
+    signal?.removeEventListener("abort", dispose);
+    lifecycle.abort();
+    unsubscribe();
+  };
+  signal?.addEventListener("abort", dispose, { once: true });
+  return dispose;
+}
+
+/** Projects persistence state; InputManager owns hover and retry hit testing. */
+class ProjectSaveIndicator extends Script {
+  private project?: RuntimeProjectSession;
+  private label!: Text;
+  private showIndicator = true;
+  private hovered = false;
+  private targetAlpha = 0.42;
+  private startAlpha = 0.42;
+  private fadeTime = 0.2;
+  private readonly reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+  private unsubscribe?: () => void;
+  private observer?: ResizeObserver;
+  private safeArea?: HTMLDivElement;
+  private abort?: AbortController;
+
+  initialize(project: RuntimeProjectSession, canvasElement: HTMLCanvasElement, showIndicator = true): void {
+    this.project = project;
+    this.showIndicator = showIndicator;
+    const canvas = this.entity.addComponent(UICanvas);
+    canvas.renderMode = CanvasRenderMode.ScreenSpaceOverlay;
+    canvas.resolutionAdaptationMode = ResolutionAdaptationMode.BothAdaptation;
+    // Below photo/voice modal input, above the world's fallback drag surface.
+    canvas.sortOrder = 100;
+    const labelEntity = this.entity.createChild("Project save status");
+    labelEntity.isActive = showIndicator;
+    this.label = labelEntity.addComponent(Text);
+    this.label.fontSize = 11;
+    this.label.horizontalAlignment = TextHorizontalAlignment.Left;
+    this.label.color.set(0.93, 0.96, 0.94, 0.42);
+    // Events are dispatched on the hit entity, not on its canvas parent.
+    labelEntity.addComponent(ProjectSavePointer).owner = this;
+    const transform = labelEntity.transform as UITransform;
+    transform.horizontalAlignment = HorizontalAlignmentMode.Left;
+    transform.verticalAlignment = VerticalAlignmentMode.Bottom;
+    transform.size.set(132, 32);
+
+    // CSS env() is a browser inset measurement only; all visible UI is engine Text.
+    const safeArea = (this.safeArea = document.createElement("div"));
+    safeArea.style.cssText =
+      "position:fixed;visibility:hidden;pointer-events:none;padding-left:env(safe-area-inset-left);padding-bottom:env(safe-area-inset-bottom)";
+    document.body.append(safeArea);
+    const resize = () => {
+      canvas.referenceResolution.set(Math.max(canvasElement.clientWidth, 1), Math.max(canvasElement.clientHeight, 1));
+      const insets = getComputedStyle(safeArea);
+      transform.alignLeft = 20 + (parseFloat(insets.paddingLeft) || 0);
+      transform.alignBottom = 12 + (parseFloat(insets.paddingBottom) || 0);
+    };
+    this.observer = new ResizeObserver(resize);
+    this.observer.observe(canvasElement);
+    this.abort = new AbortController();
+    const signal = this.abort.signal;
+    window.addEventListener("resize", resize, { signal });
+    window.addEventListener("blur", () => this.setHovered(false), { signal });
+    this.unsubscribe = attachProjectSaveLifecycle(project, window, document, () => this.updateStatus(), signal);
+    resize();
+    this.updateStatus();
+  }
+
+  setHovered(value: boolean): void {
+    this.hovered = value;
+    this.updateStatus();
+  }
+
+  retry(): void {
+    if (this.project?.persistenceStatus.state === "failed") this.flush();
+  }
+
+  private flush(): void {
+    void this.project?.flush().catch(() => {
+      /* Persistence owns failure and publishes it to this view. */
+    });
+  }
+
+  private updateStatus(): void {
+    if (!this.project || !this.showIndicator) return;
+    const state = this.project.persistenceStatus.state;
+    const ephemeral = !this.project.isPersistent;
+    this.label.text =
+      state === "disposed"
+        ? ""
+        : ephemeral
+          ? "仅本次会话"
+          : state === "failed"
+            ? "保存失败 · 点击重试"
+            : state === "saving"
+              ? "保存中…"
+              : state === "pending"
+                ? "待保存"
+                : "已保存";
+    // Keep the hit region local to the text, while allowing a comfortable vertical target.
+    (this.label.entity.transform as UITransform).size.x = Math.max(44, this.label.text.length * 11);
+    this.label.raycastEnabled = state !== "disposed" && !ephemeral;
+    const targetAlpha = this.hovered ? 0.9 : ephemeral || state === "failed" ? 0.8 : state === "saved" ? 0.42 : 0.6;
+    if (targetAlpha !== this.targetAlpha) {
+      this.startAlpha = this.label.color.a;
+      this.targetAlpha = targetAlpha;
+      this.fadeTime = 0;
+    }
+    const alpha = this.label.color.a;
+    if (ephemeral || state === "failed") this.label.color.set(0.96, 0.83, 0.64, alpha);
+    else this.label.color.set(0.93, 0.96, 0.94, alpha);
+  }
+
+  override onUpdate(deltaTime: number): void {
+    if (!this.label || this.label.color.a === this.targetAlpha) return;
+    this.fadeTime = Math.min(0.2, this.fadeTime + deltaTime);
+    this.label.color.a =
+      this.reducedMotion.matches || this.fadeTime === 0.2
+        ? this.targetAlpha
+        : this.startAlpha + (this.targetAlpha - this.startAlpha) * (this.fadeTime / 0.2);
+  }
+
+  override onDestroy(): void {
+    this.unsubscribe?.();
+    this.observer?.disconnect();
+    this.abort?.abort();
+    this.safeArea?.remove();
+    this.project = undefined;
+  }
+}
+
+class ProjectSavePointer extends Script {
+  owner?: ProjectSaveIndicator;
+  override onPointerEnter(): void {
+    this.owner?.setHovered(true);
+  }
+  override onPointerExit(): void {
+    this.owner?.setHovered(false);
+  }
+  override onPointerClick(event: PointerEventData): void {
+    if (event.pointer.button === PointerButton.Primary) this.owner?.retry();
+  }
+  override onDestroy(): void {
+    this.owner = undefined;
+  }
+}
+
+/** The scene owns the UI entity; unmount before disposing the project or engine. */
+export function mountProjectSaveControl(
+  project: RuntimeProjectSession,
+  scene: Scene,
+  canvas: HTMLCanvasElement,
+  options?: { showIndicator?: boolean }
+): () => void {
+  const root = scene.createRootEntity("Project persistence HUD");
+  try {
+    root.addComponent(ProjectSaveIndicator).initialize(project, canvas, options?.showIndicator ?? true);
+  } catch (error) {
+    root.destroy();
+    throw error;
+  }
+  return () => root.destroy();
+}

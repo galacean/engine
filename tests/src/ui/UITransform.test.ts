@@ -1,4 +1,4 @@
-import { Entity, MeshRenderer, WebGLEngine } from "@galacean/engine";
+import { Entity, MeshRenderer, TransformModifyFlags, WebGLEngine } from "@galacean/engine";
 import { HorizontalAlignmentMode, Image, UICanvas, UITransform, VerticalAlignmentMode } from "@galacean/engine-ui";
 import { describe, expect, it } from "vitest";
 
@@ -525,6 +525,125 @@ describe("UITransform", async () => {
       expect(clonedTransform.alignLeft).to.eq(20);
       expect(clonedTransform.position.x).to.eq(originalTransform.position.x);
     });
+  });
+
+  it("updates _isFrontFaceInvert when reparented under negative and positive scale parents", () => {
+    const negParent = root.createChild("ui-neg-parent");
+    negParent.transform.setScale(-1, 1, 1);
+    const posParent = root.createChild("ui-pos-parent");
+    posParent.transform.setScale(1, 1, 1);
+
+    const uiEntity = posParent.createChild("ui-child");
+    const uiTransform = uiEntity.addComponent(UITransform);
+    expect(uiTransform).to.be.instanceOf(UITransform);
+
+    expect(uiTransform._isFrontFaceInvert()).to.eq(false);
+
+    negParent.addChild(uiEntity);
+    expect(uiTransform._isFrontFaceInvert()).to.eq(true);
+
+    posParent.addChild(uiEntity);
+    expect(uiTransform._isFrontFaceInvert()).to.eq(false);
+
+    negParent.destroy();
+    posParent.destroy();
+  });
+
+  it("propagates world flags and _isFrontFaceInvert to plain Transform children on reparent and rect change", () => {
+    const negParent = root.createChild("ui-mixed-neg");
+    negParent.transform.setScale(-1, 1, 1);
+    const posParent = root.createChild("ui-mixed-pos");
+    posParent.transform.setScale(1, 1, 1);
+
+    const uiEntity = posParent.createChild("ui-panel");
+    const uiTransform = uiEntity.addComponent(UITransform);
+    expect(uiTransform).to.be.instanceOf(UITransform);
+
+    const meshChild = new Entity(engine, "plain-mesh-child");
+    const grandChild = new Entity(engine, "plain-mesh-grandchild");
+    meshChild.addChild(grandChild);
+    uiEntity.addChild(meshChild);
+    expect(meshChild.transform).not.to.be.instanceOf(UITransform);
+    expect(grandChild.transform).not.to.be.instanceOf(UITransform);
+
+    expect(meshChild.transform.worldMatrix.elements[0]).to.eq(1);
+    expect(meshChild.transform.lossyWorldScale.x).to.eq(1);
+    expect(meshChild.transform._isFrontFaceInvert()).to.eq(false);
+    expect(grandChild.transform.worldMatrix.elements[0]).to.eq(1);
+    expect(grandChild.transform._isFrontFaceInvert()).to.eq(false);
+
+    // Reparenting UITransform under negative scale must dirty plain Transform descendants.
+    negParent.addChild(uiEntity);
+    expect(meshChild.transform.worldMatrix.elements[0]).to.eq(-1);
+    expect(meshChild.transform.lossyWorldScale.x).to.eq(-1);
+    expect(meshChild.transform._isFrontFaceInvert()).to.eq(true);
+    expect(grandChild.transform._isFrontFaceInvert()).to.eq(true);
+
+    // Subsequent uniform positive scale on plain child must retain inverted front-face winding.
+    meshChild.transform.setScale(1.5, 1.5, 1.5);
+    expect(meshChild.transform.worldMatrix.elements[0]).to.eq(-1.5);
+    expect(meshChild.transform._isFrontFaceInvert()).to.eq(true);
+    expect(grandChild.transform._isFrontFaceInvert()).to.eq(true);
+
+    // Same-frame reparent + scale must not be short-circuited by stale dirty flags.
+    const posParent2 = root.createChild("ui-mixed-pos-2");
+    const meshChild2 = new Entity(engine, "plain-mesh-child-2");
+    uiEntity.addChild(meshChild2);
+    expect(meshChild2.transform.worldMatrix.elements[0]).to.eq(-1);
+    expect(meshChild2.transform.lossyWorldScale.x).to.eq(-1);
+    expect(meshChild2.transform._isFrontFaceInvert()).to.eq(true);
+    posParent2.addChild(uiEntity);
+    uiTransform.setScale(2, 1, 1);
+    expect(meshChild2.transform.worldMatrix.elements[0]).to.eq(2);
+    expect(meshChild2.transform.lossyWorldScale.x).to.eq(2);
+    expect(meshChild2.transform._isFrontFaceInvert()).to.eq(false);
+    posParent.addChild(uiEntity);
+    uiTransform.setScale(-1, 1, 1);
+    expect(meshChild2.transform.worldMatrix.elements[0]).to.eq(-1);
+    expect(meshChild2.transform._isFrontFaceInvert()).to.eq(true);
+
+    // Alignment-driven self rect change must also dirty plain Transform children's world position.
+    const uiParent = root.createChild("ui-mixed-align-parent");
+    uiParent.addComponent(UITransform);
+    uiParent.addChild(uiEntity);
+    uiTransform.setScale(1, 1, 1);
+    uiTransform.horizontalAlignment = HorizontalAlignmentMode.Right;
+    uiTransform.alignRight = 0;
+    const xBefore = meshChild2.transform.worldPosition.x;
+    uiTransform.size.set(40, 40);
+    expect(meshChild2.transform.worldPosition.x).not.to.eq(xBefore);
+
+    negParent.destroy();
+    posParent.destroy();
+    posParent2.destroy();
+    uiParent.destroy();
+  });
+
+  it("keeps TransformModifyFlags.IsWorldFrontFaceInvert disjoint from UITransformModifyFlags", () => {
+    expect(TransformModifyFlags.IsWorldFrontFaceInvert).to.be.at.least(0x10000);
+    expect(TransformModifyFlags.IsWorldFrontFaceInvert & (UITransformModifyFlags.Size | UITransformModifyFlags.Pivot)).to.eq(0);
+
+    const entity = root.createChild("ui-flag-disjoint");
+    const uiTransform = entity.addComponent(UITransform);
+    expect(uiTransform).to.be.instanceOf(UITransform);
+    // @ts-ignore
+    const updateFlagMgr = entity._updateFlagManager as any;
+    const events: number[] = [];
+    const listener = (type?: number) => {
+      if (typeof type === "number") events.push(type);
+    };
+    updateFlagMgr.addListener(listener);
+
+    try {
+      uiTransform.size.set(240, 120);
+      uiTransform.pivot.set(0.25, 0.75);
+      expect(events.some((e) => (e & UITransformModifyFlags.Size) !== 0)).to.eq(true);
+      expect(events.some((e) => (e & UITransformModifyFlags.Pivot) !== 0)).to.eq(true);
+      expect(events.every((e) => (e & TransformModifyFlags.IsWorldFrontFaceInvert) === 0)).to.eq(true);
+    } finally {
+      updateFlagMgr.removeListener(listener);
+      entity.destroy();
+    }
   });
 });
 

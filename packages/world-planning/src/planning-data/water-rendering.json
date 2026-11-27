@@ -1,0 +1,19 @@
+{
+  "profileErrorM": 0.1,
+  "riverQuality": "high",
+  "riverLookId": "farmlands-scene-demo-river-v1",
+  "riverSegmentLengthM": 2,
+  "riverFlowMps": 1,
+  "riverBankFeatherM": 0.25,
+  "riverWaveAmplitudeM": 0,
+  "riverWaveLengthM": 8,
+  "riverShoreDampingM": 1,
+  "riverTurbulence": 0.2,
+  "riverOptics": {
+    "absorptionCoefficient": [6, 2, 0.08],
+    "scatteringColor": [0.005, 0.6, 0.8],
+    "scatteringCoefficient": 4,
+    "roughness": 0.25,
+    "reflectionIntensity": 0.3
+  }
+}

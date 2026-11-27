@@ -1,0 +1,13 @@
+import {createRequire} from 'node:module';
+import {fileURLToPath} from 'node:url';
+import {dirname,join} from 'node:path';
+import {writeFileSync} from 'node:fs';
+const require=createRequire(join(process.cwd(),'package.json'));
+const esbuild=require(require.resolve('esbuild',{paths:[require.resolve('vite')]}));
+const dir=dirname(fileURLToPath(import.meta.url));
+const result=await esbuild.build({entryPoints:[join(dir,'main.ts')],bundle:true,write:false,outfile:'atlas.js',format:'iife',platform:'browser',target:'es2022',minify:true});
+const js=result.outputFiles.find(file=>file.path.endsWith('.js')).text;
+const css=result.outputFiles.find(file=>file.path.endsWith('.css')).text;
+const html=`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>地貌白盒图集 · 五种结构</title><style>${css}</style></head><body><main id="app"></main><script>${js.replaceAll('</script','<\\/script')}</script></body></html>`;
+writeFileSync(join(dir,'landform-atlas.html'),html);
+console.log('Standalone atlas:',Buffer.byteLength(html),'bytes');

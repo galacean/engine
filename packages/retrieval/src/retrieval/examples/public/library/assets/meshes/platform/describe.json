@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "assetType": "mesh",
+  "assetPaths": [
+    "assets/meshes/platform/platform.mesh"
+  ],
+  "overview": {
+    "name": "宽平台",
+    "description": "六米宽一米高六米深的方形平台网格，用于地台和台阶。",
+    "tags": [
+      "方盒",
+      "网格"
+    ]
+  },
+  "usage": {
+    "description": "导入为 PrimitiveMesh，绑定到渲染器后使用。"
+  },
+  "technical": {
+    "width": 6,
+    "height": 1,
+    "depth": 6
+  }
+}

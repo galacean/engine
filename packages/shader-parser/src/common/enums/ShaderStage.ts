@@ -1,5 +1,6 @@
 export enum EShaderStage {
   VERTEX,
   FRAGMENT,
-  ALL
+  ALL,
+  COMPUTE
 }

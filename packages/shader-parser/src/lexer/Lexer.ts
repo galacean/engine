@@ -78,7 +78,18 @@ export class Lexer extends BaseLexer {
     usampler3D: Keyword.U_SAMPLER3D,
     usamplerCube: Keyword.U_SAMPLER_CUBE,
     usampler2DArray: Keyword.U_SAMPLER2D_ARRAY,
+    image2D: Keyword.IMAGE2D,
+    iimage2D: Keyword.I_IMAGE2D,
+    uimage2D: Keyword.U_IMAGE2D,
+    atomic_uint: Keyword.ATOMIC_UINT,
+    atomic_int: Keyword.ATOMIC_INT,
+    storage: Keyword.STORAGE,
+    readonly: Keyword.READONLY,
+    writeonly: Keyword.WRITEONLY,
+    readwrite: Keyword.READWRITE,
+    shared: Keyword.SHARED,
     struct: Keyword.STRUCT,
+    uniform: Keyword.UNIFORM,
     void: Keyword.VOID,
     true: Keyword.True,
     false: Keyword.False,
@@ -1091,7 +1102,18 @@ export class Lexer extends BaseLexer {
     }
     const token = this._createToken();
     const word = buffer.join("");
-    const kt = Lexer._lexemeTable[word];
+    let kt = Lexer._lexemeTable[word];
+    if (
+      kt === Keyword.STORAGE ||
+      kt === Keyword.READONLY ||
+      kt === Keyword.WRITEONLY ||
+      kt === Keyword.READWRITE ||
+      kt === Keyword.SHARED
+    ) {
+      if (!this._isContextualWebGPUKeyword(kt)) {
+        kt = undefined;
+      }
+    }
 
     if (this._macroDefineExpectsNameToken) {
       // Bypass MACRO_CALL classification for this one word. Used for the name of
@@ -1118,6 +1140,122 @@ export class Lexer extends BaseLexer {
       token.set(kt ?? ETokenType.ID, word, start);
     }
     return token;
+  }
+
+  private static readonly _IMAGE_TYPE_NAMES = new Set(["image2D", "iimage2D", "uimage2D"]);
+  private static readonly _PRECISION_QUALIFIERS = new Set(["highp", "mediump", "lowp"]);
+  private static readonly _IMAGE_QUALIFIERS = new Set([
+    "highp",
+    "mediump",
+    "lowp",
+    "const",
+    "readonly",
+    "writeonly",
+    "readwrite",
+    "coherent",
+    "volatile",
+    "restrict"
+  ]);
+
+  /**
+   * Contextual disambiguation for WebGPU-only keywords (`storage`, `readonly`, `writeonly`,
+   * `readwrite`, `shared`) so existing GLSL/ShaderLab identifiers like `float storage = ...;`
+   * continue to lex as `ETokenType.ID` with zero backward-compatibility regressions.
+   */
+  private _isContextualWebGPUKeyword(kt: Keyword): boolean {
+    const src = this._source;
+    const len = src.length;
+    const skipWs = (start: number): number => {
+      for (let i = start; i < len; ) {
+        const ch = src.charCodeAt(i);
+        if (ch === 32 || ch === 9 || ch === 10 || ch === 13) {
+          i++;
+          continue;
+        }
+        if (ch === 47 && i + 1 < len) {
+          const next = src.charCodeAt(i + 1);
+          if (next === 47) {
+            const nl = src.indexOf("\n", i + 2);
+            i = nl === -1 ? len : nl + 1;
+            continue;
+          }
+          if (next === 42) {
+            const close = src.indexOf("*/", i + 2);
+            i = close === -1 ? len : close + 2;
+            continue;
+          }
+        }
+        return i;
+      }
+      return len;
+    };
+    const scanIdent = (i: number): { word: string; end: number } | undefined => {
+      const start = skipWs(i);
+      if (start >= len || !BaseLexer.isAlpha(src.charCodeAt(start))) return undefined;
+      let end = start + 1;
+      for (; end < len && BaseLexer.isAlnum(src.charCodeAt(end)); end++) {
+        // advance past identifier characters
+      }
+      return { word: src.slice(start, end), end };
+    };
+
+    if (kt === Keyword.STORAGE) {
+      const blockName = scanIdent(this._currentIndex);
+      if (!blockName) return false;
+      const afterName = skipWs(blockName.end);
+      return afterName < len && src.charCodeAt(afterName) === 123; // '{'
+    }
+
+    if (kt === Keyword.READONLY || kt === Keyword.WRITEONLY || kt === Keyword.READWRITE) {
+      // Allow intervening qualifiers in any order (e.g. `writeonly highp image2D dst;`).
+      for (let pos = this._currentIndex, step = 0; step < 8; step++) {
+        const ident = scanIdent(pos);
+        if (!ident) return false;
+        if (Lexer._IMAGE_TYPE_NAMES.has(ident.word)) return true;
+        if (kt === Keyword.READONLY && ident.word === "storage") {
+          const blockName = scanIdent(ident.end);
+          if (!blockName) return false;
+          const afterName = skipWs(blockName.end);
+          return afterName < len && src.charCodeAt(afterName) === 123; // '{'
+        }
+        if (Lexer._IMAGE_QUALIFIERS.has(ident.word)) {
+          pos = ident.end;
+          continue;
+        }
+        return false;
+      }
+      return false;
+    }
+
+    if (kt === Keyword.SHARED) {
+      // `shared [highp|mediump|lowp] <Type>[N] <Name>` or `shared [highp|mediump|lowp] <Type> <Name>`.
+      // Only skip precision qualifiers here so user struct types named e.g. `readwrite` are not skipped.
+      let typeIdent: { word: string; end: number } | undefined;
+      for (let pos = this._currentIndex, step = 0; step < 4; step++) {
+        const ident = scanIdent(pos);
+        if (!ident) return false;
+        if (Lexer._PRECISION_QUALIFIERS.has(ident.word)) {
+          pos = ident.end;
+          continue;
+        }
+        typeIdent = ident;
+        break;
+      }
+      if (!typeIdent) return false;
+      let pos = skipWs(typeIdent.end);
+      if (pos < len && src.charCodeAt(pos) === 91) {
+        // '[' ... ']'
+        let depth = 1;
+        for (pos = pos + 1; pos < len && depth > 0; pos++) {
+          const c = src.charCodeAt(pos);
+          if (c === 91) depth++;
+          else if (c === 93) depth--;
+        }
+      }
+      return scanIdent(pos) !== undefined;
+    }
+
+    return false;
   }
 
   /** True iff at least one `#define <word>` is reachable from the current branch. */

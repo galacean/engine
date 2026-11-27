@@ -145,13 +145,19 @@ export class ParserSemanticValidation {
       let sharedReason: string | undefined;
       for (const symbol of symbols) {
         if (!(symbol instanceof VarSymbol)) return;
+        const storageBlock =
+          symbol.astNode instanceof ASTNode.VariableDeclaration ? symbol.astNode.storageBlock : undefined;
         const reason = symbol.isConst
           ? "a const-qualified variable"
           : TypeSystem.isSamplerType(symbol.dataType?.type)
             ? "a sampler"
-            : symbol.isUniform
-              ? "a uniform variable"
-              : undefined;
+            : storageBlock
+              ? storageBlock.readonly
+                ? "a readonly storage buffer"
+                : undefined
+              : symbol.isUniform
+                ? "a uniform variable"
+                : undefined;
         if (!reason) return;
         if (sharedReason && sharedReason !== reason) return "a non-modifiable variable";
         sharedReason = reason;
@@ -429,6 +435,10 @@ export class ParserSemanticValidation {
         location: argument instanceof TreeNode ? argument.location : list.location
       };
     }
+
+    // Array constructors (e.g. `vec3[3](v0, v1, v2)`) construct fixed arrays, not vectors/matrices.
+    const firstChild = functionIdentifier.children[0];
+    if (firstChild instanceof ASTNode.TypeSpecifier && firstChild.arraySpecifier) return;
 
     const matrixComponents = TypeSystem.matrixComponentCount(functionIdentifier.ident);
     const requiredComponents = TypeSystem.vectorComponentCount(functionIdentifier.ident) || matrixComponents;

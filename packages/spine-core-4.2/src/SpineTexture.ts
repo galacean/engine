@@ -1,5 +1,5 @@
 import { Texture, TextureFilter, TextureWrap } from "@esotericsoftware/spine-core";
-import { Texture2D, TextureFilterMode, TextureWrapMode } from "@galacean/engine";
+import { Texture2D, TextureFilterMode, TextureWrapMode } from "@galacean/engine-core";
 
 /**
  * @internal

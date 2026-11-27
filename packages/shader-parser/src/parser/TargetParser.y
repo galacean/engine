@@ -72,6 +72,7 @@
 %token usamplerCube
 %token usampler2DArray
 %token struct
+%token uniform
 %token highp
 %token mediump
 %token lowp
@@ -174,12 +175,23 @@ macro_else_expression:
 global_declaration:
     precision_specifier
     | variable_declaration_statement
+    | uniform_block
     | struct_specifier
     | function_definition
     | global_macro_if_statement
     | macro_undef
     | macro_define
     | MACRO_DEFINE_EXPRESSION
+    ;
+
+uniform_block:
+    uniform id '{' uniform_block_members '}' ';'
+    | uniform MACRO_CALL '{' uniform_block_members '}' ';'
+    ;
+
+uniform_block_members:
+    variable_declaration ';'
+    | uniform_block_members variable_declaration ';'
     ;
 
 global_macro_declaration:

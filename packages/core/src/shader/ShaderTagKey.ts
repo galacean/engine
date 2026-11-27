@@ -20,6 +20,8 @@ export class ShaderTagKey {
 
   /** @internal */
   _uniqueId: number;
+  /** @internal Invalidates pass lists when a shader changes this tag. */
+  _revision = 0;
 
   private constructor(name: string) {
     this.name = name;

@@ -24,6 +24,7 @@ export { RotationOverLifetimeModule } from "./modules/RotationOverLifetimeModule
 export { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 export { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 export { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
+export { WindOverLifetimeModule } from "./modules/WindOverLifetimeModule";
 export { LimitVelocityOverLifetimeModule } from "./modules/LimitVelocityOverLifetimeModule";
 export { NoiseModule } from "./modules/NoiseModule";
 export { SubEmitter } from "./modules/SubEmitter";

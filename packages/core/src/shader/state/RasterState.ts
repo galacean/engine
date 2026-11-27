@@ -1,11 +1,8 @@
 import { DataObject } from "../../base/DataObject";
-import type { IHardwareRenderer } from "../../renderingHardwareInterface";
-import { RenderStateElementMap } from "../../BasicResources";
 import { ShaderData } from "../ShaderData";
 import { ShaderProperty } from "../ShaderProperty";
 import { CullMode } from "../enums/CullMode";
 import { RenderStateElementKey } from "../enums/RenderStateElementKey";
-import { RenderState } from "./RenderState";
 
 /**
  * Raster state.
@@ -38,78 +35,6 @@ export class RasterState extends DataObject {
     const slopeScaledDepthBiasProp = renderStateDataMap[RenderStateElementKey.RasterStateSlopeScaledDepthBias];
     if (slopeScaledDepthBiasProp !== undefined) {
       this.slopeScaledDepthBias = shaderData.getFloat(slopeScaledDepthBiasProp) ?? 0;
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _apply(
-    hardwareRenderer: IHardwareRenderer,
-    lastRenderState: RenderState,
-    frontFaceInvert: boolean,
-    customStates?: RenderStateElementMap | null
-  ): void {
-    this._platformApply(hardwareRenderer, lastRenderState.rasterState, frontFaceInvert, customStates);
-  }
-
-  private _platformApply(
-    rhi: IHardwareRenderer,
-    lastState: RasterState,
-    frontFaceInvert: boolean,
-    customStates?: RenderStateElementMap | null
-  ): void {
-    const gl = rhi.gl;
-    let { cullMode, depthBias, slopeScaledDepthBias } = this;
-
-    if (customStates) {
-      const cullModeState = customStates[RenderStateElementKey.RasterStateCullMode];
-      cullModeState !== undefined && (cullMode = <CullMode>cullModeState);
-    }
-
-    const cullFaceEnable = cullMode !== CullMode.Off;
-    if (cullFaceEnable !== lastState._cullFaceEnable) {
-      if (cullFaceEnable) {
-        gl.enable(gl.CULL_FACE);
-      } else {
-        gl.disable(gl.CULL_FACE);
-      }
-      lastState._cullFaceEnable = cullFaceEnable;
-    }
-
-    // apply front face.
-    if (cullFaceEnable) {
-      if (cullMode !== lastState.cullMode) {
-        if (cullMode == CullMode.Back) {
-          gl.cullFace(gl.BACK);
-        } else {
-          gl.cullFace(gl.FRONT);
-        }
-        lastState.cullMode = cullMode;
-      }
-    }
-
-    if (frontFaceInvert !== lastState._frontFaceInvert) {
-      if (frontFaceInvert) {
-        gl.frontFace(gl.CW);
-      } else {
-        gl.frontFace(gl.CCW);
-      }
-      lastState._frontFaceInvert = frontFaceInvert;
-    }
-
-    // apply polygonOffset.
-    if (!rhi._enableGlobalDepthBias) {
-      if (depthBias !== lastState.depthBias || slopeScaledDepthBias !== lastState.slopeScaledDepthBias) {
-        if (depthBias !== 0 || slopeScaledDepthBias !== 0) {
-          gl.enable(gl.POLYGON_OFFSET_FILL);
-          gl.polygonOffset(slopeScaledDepthBias, depthBias);
-        } else {
-          gl.disable(gl.POLYGON_OFFSET_FILL);
-        }
-        lastState.depthBias = depthBias;
-        lastState.slopeScaledDepthBias = slopeScaledDepthBias;
-      }
     }
   }
 }

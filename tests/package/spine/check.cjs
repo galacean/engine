@@ -47,7 +47,11 @@ function pack(name) {
   return file;
 }
 function install(versions, directory) {
-  const names = dependenciesFor(["@galacean/engine-spine", ...versions.map((v) => `@galacean/engine-spine-core-${v}`)]);
+  const names = dependenciesFor([
+    "@galacean/engine",
+    "@galacean/engine-spine",
+    ...versions.map((v) => `@galacean/engine-spine-core-${v}`)
+  ]);
   const dependencies = Object.fromEntries([...names].map((name) => [name, `file:${pack(name)}`]));
   fs.mkdirSync(directory, { recursive: true });
   fs.writeFileSync(

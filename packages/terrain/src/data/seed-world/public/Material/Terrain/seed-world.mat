@@ -1,0 +1,1 @@
+{"name":"Seed World Terrain","shader":"Terrain/Terrain","shaderRef":{"url":"Shader/Terrain.shaderc"},"shaderData":{"material_TerrainRoadColor":{"type":"Color","value":{"r":0.23455058216100522,"g":0.1651321945016676,"b":0.12477181756095049,"a":1}}},"macros":[{"name":"MATERIAL_TERRAIN_GRASS_SHADING"}]}

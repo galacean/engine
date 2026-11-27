@@ -4,7 +4,7 @@ import { TextureCubeFace } from "./enums/TextureCubeFace";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
 import { TextureFormat } from "./enums/TextureFormat";
 import { TextureWrapMode } from "./enums/TextureWrapMode";
-import { Texture } from "./Texture";
+import { Texture, type TextureReadArguments } from "./Texture";
 import { TextureUtils } from "./TextureUtils";
 
 /**
@@ -29,7 +29,7 @@ export class TextureCube extends Texture {
     super(engine, size, size, format, mipmap, isSRGBColorSpace);
 
     this._platformTexture = engine._hardwareRenderer.createPlatformTextureCube(this);
-    this.filterMode = TextureFilterMode.Bilinear;
+    this.filterMode = this._isIntFormat() ? TextureFilterMode.Point : TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Clamp;
 
     this._memorySize = TextureUtils.getTextureByteCount(format, size, size, this._mipmapCount, 6);
@@ -141,57 +141,22 @@ export class TextureCube extends Texture {
     out: ArrayBufferView
   ): void;
 
-  getPixelBuffer(
-    face: TextureCubeFace,
-    xOrMipLevelOrOut: number | ArrayBufferView,
-    yOrMipLevel?: number | ArrayBufferView,
-    width?: number,
-    height?: number,
-    mipLevelOrOut?: number | ArrayBufferView,
-    out?: ArrayBufferView
-  ): void {
-    const argsLength = arguments.length;
-    if (argsLength === 2) {
-      (this._platformTexture as IPlatformTextureCube).getPixelBuffer(
-        face,
-        0,
-        0,
-        this._width,
-        this._height,
-        0,
-        <ArrayBufferView>xOrMipLevelOrOut
+  getPixelBuffer(face: TextureCubeFace, ...args: TextureReadArguments): void {
+    const region = this._readRegion(args);
+    (this._platformTexture as IPlatformTextureCube).getPixelBuffer(face, ...region);
+  }
+
+  /** Read a region after all previously encoded draws and copies are available. */
+  getPixelBufferAsync(face: TextureCubeFace, ...args: TextureReadArguments): Promise<void> {
+    return new Promise<void>((resolve) => {
+      const region = this._readRegion(args);
+      const platform = this._platformTexture as IPlatformTextureCube;
+      resolve(
+        platform.getPixelBufferAsync
+          ? platform.getPixelBufferAsync(face, ...region)
+          : platform.getPixelBuffer(face, ...region)
       );
-    } else if (argsLength === 3) {
-      (this._platformTexture as IPlatformTextureCube).getPixelBuffer(
-        face,
-        0,
-        0,
-        this._width >> (<number>xOrMipLevelOrOut),
-        this._height >> (<number>xOrMipLevelOrOut),
-        <number>xOrMipLevelOrOut,
-        <ArrayBufferView>yOrMipLevel
-      );
-    } else if (argsLength === 6) {
-      (this._platformTexture as IPlatformTextureCube).getPixelBuffer(
-        face,
-        <number>xOrMipLevelOrOut,
-        <number>yOrMipLevel,
-        width!,
-        height!,
-        0,
-        <ArrayBufferView>mipLevelOrOut
-      );
-    } else if (argsLength === 7) {
-      (this._platformTexture as IPlatformTextureCube).getPixelBuffer(
-        face,
-        <number>xOrMipLevelOrOut,
-        <number>yOrMipLevel,
-        width!,
-        height!,
-        <number>mipLevelOrOut,
-        out!
-      );
-    }
+    });
   }
 
   /**

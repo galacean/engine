@@ -9,6 +9,8 @@
 
 ![image](https://github.com/user-attachments/assets/057c2c99-85a8-4ace-a268-c70daa1a449e)
 
+On `experimental/webgpu`, Seed World runs the engine-next product with selectable WebGPU and WebGL2 backends. For local startup, production builds and the five-template checks, see the [World development guide](world/README.md#使用).
+
 ## Features
 
 - 🖥 &nbsp;**Platform** - Support HTML5 and wechat minigame

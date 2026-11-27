@@ -1,4 +1,4 @@
-import { Ray, Vector4 } from "@galacean/engine";
+import { Ray, Vector4 } from "@galacean/engine-math";
 import { UIHitResult } from "../input/UIHitResult";
 import { IGroupAble } from "./IGroupAble";
 

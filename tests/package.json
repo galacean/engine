@@ -31,7 +31,8 @@
     "@galacean/engine-spine": "workspace:*",
     "@galacean/engine-spine-core-4.2": "workspace:*",
     "@galacean/engine-xr": "workspace:*",
-    "@esotericsoftware/spine-core": "~4.2.66"
+    "@esotericsoftware/spine-core": "~4.2.66",
+    "@galacean/engine-webgpu": "workspace:*"
   },
   "devDependencies": {
     "@vitest/browser": "3.2.6"

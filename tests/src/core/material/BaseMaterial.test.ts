@@ -29,6 +29,20 @@ describe("BaseMaterial", () => {
     }
   }
 
+  it("updates shared and mixed pass queues before a material draws", () => {
+    const material = new TestMaterial(engine);
+    const subShader = material.shader.subShaders[0];
+    const data = material.shaderData;
+    expect(subShader._getSharedMaterialQueue(data)).toBe(RenderQueueType.Opaque);
+    material.isTransparent = true;
+    expect(subShader._getSharedMaterialQueue(data)).toBeUndefined();
+    data.setFloat("material_ShadowCasterRenderQueue", RenderQueueType.Transparent);
+    data.setFloat("material_DepthOnlyRenderQueue", RenderQueueType.Transparent);
+    expect(subShader._getSharedMaterialQueue(data)).toBe(RenderQueueType.Transparent);
+    data.setFloat("renderQueueType", RenderQueueType.AlphaTest);
+    expect(subShader._getSharedMaterialQueue(data)).toBeUndefined();
+  });
+
   it("base 参数测试", () => {
     const material = new TestMaterial(engine);
 

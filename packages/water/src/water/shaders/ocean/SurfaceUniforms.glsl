@@ -1,0 +1,11 @@
+vec3 material_AbsorptionCoefficient;
+vec3 material_ScatteringColor;
+float material_ScatteringCoefficient;
+float material_IndexOfRefraction;
+float material_MaximumSurfaceOpticalDistance;
+float material_ReflectionIntensity;
+float material_Roughness;
+float material_OceanFoamEnabled;
+float material_OceanFoamIntensity;
+float material_RefractionStrength;
+float material_RefractionEnabled;

@@ -1,0 +1,89 @@
+---
+name: animals
+description: 查询、生成、控制世界中的动物，或调整动物种群数量、激活距离等配置时使用。
+---
+
+# 动物
+
+## 查询
+
+用 `tools.animals.query` 查找实际的动物身份，包括模型尚未加载的计划动物。查询不会加载资源。`enabled=false` 表示动物系统已停用。可见列表为空，不代表没有注册该物种。
+
+实例查询结果包含 `speciesId`。统计物种数量时，数 `speciesId` 的种类，不数 `typeId`。
+
+## 种群与系统配置
+
+<!-- COMPONENT_KNOWLEDGE: provided by registered systems at load time. -->
+
+种群设置和 `activationDistance`（激活距离）通过 `tools.animals.config.get`、`tools.animals.config.update` 和 `tools.animals.config.reset` 直接读写（默认操作 `animals` 组件，无需指定组件名）。修改前先通过 `tools.animals.config.get` 确认当前字段与值，只使用声明中的字段。
+
+- 距离单位是米。
+- 出生使用整张已发布的地图、噪声密度和实际的水陆支撑。移动使用全图的有效栖息地，没有以出生点为中心的半径限制。
+- `species.min`/`species.max` 从所有注册物种中按种子不放回抽取子集，默认 14–20。
+- `species.<speciesId>.min`/`.max` 控制所选非飞行物种的总数，默认 1–2。
+- `birdCount.min/max` 只控制有可用飞行动画的模型，默认合计 10–20。分配到这个配额的模型必须 `canFly`。不会飞的鸟（鸵鸟、企鹅、没有飞行动画的鸭和鸡）使用普通的每物种默认值 1–2。飞行物种没有单独的 min/max 字段。
+- 0/0 排除一个物种。启用的物种要有正的最小值。物种最大值不能超过启用的物种总数。
+- 模型变体和重复包共用 `speciesId`。每个实例的模型和外观按种子选择。
+- `noiseScale`（默认 160 米）控制斑块大小，`noiseStrength`（0–1，默认 0.8）控制聚集程度。噪声只在放置时计算，不会每帧计算。
+
+种子、参数、内容和地形都相同时，刷新会复现相同的物种、数量、变体和出生位置。放置失败会被报告，不会悄悄放宽条件。相机移动只改变激活状态，不改变出生布局。
+
+## 距离与模拟
+
+`activationDistance` 默认是观察相机周围水平 256 米。
+
+| 范围 | 表现 |
+| --- | --- |
+| `activationDistance` 以内 | 显示模型，完整模拟 |
+| 外加缓冲区（`activationDistance` 的 25%，最大 64 米） | 隐藏模型，预加载，完整模拟 |
+| 更远 | 粗略逻辑模拟，继续移动和行为，可以响应雷声，没有骨骼动画 |
+
+飞行动物遵循同样的规则。这是按距离准入，不是按相机视锥暂停。身份、状态和碰撞占地都会保留。没有接近过的远处动物不请求模型，已加载的资源保留在缓存中。
+
+`loaded` 和 `visible` 描述资源和渲染，不代表动物是否活动。不要只凭它们推断运动或静止，要检查位置和行为，并考虑休息和停用状态。系统停用时，模拟的移动和事件响应都会停止。
+
+## 控制行为
+
+用 `tools.animals.describe` 读取所选动物注册的语义技能和目标查询，使用返回的标识符和参数声明。动物系统自己选择动画及其加权序列，命令中不能写动画片段名、动画权重或行为节点。
+
+自主空闲表示漫步，可能夹杂休息。当用户明确要求动物执行某个行为或移动（包括“自由活动 / 漫步 / 走动 / 走到水边”等）时，即使是刚用 `tools.animals.spawn` 生成的动物，也应先用 `tools.animals.describe` 确认可用技能，再显式调用 `tools.animals.command` 下达对应命令（不要跳过 `animals.command` 仅凭默认空闲行为作答）。世界位置和目标可用性由动物宿主校验。
+
+用 `tools.animals.command` 发送命令：
+
+- 重试同一命令时，使用相同的 `requestId`。新指令或有意重放时，使用新 ID。
+- 新的显式命令会替换之前的命令，没有冷却。
+- 动物停用、未加载或隐藏时，命令可能被拒绝。读取返回的原因，不要声称成功。
+- `accepted` 和 `running` 都不代表完成。用 `tools.animals.receipt` 查询原请求的完成或失败结果，不要重复发送命令。
+- 玩法命令独立于作者事务提交，编辑器回滚和 `editor.history.undo` 都不会撤销它。
+
+当前的简化食物目标是草地区域。有进食能力的动物，describe 会返回 `eat`，不需要 target 参数。它会寻找附近可到达的草，并播放一次进食动作。没有可用的草或目标失效时会失败，accepted 不代表已吃到。当前按玩法配置，已确认能进食的 Cute Zoo 动物都吃草。进食不消耗草，喝水尚未实现。
+
+## 生成新动物
+
+用户要一种新动物（例如狗）时，用名称或别名调用 `tools.animals.catalog`（结果位于 `items`），取得注册的 `typeId` 和可选的 `appearanceId`。目录包含全部 14 个 Cute Zoo 模型和 100 个低多边形模型，按 `speciesId` 分组。在目录中不代表场景中存在，也不代表有固定默认数量。系统停用时也能读取目录，读取不会下载模型。若目录中无匹配物种（如用户要求未收录的动物），直接如实说明目录暂无该动物，不要反复搜云端模型库或用其他动物替代。
+
+目录概览用 `tools.animals.catalog({view:"summary"})`，结果不含资源 URL。`summary` 中的 total、speciesCount 和 appearanceCount 覆盖所有匹配项，`returned` 只描述当前页。总结时不要截取序列化的 JSON。选取事实，并保留它们的范围和分页信息。
+
+用稳定的 `requestId` 和所选类型调用 `tools.animals.spawn`：
+
+- 省略 `appearanceId` 时，按配置的权重选择，默认每种权重都是 1。
+- 运行时自行解析 HTTPS 模型和共享贴图 URL。不要编造或传入 URL。
+- 重复请求是幂等的。意图不同时使用新的 `requestId`。
+- 这只增加一个动物身份，不会重新生成已有动物，也不会改变初始化数量。
+- 默认在观察者 12 米内查找，要求在地图内、栖息地兼容，避开地形障碍和动物占地。放置失败会被报告，不会扩大栖息地范围。
+- accepted 不代表加载完成。查询返回的 id，等待 loaded 和 visible，再用 describe 和 command 控制行为。
+- 宿主停用或未就绪时，生成请求会被拒绝。
+- `editor.history.undo`（见[原生编辑 API](declare/editor/native/api.d.ts)）不会撤销 spawn。持久的初始数量通过 `tools.animals.config.update` 配置。
+
+## 删除与修改单只动物
+
+- **删除单只动物**：先用 `tools.animals.query` 取得目标动物的真实 `id`，再用稳定的 `requestId` 调用 `tools.animals.delete`。同时支持删除程序化生成的动物和 `tools.animals.spawn` 新增的动物，不重建其他动物，刷新后不会复活。
+- **修改单只动物属性**：调用 `tools.animals.update` 修改外观/配色（`appearanceId`，需先用 `tools.animals.catalog` 确认该 `typeId` 注册的外观 ID）、体型缩放（`scale`）、米制水平位置（`position`）或朝向（`heading` 弧度），不重建其他动物，刷新后持久保留。
+- 两者均按 `requestId` 幂等、独立于 `editor.history.undo`。
+
+- 动物由动物宿主独立管理，没有可编辑的场景 `Entity` / `Transform` / `Material` 组件（不要去查 `editor.entity` / `editor.component` / `runtime.*`）。
+- 收到删除、改色或缩放单只动物的请求时，直接如实说明当前不支持，不要私自停用动物系统或修改全局种群配置；仅在用户同意后，才通过 `tools.animals.config.update` 调整全局物种数量（例如将某物种 `min/max` 设为 `0/0` 排除该物种）。
+
+## 接口索引
+
+<!-- API_INDEX: generated from executable contracts at load time. -->

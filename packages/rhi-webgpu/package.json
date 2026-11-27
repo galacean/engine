@@ -1,0 +1,29 @@
+{
+  "name": "@galacean/engine-rhi-webgpu",
+  "version": "2.0.0-alpha.64",
+  "repository": {
+    "url": "https://github.com/galacean/engine.git"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "license": "MIT",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "debug": "src/index.ts",
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "types": "types/index.d.ts",
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
+  "dependencies": {
+    "@galacean/engine-core": "workspace:*",
+    "@galacean/engine-math": "workspace:*",
+    "@galacean/engine-design": "workspace:*",
+    "@webgpu/types": "^0.1.71"
+  }
+}

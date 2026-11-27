@@ -1,0 +1,4 @@
+interface:
+  display_name: "同步 Galacean 召回资产"
+  short_description: "只读 OSS，增量上传 CDN 并更新召回目录。自动清理下载临时文件。"
+  default_prompt: "使用 $sync-galacean-assets 将 OSS 中最新变化的非蓝图资产同步到当前项目的召回资源库。"

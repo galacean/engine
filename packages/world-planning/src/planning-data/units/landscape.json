@@ -1,0 +1,16 @@
+{
+  "sampleSpacing": 7,
+  "density": 0.35,
+  "maxInstances": 48,
+  "roadClearance": 1.4,
+  "doorClearance": 3,
+  "buildingClearance": 1.5,
+  "instanceGap": 1.5,
+  "unitId": "landscape",
+  "components": [
+    "landscape.tree",
+    "landscape.rock"
+  ],
+  "placementRole": "roadside-decoration",
+  "guidanceCoverage": "not-yet-evaluated"
+}

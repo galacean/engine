@@ -37,6 +37,7 @@ export abstract class ShaderPart {
     if (tags[key._uniqueId] !== undefined) {
       Logger.warn(`The value of tag named "${key.name}" is being replaced.`);
     }
+    if (tags[key._uniqueId] !== value) ++key._revision;
     tags[key._uniqueId] = value;
   }
 
@@ -53,9 +54,11 @@ export abstract class ShaderPart {
   deleteTag(key: ShaderTagKey): void;
 
   deleteTag(keyOrKeyName: ShaderTagKey | string): void {
-    delete this._tagsMap[
-      (typeof keyOrKeyName == "string" ? ShaderTagKey.getByName(keyOrKeyName) : keyOrKeyName)._uniqueId
-    ];
+    const key = typeof keyOrKeyName === "string" ? ShaderTagKey.getByName(keyOrKeyName) : keyOrKeyName;
+    if (this._tagsMap[key._uniqueId] !== undefined) {
+      delete this._tagsMap[key._uniqueId];
+      ++key._revision;
+    }
   }
 
   /**

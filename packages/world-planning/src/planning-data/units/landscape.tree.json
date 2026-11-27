@@ -1,0 +1,16 @@
+{
+  "unitId": "landscape.tree",
+  "canopyRadiusM": {
+    "min": 1.6,
+    "max": 2.6
+  },
+  "heightM": {
+    "min": 4.5,
+    "max": 7
+  },
+  "trunkRadiusM": 0.24,
+  "yawRadians": {
+    "min": 0,
+    "max": 6.283185307179586
+  }
+}

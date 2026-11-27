@@ -27,4 +27,26 @@ export interface ICodeGenVisitor {
   visitTypeSpecifier(node: ASTNode.TypeSpecifier): string;
   visitStructSpecifier(node: ASTNode.StructSpecifier): string;
   visitFunctionDefinition(node: ASTNode.FunctionDefinition): string;
+
+  // Optional multi-backend AST hooks (backends like WGSLVisitor override these; GLES falls back to defaultCodeGen).
+  visitUniformBlock?(node: ASTNode.UniformBlock): string;
+  visitStorageBlock?(node: ASTNode.StorageBlock): string;
+  visitStorageTextureDeclaration?(node: ASTNode.StorageTextureDeclaration): string;
+  visitPrecisionSpecifier?(node: ASTNode.PrecisionSpecifier): string;
+  visitParameterDeclaration?(node: ASTNode.ParameterDeclaration): string;
+  visitInitDeclaratorList?(node: ASTNode.InitDeclaratorList): string;
+  visitInitializer?(node: ASTNode.Initializer): string;
+  visitInitializerList?(node: ASTNode.InitializerList): string;
+  visitSelectionStatement?(node: ASTNode.SelectionStatement): string;
+  visitIterationStatement?(node: ASTNode.IterationStatement): string;
+  visitCompoundStatement?(node: ASTNode.CompoundStatement): string;
+  visitCompoundStatementNoScope?(node: ASTNode.CompoundStatementNoScope): string;
+  visitExpressionStatement?(node: ASTNode.ExpressionStatement): string;
+  visitPrimaryExpression?(node: ASTNode.PrimaryExpression): string;
+  visitUnaryExpression?(node: ASTNode.UnaryExpression): string;
+  visitBinaryExpression?(node: ASTNode.ExpressionAstNode): string;
+  visitAssignmentExpression?(node: ASTNode.AssignmentExpression): string;
+  visitConditionalExpression?(node: ASTNode.ConditionalExpression): string;
+  visitExpression?(node: ASTNode.Expression): string;
+  visitFunctionCallGeneric?(node: ASTNode.FunctionCallGeneric): string;
 }
