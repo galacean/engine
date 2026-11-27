@@ -6,7 +6,6 @@ import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy"
 import { Shader, ShaderProperty } from "../shader";
 import { ShaderTagKey } from "../shader/ShaderTagKey";
 import { RenderTarget, TextureCubeFace } from "../texture";
-import { IShaderProgramResolver } from "./IShaderProgramResolver";
 
 /**
  * @internal
@@ -32,7 +31,6 @@ export class RenderContext {
   replacementShader: Shader | null;
   replacementTag: ShaderTagKey | null | undefined;
   replacementFailureStrategy: ReplacementFailureStrategy | null;
-  programResolver: IShaderProgramResolver | null = null;
 
   flipProjection: boolean | null = false;
   viewMatrix: Matrix;
@@ -81,7 +79,6 @@ export class RenderContext {
 
   garbageCollection(): void {
     this.camera = null!;
-    this.programResolver = null;
   }
 }
 

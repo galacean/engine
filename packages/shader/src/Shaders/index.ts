@@ -14,9 +14,8 @@ import Effect_Trail from "./Effect/Trail.shader";
 import Lighting_ScalableAmbientOcclusion from "./Lighting/ScalableAmbientOcclusion.shader";
 import Lighting_ScreenSpaceReflection from "./Lighting/ScreenSpaceReflection.shader";
 import PBR from "./PBR.shader";
+import Pipeline_DepthNormals from "./Pipeline/DepthNormals.shader";
 import Pipeline_DepthOnly from "./Pipeline/DepthOnly.shader";
-import Pipeline_SSRContributionDepth from "./Pipeline/SSRContributionDepth.shader";
-import Pipeline_SSRReceiver from "./Pipeline/SSRReceiver.shader";
 import Pipeline_ShadowCaster from "./Pipeline/ShadowCaster.shader";
 import PostProcess_Bloom from "./PostProcess/Bloom.shader";
 import PostProcess_FinalAntiAliasing from "./PostProcess/FinalAntiAliasing.shader";
@@ -48,9 +47,8 @@ export const shaders: IShaderSource[] = [
   { source: Lighting_ScalableAmbientOcclusion, path: "Shaders/Lighting/ScalableAmbientOcclusion.shader" },
   { source: Lighting_ScreenSpaceReflection, path: "Shaders/Lighting/ScreenSpaceReflection.shader" },
   { source: PBR, path: "Shaders/PBR.shader" },
+  { source: Pipeline_DepthNormals, path: "Shaders/Pipeline/DepthNormals.shader" },
   { source: Pipeline_DepthOnly, path: "Shaders/Pipeline/DepthOnly.shader" },
-  { source: Pipeline_SSRContributionDepth, path: "Shaders/Pipeline/SSRContributionDepth.shader" },
-  { source: Pipeline_SSRReceiver, path: "Shaders/Pipeline/SSRReceiver.shader" },
   { source: Pipeline_ShadowCaster, path: "Shaders/Pipeline/ShadowCaster.shader" },
   { source: PostProcess_Bloom, path: "Shaders/PostProcess/Bloom.shader" },
   { source: PostProcess_FinalAntiAliasing, path: "Shaders/PostProcess/FinalAntiAliasing.shader" },

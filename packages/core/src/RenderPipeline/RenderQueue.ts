@@ -31,7 +31,6 @@ export class RenderQueue {
   readonly elements = new Array<RenderElement>();
   readonly batchedElements = new Array<RenderElement>();
   rendererUpdateFlag = ContextRendererUpdateFlag.None;
-  overrideRenderStates: RenderStateElementMap | null = null;
 
   constructor(public renderQueueType: RenderQueueType) {}
 
@@ -67,8 +66,6 @@ export class RenderQueue {
     const pipelineStageKey = RenderContext.pipelineStageKey;
     const renderQueueType = this.renderQueueType;
     const needMaskType = maskType !== RenderQueueMaskType.No;
-    const overrideRenderStates = this.overrideRenderStates;
-    const programResolver = context.programResolver;
 
     for (let i = 0; i < length; i++) {
       const curElement = batchedElements[i];
@@ -92,8 +89,6 @@ export class RenderQueue {
 
       if (needMaskType) {
         customStates = BasicResources.getMaskTypeRenderStates(maskType);
-      } else if (overrideRenderStates) {
-        customStates = overrideRenderStates;
       } else {
         if (needMaskInteraction) {
           maskManager.drawMask(context, pipelineStageTagValue, component._maskLayer);
@@ -132,10 +127,7 @@ export class RenderQueue {
           }
         }
 
-        // Allow the active stage's program resolver to customize or fall back per-element shader variants.
-        const program = programResolver
-          ? programResolver.resolveProgram(shaderPass, compileMacros, pipelineStageTagValue, curElement)
-          : shaderPass._getShaderProgram(engine, compileMacros);
+        const program = shaderPass._getShaderProgram(engine, compileMacros);
         if (!program.isValid) {
           continue;
         }

@@ -58,6 +58,7 @@ export class PBRMaterial extends BaseMaterial {
   private static _specularIntensityTextureProp = ShaderProperty.getByName("material_SpecularIntensityTexture");
   private static _specularColorTextureProp = ShaderProperty.getByName("material_SpecularColorTexture");
   private static _ssrIntensityProp = ShaderProperty.getByName("material_ScreenSpaceReflectionIntensity");
+  private static _omitSSRMacro = ShaderMacro.getByName("MATERIAL_OMIT_SSR");
 
   private _refractionMode: RefractionMode;
   private _anisotropyRotation: number = 0;
@@ -770,7 +771,13 @@ export class PBRMaterial extends BaseMaterial {
   }
 
   set screenSpaceReflectionIntensity(value: number) {
-    this.shaderData.setFloat(PBRMaterial._ssrIntensityProp, Number.isFinite(value) ? Math.max(0, value) : 0);
+    const intensity = Math.max(0, value);
+    this.shaderData.setFloat(PBRMaterial._ssrIntensityProp, intensity);
+    if (intensity > 0) {
+      this.shaderData.disableMacro(PBRMaterial._omitSSRMacro);
+    } else {
+      this.shaderData.enableMacro(PBRMaterial._omitSSRMacro);
+    }
   }
 
   /**

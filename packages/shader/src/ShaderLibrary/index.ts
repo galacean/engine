@@ -13,7 +13,6 @@ import Lighting_AmbientOcclusion_BilateralBlur from "./Lighting/AmbientOcclusion
 import Lighting_AmbientOcclusion_ScalableAmbientOcclusion from "./Lighting/AmbientOcclusion/ScalableAmbientOcclusion.glsl";
 import Lighting_Light from "./Lighting/Light.glsl";
 import Lighting_ScreenSpaceReflection_BuildHiZMip0 from "./Lighting/ScreenSpaceReflection/BuildHiZMip0.glsl";
-import Lighting_ScreenSpaceReflection_SSRMaterial from "./Lighting/ScreenSpaceReflection/SSRMaterial.glsl";
 import Lighting_ScreenSpaceReflection_ScreenSpaceReflectionCommon from "./Lighting/ScreenSpaceReflection/ScreenSpaceReflectionCommon.glsl";
 import Lighting_ScreenSpaceReflection_ScreenSpaceReflectionSample from "./Lighting/ScreenSpaceReflection/ScreenSpaceReflectionSample.glsl";
 import Noise_NoiseCommon from "./Noise/NoiseCommon.glsl";
@@ -44,6 +43,8 @@ import Particle_Module_VelocityOverLifetime from "./Particle/Module/VelocityOver
 import Particle_ParticleCommon from "./Particle/ParticleCommon.glsl";
 import Particle_ParticleMesh from "./Particle/ParticleMesh.glsl";
 import Particle_ParticleVert from "./Particle/ParticleVert.glsl";
+import Pipeline_DepthNormals from "./Pipeline/DepthNormals.glsl";
+import Pipeline_DepthNormalsCommon from "./Pipeline/DepthNormalsCommon.glsl";
 import PostProcess_Bloom_BloomDownsample from "./PostProcess/Bloom/BloomDownsample.glsl";
 import PostProcess_Bloom_BloomPrefilter from "./PostProcess/Bloom/BloomPrefilter.glsl";
 import PostProcess_Bloom_BloomUpsample from "./PostProcess/Bloom/BloomUpsample.glsl";
@@ -78,7 +79,6 @@ export const shaderLibrary: IShaderSource[] = [
   { source: Lighting_AmbientOcclusion_ScalableAmbientOcclusion, path: "ShaderLibrary/Lighting/AmbientOcclusion/ScalableAmbientOcclusion.glsl" },
   { source: Lighting_Light, path: "ShaderLibrary/Lighting/Light.glsl" },
   { source: Lighting_ScreenSpaceReflection_BuildHiZMip0, path: "ShaderLibrary/Lighting/ScreenSpaceReflection/BuildHiZMip0.glsl" },
-  { source: Lighting_ScreenSpaceReflection_SSRMaterial, path: "ShaderLibrary/Lighting/ScreenSpaceReflection/SSRMaterial.glsl" },
   { source: Lighting_ScreenSpaceReflection_ScreenSpaceReflectionCommon, path: "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionCommon.glsl" },
   { source: Lighting_ScreenSpaceReflection_ScreenSpaceReflectionSample, path: "ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionSample.glsl" },
   { source: Noise_NoiseCommon, path: "ShaderLibrary/Noise/NoiseCommon.glsl" },
@@ -109,6 +109,8 @@ export const shaderLibrary: IShaderSource[] = [
   { source: Particle_ParticleCommon, path: "ShaderLibrary/Particle/ParticleCommon.glsl" },
   { source: Particle_ParticleMesh, path: "ShaderLibrary/Particle/ParticleMesh.glsl" },
   { source: Particle_ParticleVert, path: "ShaderLibrary/Particle/ParticleVert.glsl" },
+  { source: Pipeline_DepthNormals, path: "ShaderLibrary/Pipeline/DepthNormals.glsl" },
+  { source: Pipeline_DepthNormalsCommon, path: "ShaderLibrary/Pipeline/DepthNormalsCommon.glsl" },
   { source: PostProcess_Bloom_BloomDownsample, path: "ShaderLibrary/PostProcess/Bloom/BloomDownsample.glsl" },
   { source: PostProcess_Bloom_BloomPrefilter, path: "ShaderLibrary/PostProcess/Bloom/BloomPrefilter.glsl" },
   { source: PostProcess_Bloom_BloomUpsample, path: "ShaderLibrary/PostProcess/Bloom/BloomUpsample.glsl" },

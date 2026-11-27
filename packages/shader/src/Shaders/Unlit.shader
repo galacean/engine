@@ -152,5 +152,7 @@ Shader "Unlit" {
           #endif
       }
     }
+
+    UsePass "Pipeline/DepthNormals/Default/DepthNormals"
   }
 }

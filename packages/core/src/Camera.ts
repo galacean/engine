@@ -42,6 +42,8 @@ export class Camera extends Component {
   /** @internal */
   static _cameraDepthTextureProperty = ShaderProperty.getByName("camera_DepthTexture");
   /** @internal */
+  static _cameraDepthNormalsTextureProperty = ShaderProperty.getByName("camera_DepthNormalsTexture");
+  /** @internal */
   static _cameraOpaqueTextureProperty = ShaderProperty.getByName("camera_OpaqueTexture");
   /** @internal */
   static _cameraAOTextureProperty = ShaderProperty.getByName("camera_AOTexture");
@@ -627,7 +629,6 @@ export class Camera extends Component {
     context.replacementShader = this._replacementShader;
     context.replacementTag = this._replacementSubShaderTag;
     context.replacementFailureStrategy = this._replacementFailureStrategy;
-    context.programResolver = null;
 
     // compute cull frustum.
     if (this.enableFrustumCulling && this._frustumChangeFlag.flag) {

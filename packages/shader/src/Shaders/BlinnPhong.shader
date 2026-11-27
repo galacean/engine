@@ -86,5 +86,7 @@ Shader "BlinnPhong" {
 
       #include "ShaderLibrary/BlinnPhong/ForwardPassBlinnPhong.glsl"
     }
+
+    UsePass "Pipeline/DepthNormals/Default/DepthNormals"
   }
 }

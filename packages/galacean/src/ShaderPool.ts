@@ -14,6 +14,7 @@ import {
   BackgroundTextureSource,
   SkyProceduralSource,
   DepthOnlySource,
+  DepthNormalsSource,
   ShadowCasterSource,
   BlitSource,
   BlitScreenSource,
@@ -24,9 +25,7 @@ import {
   FinalAntiAliasingSource,
   BloomSource,
   ScalableAmbientOcclusionSource,
-  ScreenSpaceReflectionSource,
-  SSRReceiverSource,
-  SSRContributionDepthSource
+  ScreenSpaceReflectionSource
 } from "@galacean/engine-shader";
 
 /**
@@ -44,8 +43,7 @@ export class ShaderPool {
     // Material shaders resolve UsePass references during creation
     Shader._createFromPrecompiled(ShadowCasterSource);
     Shader._createFromPrecompiled(DepthOnlySource);
-    Shader._createFromPrecompiled(SSRReceiverSource);
-    Shader._createFromPrecompiled(SSRContributionDepthSource);
+    Shader._createFromPrecompiled(DepthNormalsSource);
 
     return {
       blit: Shader._createFromPrecompiled(BlitSource),
