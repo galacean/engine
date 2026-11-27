@@ -1,0 +1,49 @@
+packages/world-planning/tests/NativeBuildingLifetime.spec.ts
+  s_c72f930c19d1f3::t_176acc74936c49 105,111,128,134,146,163,169,173,180-184
+world/demos/seed-world/SeedWorldDemo.ts
+  s_c72f930c19d1f3::t_176acc74936c49 2791
+packages/building/src/building/runtime/ConstructionSceneLighting.ts
+  s_c72f930c19d1f3::t_dc898bcdf57230 2,8-14
+world/demos/seed-world/src/SeedWorldStartupShaderWarmup.ts
+  s_c72f930c19d1f3::t_176acc74936c49 17,314,350,365,375,397,603
+packages/building/src/building/runtime/ConstructionSceneLighting.glsl
+  s_c72f930c19d1f3::t_dc898bcdf57230 21,27-29
+  s_c72f930c19d1f3::t_1064e0098b497a 22-26,97,271
+packages/building/src/building/runtime/ConstructionDecorationLightPolicy.ts
+  s_c72f930c19d1f3::t_919a13ce74b804 130,157,201-202
+  s_c72f930c19d1f3::t_176acc74936c49 4-5,77
+  s_c72f930c19d1f3::t_fb87495673631b 203-204
+world/tests/seed-world/SeedWorldStartupShaderWarmup.spec.ts
+  s_c72f930c19d1f3::t_176acc74936c49 165,206,227,251,273,309,539,1236,1323
+packages/building/tests/BuildingOptimization.spec.ts
+  s_c72f930c19d1f3::t_b6a7e33418a782 1413-1415
+  s_c72f930c19d1f3::t_d7a69b4ac2641f 10,14-15,25-26,1410-1412,1418-1442,1444-1471
+packages/building/src/building/runtime/BuildingLightLayer.ts
+  s_c72f930c19d1f3::t_dc898bcdf57230 1-4
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  s_c72f930c19d1f3::t_919a13ce74b804 1441-1442
+  s_c72f930c19d1f3::t_176acc74936c49 48,1659,1673,1679,1685-1699,1701,1769,1824
+packages/building/src/building/runtime/ConstructionDecorationLights.ts
+  s_c72f930c19d1f3::t_176acc74936c49 15,65
+  s_c72f930c19d1f3::t_919a13ce74b804 12,74-75,151-153,157
+packages/building/tests/ConstructionSceneLightingCompiler.spec.ts
+  s_c72f930c19d1f3::t_1064e0098b497a 86-87,89-91,203
+  s_c72f930c19d1f3::t_1c47939249c2e6 5,88,188
+  s_c72f930c19d1f3::t_d3a6230cf8d614 11-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e4abe85c574d65721f811e673e65a0f78c3d2320",
+  "prompts": {},
+  "sessions": {
+    "s_c72f930c19d1f3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21604-5ead-7042-b751-c18d1813c1a0",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
