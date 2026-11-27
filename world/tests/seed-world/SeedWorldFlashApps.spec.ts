@@ -148,7 +148,7 @@ describe("Seed World 6-app Flash publishing", () => {
         };
       `);
       const run = (mode: string, template = "sakura-pearl", ...flags: string[]) => promisify(execFile)(process.execPath, [
-        publishScript, mode, "--engine-root", engineRoot, "--catalog", catalog, "--publisher-root", publisher,
+        publishScript, mode, "--registry-mode", "direct-db", "--engine-root", engineRoot, "--catalog", catalog, "--publisher-root", publisher,
         "--asap-service-dir", engineRoot, "--asap-python", registry, "--state-dir", stateDir,
         "--templates", template, ...flags
       ]);
@@ -214,6 +214,8 @@ describe("Seed World 6-app Flash publishing", () => {
         expect(path.basename(path.dirname(backup.local_file))).toContain(artifactId);
         expect(release.html).toContain(`window.artifactId = "${artifactId}"`);
         expect(release.html).toContain('window.artifactVersion = "3"');
+        const deployCall = appCalls.find((call) => call.operation === "deploy");
+        expect(deployCall?.app_key).toMatch(/^flash-app-\d{14}-[0-9a-f]{4}$/);
         expect(appCalls.at(-1)).toMatchObject({ version: "3", backupOss, entryUrl: "https://render.example.com/v3/index.html" });
         expect(JSON.parse(fs.readFileSync(path.join(stateDir, artifactId + ".local.json"), "utf8"))).toMatchObject({
           templateId: template, artifactId, artifactVersion: "4", lastPublishedVersion: "3", lastBackupOss: backupOss
@@ -299,7 +301,7 @@ describe("Seed World 6-app Flash publishing", () => {
       write(path.join(engineRoot, "world/dist/seed-world-flash-apps/oil-paint/index.html"),
         '<html><head><meta name="seed-world-default-template" content="oil-paint" /></head></html>');
       const run = (...extra: string[]) => promisify(execFile)(process.execPath, [
-        path.join(repoRoot, "world/scripts/publish-seed-world-flash-apps.mjs"), "--skip-db-init",
+        path.join(repoRoot, "world/scripts/publish-seed-world-flash-apps.mjs"), "--registry-mode", "direct-db", "--skip-db-init",
         "--engine-root", engineRoot, "--catalog", path.join(repoRoot, DEFAULT_FLASH_APPS_CATALOG_RELATIVE),
         "--publisher-root", publisher, "--asap-service-dir", engineRoot, "--asap-python", python,
         "--state-dir", stateDir, "--templates", "oil-paint", ...extra
@@ -331,6 +333,163 @@ describe("Seed World 6-app Flash publishing", () => {
       expect(fs.readdirSync(path.join(stateDir, "pending-releases"))).toEqual([]);
     } finally {
       await new Promise<void>(resolve => server.close(() => resolve()));
+    }
+  });
+
+  it("defaults to HTTP registry mode without direct DB access, guards reuseExisting, avoids double-increment on post-commit failure, and detects version drift", async () => {
+    const engineRoot = makeTempDir("sw-http-registry-");
+    const publishScript = path.join(repoRoot, "world/scripts/publish-seed-world-flash-apps.mjs");
+    const catalog = path.join(repoRoot, DEFAULT_FLASH_APPS_CATALOG_RELATIVE);
+    const publisher = path.join(engineRoot, "publisher");
+    const stateDir = path.join(engineRoot, "state");
+    const logPath = path.join(engineRoot, "http-ops.jsonl");
+    const registryMarker = path.join(engineRoot, "registry-should-not-run");
+
+    const versionsByArtifact: Record<string, Array<{ version_number: string; html_url: string; type?: string }>> = {
+      "flashapp-a3c0e021cb8cadb0": [],
+      "flashapp-35f3d2be4fb20307": [{ version_number: "3", html_url: "https://render.example.com/sakura/v3/index.html", type: "miniapp" }],
+      "flashapp-aa964a26bde230fb": [{ version_number: "3", html_url: "https://render.example.com/oil/v3/index.html", type: "miniapp" }]
+    };
+    let registerCalls = 0;
+    let registerBehavior: "ok" | "commit-then-504" | "transient-503-then-ok" | "drift" = "ok";
+    const deployedEntryByArtifact: Record<string, string> = {
+      "flashapp-a3c0e021cb8cadb0": "https://render.example.com/orig/v56/index.html",
+      "flashapp-35f3d2be4fb20307": "https://render.example.com/sakura/v4/index.html",
+      "flashapp-aa964a26bde230fb": "https://render.example.com/oil/v4/index.html"
+    };
+
+    const server = http.createServer((req, res) => {
+      const url = new URL(req.url || "/", "http://127.0.0.1");
+      if (url.pathname === "/api/trace/versions_by_artifact") {
+        const artifactId = url.searchParams.get("artifact_id") || "";
+        const versions = versionsByArtifact[artifactId] || [];
+        return res.end(JSON.stringify({ success: true, data: { versions } }));
+      }
+      if (url.pathname === "/api/remote_skill") {
+        let body = "";
+        req.setEncoding("utf8");
+        req.on("data", (chunk) => { body += chunk; });
+        req.on("end", () => {
+          const { action } = JSON.parse(body);
+          const data = action === "lingguang.db.listTables" ? ["world_save"] : worldSaveSchema;
+          res.end(JSON.stringify({ success: true, data: JSON.stringify({ success: true, data }) }));
+        });
+        return;
+      }
+      if (url.pathname === "/api/flash-app/register") {
+        let body = "";
+        req.setEncoding("utf8");
+        req.on("data", (chunk) => { body += chunk; });
+        req.on("end", () => {
+          registerCalls += 1;
+          const payload = JSON.parse(body);
+          fs.appendFileSync(logPath, JSON.stringify({ operation: "http-register", ...payload }) + "\n");
+          const current = versionsByArtifact[payload.artifact_id] || [];
+          const nextNum = String(current.reduce((max, v) => Math.max(max, Number(v.version_number)), 0) + 1);
+          if (registerBehavior === "commit-then-504") {
+            // Simulate server committing the release, then gateway returning 504.
+            versionsByArtifact[payload.artifact_id] = [
+              ...current,
+              { version_number: nextNum, html_url: payload.entry_url, type: payload.type }
+            ];
+            return res.writeHead(504).end("<html>504 Gateway Timeout</html>");
+          }
+          if (registerBehavior === "transient-503-then-ok" && registerCalls === 1) {
+            return res.writeHead(502).end("Bad Gateway");
+          }
+          const allocated = registerBehavior === "drift" ? String(Number(nextNum) + 1) : nextNum;
+          versionsByArtifact[payload.artifact_id] = [
+            ...current,
+            { version_number: allocated, html_url: payload.entry_url, type: payload.type }
+          ];
+          res.end(JSON.stringify({ success: true, data: { version_number: allocated } }));
+        });
+        return;
+      }
+      res.writeHead(404).end();
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    try {
+      const { port } = server.address() as { port: number };
+      write(path.join(publisher, "scripts/asap-service-url.cjs"),
+        `exports.asapServiceUrl = p => 'http://127.0.0.1:${port}' + p`);
+      write(path.join(publisher, "scripts/asap-publish.cjs"), String.raw`
+        const fs = require("node:fs");
+        const entries = ${JSON.stringify(deployedEntryByArtifact)};
+        exports.callAsap = request => {
+          fs.appendFileSync(${JSON.stringify(logPath)}, JSON.stringify(request) + "\n");
+          const match = /workspace\/(flashapp-[a-z0-9]+)-/.exec(request.object_name || "");
+          return { entry_url: (match && entries[match[1]]) || "https://render.example.com/default/index.html" };
+        };
+      `);
+      write(path.join(publisher, "scripts/app-context.local.json"),
+        JSON.stringify({ artifactId: "flashapp-a3c0e021cb8cadb0", alipayUid: "2099123456789" }));
+      write(path.join(publisher, "scripts/asap-remote-skill.cjs"), String.raw`
+        exports.REMOTE_SKILL_API = require("./asap-service-url.cjs").asapServiceUrl("/api/remote_skill");
+        exports.callRemoteSkill = async request => {
+          const endpoint = require("./asap-service-url.cjs").asapServiceUrl("/api/remote_skill");
+          return (await fetch(endpoint, { method: "POST", body: JSON.stringify(request.payload) })).json();
+        };
+      `);
+      const fakePython = path.join(engineRoot, "fake-python");
+      write(fakePython, `#!${process.execPath}\nrequire("node:fs").writeFileSync(${JSON.stringify(registryMarker)}, "called"); process.exit(1);\n`);
+      fs.chmodSync(fakePython, 0o755);
+      write(path.join(engineRoot, "world/demos/seed-world/storage/world_save.sql"), "CREATE TABLE world_save ...");
+      for (const template of ["original", "sakura-pearl", "oil-paint"]) {
+        write(path.join(engineRoot, "world/dist/seed-world-flash-apps", template, "index.html"),
+          `<html><head><meta name="seed-world-default-template" content="${template}" /></head></html>`);
+      }
+
+      const runHttp = (template: string, ...flags: string[]) => promisify(execFile)(process.execPath, [
+        publishScript, "--execute", "--engine-root", engineRoot, "--catalog", catalog, "--publisher-root", publisher,
+        "--asap-service-dir", engineRoot, "--asap-python", fakePython, "--state-dir", stateDir,
+        "--templates", template, ...flags
+      ]);
+
+      // 1. Pre-flight guard: reuseExisting=true with no online versions fails before any remote write.
+      await expect(runHttp("original")).rejects.toMatchObject({
+        stderr: expect.stringContaining("reuseExisting=true, but no online version was found")
+      });
+      expect(fs.existsSync(logPath)).toBe(false);
+      expect(fs.existsSync(registryMarker)).toBe(false);
+
+      // 2. Post-commit 504: recovers committed version via /api/trace/versions_by_artifact without re-posting!
+      registerCalls = 0;
+      registerBehavior = "commit-then-504";
+      const recoveredResult = await runHttp("sakura-pearl");
+      expect(recoveredResult.stdout).toContain("| flashapp-35f3d2be4fb20307 | 4 | miniapp | ready | OK |");
+      expect(registerCalls).toBe(1);
+      expect(fs.existsSync(registryMarker)).toBe(false);
+      expect(JSON.parse(fs.readFileSync(path.join(stateDir, "flashapp-35f3d2be4fb20307.local.json"), "utf8"))).toMatchObject({
+        artifactVersion: "5",
+        lastPublishedVersion: "4",
+        lastEntryUrl: deployedEntryByArtifact["flashapp-35f3d2be4fb20307"]
+      });
+
+      // 3. Transient 502 (not committed online) retries POST and succeeds.
+      registerCalls = 0;
+      registerBehavior = "transient-503-then-ok";
+      const retriedResult = await runHttp("oil-paint");
+      expect(retriedResult.stdout).toContain("| flashapp-aa964a26bde230fb | 4 | miniapp | ready | OK |");
+      expect(registerCalls).toBe(2);
+
+      // 4. Concurrent version drift saves publishedVersion to local state and fails with clear retry message.
+      versionsByArtifact["flashapp-a3c0e021cb8cadb0"] = [
+        { version_number: "55", html_url: "https://render.example.com/orig/v55/index.html", type: "game" }
+      ];
+      registerCalls = 0;
+      registerBehavior = "drift";
+      await expect(runHttp("original")).rejects.toMatchObject({
+        stderr: expect.stringContaining("allocated v57 instead of injected v56")
+      });
+      expect(JSON.parse(fs.readFileSync(path.join(stateDir, "flashapp-a3c0e021cb8cadb0.local.json"), "utf8"))).toMatchObject({
+        artifactVersion: "58",
+        lastPublishedVersion: "57",
+        lastEntryUrl: deployedEntryByArtifact["flashapp-a3c0e021cb8cadb0"]
+      });
+      expect(fs.existsSync(registryMarker)).toBe(false);
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
     }
   });
 

@@ -75,7 +75,9 @@ python3 -m http.server 4180 --bind 127.0.0.1 --directory world/dist/seed-world-f
 
 ## 4. 执行 6 应用 PUGC 编排发布
 
-使用 `world/scripts/publish-seed-world-flash-apps.mjs` 在能访问目标 OceanBase/Layotto 登记库的发布机执行。先用 `--verify-registry` 只读核对发布机的登记库与 PUGC HTTP 服务环境。编排器先预留版本，再使用该版本建表、打包、上传和部署，最后提交登记。预留或登记重试沿用同一个发布 ID。
+使用 `world/scripts/publish-seed-world-flash-apps.mjs` 编排发布：
+- **默认 `--registry-mode http`**：适用于任意开发机（无需直连 OceanBase/Layotto），通过 `GET /api/trace/versions_by_artifact` 校验基线版本、按逐应用独立 `app_key`（`<appKey>-<timestamp>-<hex>`，防止多应用覆盖同一雨燕 Entry URL）部署，并通过 `POST /api/flash-app/register` 登记版本（502–504 / 网络超时重试前自动按 `entryUrl` 查重防止版本号双增，并发版本漂移时同步落盘并提示重试）。
+- **`--registry-mode direct-db`**：仅在具备目标 OceanBase/Layotto 访问能力的发布机使用；先用 `--verify-registry` 只读核对登记库，先预留版本再部署、最后提交登记（登记失败可用 `--resume-release <id>` 重放回执）。
 
 **跳过云端构建的备份红线（必守）。** 云端 `copy` / 克隆沙箱通过检查 `backup_<version>.tar.gz` 根目录是否存在 `package.json` 来决定是否执行 `npm run build`——而沙箱不会运行 `npm ci` 且存在 60s `build_timeout`，一旦备份内包含 `package.json` 会直接报缺包或超时失败。因此**严禁在派生静态目录放入 `package.json`**；即便手工兜底调用 PUGC `deploy.cjs`，也必须令 `--source-dir` 与 `--project-dir` 同指向 `world/dist/seed-world-flash-apps/<templateId>`（绝不能传仓库根目录）。
 
