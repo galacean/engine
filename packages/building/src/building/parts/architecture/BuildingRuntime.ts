@@ -45,7 +45,6 @@ import {
   ConstructionDecorationLights,
   type ConstructionDecorationLight
 } from "../../runtime/ConstructionDecorationLights";
-import { DEFAULT_DECORATION_LIGHT_BUDGET } from "../../runtime/ConstructionDecorationLightPolicy";
 import { buildingAssets, retainBuildingResource } from "../../resources/BuildingAssetKit";
 import { resolveDocument } from "../../runtime/PlacementDocument.js";
 import { inspectMasonrySurface } from "../../runtime/MasonrySurfaceInspection";
@@ -1650,13 +1649,12 @@ export class BuildingRuntime extends Script {
   }
   /**
    * Prepares offscreen representative LOD1 (BuildingDistanceView) and LOD0 (EngineResidentScene
-   * + BrickPackKernel TransformFeedback) renderers so startup shader warmup compiles all building
-   * shader variants before the user ever walks near a village.
+   * + BrickPackKernel TransformFeedback) renderers for building shader warmup.
    */
   async prepareShaderWarmup(signal?: AbortSignal): Promise<{
     renderers: MeshRenderer[];
     extraMaterials: Map<MeshRenderer, Material[]>;
-    getPointLightCountDeltas(): readonly number[];
+    getPointLightWarmup(): { poolRoot?: Entity; hasLights: boolean };
     dispose(): void;
   }> {
     return this.prepareShaderWarmupForViews(this.entries, [...this.views.values()], signal, this.publishedTerrain);
@@ -1670,35 +1668,22 @@ export class BuildingRuntime extends Script {
   ): Promise<{
     renderers: MeshRenderer[];
     extraMaterials: Map<MeshRenderer, Material[]>;
-    getPointLightCountDeltas(): readonly number[];
+    getPointLightWarmup(): { poolRoot?: Entity; hasLights: boolean };
     dispose(): void;
   }> {
     const empty = {
       renderers: [] as MeshRenderer[],
       extraMaterials: new Map<MeshRenderer, Material[]>(),
-      getPointLightCountDeltas: (): readonly number[] => [],
+      getPointLightWarmup: () => ({ hasLights: false }),
       dispose() {}
     };
     if (this.closed || !this.host) return empty;
     signal?.throwIfAborted();
 
-    // A camera can have anywhere from zero to the target world's lamp count in range.
-    // Deferred warmup can run after the camera moves. Read the live count at collection time.
-    let maxLights = 0;
-    for (const view of allViews) {
-      maxLights = Math.min(DEFAULT_DECORATION_LIGHT_BUDGET, maxLights + view.lights.length);
-      if (maxLights === DEFAULT_DECORATION_LIGHT_BUDGET) break;
-    }
-    const getPointLightCountDeltas = (): number[] => {
-      const active = this.lights?.root.isActiveInHierarchy ? this.lights.metrics.active : 0;
-      const deltas: number[] = [];
-      for (let count = 0; count <= maxLights; count++) {
-        if (count !== active) deltas.push(count - active);
-      }
-      return deltas;
-    };
-
-    if (profileEntries.length === 0) return { ...empty, getPointLightCountDeltas };
+    const hasLights = allViews.some((view) => view.lights.length > 0);
+    // The pool can be created after the candidate is prepared and before deferred warmup runs.
+    const getPointLightWarmup = () => ({ hasLights, poolRoot: this.lights?.root });
+    if (profileEntries.length === 0) return { ...empty, getPointLightWarmup };
 
     const extraMaterials =
       BuildingGlobalProxy.existing(this.entity.scene!)?.getWarmupExtraMaterials() ??
@@ -1766,7 +1751,7 @@ export class BuildingRuntime extends Script {
         for (const f of candidates[bestIdx]!.features) seenFeatures.add(f);
       }
     }
-    if (selected.length === 0) return { renderers: [], extraMaterials, getPointLightCountDeltas, dispose() {} };
+    if (selected.length === 0) return { renderers: [], extraMaterials, getPointLightWarmup, dispose() {} };
 
     const warmupRoot = this.entity.createChild("Masonry shader warmup");
     warmupRoot.isActive = false;
@@ -1821,7 +1806,7 @@ export class BuildingRuntime extends Script {
       return {
         renderers,
         extraMaterials,
-        getPointLightCountDeltas,
+        getPointLightWarmup,
         dispose: () => {
           cleanedUp = true;
           controller.abort();

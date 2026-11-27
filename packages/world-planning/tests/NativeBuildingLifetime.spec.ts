@@ -102,13 +102,13 @@ it("routes NativeBuildingWorld.prepareShaderWarmup to the uncommitted candidate 
   const candidateWarmup = vi.fn(async () => ({
     renderers: [],
     extraMaterials: new Map(),
-    getPointLightCountDeltas: () => [1, 2, 3, 4],
+    getPointLightWarmup: () => ({ hasLights: true }),
     dispose() {}
   }));
   const systemWarmup = vi.fn(async () => ({
     renderers: [],
     extraMaterials: new Map(),
-    getPointLightCountDeltas: () => [],
+    getPointLightWarmup: () => ({ hasLights: false }),
     dispose() {}
   }));
   const system = { visible: true, bounds: [], captureOccupancyQuery: liveQuery, prepareShaderWarmup: systemWarmup };
@@ -125,16 +125,16 @@ it("routes NativeBuildingWorld.prepareShaderWarmup to the uncommitted candidate 
   const preCommit = await world.prepareShaderWarmup(signal);
   expect(candidateWarmup).toHaveBeenCalledWith(signal);
   expect(systemWarmup).not.toHaveBeenCalled();
-  expect(preCommit.getPointLightCountDeltas()).toEqual([1, 2, 3, 4]);
+  expect(preCommit.getPointLightWarmup().hasLights).toBe(true);
 
   world.commitPublication();
   world.activate();
   const postActivate = await world.prepareShaderWarmup(signal);
   expect(systemWarmup).toHaveBeenCalledWith(signal);
-  expect(postActivate.getPointLightCountDeltas()).toEqual([]);
+  expect(postActivate.getPointLightWarmup().hasLights).toBe(false);
 });
 
-it("prepareTerrain candidate prepareShaderWarmup emits negative point-light delta when decoration lights are already active even for a building-free target", async () => {
+it("keeps the existing light pool identifiable when the candidate has no buildings", async () => {
   const system = {
     closed: false,
     publishedTerrain: terrain(2),
@@ -143,7 +143,7 @@ it("prepareTerrain candidate prepareShaderWarmup emits negative point-light delt
     members: new Map(),
     views: new Map(),
     revision: 0,
-    lights: { root: { isActiveInHierarchy: true }, metrics: { allocated: 4, active: 2 } },
+    lights: { root: { isActiveInHierarchy: true } },
     residency: { desired: new Set(), invalidate() {} },
     async flush() {},
     readTransforms() {},
@@ -160,29 +160,37 @@ it("prepareTerrain candidate prepareShaderWarmup emits negative point-light delt
     new AbortController().signal
   );
   const warmup = await candidate.prepareShaderWarmup();
-  expect(warmup.getPointLightCountDeltas()).toEqual([-2]);
-  warmup.dispose();
-
-  // When decoration lights are inactive and target has no buildings, delta is 0.
+  expect(warmup.getPointLightWarmup()).toEqual({ hasLights: false, poolRoot: system.lights.root });
   system.lights.root.isActiveInHierarchy = false;
-  const inactiveWarmup = await candidate.prepareShaderWarmup();
-  expect(inactiveWarmup.getPointLightCountDeltas()).toEqual([]);
-  inactiveWarmup.dispose();
+  expect(warmup.getPointLightWarmup().poolRoot).toBe(system.lights.root);
+  warmup.dispose();
   candidate.discard();
+});
 
-  // A single target lamp can enter or leave camera range after warmup preparation.
-  system.lights.root.isActiveInHierarchy = true;
-  const steadyWarmup = await (BuildingManager.prototype as any).prepareShaderWarmupForViews.call(
+it.each([1, 4])("captures the target's %i lamps and resolves the pool when warmup is collected", async (lampCount) => {
+  const system: { host: object; lights?: { root: object } } = { host: {} };
+  const lamps = Array.from({ length: lampCount }, () => ({}));
+  const warmup = await (BuildingManager.prototype as any).prepareShaderWarmupForViews.call(
     system,
     [],
-    [{ lights: [{ descriptor: { ownerId: "house-1" } }] }]
+    [{ lights: [] }, { lights: lamps }]
   );
-  expect(steadyWarmup.getPointLightCountDeltas()).toEqual([-2, -1]);
-  system.lights.metrics.active = 1;
-  expect(steadyWarmup.getPointLightCountDeltas()).toEqual([-1]);
-  system.lights.metrics.active = 0;
-  expect(steadyWarmup.getPointLightCountDeltas()).toEqual([1]);
-  steadyWarmup.dispose();
+  const initial = warmup.getPointLightWarmup();
+  expect(initial.hasLights).toBe(true);
+  expect(initial.poolRoot).toBeUndefined();
+  lamps.length = 0;
+  system.lights = { root: {} };
+  const deferred = warmup.getPointLightWarmup();
+  expect(deferred.hasLights).toBe(true);
+  expect(deferred.poolRoot).toBe(system.lights.root);
+  expect(initial.poolRoot).toBeUndefined();
+  warmup.dispose();
+});
+
+it("reports no target lamps or pool when the building runtime is unavailable", async () => {
+  const warmup = await (BuildingManager.prototype as any).prepareShaderWarmupForViews.call({}, [], [{ lights: [{}] }]);
+  expect(warmup.getPointLightWarmup()).toEqual({ hasLights: false });
+  warmup.dispose();
 });
 
 it("releases retired terrain samples and avoids input thrash when preparing terrain with active buildings", async () => {
