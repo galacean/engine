@@ -1,0 +1,30 @@
+packages/water/src/world/SeedWorldWaterStartupShaders.ts
+  h_ddbf152d31b140 3-15,17
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 1009-1029,1040,1044-1049,1060,1083-1085
+world/demos/seed-world/src/SeedWorldCommonBinaryBundle.ts
+  h_ddbf152d31b140 4,35-36,41,47-54,73-81,87,93-94,104,130-150,153,295-299,301-303,307,309-326,335-359,528-529
+world/demos/seed-world/src/SeedWorldProjectTextBundle.ts
+  h_ddbf152d31b140 1-5,11-21,27-31,35,42-43,46-47,60,72-77
+world/scripts/build-seed-world-flash-app.mjs
+  h_ddbf152d31b140 2-4,44-59,61-63,65,100-103,121,129-134,138,142-148,156-161,164,169-170,181-183,217,220,229-234,259-261,273,297,307,317-322
+world/scripts/seed-world-template-bundles.mjs
+  h_ddbf152d31b140 76-99,101-104,179,183-187,192-197,247-248,264-266,302,317,332,341,344,352,355-357,369,397,400-402
+world/tests/seed-world/SeedWorldStartupShaderWarmup.spec.ts
+  h_ddbf152d31b140 1912-1938
+world/tests/seed-world/SeedWorldTemplateBundles.spec.ts
+  h_ddbf152d31b140 13,15,23,31-34,40,91-108,181,185-186,190,194-213,233-241,310,363-372,376,380,525-605
+world/vite.config.mjs
+  h_ddbf152d31b140 15,17,147-150,211-217,295-302,305,308,313-324,327,338,340-341,349,359-364,494-534
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b61fb6366cdabd8750828d6163501bf7a5c7044e",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

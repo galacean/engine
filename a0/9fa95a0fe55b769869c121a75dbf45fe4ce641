@@ -1,0 +1,14 @@
+world/demos/seed-world/flash-app-cdn-manifest.json
+  h_ddbf152d31b140 405-410,453-458,465-470,897-902,1095-1100,1119-1124,1269-1274,1425-1430,1773-1778,1911-1916,2151-2156,2325-2330
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a09fa95a0fe55b769869c121a75dbf45fe4ce641",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
