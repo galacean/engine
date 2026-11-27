@@ -234,17 +234,26 @@ export class ShaderPass extends ShaderPart {
     macroCollection: ShaderMacroCollection,
     feedbackRequest?: string[] | boolean,
     primitiveOrCache?: Primitive | boolean,
-    renderer?: ShaderData,
+    rendererOrDefer?: ShaderData | boolean,
     material?: ShaderData,
     element?: ShaderData,
     camera = engine._renderContext?.camera
   ): ShaderProgram {
+    const deferCompletion =
+      typeof rendererOrDefer === "boolean"
+        ? rendererOrDefer
+        : typeof feedbackRequest === "boolean"
+          ? feedbackRequest
+          : false;
+    const renderer = typeof rendererOrDefer === "boolean" ? undefined : rendererOrDefer;
     const feedbackVaryings = Array.isArray(feedbackRequest) ? feedbackRequest : this._feedbackVaryings;
     const primitive = typeof primitiveOrCache === "boolean" ? undefined : primitiveOrCache;
     const cacheOnly = primitiveOrCache === true;
     let shaderProgramMap = engine._getShaderProgramMap(this._shaderPassId, this._shaderProgramMaps);
-    if (feedbackVaryings) shaderProgramMap = shaderProgramMap.specialize("feedback");
-    if (primitive && engine._hardwareRenderer.backend === RHIBackend.WebGPU) {
+    if (feedbackVaryings && typeof shaderProgramMap.specialize === "function") {
+      shaderProgramMap = shaderProgramMap.specialize("feedback");
+    }
+    if (primitive && engine._hardwareRenderer?.backend === RHIBackend.WebGPU) {
       shaderProgramMap = shaderProgramMap.specialize(primitive._getShaderInputs().key);
     }
     let shaderProgram = shaderProgramMap.get(macroCollection);
@@ -266,7 +275,8 @@ export class ShaderPass extends ShaderPart {
         feedbackVaryings,
         primitive,
         undefined,
-        cacheOnly
+        cacheOnly,
+        deferCompletion
       );
       if (feedbackVaryings) shaderProgram._feedbackVaryings = feedbackVaryings.slice();
       const observers = ShaderPass._variantObservers.get(engine);
@@ -277,6 +287,7 @@ export class ShaderPass extends ShaderPart {
       }
       shaderProgramMap.cache(shaderProgram);
     }
+    if (!deferCompletion) shaderProgram._ensureReady();
     const layout = shaderProgram._textureLayout;
     if (layout) {
       const specialized = layout.select(
@@ -289,15 +300,21 @@ export class ShaderPass extends ShaderPart {
       );
       if (specialized !== shaderProgramMap) {
         const cached = specialized.get(macroCollection);
-        if (cached) return cached;
+        if (cached) {
+          if (!deferCompletion) cached._ensureReady();
+          return cached;
+        }
         shaderProgram = this._compileShaderProgram(
           engine,
           macroCollection,
           feedbackVaryings,
           primitive,
-          layout.options()
+          layout.options(),
+          false,
+          deferCompletion
         );
         specialized.cache(shaderProgram);
+        if (!deferCompletion) shaderProgram._ensureReady();
       }
     }
     return shaderProgram;
@@ -395,7 +412,8 @@ export class ShaderPass extends ShaderPart {
     feedbackVaryings?: string[],
     primitive?: Primitive,
     textureOptions?: ShaderTextureOptions,
-    cacheOnly = false
+    cacheOnly = false,
+    deferCompletion = false
   ): ShaderProgram {
     const names = this._vertexOutputNames;
     if (names && feedbackVaryings?.length) {
@@ -438,9 +456,18 @@ export class ShaderPass extends ShaderPart {
       vertexSource: variant.vertexSource,
       fragmentSource: variant.fragmentSource,
       feedbackVaryings,
-      looseUniforms: variant.looseUniforms
+      looseUniforms: variant.looseUniforms,
+      deferCompletion
     };
-    const key = JSON.stringify([source, variant.uniformBlocks, variant.instanceLayout, variant.instanceBindingName]);
+    const key = JSON.stringify([
+      variant.vertexSource,
+      variant.fragmentSource,
+      feedbackVaryings,
+      variant.looseUniforms,
+      variant.uniformBlocks,
+      variant.instanceLayout,
+      variant.instanceBindingName
+    ]);
     const existing = map.getBySource(key);
     if (existing) return existing;
     if (cacheOnly) throw new Error("Unprepared Seed shader variant " + this.name);

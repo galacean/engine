@@ -14,6 +14,7 @@ export interface IPlatformShaderSource {
   reflection?: IWebGPUShaderProgram["reflection"];
   feedbackVaryings?: string[];
   looseUniforms?: readonly IShaderUniformVariable[];
+  deferCompletion?: boolean;
 }
 
 export interface IPlatformUniform {
@@ -28,8 +29,11 @@ export interface IPlatformShaderProgram {
   readonly id: number;
   readonly attributeLocation: Record<string, number>;
   readonly isValid: boolean;
+  readonly errorLog?: string | null;
   readonly uniforms: readonly IPlatformUniform[];
   readonly uniformBlockIds: readonly number[];
+  pollReady?(): boolean;
+  ensureReady?(): void;
   bind(): boolean;
   bindUniformBlock(name: string, binding: number): boolean;
   prewarm?(

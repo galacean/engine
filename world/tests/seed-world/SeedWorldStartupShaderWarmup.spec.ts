@@ -1525,7 +1525,15 @@ describe("animal presentation preparation", () => {
       true
     );
     expect(result).toBe(compiledProgram);
-    expect(compileSpy).toHaveBeenCalledWith(fakeEngine, expect.any(ShaderMacroCollection), true, false, varyings);
+    expect(compileSpy).toHaveBeenCalledWith(
+      fakeEngine,
+      expect.any(ShaderMacroCollection),
+      varyings,
+      undefined,
+      undefined,
+      false,
+      true
+    );
     expect(ensureReady).not.toHaveBeenCalled();
   });
 

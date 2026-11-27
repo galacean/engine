@@ -37,9 +37,17 @@ export class GLShaderProgram implements IPlatformShaderProgram {
   readonly attributeLocation: Record<string, number> = Object.create(null);
   readonly uniforms: GLShaderUniform[] = [];
   readonly uniformBlockIds: number[] = [];
-  readonly isValid: boolean;
+  isValid: boolean = false;
+  errorLog: string | null = null;
   private readonly _gl: WebGL2RenderingContext;
-  private readonly _glProgram: WebGLProgram | null;
+  private _glProgram: WebGLProgram | null;
+  private _vertexShader: WebGLShader | null = null;
+  private _fragmentShader: WebGLShader | null = null;
+  private _vertexSource: string | null = null;
+  private _fragmentSource: string | null = null;
+  private _looseUniforms?: readonly IShaderUniformVariable[];
+  private _pendingCompilation = false;
+  private _parallelCompile: { readonly COMPLETION_STATUS_KHR: number } | null = null;
   private _activeTextureUint = 0;
 
   constructor(
@@ -48,20 +56,49 @@ export class GLShaderProgram implements IPlatformShaderProgram {
     source: IPlatformShaderSource
   ) {
     this._gl = _device.gl;
+    if (source.deferCompletion) {
+      this._parallelCompile = this._gl.getExtension("KHR_parallel_shader_compile");
+    }
+    this._pendingCompilation = !!this._parallelCompile;
+    this._vertexSource = source.vertexSource;
+    this._fragmentSource = source.fragmentSource;
+    this._looseUniforms = source.looseUniforms;
     this._glProgram = this._createProgram(source.vertexSource, source.fragmentSource, source.feedbackVaryings);
-    this.isValid = !!this._glProgram;
-    if (this.isValid) {
-      let initialized = false;
-      try {
-        this._recordLocation(source.looseUniforms);
-        initialized = true;
-      } finally {
-        if (!initialized) this.destroy();
-      }
+    if (this._glProgram && !this._pendingCompilation) {
+      this._finalizeProgram();
+    } else if (!this._glProgram) {
+      this._pendingCompilation = false;
+      this._releasePendingShaders();
     }
   }
 
+  pollReady(): boolean {
+    if (!this._pendingCompilation) return true;
+    if (!this._glProgram || this._gl.isContextLost()) {
+      this.errorLog = "context lost";
+      this.destroy();
+      return true;
+    }
+    if (!this._gl.getProgramParameter(this._glProgram, this._parallelCompile!.COMPLETION_STATUS_KHR)) {
+      return false;
+    }
+    this.ensureReady();
+    return true;
+  }
+
+  ensureReady(): void {
+    if (!this._pendingCompilation) return;
+    this._pendingCompilation = false;
+    if (!this._glProgram || this._gl.isContextLost()) {
+      this.errorLog = "context lost";
+      this.destroy();
+      return;
+    }
+    this._finalizeProgram();
+  }
+
   bind(): boolean {
+    if (this._pendingCompilation) this.ensureReady();
     if (this._device._currentBindShaderProgram === this) return false;
     this._gl.useProgram(this._glProgram);
     this._device._currentBindShaderProgram = this;
@@ -69,11 +106,84 @@ export class GLShaderProgram implements IPlatformShaderProgram {
   }
 
   bindUniformBlock(name: string, binding: number): boolean {
+    if (this._pendingCompilation) this.ensureReady();
     return this._device.tryBindUniformBlock(this._glProgram!, name, binding);
   }
 
   destroy(): void {
-    if (this._glProgram) this._gl.deleteProgram(this._glProgram);
+    this._pendingCompilation = false;
+    this.isValid = false;
+    this._releasePendingShaders();
+    if (this._glProgram) {
+      if (this._device._currentBindShaderProgram === this) {
+        this._device._currentBindShaderProgram = null;
+      }
+      this._gl.deleteProgram(this._glProgram);
+      this._glProgram = null;
+    }
+  }
+
+  private _releasePendingShaders(): void {
+    const gl = this._gl;
+    if (this._vertexShader) {
+      gl.deleteShader(this._vertexShader);
+      this._vertexShader = null;
+    }
+    if (this._fragmentShader) {
+      gl.deleteShader(this._fragmentShader);
+      this._fragmentShader = null;
+    }
+    this._vertexSource = null;
+    this._fragmentSource = null;
+    this._looseUniforms = undefined;
+  }
+
+  private _finalizeProgram(): void {
+    const gl = this._gl;
+    const program = this._glProgram;
+    if (!program) return;
+    const linked = !gl.isContextLost() && gl.getProgramParameter(program, gl.LINK_STATUS);
+    if (!linked) {
+      if (!gl.isContextLost()) {
+        const parts: string[] = [];
+        if (this._vertexShader && !gl.getShaderParameter(this._vertexShader, gl.COMPILE_STATUS)) {
+          const log = gl.getShaderInfoLog(this._vertexShader) ?? "";
+          parts.push(`vertex: ${log}`);
+          if (Logger.isEnabled && this._vertexSource !== null) {
+            Logger.error(`Could not compile vertex shader\n${log}\n${GLShaderProgram._addLineNum(this._vertexSource)}`);
+          }
+        }
+        if (this._fragmentShader && !gl.getShaderParameter(this._fragmentShader, gl.COMPILE_STATUS)) {
+          const log = gl.getShaderInfoLog(this._fragmentShader) ?? "";
+          parts.push(`fragment: ${log}`);
+          if (Logger.isEnabled && this._fragmentSource !== null) {
+            Logger.error(
+              `Could not compile fragment shader\n${log}\n${GLShaderProgram._addLineNum(this._fragmentSource)}`
+            );
+          }
+        }
+        const progLog = gl.getProgramInfoLog(program) ?? "";
+        if (progLog) parts.push(progLog);
+        this.errorLog = parts.join("\n") || "Could not link WebGL program";
+        if (Logger.isEnabled) {
+          Logger.error(`Could not link WebGL program\n${progLog}`);
+        }
+      } else {
+        this.errorLog = "context lost";
+      }
+      this.destroy();
+      return;
+    }
+    const looseUniforms = this._looseUniforms;
+    this._releasePendingShaders();
+    let initialized = false;
+    try {
+      this._recordLocation(looseUniforms);
+      this.isValid = true;
+      initialized = true;
+    } finally {
+      if (!initialized) this.destroy();
+    }
   }
 
   private _createProgram(
@@ -112,18 +222,8 @@ export class GLShaderProgram implements IPlatformShaderProgram {
     }
 
     gl.linkProgram(program);
-    const linked = gl.getProgramParameter(program, gl.LINK_STATUS);
-    if (!linked && Logger.isEnabled && !gl.isContextLost()) {
-      this._reportShaderError(vertexShader, "vertex", vertexSource);
-      this._reportShaderError(fragmentShader, "fragment", fragmentSource);
-      Logger.error(`Could not link WebGL program\n${gl.getProgramInfoLog(program)}`);
-    }
-    gl.deleteShader(vertexShader);
-    gl.deleteShader(fragmentShader);
-    if (!linked) {
-      gl.deleteProgram(program);
-      return null;
-    }
+    this._vertexShader = vertexShader;
+    this._fragmentShader = fragmentShader;
     return program;
   }
 
@@ -139,15 +239,6 @@ export class GLShaderProgram implements IPlatformShaderProgram {
     gl.compileShader(shader);
 
     return shader;
-  }
-
-  private _reportShaderError(shader: WebGLShader, stage: string, source: string): void {
-    const gl = this._gl;
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      Logger.error(
-        `Could not compile ${stage} shader\n${gl.getShaderInfoLog(shader)}\n${GLShaderProgram._addLineNum(source)}`
-      );
-    }
   }
 
   /**

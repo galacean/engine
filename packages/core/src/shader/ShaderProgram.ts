@@ -43,13 +43,26 @@ export class ShaderProgram {
   _ssrFallbackNoVerify: ShaderProgram | null = null;
   _ssrFallbackVerify: ShaderProgram | null = null;
   private _released = false;
+  private _setupCompleted = false;
+  private _pendingUniformBlocks?: readonly IShaderUniformBlock[];
+  private _pendingInstanceBindingName?: string;
+  private _pendingReflection?: IPlatformShaderSource["reflection"];
   activeTextureCount = 0;
+
   _pollReady(): boolean {
+    if (this._setupCompleted || this._released) return true;
+    const platform = this._platformProgram;
+    if (platform.pollReady && !platform.pollReady()) return false;
+    this._finishPlatformSetup();
     return true;
   }
+
   _ensureReady(): void {
-    /* The candidate platform has already created its native modules. */
+    if (this._setupCompleted || this._released) return;
+    this._platformProgram.ensureReady?.();
+    this._finishPlatformSetup();
   }
+
   readonly _platformProgram: IPlatformShaderProgram;
   get id(): number {
     return this._platformProgram.id;
@@ -85,16 +98,38 @@ export class ShaderProgram {
     ) {
       this._textureLayout = new ShaderTextureLayout(_engine._hardwareRenderer, source.reflection, platform);
     }
-    this.activeTextureCount = source.reflection
-      ? new Set(source.reflection.textures.filter((t) => t.visibility & 2).map((t) => t.group + ":" + t.textureBinding))
-          .size
+    this._pendingUniformBlocks = uniformBlocks;
+    this._pendingInstanceBindingName = instanceBindingName;
+    this._pendingReflection = source.reflection;
+    if (source.deferCompletion && platform.pollReady && !platform.isValid && !platform.errorLog) {
+      return;
+    }
+    this._finishPlatformSetup();
+  }
+
+  private _finishPlatformSetup(): void {
+    if (this._setupCompleted || this._released) return;
+    this._setupCompleted = true;
+    const platform = this._platformProgram;
+    const reflection = this._pendingReflection;
+    let uniformBlocks = this._pendingUniformBlocks;
+    const instanceBindingName = this._pendingInstanceBindingName;
+    this._pendingReflection = undefined;
+    this._pendingUniformBlocks = undefined;
+    this._pendingInstanceBindingName = undefined;
+
+    if (platform.errorLog) {
+      this._errorLog = platform.errorLog;
+    }
+    this.activeTextureCount = reflection
+      ? new Set(reflection.textures.filter((t) => t.visibility & 2).map((t) => t.group + ":" + t.textureBinding)).size
       : platform.uniforms.filter((u) => u.isTexture).length;
     if (!platform.isValid) return;
     let initialized = false;
     try {
       // WGSL reflection also describes blocks recovered from historical .shaderc assets.
-      if (source.reflection) {
-        uniformBlocks = source.reflection.uniformBlocks
+      if (reflection) {
+        uniformBlocks = reflection.uniformBlocks
           .filter((block) => block.name !== "Instance")
           .sort((a, b) => a.physicalBinding - b.physicalBinding) as IShaderUniformBlock[];
       }
@@ -313,6 +348,7 @@ export class ShaderProgram {
   }
 
   bind(): boolean {
+    if (!this._setupCompleted) this._ensureReady();
     return this._platformProgram.bind();
   }
 
