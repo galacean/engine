@@ -1210,7 +1210,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
       const animal = actor.animal;
       if (!animal?.visible) continue;
       const [min, max] = animal.bounds;
-      let near = 0,
+      let near = -Infinity,
         far = reach;
       for (let axis = 0; axis < 3; axis++) {
         const key = (["x", "y", "z"] as const)[axis],
@@ -1225,7 +1225,7 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
           far = Math.min(far, Math.max(a, b));
         }
       }
-      if (near <= far && near < nearest) {
+      if (near > 0 && near <= far && near < nearest) {
         nearest = near;
         chosen = actor;
       }
@@ -1441,7 +1441,6 @@ export class PlanningAnimalRuntime implements SeedWorldAnimalService {
           resolveMaterial: p.outlineEnabled ? this.resolveMaterial : this.resolvePlainMaterial,
           resolvePlainMaterial: this.resolvePlainMaterial,
           distantUpdateSeconds: DISTANT_ANIMAL_UPDATE_SECONDS,
-          fastDirectGroundArc: true,
           interactionArrivalRadius: () =>
             food.approaching?.appearance === "cart" && food.cart?.entering ? 0.06 : undefined,
           arrivedAtInteraction: (destination) =>

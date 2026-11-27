@@ -164,8 +164,6 @@ export interface ConfiguredAnimalOptions {
   resolveMaterial?: (source: Material) => Material;
   /** Optional non-outlined companion material for distant instances once outline fades to zero. */
   resolvePlainMaterial?: (source: Material) => Material;
-  /** Use O(1) closed-form 4-chord turning-arc admission for direct ground legs instead of 6000-substep kinematic preview. */
-  fastDirectGroundArc?: boolean;
 }
 
 /** One destination owns its admission, world revalidation and completion across gait clips. */
@@ -1087,10 +1085,7 @@ export class ConfiguredAnimal implements AnimalAgent {
         const culled = this.isRenderCulled();
         const alreadyVerified = this.verifiedAnimatedState === this.activeState;
         const canSkipOffscreen =
-          culled &&
-          this.blendClock.remaining <= 0 &&
-          (fraction === 0 || alreadyVerified) &&
-          (this.root.engine?.time?.frameCount ?? 0) > 2;
+          culled && this.blendClock.remaining <= 0 && (this.root.engine?.time?.frameCount ?? 0) > 2;
         if (canSkipOffscreen) {
           // Off-screen frustum culling: skip Animator.update completely while all renderers are culled;
           // logical playback.elapsed stays exact and resyncs in O(1) when re-entering view.
@@ -1618,40 +1613,6 @@ export class ConfiguredAnimal implements AnimalAgent {
           initial.speed === this.motion.speed &&
           initial.angularSpeed === this.motion.angularSpeed &&
           (medium !== "air" || initial.y === this.position.y);
-        // Fast closed-form arc + straight admission for direct ground legs (replaces 6000-substep kinematic preview):
-        // if |turn| <= 35 deg, straight leg is already validated; if sharp turn, verify 4 chord segments along
-        // the turning circle (shorter side first, opposite side fallback) + straight leg, falling through to
-        // exact validateRouteSteps + GroundAnimalRecovery when tight space fails.
-        if (
-          this.options.fastDirectGroundArc &&
-          medium === "ground" &&
-          !arrivalMedium &&
-          points.length === 1 &&
-          !continuing &&
-          !this.options.interactionArrivalRadius?.(target)
-        ) {
-          const fastRoute = this.validateFastDirectGroundArc(
-            initial,
-            target,
-            nominalSpeed,
-            passRadius,
-            this.groundSteering.urgent || this.groundSteering.tightTurns,
-            query
-          );
-          if (fastRoute) {
-            if (dependency && fastRoute.bounds) {
-              includeAnimalRouteBoundsXY(
-                dependency,
-                fastRoute.bounds.minX,
-                fastRoute.bounds.minZ,
-                fastRoute.bounds.maxX,
-                fastRoute.bounds.maxZ,
-                0
-              );
-            }
-            return fastRoute;
-          }
-        }
         const preview = this.validateRouteSteps(points, target, nominalSpeed, medium, arrivalMedium, query, initial);
         let result: IteratorResult<void, boolean | NonNullable<ConfiguredAnimal["route"]>>;
         try {
@@ -1693,124 +1654,6 @@ export class ConfiguredAnimal implements AnimalAgent {
 
   private canTraverseRouteStep(query: AnimalRouteQuery, ax: number, az: number, bx: number, bz: number): boolean {
     return query.canTraverseXY ? query.canTraverseXY(ax, az, bx, bz) : query.canTraverse([ax, az], [bx, bz]);
-  }
-
-  /**
-   * O(1) closed-form turning-arc + straight-leg validation for direct ground routes.
-   * Replaces 6000-substep kinematic preview on unobstructed direct legs; returns false on tight turns
-   * so caller falls through cleanly to exact validateRouteSteps + GroundAnimalRecovery.
-   */
-  private validateFastDirectGroundArc(
-    initial: GroundAnimalMotion & { y: number },
-    target: readonly [number, number],
-    nominalSpeed: number,
-    passRadius: number,
-    tightTurn: boolean,
-    query: AnimalRouteQuery
-  ): NonNullable<ConfiguredAnimal["route"]> | false {
-    const dx = target[0] - initial.x;
-    const dz = target[1] - initial.z;
-    const dist = Math.hypot(dx, dz);
-    if (dist < 1e-4) return false;
-    const desired = Math.atan2(dx, dz);
-    const err = Math.atan2(Math.sin(desired - initial.heading), Math.cos(desired - initial.heading));
-    const absErr = Math.abs(err);
-    const bodyLength = Math.max(0.1, (this.config.bounds.max[2] - this.config.bounds.min[2]) * this.scale);
-    const makeBounds = (extraX?: number, extraZ?: number, pad = passRadius): AnimalRouteBounds => {
-      let minX = Math.min(initial.x, target[0]);
-      let maxX = Math.max(initial.x, target[0]);
-      let minZ = Math.min(initial.z, target[1]);
-      let maxZ = Math.max(initial.z, target[1]);
-      if (extraX !== undefined && extraZ !== undefined) {
-        if (extraX < minX) minX = extraX;
-        if (extraX > maxX) maxX = extraX;
-        if (extraZ < minZ) minZ = extraZ;
-        if (extraZ > maxZ) maxZ = extraZ;
-      }
-      return { minX: minX - pad, maxX: maxX + pad, minZ: minZ - pad, maxZ: maxZ + pad };
-    };
-
-    if (absErr <= 0.62) {
-      return {
-        points: [[target[0], target[1]]],
-        bounds: makeBounds(undefined, undefined, passRadius + 0.2),
-        cursor: 0,
-        passRadius,
-        speed: nominalSpeed,
-        medium: "ground",
-        scale: this.scale,
-        multiplier: this.speedMultiplier,
-        arrivalMedium: undefined,
-        preparedAt: this.system.time,
-        from: initial
-      };
-    }
-
-    const turnR = Math.max(0.25, bodyLength * (tightTurn ? 0.32 : 0.75));
-    const preferredSign = Math.sign(err) || 1;
-    const tryArc = (sign: number, sweepRad: number): readonly [number, number] | null => {
-      const steps = 4;
-      let px = initial.x;
-      let pz = initial.z;
-      let prevH = initial.heading;
-      let midX = initial.x;
-      let midZ = initial.z;
-      const dTheta = (sign * sweepRad) / steps;
-      const signedR = turnR * sign;
-      for (let i = 1; i <= steps; i++) {
-        const nextH = prevH + dTheta;
-        const nx = px + signedR * (Math.cos(prevH) - Math.cos(nextH));
-        const nz = pz + signedR * (Math.sin(nextH) - Math.sin(prevH));
-        if (!this.canTraverseRouteStep(query, px, pz, nx, nz)) return null;
-        if (i === 2) {
-          midX = nx;
-          midZ = nz;
-        }
-        px = nx;
-        pz = nz;
-        prevH = nextH;
-      }
-      if (!this.canTraverseRouteStep(query, px, pz, target[0], target[1])) return null;
-      return [midX, midZ];
-    };
-
-    const shortArc = tryArc(preferredSign, Math.min(absErr, Math.PI));
-    if (shortArc) {
-      return {
-        points: [[target[0], target[1]]],
-        bounds: makeBounds(shortArc[0], shortArc[1], passRadius + turnR * 0.5),
-        cursor: 0,
-        passRadius,
-        speed: nominalSpeed,
-        medium: "ground",
-        scale: this.scale,
-        multiplier: this.speedMultiplier,
-        arrivalMedium: undefined,
-        preparedAt: this.system.time,
-        from: initial
-      };
-    }
-    const oppSweep = Math.min(Math.PI * 1.35, Math.PI * 2 - absErr);
-    const oppArc = tryArc(-preferredSign, oppSweep);
-    if (oppArc) {
-      return {
-        points: [
-          [oppArc[0], oppArc[1]],
-          [target[0], target[1]]
-        ],
-        bounds: makeBounds(oppArc[0], oppArc[1], passRadius + turnR * 0.5),
-        cursor: 0,
-        passRadius,
-        speed: nominalSpeed,
-        medium: "ground",
-        scale: this.scale,
-        multiplier: this.speedMultiplier,
-        arrivalMedium: undefined,
-        preparedAt: this.system.time,
-        from: initial
-      };
-    }
-    return false;
   }
 
   private *validateRouteSteps(

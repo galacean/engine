@@ -10,6 +10,7 @@ import {
 import { LakeBoundaryQueryIndex } from "@galacean/engine-water/water/compiler/lake/LakeBoundaryQueryIndex";
 import { PlanningNavigationSurface } from "@galacean/engine-world-planning/spatial/runtime/PlanningNavigationSurface";
 import { PlanningAnimalHabitat } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHabitat";
+import { PlanningAnimalRuntime } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime";
 import { AnimalSystem } from "@galacean/engine-animals/gameplay/animal/AnimalSystem";
 import { ConfiguredAnimal } from "@galacean/engine-animals/gameplay/animal/ConfiguredAnimal";
 import { AnimalBlendClock } from "@galacean/engine-animals/gameplay/animal/AnimalBlendClock";
@@ -604,5 +605,45 @@ describe("animal pathfinding performance invariants", () => {
     expect(playSpy).toHaveBeenCalledTimes(1);
     expect(updateSpy).toHaveBeenCalledTimes(1);
     expect(updateSpy.mock.calls[0][0]).toBe(0);
+  });
+
+  it("ignores animals enclosing the camera ray origin in shoo() so they cannot hijack distant clicks", () => {
+    const nearNotify = vi.fn(() => true);
+    const farNotify = vi.fn(() => true);
+    const runtime: any = Object.create(PlanningAnimalRuntime.prototype);
+    Object.assign(runtime, {
+      requestId: 0,
+      interaction: { clickDistance: 160, approachCooldown: 5 },
+      interactions: {},
+      population: {
+        system: { time: 10 },
+        active: new Set([
+          {
+            animal: {
+              visible: true,
+              bounds: [
+                [-1, -1, -1],
+                [1, 1, 1]
+              ],
+              behavior: { notify: nearNotify }
+            }
+          },
+          {
+            animal: {
+              visible: true,
+              bounds: [
+                [-1, -1, 19],
+                [1, 1, 21]
+              ],
+              behavior: { notify: farNotify }
+            }
+          }
+        ])
+      }
+    });
+    const ok = runtime.shoo({ origin: { x: 0, y: 0, z: 0 }, direction: { x: 0, y: 0, z: 1 } });
+    expect(ok).toBe(true);
+    expect(nearNotify).not.toHaveBeenCalled();
+    expect(farNotify).toHaveBeenCalledTimes(1);
   });
 });
