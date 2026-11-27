@@ -1,0 +1,22 @@
+packages/world-planning/src/runtime/SeedWorldForwardGrass.ts
+  h_171a11afaf879a 6-7,87,95,159,240,305-320,332-386,491-492,518-519,599-601,623-626,628-651,657,685,896-897,1666-1683,1795-1815
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_171a11afaf879a 19,22,28,34,223-227,415-497,499,504-859,865-867,1339,1341,1347,1349-1350,1417-1420,1708-1712,1831-1859,1997-1999,2016-2017,2045-2047,2075-2077,2088-2092,2095-2098,2108-2129,2170,2222-2232,2253,2290-2303,2318-2330,2382,2387-2389,2399,2404-2406,2426,2431-2436,2507-2517,2528-2552,2561-2573,2580-2592,2790,2796-2800,3081-3082,3097-3102,3122-3124,3208-3209,3219-3221
+world/demos/seed-world/SeedWorldDemo.ts
+  h_171a11afaf879a 849,851-856
+world/demos/seed-world/src/SeedWorldShaderAudit.ts
+  h_171a11afaf879a 145,190,193
+world/tests/seed-world/SeedWorldRendererWarmup.spec.ts
+  h_171a11afaf879a 19,2576-2683
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b5c02a6051dc211f38d3cb210b75636b3db234f6",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

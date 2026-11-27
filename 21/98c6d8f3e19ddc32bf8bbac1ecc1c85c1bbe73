@@ -1,0 +1,56 @@
+packages/core/src/lighting/environment/RealtimeSphericalHarmonicsGPU.ts
+  h_171a11afaf879a 23,30-34
+packages/core/src/particle/ParticleSubEmitterSpawnState.ts
+  h_171a11afaf879a 24,31-35
+packages/core/src/particle/ParticleTransformFeedbackSimulator.ts
+  h_171a11afaf879a 18,25-29
+packages/core/src/postProcess/effects/SunLensFlareEffect.ts
+  h_171a11afaf879a 194,201-205
+packages/core/src/shader/BuiltinShaders.ts
+  h_171a11afaf879a 1,9,73-76,82-89,113
+packages/core/src/shader/ComputeShader.ts
+  h_171a11afaf879a 1,75-109,296-311,325
+packages/design/src/shader-compiler/IPrecompiledShader.ts
+  h_171a11afaf879a 2,10-22
+packages/design/src/shader-compiler/index.ts
+  h_171a11afaf879a 26-32
+packages/shader-compiler/src/ShaderPrecompiler.ts
+  h_171a11afaf879a 2-7,21,64-162,164-168
+packages/shader-compiler/src/bundler/precompile.ts
+  h_171a11afaf879a 81,313-323,370-377,382-387,389-396
+packages/shader-parser/src/parser/ParserSemanticValidation.ts
+  h_171a11afaf879a 148-149,154-160
+packages/shader/src/ShaderLibrary/PostProcess/SunLensFlare.glsl
+  h_171a11afaf879a 31
+packages/shader/src/ShaderLibrary/PostProcess/SunLensFlareVisibilityCore.glsl
+  h_171a11afaf879a 1-52
+packages/shader/src/ShaderLibrary/index.ts
+  h_171a11afaf879a 63,138
+packages/shader/src/Shaders/Effect/ParticleSimulationCompute.shader
+  h_171a11afaf879a 1-96
+packages/shader/src/Shaders/Effect/ParticleSubEmitterGatherCompute.shader
+  h_171a11afaf879a 1-31
+packages/shader/src/Shaders/Lighting/RealtimeIBLProjectSHCompute.shader
+  h_171a11afaf879a 1-46
+packages/shader/src/Shaders/PostProcess/SunLensFlareVisibilityCompute.shader
+  h_171a11afaf879a 1-30
+packages/shader/src/Shaders/index.ts
+  h_171a11afaf879a 13-14,19,33,62-63,68,82
+packages/shader/src/global.d.ts
+  h_171a11afaf879a 12-13
+tests/package-consumer/PublishedShaderPackages.test.ts
+  h_171a11afaf879a 77-99
+tests/src/rhi-webgpu/ComputeShader.test.ts
+  h_171a11afaf879a 1386-1444
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "2198c6d8f3e19ddc32bf8bbac1ecc1c85c1bbe73",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

@@ -1,0 +1,22 @@
+packages/animals/src/gameplay/animal/ConfiguredAnimal.ts
+  h_171a11afaf879a 167-171,781-784,1737-1739,1802-1803,1815-1817,1819,1831-1865,2004,2011-2012
+packages/animals/src/gameplay/animal/GroundAnimalCrowd.ts
+  h_171a11afaf879a 733-742,750,766-767,791,794
+packages/animals/src/gameplay/animal/GroundAnimalRecovery.ts
+  h_171a11afaf879a 12-13,34-38,42-43,48-49,57,66-67,94-95,118-121,127,134-148,161-202,205-206
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime.ts
+  h_171a11afaf879a 1444
+world/tests/seed-world/AnimalPathfindingPerfInvariants.spec.ts
+  h_171a11afaf879a 18,650-711
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "20802904b46e4d871e73b5e2aedcc7dfcfa73415",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
