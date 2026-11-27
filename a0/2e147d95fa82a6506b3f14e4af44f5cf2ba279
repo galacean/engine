@@ -1,0 +1,48 @@
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/shaders/Vegetation.shader
+  h_171a11afaf879a 108-110,354-363
+packages/terrain/src/shaders/shared/SurfaceClimate.glsl
+  h_171a11afaf879a 122,124-127,130,132-135,138,140-182,208
+packages/terrain/src/shaders/shared/TerrainLayerEvaluation.glsl
+  h_171a11afaf879a 4,32-48,186,190,240,245-247,260-261,353,401-421,433-437,444-452,472-474,509-510,512,539-550,553-557,559,567-583,621
+packages/terrain/src/shaders/shared/VegetationWind.glsl
+  h_171a11afaf879a 7,1091-1116,1923
+packages/terrain/src/shaders/surface/SurfaceEvaluation.glsl
+  h_171a11afaf879a 9-11,21,155-163,216-220
+packages/terrain/src/shaders/terrain/TerrainEvaluation.glsl
+  h_171a11afaf879a 4,50-69,85,115
+packages/terrain/src/shaders/terrain/TerrainForwardPass.glsl
+  h_171a11afaf879a 16,95-102,147,152,154,156-163,165,167-176,180,182-191,193-194,196-197,200-203,205-273
+packages/terrain/src/shaders/vegetation/VegetationEvaluation.glsl
+  h_171a11afaf879a 132,292-294,314,324
+packages/terrain/src/shaders/vegetation/VegetationSecondColor.glsl
+  h_171a11afaf879a 4-6,23-32
+packages/terrain/src/shaders/vegetation/VegetationTranslucency.glsl
+  h_171a11afaf879a 28,31,41,108,112,132
+packages/terrain/src/terrain/clipmap/TerrainClipmapMaterial.ts
+  h_171a11afaf879a 338-368,371,373,382,386-390,395-398,401-428,604
+packages/terrain/src/terrain/clipmap/TerrainGroundBinding.ts
+  h_171a11afaf879a 41-44
+packages/world-planning/src/integrations/terrain/environment/WorldEnvironmentRuntime.ts
+  h_171a11afaf879a 8,81,868,1104,1108-1121,1139
+packages/world-planning/src/integrations/terrain/rock-formation/RockLodView.ts
+  h_171a11afaf879a 248,273,285
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a02e147d95fa82a6506b3f14e4af44f5cf2ba279",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

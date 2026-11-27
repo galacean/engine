@@ -1,0 +1,20 @@
+packages/world-planning/src/integrations/terrain/rock-formation/Variants.ts
+  h_171a11afaf879a 33,41-74
+packages/world-planning/src/spatial/guidance/VisualGuidance.ts
+  h_171a11afaf879a 14,518
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHabitat.ts
+  h_171a11afaf879a 234
+world/tests/seed-world/SeedWorldRockCollider.spec.ts
+  h_171a11afaf879a 461-487
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "234f3d75ee59e470618888489eb4af6abcd55335",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

@@ -1,0 +1,25 @@
+packages/galacean/skills/engine-knowledge/SKILL.md
+  s_f1a7b8285f1df2::t_ba112398d13fa3 3,6,8,12,16,21
+  s_f1a7b8285f1df2::t_d0590b7e8d8152 10
+  s_f1a7b8285f1df2::t_979675f0966e7c 11
+packages/galacean/skills/engine-knowledge/references/mesh-geometry.md
+  s_f1a7b8285f1df2::t_89d5c78301b35e 39
+  s_f1a7b8285f1df2::t_ba112398d13fa3 3,5,7-9,41,45,48-60,63
+  s_f1a7b8285f1df2::t_1ed26badda9446 40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b07f252fd3ba903fa0c94bf7c69675fadeb6dc8d",
+  "prompts": {},
+  "sessions": {
+    "s_f1a7b8285f1df2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d54e-3c87-7273-b01d-79d652eaed37",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

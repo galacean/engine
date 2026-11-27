@@ -1,0 +1,14 @@
+packages/modify/src/native/shader/src/Shaders/Lighting/ScreenSpaceReflection.shader
+  h_a3c79ce84ffdc2 111-143,184-194,202-203,210,214-225,646-650,667,671-677
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6c855cb602fb87e6ab68d9d5831bc7e8393c2aff",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+docs/en/physics/manager.mdx
+  h_dd004f51a3e5ec 69-71
+docs/zh/physics/manager.mdx
+  h_dd004f51a3e5ec 68-69
+packages/core/src/physics/CharacterController.ts
+  h_dd004f51a3e5ec 165
+packages/core/src/physics/Collider.ts
+  h_dd004f51a3e5ec 236,410-413,414,416-417
+packages/core/src/physics/MeshCollider.ts
+  h_dd004f51a3e5ec 101-102,114
+packages/core/src/physics/PhysicsScene.ts
+  h_dd004f51a3e5ec 257-262
+tests/src/core/physics/MeshCollider.test.ts
+  h_dd004f51a3e5ec 1337-1380
+tests/src/core/postProcess/PostProcess.test.ts
+  h_dd004f51a3e5ec 31,539-581
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "045d5cd29255022535ce04a11a6639a7e00e3591",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

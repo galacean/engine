@@ -1,0 +1,64 @@
+e2e/primitive-mesh.md
+  s_f1a7b8285f1df2::t_9d9f0bac0d8973 24
+docs/en/graphics/mesh/primitiveMesh.mdx
+  s_f1a7b8285f1df2::t_9d9f0bac0d8973 164
+tests/src/core/mesh/ProceduralMesh.test.ts
+  s_f1a7b8285f1df2::t_1b110bfaa13cf7 367,369-371,373,375-389,394-422,424-439
+  s_f1a7b8285f1df2::t_8306f68a68558a 390-393
+  s_f1a7b8285f1df2::t_cb4110a5b23cbc 440-454
+  s_f1a7b8285f1df2::t_80ab446afe8561 366,368,372,374,423
+docs/zh/graphics/mesh/primitiveMesh.mdx
+  s_f1a7b8285f1df2::t_9d9f0bac0d8973 168
+e2e/config.ts
+  s_f1a7b8285f1df2::t_76dad2d016b737 289,421,427,433,439,445,451,457,463,469,487
+packages/core/src/mesh/PrimitiveMeshOptions.ts
+  s_f1a7b8285f1df2::t_9d9f0bac0d8973 118,150,182
+packages/core/src/mesh/PrimitiveMesh.ts
+  s_f1a7b8285f1df2::t_683d97dec605b9 275-276,315-316,854,893-895,902-903,933-934,938-945
+  s_f1a7b8285f1df2::t_fb2f8afa32b5e3 914-915,919-921,923,925,929-930
+  s_f1a7b8285f1df2::t_bdde6d168a1a9c 855
+  s_f1a7b8285f1df2::t_9d9f0bac0d8973 859
+  s_f1a7b8285f1df2::t_daa42b99bf4976 904
+e2e/fixtures/originImage/Particle_particleRenderer-emit-billboard-stretched.jpg
+  s_f1a7b8285f1df2::t_5dc85ca47992a9 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-emit-mesh-cone-scale-3d-rotation-life-seperate.jpg
+  s_f1a7b8285f1df2::t_d65d523a45e1b0 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-emit-mesh-cone-scale-3d-rotation.jpg
+  s_f1a7b8285f1df2::t_b61b83c66c8890 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-emit-mesh-cone-scale-rotation-life-seperate.jpg
+  s_f1a7b8285f1df2::t_553277250229db 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-emit-mesh-cone-scale-rotation-life.jpg
+  s_f1a7b8285f1df2::t_fc832e8e426e86 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-emit-mesh-cone-scale-rotation-world.jpg
+  s_f1a7b8285f1df2::t_bd5ab485ede087 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-emit-mesh-cone-scale-rotation.jpg
+  s_f1a7b8285f1df2::t_922a4968a97be9 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-emit-mesh-cone.jpg
+  s_f1a7b8285f1df2::t_c3b06b9cc1f3db 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-emit-mesh-no-shape-world.jpg
+  s_f1a7b8285f1df2::t_b69aedbb333770 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-emit-mesh-no-shape.jpg
+  s_f1a7b8285f1df2::t_15ff0165021c46 2-3
+e2e/fixtures/originImage/Primitive_primitive-all.jpg
+  s_f1a7b8285f1df2::t_cbbca76b3cacf5 2-3
+e2e/fixtures/originImage/Primitive_primitive-cylinder.jpg
+  s_f1a7b8285f1df2::t_5c60914837dd1b 2-3
+e2e/fixtures/originImage/Primitive_primitive-sections.jpg
+  s_f1a7b8285f1df2::t_b24fac633aa3ae 2-3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "763c502906f4419cfdb232180275f005d7c62b77",
+  "prompts": {},
+  "sessions": {
+    "s_f1a7b8285f1df2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d54e-3c87-7273-b01d-79d652eaed37",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

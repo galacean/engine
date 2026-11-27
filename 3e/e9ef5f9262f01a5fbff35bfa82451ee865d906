@@ -1,0 +1,26 @@
+packages/core/src/physics/Collision.ts
+  h_dd004f51a3e5ec 15-17
+packages/core/src/physics/PhysicsMaterial.ts
+  h_dd004f51a3e5ec 18-20,97-113
+packages/core/src/physics/Rigidbody.ts
+  h_dd004f51a3e5ec 1086-1115
+packages/core/src/physics/joint/HingeJoint.ts
+  h_dd004f51a3e5ec 158-166
+packages/physics-physx/src/joint/PhysXFixedJoint.ts
+  h_dd004f51a3e5ec 11
+packages/physics-physx/src/joint/PhysXHingeJoint.ts
+  h_dd004f51a3e5ec 15,136-141
+packages/physics-physx/src/joint/PhysXSpringJoint.ts
+  h_dd004f51a3e5ec 11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3ee9ef5f9262f01a5fbff35bfa82451ee865d906",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

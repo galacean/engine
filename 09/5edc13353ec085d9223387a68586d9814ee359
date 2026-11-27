@@ -1,0 +1,46 @@
+packages/core/src/animation/animationCurve/interfaces/IAnimationCurveCalculator.ts
+  s_71d829bec7869b::t_30a0cc58259cc8 8,18-25
+packages/core/src/animation/animationCurve/AnimationFloatArrayCurve.ts
+  s_71d829bec7869b::t_a419534e5e60cf 21
+packages/core/src/animation/animationCurve/AnimationStringCurve.ts
+  s_71d829bec7869b::t_30a0cc58259cc8 13
+packages/core/src/animation/animationCurve/AnimationArrayCurve.ts
+  s_71d829bec7869b::t_a419534e5e60cf 21
+packages/core/src/animation/animationCurve/AnimationQuaternionCurve.ts
+  s_71d829bec7869b::t_a419534e5e60cf 19
+packages/core/src/animation/animationCurve/AnimationVector3Curve.ts
+  s_71d829bec7869b::t_30a0cc58259cc8 17
+packages/core/src/animation/animationCurve/AnimationRefCurve.ts
+  s_71d829bec7869b::t_30a0cc58259cc8 13
+  s_71d829bec7869b::t_efe4931210eafc 20
+packages/core/src/animation/AnimationClipCurveBinding.ts
+  s_71d829bec7869b::t_30a0cc58259cc8 56
+packages/core/src/animation/animationCurve/AnimationVector4Curve.ts
+  s_71d829bec7869b::t_30a0cc58259cc8 17
+packages/core/src/animation/animationCurve/AnimationColorCurve.ts
+  s_71d829bec7869b::t_a419534e5e60cf 17
+packages/core/src/animation/animationCurve/AnimationBoolCurve.ts
+  s_71d829bec7869b::t_a419534e5e60cf 13
+packages/core/src/animation/animationCurve/AnimationVector2Curve.ts
+  s_71d829bec7869b::t_30a0cc58259cc8 17
+packages/core/src/animation/animationCurve/AnimationRectCurve.ts
+  s_71d829bec7869b::t_a419534e5e60cf 16
+packages/core/src/animation/animationCurve/AnimationFloatCurve.ts
+  s_71d829bec7869b::t_a419534e5e60cf 15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "095edc13353ec085d9223387a68586d9814ee359",
+  "prompts": {},
+  "sessions": {
+    "s_71d829bec7869b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a212d6-cdf5-7f11-ba28-f30304403c44",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

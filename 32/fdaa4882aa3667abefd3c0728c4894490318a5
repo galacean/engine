@@ -1,0 +1,92 @@
+packages/core/src/2d/sprite/SpriteMask.ts
+  h_dd004f51a3e5ec 221-223
+packages/core/src/Camera.ts
+  h_dd004f51a3e5ec 267-268,712-713
+packages/core/src/Component.ts
+  h_dd004f51a3e5ec 4,20,37-49,108,116,118-128,131,134,139-140,146,165-168
+packages/core/src/ComponentsDependencies.ts
+  h_dd004f51a3e5ec 52,56-62,67-68,74-89
+packages/core/src/Engine.ts
+  h_dd004f51a3e5ec 319-320,322-324,326-340,344,346,348-349,351-356,358-363,365-370,372-375,377-378,380,382-383,385-388,482-483,485-486,493-494,496-497,499-503,506,508-509,511
+packages/core/src/Entity.ts
+  h_dd004f51a3e5ec 23-25,60,64,82-85,87,92-94,149,158-175,181,242-245,262,267-271,277-280,439,442,444-452,454,463-465,484-485,487-489,491-492,494-496,499,508,522,527,541-543,548,551-554,556-557,569,592-595,608-610,620-622,628-631,654-656,660-664,666,668-671,673-674,676-678,680-684,686,688-689,692,694-716,718-719,744-747,750-751,772
+packages/core/src/Renderer.ts
+  h_dd004f51a3e5ec 308-309
+packages/core/src/Scene.ts
+  h_dd004f51a3e5ec 71-72,76,94,103-107,313-314,319-321,335-340,343-379,383-384,387-394,456-464,509,511,513-514,516-519,521-522,524
+packages/core/src/SceneManager.ts
+  h_dd004f51a3e5ec 29-30,35-37,69,74-75,81,84,109-112,115-117,127
+packages/core/src/Script.ts
+  h_dd004f51a3e5ec 265-266,295-296
+packages/core/src/animation/Animator.ts
+  h_dd004f51a3e5ec 315-316
+packages/core/src/lighting/DirectLight.ts
+  h_dd004f51a3e5ec 80-81
+packages/core/src/lighting/PointLight.ts
+  h_dd004f51a3e5ec 69-70
+packages/core/src/lighting/SpotLight.ts
+  h_dd004f51a3e5ec 106-107
+packages/core/src/particle/ParticleRenderer.ts
+  h_dd004f51a3e5ec 180,182
+packages/core/src/physics/Collider.ts
+  h_dd004f51a3e5ec 88-89,369,376-379
+packages/core/src/physics/Rigidbody.ts
+  h_dd004f51a3e5ec 52-53,514,712,781-783,796-799
+packages/core/src/physics/joint/Joint.ts
+  h_dd004f51a3e5ec 7,34-35,237,246-248,286
+packages/core/src/postProcess/PostProcess.ts
+  h_dd004f51a3e5ec 127-128
+packages/loader/README.md
+  h_dd004f51a3e5ec 3
+packages/loader/src/PrefabLoader.ts
+  h_dd004f51a3e5ec 9-20
+packages/loader/src/SceneLoader.ts
+  h_dd004f51a3e5ec 13,20-29,34,40-67,70-108,158,171-172,174-179
+packages/loader/src/prefab/PrefabParser.ts
+  h_dd004f51a3e5ec 2,8,12-22,35-40
+packages/loader/src/prefab/PrefabResource.ts
+  h_dd004f51a3e5ec 10,24-25,28,34-40,46-49,51
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  h_dd004f51a3e5ec 1,21-22,24-26,31,38-42,46-54,60,62,71,74-87,123,135-143,145,149,152-154,157,159-161,163-166,168-170,172-173,177,180-198,201-205,209-215,219-226,228-234,236-237,239,241-255,262,271-280,298-299,302-306,312-320
+packages/loader/src/resource-deserialize/resources/parser/ParserContext.ts
+  h_dd004f51a3e5ec 1,12,15,26,31-33,40,42,45
+packages/loader/src/resource-deserialize/resources/parser/ReflectionParser.ts
+  h_dd004f51a3e5ec 1,7-9,19-21,23-26,29,33-34,36-37,39,42-48,50-53,56-67,70,76,78-80,98,100,118,141,143,165,173-177,199,207-208,219-224,229,231,233
+packages/loader/src/resource-deserialize/resources/scene/SceneParser.ts
+  h_dd004f51a3e5ec 4,7-15,19,22,33-38
+packages/ui/src/component/UICanvas.ts
+  h_dd004f51a3e5ec 395-396,622,626,674,678
+packages/ui/src/component/UIRenderer.ts
+  h_dd004f51a3e5ec 165-166
+packages/ui/src/component/interactive/UIInteractive.ts
+  h_dd004f51a3e5ec 192-193
+tests/src/core/CompomentDependencies.test.ts
+  h_dd004f51a3e5ec 1,21,29
+tests/src/core/Entity.test.ts
+  h_dd004f51a3e5ec 3,576-577,580-581
+tests/src/core/Scene.test.ts
+  h_dd004f51a3e5ec 1,173,175,178,180-181
+tests/src/core/physics/HingeJoint.test.ts
+  h_dd004f51a3e5ec 2
+tests/src/core/physics/Joint.test.ts
+  h_dd004f51a3e5ec 559,561-563,762
+tests/src/core/physics/PhysicsGameplay.test.ts
+  h_dd004f51a3e5ec 86,405,408-411,413-423
+tests/src/loader/PhysicsMaterialLoader.test.ts
+  h_dd004f51a3e5ec 2,64,75-76,83-84
+tests/src/loader/PrefabResource.test.ts
+  h_dd004f51a3e5ec 2-3,48,57-58,163-164,173-177,179-181
+tests/src/loader/SceneFormatV2.test.ts
+  h_dd004f51a3e5ec 19,512,522-524,539-541,566-568,587-589,605-607,621-623,643-645,669-671,705-707,722-724,752,759
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "32fdaa4882aa3667abefd3c0728c4894490318a5",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

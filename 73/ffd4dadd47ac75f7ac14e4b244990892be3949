@@ -1,0 +1,1897 @@
+packages/physics-physx/libs/physx.release.simd.js
+  s_0373997fdb8cbf::t_884f316d450e89 1
+e2e/fixtures/originImage/Particle_particleRenderer-emit-mesh-cone-scale-rotation-life.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+packages/core/src/postProcess/PostProcessPass.ts
+  s_0373997fdb8cbf::t_884f316d450e89 70,72,75
+e2e/case/particleRenderer-inherit-velocity-stretched.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-108
+packages/loader/src/gltf/extensions/KHR_texture_basisu.ts
+  s_0373997fdb8cbf::t_884f316d450e89 26-27,40,49,62,65
+packages/shader-parser/src/lalr/CFG.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,14,26,29-57,63,77,86,98,104,110,116,122,131,143,153,163,215,220-231,237,246,252,264,267,270,273,276,279,282,285,288,310,316,337,346,358,373,382,388,397,403,422,425,437,440,446,449,455,458,464,467,473,476,482,485,491,494,501,504,513,516,523,526,533,536,544,547,555,558,561,575,588,597,606,609,624,630,645,656,668,677,689,695,701,707,713,719,730,742,751,763,774,783,789,792,795,804,807,813,816,826,829,846,855,874,889-895,897,900,906,909,912,915,918,922,936,939,952,965,968,971,974,980,983,989,992,995,1007,1010,1015,1021,1031,1043,1053-1054,1056
+packages/core/src/clone/ComponentCloner.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2-4,7-8,12,14-24,26
+packages/core/src/renderingHardwareInterface/IPlatformTransformFeedbackPrimitive.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-52
+packages/shader-compiler/src/ShaderBackend.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-16
+packages/core/src/shader/state/RasterState.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-2,13,30-32,34-36,38-40,51,60,62
+packages/shader-parser/src/ir/ShaderStructOwnership.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-223
+packages/core/src/RenderPipeline/RenderElement.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-5,7,12-21,23-45,48-67,71-80
+e2e/fixtures/originImage/Spine_spine-spineboy.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+packages/core/src/particle/modules/shape/HemisphereShape.ts
+  s_0373997fdb8cbf::t_884f316d450e89 31,45,54
+packages/core/src/particle/modules/shape/ConeShape.ts
+  s_0373997fdb8cbf::t_884f316d450e89 76-77,87,99,103,113,133
+packages/loader/src/gltf/parser/GLTFAnimatorControllerParser.ts
+  s_0373997fdb8cbf::t_884f316d450e89 14,30-33
+packages/core/src/audio/AudioSource.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,17,19,26,28,38,42,70-73,85-91,93,95-97,127-129,133,139,142-143,155,158-162,166,168-170,173-185,187-188,191-192,198-201,212,219-221,228-234,272-282,284-289,292-293,298-317,321,323,329-338,342-344
+packages/core/src/shader/state/RenderState.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,15,36-37,39-43,65-68,70
+packages/loader/src/gltf/extensions/KHR_materials_specular.ts
+  s_0373997fdb8cbf::t_884f316d450e89 16-21
+docs/en/physics/collider/colliderShape.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 32-37,100-117
+docs/zh/graphics/model/glTF.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 53
+packages/core/src/graphic/TransformFeedbackSimulator.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-107
+packages/math/src/Vector4.ts
+  s_0373997fdb8cbf::t_884f316d450e89 266,462
+packages/shader-compiler/src/precompile.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1
+docs/en/graphics/2D/spine/add-and-use.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 9,11,13,15-26,28,30,32-43,45,47-50,52,54,57-61,63,65,67,69,71-73,75-77,80,82,85-88,90-91,94-97,99-107,110-112,114-121,124-130,133,135,137,139,142-143,146,148-156,158,160-167,169,171,173,175,177,180-187,190,192,194,196,198,200,203-205,209
+docs/zh/script/attributes.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 49
+packages/core/src/clone/CloneUtil.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-375
+packages/rhi-webgl/package.json
+  s_0373997fdb8cbf::t_884f316d450e89 3
+docs/en/core/clone.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 11,13,19-21,24,26-27,29-30,32,40,47,49-96,98-99,102-113,117,120-121,124-125,127-129,132,140-141,146,148,151-152,154-155,157,160-168
+packages/shader-parser/internal/package.json
+  s_0373997fdb8cbf::t_884f316d450e89 1-5
+packages/shader-compiler/src/codeGen/NameAllocator.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-83
+packages/core/src/particle/enums/attributes/ParticleFeedbackVertexAttribute.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-10
+packages/shader/src/ShaderLibrary/Common/Common.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 49,55,62,85,93-100
+e2e/case/gltf-meshopt.ts
+  s_0373997fdb8cbf::t_884f316d450e89 10,18
+packages/core/src/mesh/MeshRenderer.ts
+  s_0373997fdb8cbf::t_884f316d450e89 4,7,72,80,82-83,109,111,156-159,169-173,175-202
+e2e/case/particleRenderer-emit-mesh-cone.ts
+  s_0373997fdb8cbf::t_884f316d450e89 59,82,100
+e2e/case/material-unlit.ts
+  s_0373997fdb8cbf::t_884f316d450e89 11
+packages/design/src/spine/ISpineRuntime.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-70
+packages/physics-physx/src/shape/PhysXCapsuleColliderShape.ts
+  s_0373997fdb8cbf::t_884f316d450e89 102-103
+packages/galacean/README.md
+  s_0373997fdb8cbf::t_884f316d450e89 42
+e2e/primitive-mesh.md
+  s_0373997fdb8cbf::t_884f316d450e89 1-26
+packages/core/src/texture/Texture2DArray.ts
+  s_0373997fdb8cbf::t_884f316d450e89 28,37,175,185,195,200-201,205,210-211,213
+packages/loader/src/resource-deserialize/resources/parser/ReflectionParser.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-3,7-24,32-68,70,73-80,83-120,122-128,130,133-146,148-150,153-156,158-177,180-187,190-196,199-211,214-224,227-233
+packages/shader-parser/src/parser/AnalyzerSemanticDiagnostics.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-111
+packages/core/src/2d/text/CharInfo.ts
+  s_0373997fdb8cbf::t_884f316d450e89 18
+e2e/case/material-shader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2,21,24,69
+packages/core/src/animation/AnimatorStateTransition.ts
+  s_0373997fdb8cbf::t_884f316d450e89 25,121
+packages/design/src/shader-compiler/shaderSource/IShaderPassSource.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-29
+packages/loader/src/gltf/GLTFUtils.ts
+  s_0373997fdb8cbf::t_884f316d450e89 13,136,150,213,245,247-248,296,307-311,368,381,463,468
+packages/core/src/physics/shape/BoxColliderShape.ts
+  s_0373997fdb8cbf::t_884f316d450e89 5,28
+packages/shader-parser/internal/analyzer/package.json
+  s_0373997fdb8cbf::t_884f316d450e89 1-5
+packages/shader/src/Shaders/PBR.shader
+  s_0373997fdb8cbf::t_884f316d450e89 1,5,7,9,14,16,18,23,25,27,29,34,36,38,43,45,50,52,57,59,61-62,66,68,70,72,74,79,81,83,85,87,92,94,96,98,100,105,107,109,111,113,115,117-118,122,124,126,128,130,138-139,174
+packages/loader/tests/MaterialSchemaTypes.test.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-67
+packages/shader-compiler/src/TempArray.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1
+packages/loader/src/gltf/parser/GLTFSchemaParser.ts
+  s_0373997fdb8cbf::t_884f316d450e89 16-36
+packages/core/src/ComponentsManager.ts
+  s_0373997fdb8cbf::t_884f316d450e89 4,14-16,25,277
+examples/src/project-loader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 6,10,14,18
+packages/physics-physx/src/shape/PhysXColliderShape.ts
+  s_0373997fdb8cbf::t_884f316d450e89 26,34,52,110-116,126-129,141-151,192
+packages/shader/src/Shaders/2D/Text.shader
+  s_0373997fdb8cbf::t_884f316d450e89 1-53
+docs/en/graphics/material/examples/shader-03-ui-script.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 214
+e2e/case/spriteMask-customStencil.ts
+  s_0373997fdb8cbf::t_884f316d450e89 12,22,25-107,109-111,128,133,147,160-164,166,179-184,186,199,203,217-222
+packages/core/src/RenderPipeline/PrimitiveChunkManager.ts
+  s_0373997fdb8cbf::t_884f316d450e89 16,19,49-50
+packages/shader/src/Shaders/Sky/BackgroundTexture.shader
+  s_0373997fdb8cbf::t_884f316d450e89 1-39
+e2e/fixtures/originImage/Material_shader-mrt.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+packages/core/src/shader/ShaderProgramMap.ts
+  s_0373997fdb8cbf::t_884f316d450e89 5-8,10,13-15,17,21-23,39-41,45-46,50,53-54,57-58,60,63,65,71-72,77,83-84,89,93-94
+docs/en/graphics/material/examples/shader-02-render-state.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 309
+packages/design/src/shader-compiler/ShaderIncludePath.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-22
+docs/zh/how-to-contribute.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 124,138
+packages/loader/src/RenderTargetLoader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 19-26,28-41,43-45,47-50,52-53
+docs/zh/physics/query/raycast.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 61,65,101,104,122,127,129,132,135,150,153,157,178,195-221,234,239-240,245,251,254,269-275,290,293,300,315,324,326,335,342
+packages/core/src/lighting/DirectLight.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2,74,81
+e2e/case/primitive-all.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-244
+e2e/case/.initPostProcessEnv.ts
+  s_0373997fdb8cbf::t_884f316d450e89 13,17-18,20,41,55
+packages/shader/src/ShaderLibrary/Particle/Billboard/HorizontalBillboard.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-26
+docs/en/graphics/texture/cube.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 26
+packages/core/src/mesh/primitive/PolygonUtils.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-739
+packages/physics-physx/libs/physx.release.js
+  s_0373997fdb8cbf::t_884f316d450e89 1
+docs/zh/graphics/texture/2d.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 24
+docs/zh/graphics/background/sky.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 19,48,52
+e2e/fixtures/originImage/Advance_multi-camera-no-clear.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+e2e/case/trailRenderer-basic.ts
+  s_0373997fdb8cbf::t_884f316d450e89 240
+packages/core/src/particle/ParticleMaterial.ts
+  s_0373997fdb8cbf::t_884f316d450e89 12,14-15,22
+packages/core/src/RenderPipeline/MaskManager.ts
+  s_0373997fdb8cbf::t_884f316d450e89 7,19-30,133-149,154-163
+packages/loader/src/schema/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-4
+docs/zh/graphics/particle/renderer-limit-velocity-module.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 1-29
+docs/en/graphics/material/examples/shader-05-advance.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 25-26,46,55,78,105,125,240,273
+packages/loader/src/TextureLoader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-140
+packages/shader/src/ShaderLibrary/Particle/Module/ForceOverLifetime.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-3,9,12,15,21-23,26-28,38,45,48,54,62,69,77-79,85-87,90,95-97
+packages/core/src/animation/AnimatorState.ts
+  s_0373997fdb8cbf::t_884f316d450e89 30,42,46,193,195,230,237
+packages/rhi-webgl/src/type.ts
+  s_0373997fdb8cbf::t_884f316d450e89 8
+docs/zh/core/canvas.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 30,32,34-53,56-60,63-64,67,71,73,75,81,83-89,91,93-94,96,98-100,102-103,108,113-127
+packages/core/src/2d/sprite/Sprite.ts
+  s_0373997fdb8cbf::t_884f316d450e89 5,15,19-20,26,45,201-205,275,277-284
+packages/core/src/animation/AnimatorControllerLayer.ts
+  s_0373997fdb8cbf::t_884f316d450e89 17-40,45,52-61
+packages/shader-parser/src/common/BranchIdentity.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-194
+packages/shader/src/ShaderLibrary/Blit/BlitVertex.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-19
+docs/en/animation/animator.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 116,120-125,127-129,142,145-148,153-158,162-165,167-169
+packages/shader/src/ShaderLibrary/Skin/Skin.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 11,13-16
+e2e/case/particleRenderer-textureSheetAnimation.ts
+  s_0373997fdb8cbf::t_884f316d450e89 47
+packages/core/src/mesh/PrimitiveMesh.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,6-27,29-33,36-40,50-175,177-203,206-216,218,220-223,225-234,236-252,257-264,266-287,292-300,302,304-307,309-331,333-353,358-365,367,369-371,373-380,385-391,393-413,415,417-531,536-543,545,547-548,550-557,559,561-578,583-588,590,592-593,595-599,604-611,613,615-641,643-697,702-711,713-1285,1287-1449,1451-1858,1860-1911,1915-1916,1920,1949,1961,1975,1977-1988,1995,2001,2005-2008,2011,2015-2017,2022,2027,2029,2032-2040,2042-2059,2061-2066,2068-2069,2072-2081,2084-2089,2091-2103,2105-2106,2108-2109,2112-2114,2116-2117,2119-2122,2124,2126,2129-2134,2136,2139-2141,2143-2146
+e2e/case/multi-camera-no-clear.ts
+  s_0373997fdb8cbf::t_884f316d450e89 19,55,84
+packages/shader-parser/src/common/PreprocessorCondition.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-138
+packages/rhi-webgl/src/GLPrimitive.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-2,13-14,27,36,48,50,52,59-61,63-66,69,82,97-98,106-107,117,143
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_0373997fdb8cbf::t_884f316d450e89 4,14,44,50,60,64,66,87,101-102,111,113-116,118-119,123,136,148-149,152,165,172,180,183,195-196,203-212,225-226,263,267,300,303,317,324,338,347,360-372,374,376-380,383,385-386,390-391,393-394,398-401,404,408-418,421,424,427,430,455,458-459,466,497-500
+packages/shader/src/ShaderLibrary/PostProcess/Tonemapping/NeutralTonemapping.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-3,22,30-32
+docs/en/graphics/material/overview.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 63,70,75
+packages/math/src/Plane.ts
+  s_0373997fdb8cbf::t_884f316d450e89 66
+packages/shader/src/Shaders/BlinnPhong.shader
+  s_0373997fdb8cbf::t_884f316d450e89 1-90
+packages/core/src/asset/ResourceManager.ts
+  s_0373997fdb8cbf::t_884f316d450e89 3,11-12,50,71,78,85,92,94,106,109-110,146,152,162,164-166,192-194,215-217,219,221,322-327,330-331,335,342-343,345,348-352,362,381,386,393,395,398,406,408,411,436-437,442-445,449,454-464,494-497,503-522,524,542,562,567-578,584-588,607-608,646,653,661
+packages/loader/src/resource-deserialize/resources/scene/SceneParser.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-2,7,9-10,19,22-24,26,28-29,32-33
+e2e/case/material-pbr.ts
+  s_0373997fdb8cbf::t_884f316d450e89 43
+docs/zh/physics/collider/colliderShape.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 32-37,103-120
+packages/math/src/BoundingBox.ts
+  s_0373997fdb8cbf::t_884f316d450e89 67-71,77-105,132
+packages/shader/src/ShaderLibrary/Particle/Module/LimitVelocityOverLifetime.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-121
+docs/zh/graphics/2D/spine/editor.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 9-10
+e2e/case/particleRenderer-emissive.ts
+  s_0373997fdb8cbf::t_884f316d450e89 21,27,47,55
+packages/core/src/2d/text/ITextRenderer.ts
+  s_0373997fdb8cbf::t_884f316d450e89 4-6
+packages/core/src/physics/joint/SpringJoint.ts
+  s_0373997fdb8cbf::t_884f316d450e89 89
+packages/shader/.gitignore
+  s_0373997fdb8cbf::t_884f316d450e89 1
+e2e/fixtures/originImage/Advance_multi-scene-no-clear.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+packages/design/src/physics/ICollider.ts
+  s_0373997fdb8cbf::t_884f316d450e89 8-12,14
+e2e/case/particleRenderer-emit-mesh-cone-scale-3d-rotation.ts
+  s_0373997fdb8cbf::t_884f316d450e89 47,70,90,125
+packages/loader/src/ktx2/WorkerPool.ts
+  s_0373997fdb8cbf::t_884f316d450e89 91,93,117-118
+packages/shader-analyzer/src/convert.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-57
+e2e/case/shadow-transparent.ts
+  s_0373997fdb8cbf::t_884f316d450e89 17,23
+packages/core/src/clone/CloneDecorators.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-60
+packages/rhi-webgl/src/GLTexture2DArray.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,10,12,16,59-60,91-92,115-116,119
+packages/core/src/sky/SkyBoxMaterial.ts
+  s_0373997fdb8cbf::t_884f316d450e89 65
+packages/shader-parser/src/lexer/AnalyzerLexer.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-748
+packages/design/src/spine/ISpineAnimationState.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-18
+packages/loader/src/gltf/parser/GLTFBufferViewParser.ts
+  s_0373997fdb8cbf::t_884f316d450e89 8
+packages/loader/src/resource-deserialize/resources/parser/ParserContext.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-2,8,12-16,32-33,40
+e2e/case/physx-mesh-collider.ts
+  s_0373997fdb8cbf::t_884f316d450e89 87
+packages/math/src/Rect.ts
+  s_0373997fdb8cbf::t_884f316d450e89 15
+packages/core/src/texture/Texture2D.ts
+  s_0373997fdb8cbf::t_884f316d450e89 19,28,154-155,163-164,166
+packages/physics-physx/src/joint/PhysXJoint.ts
+  s_0373997fdb8cbf::t_884f316d450e89 105
+packages/math/src/CollisionUtil.ts
+  s_0373997fdb8cbf::t_884f316d450e89 281,356,427,474
+packages/core/src/lighting/LightManager.ts
+  s_0373997fdb8cbf::t_884f316d450e89 183
+packages/core/src/graphic/Mesh.ts
+  s_0373997fdb8cbf::t_884f316d450e89 17,164,168-170
+e2e/fixtures/originImage/Particle_particleRenderer-force.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+packages/core/src/Script.ts
+  s_0373997fdb8cbf::t_884f316d450e89 3,210,227,232-234,241,258-260,270-277
+docs/zh/animation/animator.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 120,124-129,131-133,147,150-153,158-163,167-170,172-174
+packages/core/src/shader/Shader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,29,31,38,40-43,49,52,54,60,68,74,76-84,87-96,98-115,117-122,124-135,137-153,156-157,159,165-174,176-205,214-226,233-282,396,403,407,420,422-429,436-438,441,454-456
+packages/rhi-webgl/tsconfig.json
+  s_0373997fdb8cbf::t_884f316d450e89 2,15
+packages/core/src/particle/modules/EmissionModule.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-5,7-10,13,22-23,29,36-46,57-58,60,78,132-158,166-175,181-185,192-250,253-258,260-270,272-283,288-296,299-301,303-304,306-316,320-332,334-335,339-359,362-372
+e2e/fixtures/originImage/Particle_particleRenderer-horizontal-billboard.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+e2e/utils/screenshot.ts
+  s_0373997fdb8cbf::t_884f316d450e89 89-91
+packages/core/src/particle/enums/ParticleSubEmitterInheritProperty.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-17
+e2e/fixtures/originImage/Physics_physx-deferred-contact.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+e2e/case/.primitiveMeshGallery.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-188
+packages/core/src/material/BlinnPhongMaterial.ts
+  s_0373997fdb8cbf::t_884f316d450e89 162,178
+e2e/case/multi-scene-no-clear.ts
+  s_0373997fdb8cbf::t_884f316d450e89 18,24
+packages/core/src/RenderPipeline/SubPrimitiveChunk.ts
+  s_0373997fdb8cbf::t_884f316d450e89 16-19
+packages/core/src/RenderPipeline/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2-4
+e2e/case/primitive-cuboid.ts
+  s_0373997fdb8cbf::t_884f316d450e89 23,31,46,58
+packages/shader/src/Shaders/PostProcess/Uber.shader
+  s_0373997fdb8cbf::t_884f316d450e89 1-16
+packages/shader-parser/src/ir/ShaderDeclarationOwnership.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-146
+docs/zh/graphics/material/examples/shader-03-ui-script.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 214
+packages/loader/src/resource-deserialize/utils/BufferReader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2-3,14-15
+packages/shader-compiler/src/bundler/cli.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-45
+docs/zh/graphics/particle/renderer.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 82
+.gitignore
+  s_0373997fdb8cbf::t_884f316d450e89 29,50
+packages/shader-parser/src/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-43
+packages/core/src/particle/modules/VelocityOverLifetimeModule.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2,4,9,17,19,21,24,26,28,30,32,34,36,38,40,43-82,92-102,104-106,111-115,118-132,178-251,272-277,284-289,344-432,436-439,448-524
+packages/shader/package.json
+  s_0373997fdb8cbf::t_884f316d450e89 3,14-15,17-29,31,35-38,44-49
+e2e/fixtures/originImage/Texture_texture-hdr.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+packages/design/tsconfig.json
+  s_0373997fdb8cbf::t_884f316d450e89 2
+packages/core/src/particle/enums/ParticleInheritVelocityMode.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-14
+packages/core/src/EngineEventType.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-13
+packages/core/src/particle/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 10-12,15,17,27-30
+packages/core/src/animation/internal/AnimatorStatePlayData.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,13-18,20-37,39-40,42,45-46,62-65,67,69,71-73,76-79,87-89,91
+packages/loader/src/gltf/extensions/GLTFExtensionParser.ts
+  s_0373997fdb8cbf::t_884f316d450e89 29
+packages/core/src/animation/AnimatorController.ts
+  s_0373997fdb8cbf::t_884f316d450e89 22,58-59,66,88,116,128,137-143,162-164,172
+e2e/fixtures/originImage/Primitive_primitive-capsule.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+packages/core/src/shader/ShaderMacro.ts
+  s_0373997fdb8cbf::t_884f316d450e89 29,74,83
+packages/core/src/audio/AudioManager.ts
+  s_0373997fdb8cbf::t_884f316d450e89 10-14,21-27,32,36-37,48-53,78-115,117-121,125-135,137-175
+packages/shader/src/ShaderLibrary/PBR/VertexPBR.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 14,36-39,47,65-66,68,75-77,79-80
+packages/rhi-null/README.md
+  s_0373997fdb8cbf::t_884f316d450e89 1
+packages/shader-analyzer/src/Diagnostic.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-46
+packages/loader/src/resource-deserialize/resources/texture2D/Texture2DDecoder.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-62
+packages/core/src/2d/assembler/ISpriteAssembler.ts
+  s_0373997fdb8cbf::t_884f316d450e89 5
+packages/core/src/2d/assembler/TiledSpriteAssembler.ts
+  s_0373997fdb8cbf::t_884f316d450e89 10,29,75,133,164-165,187-188,205-206
+packages/shader-parser/package.json
+  s_0373997fdb8cbf::t_884f316d450e89 1-45
+examples/src/spine-otakugirl-3.8.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-56
+packages/shader/src/ShaderLibrary/PBR/LightIndirectPBR.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 18
+e2e/.dev/physx.release.js
+  s_0373997fdb8cbf::t_884f316d450e89 1
+packages/core/src/graphic/BufferUtil.ts
+  s_0373997fdb8cbf::t_884f316d450e89 5-7,15-17,42-43,45
+packages/shader/tsconfig.json
+  s_0373997fdb8cbf::t_884f316d450e89 2,15
+packages/core/src/particle/modules/ColorOverLifetimeModule.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2,16,18,21,23,25,27,29,47,53
+packages/loader/src/gltf/parser/GLTFEntityParser.ts
+  s_0373997fdb8cbf::t_884f316d450e89 9
+packages/rhi-webgl/src/GLTexture2D.ts
+  s_0373997fdb8cbf::t_884f316d450e89 12,15-16,42,47-48,71,73
+docs/zh/graphics/material/overview.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 63,70,76
+packages/core/src/renderingHardwareInterface/IPlatformTransformFeedback.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-43
+e2e/fixtures/originImage/Particle_particleRenderer-emit-mesh-rotation-life-curve.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+packages/design/src/physics/IPhysicsEvents.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-28
+packages/core/src/physics/CharacterController.ts
+  s_0373997fdb8cbf::t_884f316d450e89 7-8,21,109,113-118,134,152,159
+packages/rhi-null/package.json
+  s_0373997fdb8cbf::t_884f316d450e89 1-29
+packages/core/src/graphic/TransformFeedbackPrimitive.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-157
+examples/package.json
+  s_0373997fdb8cbf::t_884f316d450e89 3,22-26,28,35
+packages/core/src/animation/animationCurve/AnimationVector4Curve.ts
+  s_0373997fdb8cbf::t_884f316d450e89 88,90
+packages/math/src/Color.ts
+  s_0373997fdb8cbf::t_884f316d450e89 129
+packages/math/src/Quaternion.ts
+  s_0373997fdb8cbf::t_884f316d450e89 425
+packages/core/src/shader/ShaderMacroProcessor.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-397
+e2e/.dev/physx.release.simd.js
+  s_0373997fdb8cbf::t_884f316d450e89 1
+packages/core/src/particle/ParticleSystemManager.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-147
+packages/shader-parser/src/ir/ShaderBuiltinSemantic.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-13
+e2e/case/particleRenderer-shape-transform.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-94
+packages/core/src/Component.ts
+  s_0373997fdb8cbf::t_884f316d450e89 3,74,76,172-173
+packages/core/src/shadow/ShadowUtils.ts
+  s_0373997fdb8cbf::t_884f316d450e89 235-240,267,276
+packages/core/src/texture/TextureUtils.ts
+  s_0373997fdb8cbf::t_884f316d450e89 7-12,17-18,25-30,56,58-60,62,64,66-67,69-71,73-74,76
+packages/shader/src/Shaders/2D/UIDefault.shader
+  s_0373997fdb8cbf::t_884f316d450e89 1-94
+packages/loader/src/SourceFontLoader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 15
+packages/core/src/physics/DynamicCollider.ts
+  s_0373997fdb8cbf::t_884f316d450e89 3,122-123,140,158-159,176,287,289-290,310-312,321,359-367,463,465,468-474,480,487-488,514-516,519-520
+packages/core/src/texture/Texture.ts
+  s_0373997fdb8cbf::t_884f316d450e89 13,42,49,56,63,70,105,112-115,137-138,158-159,172-181,206,233-234,245-246,250
+packages/rhi-webgl/src/GLTransformFeedbackPrimitive.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-135
+packages/rhi-webgl/src/WebGLEngine.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,6,19-20,24,32
+packages/core/src/particle/ParticleBufferUtils.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,12,19-31,33-37,39-43,45-49,51-71,78-81,85-92,95-112,164
+examples/src/buffer-mesh-instance.ts
+  s_0373997fdb8cbf::t_884f316d450e89 24,27,142-171,173-174
+packages/loader/src/schema/HierarchySchema.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-85
+packages/physics-physx/src/PhysXCharacterController.ts
+  s_0373997fdb8cbf::t_884f316d450e89 16,22,24,26-27,91-92,100,117,162,167-168
+packages/shader/src/Shaders/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-57
+packages/core/src/shader/state/StencilState.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-2,14,90-92,95-97,99-101,103-105,107-109,111-113,115-117,119-121,123-125,127-129,131-133,135-137,147,152-157
+packages/core/src/particle/modules/SubEmitter.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-60
+e2e/case/material-pbr-clearcoat.ts
+  s_0373997fdb8cbf::t_884f316d450e89 46
+packages/core/src/RenderPipeline/Blitter.ts
+  s_0373997fdb8cbf::t_884f316d450e89 42,80-81,85-91,94-95
+docs/zh/graphics/2D/spine/other.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 9-20,39
+packages/loader/src/gltf/extensions/KHR_materials_variants.ts
+  s_0373997fdb8cbf::t_884f316d450e89 16-17
+packages/core/src/graphic/enums/BufferBindFlag.ts
+  s_0373997fdb8cbf::t_884f316d450e89 5,7-10
+packages/math/src/Vector2.ts
+  s_0373997fdb8cbf::t_884f316d450e89 188
+docs/zh/graphics/material/examples/shader-05-advance.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 25-26,46,55,80,107,127,243,276
+packages/shader/src/ShaderLibrary/PostProcess/Tonemapping/ACESTonemapping.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-6,10,65-67
+e2e/fixtures/originImage/Shadow_shadow-transparent.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+packages/shader-parser/src/lalr/Utils.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-115
+packages/core/src/utils/DisorderedArray.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,84,86,88,96,153,176,184-188,205-206
+e2e/case/canvas-transparency.ts
+  s_0373997fdb8cbf::t_884f316d450e89 31,37,41,71-73,77-78,104,114,127
+packages/core/src/2d/text/TextRenderer.ts
+  s_0373997fdb8cbf::t_884f316d450e89 4,8,11,39,49,118,296,314,347,353,355,361-362,368-369,410-414,418-424,429,440-441,537-538,578,583,672,676,678,715-716
+packages/shader/src/ShaderLibrary/Particle/ParticleMesh.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-3,19,22,28,30,50-52
+.github/workflows/release.yml
+  s_0373997fdb8cbf::t_884f316d450e89 29,34,38-44
+packages/core/src/particle/modules/ParticleCurve.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,3,8,29,58,116-148,198,235
+packages/loader/src/AudioLoader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 11-12,14-18,21,31,52-56
+packages/shader-compiler/rollup.config.js
+  s_0373997fdb8cbf::t_884f316d450e89 1-130
+e2e/fixtures/originImage/Spine_spine-tint-black.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+packages/shader-parser/src/common/SymbolTable.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-201
+e2e/fixtures/originImage/Physics_physx-collision-group.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+packages/galacean/scripts/validate-engine-knowledge.mjs
+  s_0373997fdb8cbf::t_884f316d450e89 1-61
+packages/design/src/shader-compiler/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-24
+packages/core/src/animation/animationCurve/AnimationArrayCurve.ts
+  s_0373997fdb8cbf::t_884f316d450e89 96-97
+packages/core/src/shader/state/BlendState.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-2,10,18,63,65,69-78,89-94,96-99,101-103,105-107,109-116,118-125,127,129-135,137,139-145,147-149,151-158,160-162,174,179-184
+packages/core/src/animation/animationCurve/AnimationCurve.ts
+  s_0373997fdb8cbf::t_884f316d450e89 13,70,95,138,145,160
+packages/core/src/ComponentsDependencies.ts
+  s_0373997fdb8cbf::t_884f316d450e89 39-52,56-59,84,97
+e2e/fixtures/originImage/Animator_animator-play.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+packages/core/src/RenderPipeline/PipelineUtils.ts
+  s_0373997fdb8cbf::t_884f316d450e89 44
+packages/design/src/spine/SpineCapability.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-4
+packages/core/src/particle/modules/shape/MeshShape.ts
+  s_0373997fdb8cbf::t_884f316d450e89 3-4,14,18,20,22,31,35-36,57-64,66,68,72-74,90-91,99,101,111,115,126,130,136-137,148,177,179-180
+packages/design/src/physics/ICollision.ts
+  s_0373997fdb8cbf::t_884f316d450e89 5,7,11-14
+e2e/fixtures/originImage/Particle_particleRenderer-shape-transform.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+packages/loader/src/ImageDecoder.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-78
+packages/shader-analyzer/src/ShaderValidator.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-784
+packages/core/src/SystemInfo.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2,4,24,58,93-95,99,120,125
+packages/core/src/animation/AnimationEvent.ts
+  s_0373997fdb8cbf::t_884f316d450e89 6,10
+packages/design/src/spine/ISpineEvent.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-7
+docs/en/how-to-contribute.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 123,136
+packages/core/src/animation/AnimatorStateInstance.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-76
+e2e/case/particleRenderer-limitVelocity.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-132
+e2e/case/primitive-topology.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-178
+packages/core/src/physics/joint/JointLimits.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,7
+packages/core/src/animation/internal/animationCurveOwner/assembler/UniversalAnimationCurveOwnerAssembler.ts
+  s_0373997fdb8cbf::t_884f316d450e89 26,79,93-95,105
+e2e/case/particleRenderer-sub-emitter.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-158
+packages/core/src/particle/modules/shape/ShapeUtils.ts
+  s_0373997fdb8cbf::t_884f316d450e89 52
+packages/core/src/particle/modules/LimitVelocityOverLifetimeModule.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-488
+packages/loader/src/gltf/parser/GLTFMaterialParser.ts
+  s_0373997fdb8cbf::t_884f316d450e89 142,168,186
+packages/shader-parser/src/parser/builtin/functions.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-810
+packages/core/src/2d/text/CharRenderInfo.ts
+  s_0373997fdb8cbf::t_884f316d450e89 18-20
+packages/shader/src/Shaders/Pipeline/DepthOnly.shader
+  s_0373997fdb8cbf::t_884f316d450e89 1-51
+packages/design/src/spine/ISpineGeometry.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-27
+e2e/case/animator-blendShape.ts
+  s_0373997fdb8cbf::t_884f316d450e89 19,27,40
+packages/design/src/spine/ISpinePhysics.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-8
+packages/core/src/physics/shape/PlaneColliderShape.ts
+  s_0373997fdb8cbf::t_884f316d450e89 11
+e2e/case/primitive-torus.ts
+  s_0373997fdb8cbf::t_884f316d450e89 23,31,46,58
+packages/loader/src/prefab/PrefabParser.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2-3,5,8-9,11,14,18-19,25,30-35
+docs/en/graphics/texture/texture.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 32
+e2e/.dev/public/spineboy.atlas
+  s_0373997fdb8cbf::t_884f316d450e89 1-94
+docs/en/platform/platform.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 42
+packages/shader/src/ShaderLibrary/Particle/ParticleVert.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-443
+docs/zh/xr/overall.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 25,28,30
+packages/rhi-null/src/NullBuffer.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-55
+packages/core/src/postProcess/PostProcess.ts
+  s_0373997fdb8cbf::t_884f316d450e89 66,68,84,86,100,102,116,120,124,128,132
+packages/shader-analyzer/package.json
+  s_0373997fdb8cbf::t_884f316d450e89 1-39
+packages/core/src/asset/BufferAsset.ts
+  s_0373997fdb8cbf::t_884f316d450e89 12
+docs/zh/physics/collider/overview.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 33,35-40,43
+packages/core/src/physics/shape/ColliderShape.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-3,7-8,14,19,22,25-28,30,38-39,41-50,55,75-77,81,86-88,90,94,96,98,143,156-169,177,183,196,198-201,215-222,224-231,233-239,245,251
+packages/loader/src/gltf/GLTFResource.ts
+  s_0373997fdb8cbf::t_884f316d450e89 57-59,70-71,75,80
+e2e/fixtures/originImage/Particle_particleRenderer-limitVelocity.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+packages/core/src/utils/ObjectPool.ts
+  s_0373997fdb8cbf::t_884f316d450e89 12
+packages/loader/src/AnimatorControllerLoader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 9,23,30,60,64,77,84
+packages/math/src/Vector3.ts
+  s_0373997fdb8cbf::t_884f316d450e89 191,193,195-199,201,325
+packages/core/src/shader/state/RenderTargetBlendState.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,9
+e2e/fixtures/originImage/Camera_camera-fxaa.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+packages/shader/src/Shaders/PostProcess/FinalSRGB.shader
+  s_0373997fdb8cbf::t_884f316d450e89 1-16
+e2e/case/gpu-instancing-custom-data.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-112
+packages/core/src/shader/enums/ConstantBufferBindingPoint.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-7
+packages/core/src/animation/animationCurve/AnimationVector3Curve.ts
+  s_0373997fdb8cbf::t_884f316d450e89 96,98
+e2e/fixtures/originImage/Camera_camera-opaque-texture.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+packages/shader/src/ShaderLibrary/PostProcess/Tonemapping/ACES/RRT.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-4,81-83
+docs/zh/graphics/particle/renderer-main-module.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 47-49
+e2e/case/particleRenderer-emit-mesh-cone-scale-rotation-life.ts
+  s_0373997fdb8cbf::t_884f316d450e89 47,70,90,94-95,129
+e2e/fixtures/originImage/Particle_particleRenderer-emit-mesh-size-over-lifetime.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+packages/shader-compiler/src/codeGen/CodeGenVisitor.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-239
+packages/shader-parser/src/parser/builtin/variables.ts
+  s_0373997fdb8cbf::t_884f316d450e89 4,12,14,18,21-27,31-32,38,43-54,56-67
+docs/en/core/color.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 56,59,76
+e2e/case/animator-stateMachineScript.ts
+  s_0373997fdb8cbf::t_884f316d450e89 23,31,58-61,63
+e2e/fixtures/originImage/Physics_physx-collision.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+e2e/case/primitive-cone.ts
+  s_0373997fdb8cbf::t_884f316d450e89 23,31,46,58
+packages/core/src/mesh/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 7-28,31
+packages/core/src/2d/atlas/SpriteAtlas.ts
+  s_0373997fdb8cbf::t_884f316d450e89 48,65,80-81
+packages/core/src/physics/shape/SphereColliderShape.ts
+  s_0373997fdb8cbf::t_884f316d450e89 30
+docs/en/physics/query/raycast.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 61,65,101,104,122,127,129,132,135,150,153,157,178,195-221,234,239-240,245,251,254,269-275,290,293,300,315,324,326,335,342
+packages/shader-parser/src/common/enums/Keyword.ts
+  s_0373997fdb8cbf::t_884f316d450e89 114-117,120-130
+packages/shader-analyzer/src/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-6
+e2e/case/animator-reuse.ts
+  s_0373997fdb8cbf::t_884f316d450e89 20,28
+e2e/case/gltf-blendshape.ts
+  s_0373997fdb8cbf::t_884f316d450e89 29,45-46,49,55
+packages/shader-parser/src/formatDiagnostic.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-35
+e2e/case/particleRenderer-horizontal-billboard.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-81
+e2e/case/primitive-contours.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-121
+docs/zh/interface/sidebar.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 27
+e2e/case/physx-deferred-contact.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-81
+packages/shader/src/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-2
+e2e/fixtures/originImage/GPUInstancing_gpu-instancing-custom-data.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+packages/core/src/animation/AnimationClipCurveBinding.ts
+  s_0373997fdb8cbf::t_884f316d450e89 34,36,42,53,66-69,71
+packages/core/src/lighting/PointLight.ts
+  s_0373997fdb8cbf::t_884f316d450e89 63,70
+packages/core/src/asset/TextAsset.ts
+  s_0373997fdb8cbf::t_884f316d450e89 12
+packages/loader/src/gltf/extensions/GLTFExtensionSchema.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2,37-43,163,200
+docs/en/graphics/material/examples/shader-01-basic-shader.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 5-6,18,208
+packages/loader/src/prefab/PrefabResource.ts
+  s_0373997fdb8cbf::t_884f316d450e89 24-25,46
+packages/shader-compiler/src/codeGen/VisitorContext.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-205
+packages/shader-compiler/src/ShaderCompilation.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-127
+packages/core/src/mesh/Skin.ts
+  s_0373997fdb8cbf::t_884f316d450e89 5-6,12,64
+packages/shader/src/ShaderLibrary/PostProcess/FXAA/FXAA3_11.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 508,609-613,635-638
+packages/shader-parser/src/parser/AST.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-3073
+packages/core/src/shader/ShaderProperty.ts
+  s_0373997fdb8cbf::t_884f316d450e89 10-13,37,39,45,47-48,58-67
+docs/en/graphics/material/baseUse.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 39,57,75,81
+packages/core/src/RenderPipeline/RenderTargetPool.ts
+  s_0373997fdb8cbf::t_884f316d450e89 61,71
+packages/core/src/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 21-22,30,72-73,78
+packages/core/src/shader/ShaderProgram.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,6,10,12,18,37-52,61,74-76,78,83-84,86,95,98,148,153-189,205,207-217,243-250,253-256,261-277,279,282,285,288,291,294,296,302-306,328-333,384,400-402,404-405,477-482,486-503,506-508,517,520,523,558,560,565-576,581,587,596,602
+packages/physics-physx/src/PhysXCollider.ts
+  s_0373997fdb8cbf::t_884f316d450e89 14,17,32-35,38,51-62
+packages/loader/src/resource-deserialize/resources/animationClip/AnimationClipDecoder.ts
+  s_0373997fdb8cbf::t_884f316d450e89 47,62,235,270
+packages/shader/src/Shaders/2D/SpriteMask.shader
+  s_0373997fdb8cbf::t_884f316d450e89 1-38
+packages/core/src/postProcess/PostProcessManager.ts
+  s_0373997fdb8cbf::t_884f316d450e89 27,29,31,35,172,273,292
+codecov.yml
+  s_0373997fdb8cbf::t_884f316d450e89 1-8
+packages/core/src/animation/AnimatorStateMachine.ts
+  s_0373997fdb8cbf::t_884f316d450e89 17,21,23,72-76,175-180
+packages/design/src/spine/ISpineSkeletonData.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-16
+e2e/fixtures/originImage/Particle_particleRenderer-customShader.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+packages/core/src/ui/UIUtils.ts
+  s_0373997fdb8cbf::t_884f316d450e89 47-50,58
+packages/loader/src/gltf/extensions/GALACEAN_materials_remap.ts
+  s_0373997fdb8cbf::t_884f316d450e89 9
+packages/core/src/input/pointer/emitter/PhysicsPointerEventEmitter.ts
+  s_0373997fdb8cbf::t_884f316d450e89 12-14,27,107
+packages/shader-compiler/src/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-12
+e2e/case/texture-sRGB-KTX2.ts
+  s_0373997fdb8cbf::t_884f316d450e89 18,40
+packages/shader-parser/src/lalr/LALR1.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,6,65-66,71-75,166-173,186-207
+packages/core/src/shader/ShaderBlockProperty.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-28
+packages/shader-compiler/src/bundler/rollup.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-111
+packages/core/src/mesh/BufferMesh.ts
+  s_0373997fdb8cbf::t_884f316d450e89 21,28,109
+docs/en/physics/collider/overview.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 33,35-40,43
+e2e/fixtures/originImage/PostProcess_postProcess-LDR-bloom-neutral.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+e2e/fixtures/originImage/Material_material-pbr.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+packages/shader/src/ShaderLibrary/PBR/LightIndirectFunctions.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 25,28
+packages/core/src/renderingHardwareInterface/IPlatformShaderProgram.ts
+  s_0373997fdb8cbf::t_884f316d450e89 3
+packages/loader/src/MaterialLoader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 10,14,16,21-34,36-41,45-67,70-74,76-103,106-112,115-118
+docs/zh/graphics/mesh/primitiveMesh.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 15-19,23-27,31-35,39,41,47,60,73,86,93,99,112,125,131-367
+packages/loader/README.md
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+packages/shader-parser/src/parser/ParserSemanticValidation.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-513
+packages/core/src/sky/SkyProceduralMaterial.ts
+  s_0373997fdb8cbf::t_884f316d450e89 4,134
+docs/zh/platform/platform.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 42
+e2e/case/spine-spineboy.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-35
+docs/en/basics/overview.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 37,89
+packages/core/src/trail/TrailMaterial.ts
+  s_0373997fdb8cbf::t_884f316d450e89 13
+e2e/case/material-pbr-specular.ts
+  s_0373997fdb8cbf::t_884f316d450e89 17,23,46,54
+packages/core/src/2d/text/TextUtils.ts
+  s_0373997fdb8cbf::t_884f316d450e89 35,46,432,434
+docs/en/graphics/2D/spine/other.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 9-21,42
+packages/core/src/input/pointer/emitter/IHitResult.ts
+  s_0373997fdb8cbf::t_884f316d450e89 8
+packages/design/src/physics/IPhysicsMaterial.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2-11
+packages/shader/src/ShaderLibrary/Noise/NoiseCommon.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-7,103-104
+packages/core/src/particle/modules/shape/BoxShape.ts
+  s_0373997fdb8cbf::t_884f316d450e89 36,40,49,66
+.github/workflows/release-editor-kit.yml
+  s_0373997fdb8cbf::t_884f316d450e89 39-44,46-47,67
+packages/core/src/clone/ICloneHook.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-12
+e2e/case/animator-additive.ts
+  s_0373997fdb8cbf::t_884f316d450e89 23,31,59-63
+e2e/case/animator-play-backwards.ts
+  s_0373997fdb8cbf::t_884f316d450e89 10,18,36-40
+packages/shader-analyzer/src/ShaderAnalysisInfo.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-790
+e2e/case/animator-customBlendShape.ts
+  s_0373997fdb8cbf::t_884f316d450e89 26
+packages/math/src/BoundingSphere.ts
+  s_0373997fdb8cbf::t_884f316d450e89 69
+packages/math/src/Matrix.ts
+  s_0373997fdb8cbf::t_884f316d450e89 209-221,316-331,414,416,616,620,624,630-638,1042,1045,1051,1057,1063,1197
+packages/shader/src/Shaders/Sky/SkyProcedural.shader
+  s_0373997fdb8cbf::t_884f316d450e89 1-277
+e2e/fixtures/originImage/Material_material-white-furnace.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+packages/core/src/Signal.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-3,12-13,17-21,30-31,34,49-50,53,136,138,143-148,153,159-160,181
+e2e/case/material-shaderReplacement.ts
+  s_0373997fdb8cbf::t_884f316d450e89 16,26-28,52,64,105-213
+packages/core/src/Canvas.ts
+  s_0373997fdb8cbf::t_884f316d450e89 4,7-9,12-13,16,23,29-59,64-74,76
+packages/loader/src/gltf/extensions/MeshoptDecoder.ts
+  s_0373997fdb8cbf::t_884f316d450e89 13-20,56
+packages/loader/src/resource-deserialize/resources/textureCube/TextureCubeDecoder.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-66
+packages/shader-analyzer/src/ShaderAnalyzer.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-242
+packages/shader/src/ShaderLibrary/PBR/ForwardPassPBR.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 4-30,59
+e2e/case/particleRenderer-customShader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-134
+packages/shader/src/ShaderLibrary/PBR/LightDirectPBR.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 21-23
+packages/core/src/particle/modules/shape/BaseShape.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,3-5,10-19,27-36,65-113,131,136-144,149-223
+packages/shader/src/ShaderLibrary/PostProcess/Filtering.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 41-44
+packages/shader/src/ShaderLibrary/Shadow/Shadow.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-123
+packages/core/src/RenderPipeline/OpaqueTexturePass.ts
+  s_0373997fdb8cbf::t_884f316d450e89 41
+e2e/case/particleRenderer-velocity-orbital-constant.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-93
+packages/core/src/input/InputManager.ts
+  s_0373997fdb8cbf::t_884f316d450e89 118-120,135-137,158,190,192,194
+packages/math/tsconfig.json
+  s_0373997fdb8cbf::t_884f316d450e89 2,15
+packages/shader-analyzer/src/cli.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-166
+packages/core/src/shadow/CascadedShadowCasterPass.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,58,72,90,104-120,127,218,235,249,291,298,347
+packages/galacean/skills/engine-knowledge/references/lifecycle-and-frame-order.md
+  s_0373997fdb8cbf::t_884f316d450e89 1-32
+e2e/case/particleRenderer-emit-mesh-cone-scale-3d-rotation-life-seperate.ts
+  s_0373997fdb8cbf::t_884f316d450e89 47,70,90
+packages/core/src/animation/animationCurve/AnimationQuaternionCurve.ts
+  s_0373997fdb8cbf::t_884f316d450e89 97,99
+packages/loader/src/AnimationClipLoader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 18,26,49-52
+packages/core/src/particle/ParticleSubEmitterSpawnState.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-268
+packages/core/src/shader/enums/ShaderLanguage.ts
+  s_0373997fdb8cbf::t_884f316d450e89 6
+docs/en/graphics/material/examples/shader-04-multi-pass.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 176
+e2e/case/text-character-spacing.ts
+  s_0373997fdb8cbf::t_884f316d450e89 6-13
+docs/en/graphics/particle/renderer.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 82
+packages/core/src/2d/sprite/SpriteMask.ts
+  s_0373997fdb8cbf::t_884f316d450e89 7,28-29,88,90,96-97
+e2e/case/texture-hdr-ktx2.ts
+  s_0373997fdb8cbf::t_884f316d450e89 17,22-58,66,74-75
+packages/shader/src/ShaderLibrary/BlinnPhong/MobileBlinnPhong.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-142
+docs/zh/graphics/texture/texture.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 33
+packages/core/src/particle/enums/ParticleSubEmitterType.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-12
+packages/galacean/tests/EntityLookupTypes.test.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-107
+e2e/case/text-typed.ts
+  s_0373997fdb8cbf::t_884f316d450e89 80-90
+packages/core/src/utils/SafeLoopArray.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-2,89-90
+docs/zh/script/edit.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 27,34
+packages/loader/src/compressed-texture/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,8-9,17-21,24,29
+packages/shader/src/ShaderLibrary/Particle/Billboard/VerticalBillboard.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-3,9,16-18
+docs/en/graphics/background/sky.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 19,46,48,52
+packages/core/src/asset/request.ts
+  s_0373997fdb8cbf::t_884f316d450e89 18-21,42-56,58,62-87,91-92,94,96-97,152,164-201,208,237-238,250,252-256
+packages/core/src/physics/Collision.ts
+  s_0373997fdb8cbf::t_884f316d450e89 32
+packages/core/src/animation/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 14
+packages/rhi-webgl/src/GLCapability.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,16,20-21,26,48,68,92-93,100,112-113,120-234,257,261,263,265-266,278-281
+examples/src/shader-03-ui-script.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2,19,22-23,144,152,156,162,166,169,171,175,183,187,191,193,196,202,206,211,220,224,233,239,243-244,250
+packages/design/src/spine/ISpinePhysicsConstraint.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-12
+packages/loader/src/gltf/extensions/KHR_materials_emissive_strength.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-16
+packages/core/src/Utils.ts
+  s_0373997fdb8cbf::t_884f316d450e89 47,81-83,85-86,135,236
+packages/shader/src/ShaderLibrary/Particle/Module/VelocityOverLifetime.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-181
+e2e/fixtures/originImage/PostProcess_postProcess-HDR-bloom-ACES.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+packages/core/src/base/EngineObject.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1
+packages/loader/src/GLTFLoader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 41
+docs/en/graphics/material/shader.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 5,7,9,11,28,81,103,138,366-369,375,390
+docs/zh/core/clone.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 11-13,19-21,24,26-27,29-30,32,40,47,49-96,98-99,102-112,116,119-120,123-124,126-128,131,139-140,145,147,150-151,153-154,157-165,167
+packages/galacean/tsconfig.json
+  s_0373997fdb8cbf::t_884f316d450e89 2
+packages/core/src/particle/ParticleTransformFeedbackSimulator.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-146
+packages/core/src/mesh/SkinnedMeshRenderer.ts
+  s_0373997fdb8cbf::t_884f316d450e89 4,6,42,47,101,106-109,123-129,135,137-138,140,145,147-151,159,185-193,195-196,198-200,224,258,276,297,301,308,312
+e2e/fixtures/originImage/Particle_particleRenderer-inherit-velocity-stretched.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+packages/core/src/renderingHardwareInterface/IHardwareRenderer.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-93
+e2e/fixtures/originImage/Primitive_primitive-materials.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+packages/shader-parser/src/lexer/Lexer.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-1250
+packages/core/src/shader/enums/ShaderPropertyType.ts
+  s_0373997fdb8cbf::t_884f316d450e89 3,6-7,9,11,13,15,17,19,21,23,25,27,29
+packages/core/src/particle/modules/EmissionState.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-31
+e2e/case/camera-opaque-texture.ts
+  s_0373997fdb8cbf::t_884f316d450e89 22,26-114,122
+e2e/case/particleRenderer-shape-mesh.ts
+  s_0373997fdb8cbf::t_884f316d450e89 21,27,47
+docs/en/core/engine.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 17,34,37,76
+e2e/fixtures/originImage/Material_material-pbr-specular.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+examples/src/device-restore.ts
+  s_0373997fdb8cbf::t_884f316d450e89 28
+packages/core/src/2d/text/SubFont.ts
+  s_0373997fdb8cbf::t_884f316d450e89 63,78,109,114
+e2e/.dev/public/spineboy.json
+  s_0373997fdb8cbf::t_884f316d450e89 1-8723
+packages/loader/src/schema/BasicSchema.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-24
+e2e/case/texture-R8G8.ts
+  s_0373997fdb8cbf::t_884f316d450e89 19,40
+packages/core/src/audio/AudioClip.ts
+  s_0373997fdb8cbf::t_884f316d450e89 17,24,31,42,56
+packages/loader/src/PrefabLoader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 4,13,18
+packages/core/src/RenderPipeline/PrimitiveChunk.ts
+  s_0373997fdb8cbf::t_884f316d450e89 63-64,95,107,114-116
+e2e/fixtures/originImage/Primitive_primitive-sections.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+packages/core/src/particle/modules/DeathSubEmitterCommand.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-38
+examples/src/CSS-DOM.ts
+  s_0373997fdb8cbf::t_884f316d450e89 7,14
+packages/loader/src/KTXLoader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 17,24,35,48,59
+packages/shader-parser/src/GSError.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-45
+packages/physics-physx/src/PhysXPhysicsMaterial.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,11-12,43,50
+packages/shader/src/ShaderLibrary/PBR/FragmentPBR.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 4,138,159,188,199-200,213,231,287
+docs/en/graphics/material/examples/_meta.json
+  s_0373997fdb8cbf::t_884f316d450e89 2-6
+e2e/case/particleRenderer-emit-billboard-stretched.ts
+  s_0373997fdb8cbf::t_884f316d450e89 47,70,91-92
+packages/shader-parser/src/parser/ICodeGenVisitor.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-30
+e2e/case/ui-batch-order.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-92
+packages/core/src/Camera.ts
+  s_0373997fdb8cbf::t_884f316d450e89 11,26,125,127,129,145,147,268,373,380,418,425,610,614,641,646,652,700,704,709,713,723,733,735,738-739,752-768,784,791,823-833,909-917
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-2,9,19-21,29,32-45,51-53,55-56,58-59,63-64,70,74,77,82,90-91,161,164-203,210-211,213,216-224,226-241,254,266,277,286-289,302,315,321,331,337,344-347,358-359,370-377,389,417,419,421-422,424-425,433-443,449,452,456-457,459-460,462-463,465,477-479,489-506,510-513,519-521,530-572
+packages/loader/src/GLTFContentRestorer.ts
+  s_0373997fdb8cbf::t_884f316d450e89 16,65-70,137,146-147,150-151,154,226,234,246-247,259
+packages/math/src/Ray.ts
+  s_0373997fdb8cbf::t_884f316d450e89 4-5,12,23,65-85
+packages/shader/src/ShaderLibrary/PBR/VaryingsPBR.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 22
+packages/loader/src/TextLoader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 14
+e2e/case/particleRenderer-emit-mesh-cone-scale-rotation-world.ts
+  s_0373997fdb8cbf::t_884f316d450e89 47,69-70,77,85,90,98,102,116
+packages/core/src/graphic/VertexElement.ts
+  s_0373997fdb8cbf::t_884f316d450e89 8
+packages/core/src/material/utils/PrefilteredDFG.ts
+  s_0373997fdb8cbf::t_884f316d450e89 17
+packages/shader/src/ShaderLibrary/PostProcess/PostCommon.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 4
+packages/core/src/base/EventDispatcher.ts
+  s_0373997fdb8cbf::t_884f316d450e89 59
+docs/zh/UI/system.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 104
+packages/galacean/skills/engine-knowledge/references/spine.md
+  s_0373997fdb8cbf::t_884f316d450e89 1-39
+packages/shader/src/ShaderLibrary/Particle/Billboard/SphereBillboard.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-3,11,14,23,25-26,32-34
+packages/shader-compiler/src/GLESBackend.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-70
+packages/core/src/RenderPipeline/VertexArea.ts
+  s_0373997fdb8cbf::t_884f316d450e89 7-13
+packages/core/src/animation/internal/AnimatorStateData.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,11-14
+packages/galacean/skills/engine-knowledge/references/mesh-geometry.md
+  s_0373997fdb8cbf::t_884f316d450e89 1-67
+e2e/case/camera-fxaa.ts
+  s_0373997fdb8cbf::t_884f316d450e89 20
+packages/shader/src/Shaders/Effect/Particle.shader
+  s_0373997fdb8cbf::t_884f316d450e89 1-103
+docs/en/graphics/texture/2d.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 24
+packages/core/src/Renderer.ts
+  s_0373997fdb8cbf::t_884f316d450e89 8,10-11,24,27-31,49,52,60,68,90,222,229,231,244,248-250,260,268,298,309,347,349,360,378-386,392-394,396-398,400-413,420,427,430,437-445,451,458,483
+e2e/case/animator-play-beforeActive.ts
+  s_0373997fdb8cbf::t_884f316d450e89 10,18
+packages/shader-analyzer/src/DiagnosticCategory.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-78
+packages/core/src/mesh/BlendShape.ts
+  s_0373997fdb8cbf::t_884f316d450e89 49-50,62-63,66,101
+packages/design/src/physics/joints/IJoint.ts
+  s_0373997fdb8cbf::t_884f316d450e89 11
+packages/shader/src/ShaderLibrary/Particle/Module/InheritVelocity.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-112
+docs/zh/graphics/background/texture.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 27
+packages/design/src/spine/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-21
+packages/core/package.json
+  s_0373997fdb8cbf::t_884f316d450e89 3,24
+packages/core/src/particle/modules/ParticleCompositeGradient.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,9-11,45-49,76-78,107,113,115-124
+docs/en/interface/sidebar.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 27
+packages/core/src/shader/ShaderData.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,5-6,17-23,34-35,45,414,421,423-424,426,465,467,571,602,618-622,624-630,634-637,649-651,654,666-673,681,686-692,696-718,721,740-763,765-792,798
+packages/shader/src/ShaderLibrary/Particle/Module/NoiseModule.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-97
+e2e/fixtures/originImage/Particle_particleRenderer-velocity-orbital-constant.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+packages/core/src/mesh/BlendShapeFrame.ts
+  s_0373997fdb8cbf::t_884f316d450e89 15-17,23,37,51,71-72
+packages/galacean/src/ShaderPool.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-69
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,4-16,21,30,33-37,43,48-52,57-59,62,64-66,68-72,74-75,77,79-80,83-87,94-96,98-100,102-112,115-119,122-143,145,148-155,159-170,172-173,176-178,180-183,185-187,189-190,192-193,195,198-205,209-216,219-225,229-239,241-253,256,258-280,283-296,298-335
+packages/core/src/postProcess/FinalPass.ts
+  s_0373997fdb8cbf::t_884f316d450e89 17-18,22,26,31,46,65,68
+packages/shader/src/ShaderLibrary/Particle/Module/RotationOverLifetime.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-3,6,8-9,12,14-15,19,21,26,32,34,38,48,52,60,64,66,68,79,83,90,92,98-99
+packages/design/src/spine/ISpineConstraint.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-6
+e2e/case/primitive-cylinder.ts
+  s_0373997fdb8cbf::t_884f316d450e89 23,31,46,58
+packages/physics-physx/tsconfig.json
+  s_0373997fdb8cbf::t_884f316d450e89 2,15
+packages/galacean/skills/engine-knowledge/references/physics-setup.md
+  s_0373997fdb8cbf::t_884f316d450e89 1-55
+packages/shader-parser/src/ir/ShaderClueIR.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-55
+packages/design/src/spine/ISpineTextureAtlas.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-4
+packages/shader/src/ShaderLibrary/PBR/BSDF.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 4,28,358,398
+packages/shader/src/ShaderLibrary/Particle/Module/TextureSheetAnimation.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-3,5-7,10,14,20,30,33-34
+packages/core/src/2d/assembler/SlicedSpriteAssembler.ts
+  s_0373997fdb8cbf::t_884f316d450e89 7,24,39,110,130,132,143-144
+packages/core/src/physics/joint/HingeJoint.ts
+  s_0373997fdb8cbf::t_884f316d450e89 9,160
+docs/zh/basics/overview.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 37,89
+.github/HOW_TO_CONTRIBUTE.md
+  s_0373997fdb8cbf::t_884f316d450e89 34,36,49,51,140
+packages/loader/package.json
+  s_0373997fdb8cbf::t_884f316d450e89 3
+docs/en/physics/overall.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 8,10,12,16,19,24,28,30,32-37,42,50,58,61
+e2e/case/particleRenderer-emit-mesh-no-shape.ts
+  s_0373997fdb8cbf::t_884f316d450e89 46,69,88
+e2e/case/texture-hdr.ts
+  s_0373997fdb8cbf::t_884f316d450e89 21,31-32
+packages/core/src/mesh/primitive/PrimitiveMeshRestorer.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-46
+e2e/case/animator-crossfade.ts
+  s_0373997fdb8cbf::t_884f316d450e89 10,18
+packages/core/src/mesh/primitive/MeshPathUtils.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-151
+packages/galacean/skills/engine-knowledge/references/xr.md
+  s_0373997fdb8cbf::t_884f316d450e89 1-26
+packages/shader-parser/src/common/SymbolTableStack.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-149
+e2e/fixtures/originImage/Camera_camera-ssao.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+packages/core/src/mesh/PrimitiveMeshOptions.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-435
+.github/workflows/ci.yml
+  s_0373997fdb8cbf::t_884f316d450e89 18-20,31-33,44,46,49,57-59,65-67,78-79,83,99,103,105,115,117,123,166,176,184,192
+packages/core/src/xr/XRManager.ts
+  s_0373997fdb8cbf::t_884f316d450e89 28,35
+packages/design/package.json
+  s_0373997fdb8cbf::t_884f316d450e89 3,14
+packages/rhi-webgl/src/GLBuffer.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2,5-8,22-33,76-82,84-86,89,95-105,110-111,114
+packages/design/src/physics/IDynamicCollider.ts
+  s_0373997fdb8cbf::t_884f316d450e89 3,9-18,137-139,141,155-160
+e2e/fixtures/originImage/Primitive_primitive-all.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+packages/shader-parser/src/common/BaseToken.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-144
+docs/zh/assets/load.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 80
+packages/physics-physx/src/PhysXPhysics.ts
+  s_0373997fdb8cbf::t_884f316d450e89 12,54,69,72,83,151-152,180-181,226-227,229-238,289-290,316,318
+examples/src/gpu-instancing-custom-data.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-161
+packages/core/src/UpdateFlagManager.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,9-11,14,50,58,67-69,81-82
+packages/core/src/base/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 4
+packages/loader/src/gltf/extensions/KHR_materials_sheen.ts
+  s_0373997fdb8cbf::t_884f316d450e89 15
+packages/loader/src/SpriteAtlasLoader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 24,30,52-53
+packages/shader-parser/shared/package.json
+  s_0373997fdb8cbf::t_884f316d450e89 1-5
+docs/en/xr/overall.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 29,32,34-35,46
+packages/core/src/lighting/ambientOcclusion/ScalableAmbientObscurancePass.ts
+  s_0373997fdb8cbf::t_884f316d450e89 9,33-35,44,47,58,93-94,135-136,139,148
+packages/shader/src/ShaderLibrary/PostProcess/FinalAntiAliasing.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-3,7,9-10,16-17,32-33,35,46-48
+e2e/fixtures/originImage/Advance_multi-scene-clear.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+e2e/case/particleRenderer-emit-mesh-cone-scale-rotation-life-seperate.ts
+  s_0373997fdb8cbf::t_884f316d450e89 47,70,90,94-95,130
+e2e/case/animator-customAnimationClip.ts
+  s_0373997fdb8cbf::t_884f316d450e89 29
+packages/design/src/spine/ISpineBone.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-22
+packages/core/src/shader/ShaderMacroCollection.ts
+  s_0373997fdb8cbf::t_884f316d450e89 162-174
+packages/core/src/asset/Loader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 33,38,41
+packages/shader-analyzer/src/ShaderConditionDiagram.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-573
+packages/core/src/mesh/MeshTangentUtils.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-142
+e2e/fixtures/originImage/Particle_particleRenderer-emissive.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+packages/shader/src/Shaders/Sky/Skybox.shader
+  s_0373997fdb8cbf::t_884f316d450e89 1-68
+packages/core/src/graphic/Buffer.ts
+  s_0373997fdb8cbf::t_884f316d450e89 16-17,23,60,176,192,198,231-241,250-252
+packages/shader-compiler/src/ShaderCompiler.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-95
+packages/galacean/skills/engine-knowledge/references/coordinates-and-space.md
+  s_0373997fdb8cbf::t_884f316d450e89 1-27
+packages/core/src/particle/modules/BirthSubEmitterState.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-15
+packages/math/src/BoundingFrustum.ts
+  s_0373997fdb8cbf::t_884f316d450e89 32,46,48
+packages/core/src/2d/sprite/SpriteRenderer.ts
+  s_0373997fdb8cbf::t_884f316d450e89 3,7,9,43,49-50,118,274,276,281,283-284,292-293,299-300,315,323,348,375-377,391,394,413
+packages/core/src/lighting/Light.ts
+  s_0373997fdb8cbf::t_884f316d450e89 4
+e2e/case/particleRenderer-dream.ts
+  s_0373997fdb8cbf::t_884f316d450e89 47,51,55,59
+packages/design/src/xr/IXRDevice.ts
+  s_0373997fdb8cbf::t_884f316d450e89 25,29,33
+packages/physics-physx/package.json
+  s_0373997fdb8cbf::t_884f316d450e89 3,14-15
+packages/shader-parser/src/common/BaseLexer.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,3,5,17-24,43-75,105-109,119-145,164,186-187,191-199,201,240-241,275-277
+packages/core/src/animation/internal/animationCurveOwner/AnimationCurveOwner.ts
+  s_0373997fdb8cbf::t_884f316d450e89 40-41,53,71,78-79,86,95,104,107,111,117,121,129,132,171,174,187,190,199,201
+packages/core/src/lighting/SpotLight.ts
+  s_0373997fdb8cbf::t_884f316d450e89 5,100,107
+docs/en/graphics/model/glTF.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 53
+packages/core/src/asset/ReferResource.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2,14,46,75,113-114
+packages/core/src/physics/PhysicsMaterial.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,6,9-22,29,103-116
+packages/core/src/particle/enums/ParticleRandomSubSeeds.ts
+  s_0373997fdb8cbf::t_884f316d450e89 20-25
+packages/design/src/physics/IPhysics.ts
+  s_0373997fdb8cbf::t_884f316d450e89 6,37,60,62,109,117-118
+packages/shader-parser/src/parser/GrammarSymbol.ts
+  s_0373997fdb8cbf::t_884f316d450e89 134-136
+packages/core/src/renderingHardwareInterface/IPlatformPrimitive.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-7
+packages/loader/src/schema/refs.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-9
+packages/core/src/base/DataObject.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-9
+packages/shader-parser/src/ParsedShaderPass.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-11
+e2e/fixtures/originImage/Material_material-pbr-clearcoat.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+e2e/fixtures/originImage/Particle_particleRenderer-shape-mesh.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+packages/core/src/animation/AnimatorControllerParameter.ts
+  s_0373997fdb8cbf::t_884f316d450e89 11
+packages/core/src/animation/animationCurve/AnimationColorCurve.ts
+  s_0373997fdb8cbf::t_884f316d450e89 88,90
+packages/core/src/shader/BuiltinShaders.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-28
+packages/design/src/physics/IStaticCollider.ts
+  s_0373997fdb8cbf::t_884f316d450e89 3,9-18
+packages/loader/src/PhysicsMaterialLoader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 14-25,27-28
+docs/zh/graphics/texture/cube.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 25
+packages/core/src/VirtualCamera.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,3,8
+packages/shader-compiler/package.json
+  s_0373997fdb8cbf::t_884f316d450e89 1-81
+e2e/case/animator-play.ts
+  s_0373997fdb8cbf::t_884f316d450e89 10,18
+e2e/fixtures/originImage/Animator_animator-crossfade.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+docs/zh/graphics/2D/spine/add-and-use.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 9,11,13,15-24,26,28,30,33-43,45,47-50,52,54,56-60,63,65,67,69,72-77,80,82,85-88,90-92,94,96,99-107,110,112,114,116-121,123-131,133,135,137,139,141-144,146,149-152,154-155,158,161-165,169,171,173-175,177,180,182-186,190,192,194,196,198,200,202-206,209
+e2e/fixtures/originImage/Particle_particleRenderer-emit-mesh-cone-scale-3d-rotation-life-seperate.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2
+packages/shader-compiler/tsconfig.json
+  s_0373997fdb8cbf::t_884f316d450e89 2,15
+packages/core/src/animation/Animator.ts
+  s_0373997fdb8cbf::t_884f316d450e89 8-9,14,23,34,36,42-43,58,75,79-82,89,121,196,208,210-211,213-215,219-220,222-224,226-230,254,310,316,323-331,336,344-349,352,354,363,367-371,382,385-390,404,415,417-418,432,434-435,438,449,451,470-480,482-486,495,501-509,511-521,523-527,529-533,560-561,582,593,652,655,698,739,750,764,767-768,782-784,788,794-795,798-799,877,879,903,916,918,924,992,1009,1015,1028,1030,1071,1086,1092-1093,1099,1123,1125,1134-1137,1231,1256,1263,1293,1300,1327,1343,1348,1353-1357,1367,1403,1408,1457-1459,1461-1464,1499,1502,1507-1510,1517-1520,1536-1537,1545-1548,1564-1565,1573-1576,1587,1622,1646
+packages/core/src/particle/modules/SizeOverLifetimeModule.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-2,8,17,19,21,24,26,28,30,32,34,37-40,47,49,51,135-137,145,148-149,153,181-197
+packages/design/src/spine/ISpineAnimationStateListener.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-11
+packages/core/src/Background.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2,38,59,63,95,97,107,115,119,157,165-166
+e2e/fixtures/originImage/PostProcess_postProcess-HDR-bloom-neutral.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+packages/core/src/animation/animationCurve/AnimationRefCurve.ts
+  s_0373997fdb8cbf::t_884f316d450e89 10,12-13,22,32
+packages/core/src/particle/modules/ParticleGeneratorModule.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-2,10-11,13,32,36-40
+e2e/case/gpu-instancing-auto-batch.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-68
+packages/core/src/mesh/enums/PrimitiveMeshCapMode.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-21
+e2e/case/shader-renderState.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2,19,22,87,97-100,105,116
+packages/shader/src/Shaders/Unlit.shader
+  s_0373997fdb8cbf::t_884f316d450e89 1-156
+e2e/case/physx-customUrl.ts
+  s_0373997fdb8cbf::t_884f316d450e89 48-50,100-102,148
+packages/core/src/input/pointer/Pointer.ts
+  s_0373997fdb8cbf::t_884f316d450e89 18
+packages/core/src/graphic/ElementRangeMapping.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-9
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomDownsample.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-49
+packages/shader/src/Shaders/Effect/Trail.shader
+  s_0373997fdb8cbf::t_884f316d450e89 1-150
+docs/zh/graphics/material/examples/shader-01-basic-shader.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 5-6,18,208
+e2e/case/particleRenderer-force.ts
+  s_0373997fdb8cbf::t_884f316d450e89 24,63,67,71,75
+packages/core/src/physics/joint/Joint.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,8,25,33,208,323-324
+packages/core/src/RenderPipeline/BatcherManager.ts
+  s_0373997fdb8cbf::t_884f316d450e89 3,5,14,18-21,37,41,45-49,53-58,60-67,69-78,81-86
+packages/shader/src/ShaderLibrary/BlinnPhong/ForwardPassBlinnPhong.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-200
+e2e/case/primitive-capsule.ts
+  s_0373997fdb8cbf::t_884f316d450e89 23,31,46,58
+packages/loader/src/compressed-texture/KhronosTextureContainer.ts
+  s_0373997fdb8cbf::t_884f316d450e89 19,22-25,27-28,31-32
+packages/shader-compiler/.gitignore
+  s_0373997fdb8cbf::t_884f316d450e89 1-2
+packages/design/src/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 4,6
+packages/physics-physx/src/shape/PhysXMeshColliderShape.ts
+  s_0373997fdb8cbf::t_884f316d450e89 11,14,23-24,28,30-31,36-46,49-52,65-66,70-72,81,88,96,116,119,122,124,128-129,133,135,139,189,194,199-202,204-206
+examples/src/paricle-emit-mesh.ts
+  s_0373997fdb8cbf::t_884f316d450e89 35,55,59-60,69,71,123
+packages/rhi-webgl/src/GLTexture.ts
+  s_0373997fdb8cbf::t_884f316d450e89 28,31,33-35,40,42-43,49,51,57,59,65,67,73,75-79,81,83,85-96,100-101,103-106,109,111-112,114-116,119,138,146,194-196,235-237,242-244,249-251,256-258,263-265,271,273,279,281,287,295,333,343-344,348,350,359,363,391-395,418-419,421-425,429,466,476-478,495,497-499,520,525,530,535,549-550,579-580,596-597,602-611,619-620
+packages/core/src/RenderPipeline/VertexMergeBatcher.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-97
+packages/core/src/trail/TrailRenderer.ts
+  s_0373997fdb8cbf::t_884f316d450e89 5,23-24,43,46,49,52,109,230-232,240-248,251,593-594,598-600,604-608
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomUpsample.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-27
+packages/core/src/physics/shape/CapsuleColliderShape.ts
+  s_0373997fdb8cbf::t_884f316d450e89 62
+e2e/case/particleRenderer-emit-mesh-rotation-life-curve.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-157
+packages/core/src/particle/modules/MainModule.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,3-5,7,14-15,73,77-79,91-107,224-227,239-243,261,276,282,292,307,309-313,315,323-324,328-330,334-335,341,349,351,353
+packages/loader/src/gltf/parser/GLTFValidator.ts
+  s_0373997fdb8cbf::t_884f316d450e89 7
+packages/shader/src/ShaderLibrary/Lighting/AmbientOcclusion/ScalableAmbientOcclusion.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-3,9,11-12,28-31,34-41,79,85,194-195,199,202,205,213
+packages/core/src/texture/TextureCube.ts
+  s_0373997fdb8cbf::t_884f316d450e89 18,22-28,179-180,189-190,192
+packages/core/src/particle/modules/ForceOverLifetimeModule.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2,38,40,118-119
+docs/zh/core/engine.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 17,34,37
+packages/core/src/particle/ParticleBounds.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-966
+packages/core/src/input/keyboard/KeyboardManager.ts
+  s_0373997fdb8cbf::t_884f316d450e89 14,105,107,109,111,113,115,117-118
+packages/core/src/shader/ShaderUniform.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,22,240-247,256-279,289-291
+packages/rhi-null/src/NullGraphicDevice.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-104
+e2e/case/spine-tint-black.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-40
+packages/core/src/RenderPipeline/InstanceBuffer.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-87
+docs/zh/graphics/material/shader.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 5,7,9,13,30,83,105,141,370-373,379,392
+package.json
+  s_0373997fdb8cbf::t_884f316d450e89 3,6-8,13,17-24,26-30,37-38,43-44,54-55,59-60,63,72-73,76,78,81
+packages/core/src/asset/LoadItem.ts
+  s_0373997fdb8cbf::t_884f316d450e89 31
+packages/core/src/particle/modules/shape/SphereShape.ts
+  s_0373997fdb8cbf::t_884f316d450e89 31,42,50
+packages/rhi-webgl/src/WebCanvas.ts
+  s_0373997fdb8cbf::t_884f316d450e89 9-18,21-25,28-31,33-35,38-39,41-64,75-82,86,88-118,121-135,138-151
+packages/core/src/animation/internal/AnimationEventHandler.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2,6
+packages/loader/src/gltf/parser/GLTFBufferParser.ts
+  s_0373997fdb8cbf::t_884f316d450e89 13-14,20-21,25,27
+packages/rhi-webgl/src/GLRenderStates.ts
+  s_0373997fdb8cbf::t_884f316d450e89 5,8,10
+packages/shader/src/ShaderLibrary/Common/Transform.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 6-11,16
+packages/rhi-webgl/src/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 5
+packages/loader/src/ProjectLoader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 18,20
+e2e/case/animator-stateMachine.ts
+  s_0373997fdb8cbf::t_884f316d450e89 54-59,73-75,102-106,109,111
+packages/shader/src/Shaders/2D/Spine.shader
+  s_0373997fdb8cbf::t_884f316d450e89 1-79
+packages/shader/src/Shaders/Blit/BlitScreen.shader
+  s_0373997fdb8cbf::t_884f316d450e89 1-46
+packages/shader-compiler/src/bundler/precompile.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-440
+packages/design/src/spine/ISpineConstraintData.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+e2e/case/primitive-sections.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-101
+packages/core/src/2d/text/Font.ts
+  s_0373997fdb8cbf::t_884f316d450e89 16,66,69
+packages/core/src/animation/StateMachineScript.ts
+  s_0373997fdb8cbf::t_884f316d450e89 13
+packages/core/src/asset/AssetType.ts
+  s_0373997fdb8cbf::t_884f316d450e89 11-12,45
+packages/core/src/particle/modules/ParticleGradient.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,3,8,38-39,100,132-138,201-257,289,291,326-327,338,340,375
+e2e/case/material-white-furnace.ts
+  s_0373997fdb8cbf::t_884f316d450e89 55,98
+e2e/fixtures/originImage/Primitive_primitive-contours.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+packages/core/src/particle/ParticleRenderer.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2-3,6-7,10,14,40,43-50,52-56,70,90-95,102,119-121,129-131,154-157,165,172-175,177-182,188,190,192,194,198,213-219,232-234,240-241,249,251-260,267,284-286,293-294
+packages/core/src/sky/Sky.ts
+  s_0373997fdb8cbf::t_884f316d450e89 17-18,27,42,84,88,121,125,128
+packages/core/src/animation/animationCurve/AnimationFloatArrayCurve.ts
+  s_0373997fdb8cbf::t_884f316d450e89 98-99
+packages/shader-parser/src/ir/ShaderCoreInfo.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-419
+packages/core/src/base/Constant.ts
+  s_0373997fdb8cbf::t_884f316d450e89 87,90,111
+packages/shader/src/ShaderLibrary/PostProcess/Tonemapping/ACES/Tonescale.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 3
+packages/core/src/shader/enums/ShaderDataGroup.ts
+  s_0373997fdb8cbf::t_884f316d450e89 3,6-7,9,11,13,15,17
+packages/core/src/UpdateFlag.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,17,32,42-43
+packages/core/src/shader/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2,11,16
+packages/core/src/graphic/TransformFeedback.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-76
+packages/core/src/postProcess/effects/BloomEffect.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2,24,32,40-41,51,61-67
+packages/core/src/material/UnlitMaterial.ts
+  s_0373997fdb8cbf::t_884f316d450e89 59
+e2e/case/physx-collision.ts
+  s_0373997fdb8cbf::t_884f316d450e89 49-51,95-97,143
+packages/loader/src/gltf/extensions/KHR_materials_volume.ts
+  s_0373997fdb8cbf::t_884f316d450e89 17-22
+e2e/case/animator-multiSubMeshBlendShape.ts
+  s_0373997fdb8cbf::t_884f316d450e89 45-46
+packages/core/src/material/PBRMaterial.ts
+  s_0373997fdb8cbf::t_884f316d450e89 573,588,605,608-617,769
+packages/core/src/particle/modules/NoiseModule.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-341
+packages/design/src/shader-compiler/PreprocessorExpression.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-1175
+packages/core/src/renderingHardwareInterface/IPlatformBuffer.ts
+  s_0373997fdb8cbf::t_884f316d450e89 17-18
+packages/core/src/physics/PhysicsScene.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,20-25,36,72-73,166,186,188-197,205-301,378,405-418,493,513-525,617,643-657,681,704,731,756,810-821,846-847,849,856-857,861-909,911-944,946-955,962,966-980,989-996
+packages/design/src/physics/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 5,10
+e2e/case/particleRenderer-fire.ts
+  s_0373997fdb8cbf::t_884f316d450e89 46,54,58,62,66,201,272,355
+packages/loader/src/AmbientLightLoader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 54,73,78,93,113,124
+packages/loader/src/gltf/parser/GLTFSkinParser.ts
+  s_0373997fdb8cbf::t_884f316d450e89 11,21,37-38,41-43,47,50,59-63,67,75
+packages/loader/src/schema/PrefabSchema.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-5
+packages/shader-compiler/README.md
+  s_0373997fdb8cbf::t_884f316d450e89 1-79
+e2e/fixtures/originImage/GPUInstancing_gpu-instancing-auto-batch.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+packages/core/src/physics/HitResult.ts
+  s_0373997fdb8cbf::t_884f316d450e89 10,18
+packages/core/src/physics/joint/JointMotor.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,7
+packages/shader/src/ShaderLibrary/Common/Attributes.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-2
+packages/core/src/animation/Keyframe.ts
+  s_0373997fdb8cbf::t_884f316d450e89 49-50
+packages/rhi-webgl/src/GLRenderTarget.ts
+  s_0373997fdb8cbf::t_884f316d450e89 16,18,21,26-27,33,35,47,50-51,59,74,101,115-116,124,154,157,160,181,198,221-234,245,255-258,266-267,269,277-295,317
+e2e/fixtures/originImage/UI_ui-batch-order.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+packages/core/src/particle/modules/ParticleCompositeCurve.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,3,11-13,143,146,155,173,178,180,182-202,204,212,219-220,222-225,241,244-274,276-281,283-288,290-294,311-313,316,318-320,323
+packages/shader-parser/src/common/BranchSemantics.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-55
+packages/shader-parser/src/parser/ParsedShaderPass.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-253
+packages/rhi-null/src/HeadlessEngine.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-32
+packages/core/src/texture/enums/TextureFormat.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2,5-19,21,23-38,40,42,44,46,48,50,52,54,56,58,60,62,64,66,68,70,72,75,77,79,81,83,85,87,89-90
+packages/shader-parser/src/common/ShaderPosition.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-25
+e2e/case/material-LUT.ts
+  s_0373997fdb8cbf::t_884f316d450e89 6,9-42,44,46,61
+packages/core/src/animation/animationCurve/AnimationFloatCurve.ts
+  s_0373997fdb8cbf::t_884f316d450e89 79-80
+packages/core/src/shader/ShaderPass.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,3,5,9,13,17-18,26-28,30-33,38-39,43,45,48,50-52,54,58-62,67-70,72-74,81-87,92,94,102-106,108,111-123,125-134,136-152,154-167,170,172-176,178-181
+e2e/fixtures/originImage/Particle_particleRenderer-rateOverDistance.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+e2e/fixtures/originImage/Physics_physx-mesh-collider-data.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+examples/src/ui-batch-massive.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-237
+packages/core/tsconfig.json
+  s_0373997fdb8cbf::t_884f316d450e89 2
+e2e/fixtures/originImage/Particle_particleRenderer-emit-mesh-cone.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+packages/loader/src/schema/ProjectSchema.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-6
+packages/shader/src/ShaderLibrary/Particle/Module/ColorOverLifetime.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-3,5-6,9-10,13,17,23,32-33
+packages/shader/src/ShaderLibrary/PostProcess/Tonemapping/ACES/ColorTransform.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 6,96,107
+packages/shader/src/ShaderLibrary/Common/Fog.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 21-22,32
+docs/en/graphics/2D/spine/example.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 9-10
+packages/core/src/lighting/KHR_lights.ts
+  s_0373997fdb8cbf::t_884f316d450e89 9-12
+docs/zh/graphics/2D/spine/example.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 9-10
+packages/core/src/2d/assembler/ISpriteRenderer.ts
+  s_0373997fdb8cbf::t_884f316d450e89 8,12,16
+e2e/case/physx-collision-group.ts
+  s_0373997fdb8cbf::t_884f316d450e89 64
+packages/shader/src/Shaders/Effect/ParticleFeedback.shader
+  s_0373997fdb8cbf::t_884f316d450e89 1-417
+packages/loader/src/gltf/parser/GLTFAnimationParser.ts
+  s_0373997fdb8cbf::t_884f316d450e89 46,51-52,121-122,146-147,233
+packages/shader-parser/src/parser/ParsedShaderPassHandle.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-48
+packages/core/src/shader/ShaderFactory.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-360
+packages/core/src/mesh/primitive/PrimitiveMeshBuilder.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-112
+packages/shader-analyzer/tsconfig.json
+  s_0373997fdb8cbf::t_884f316d450e89 1-18
+e2e/fixtures/originImage/Particle_particleRenderer-dream.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+packages/shader/src/global.d.ts
+  s_0373997fdb8cbf::t_884f316d450e89 6,10-13
+e2e/case/particleRenderer-noise.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-109
+e2e/case/primitive-sphere.ts
+  s_0373997fdb8cbf::t_884f316d450e89 23,31,46,58
+packages/shader-compiler/src/ShaderInstructionEncoder.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-330
+docs/en/graphics/postProcess/customPostProcess.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 55-89,91-98,105,111,176-187
+e2e/package.json
+  s_0373997fdb8cbf::t_884f316d450e89 4,12,21-23
+docs/zh/physics/overall.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 3,8,10,12,16,19-20,24,28,30,32-37,42,50,57,61
+examples/src/shader-01-basic-shader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2,19,21,81,85-86,96,105,109,115,119,123,125,129,134,139,142,147,151-152,157
+e2e/.dev/vite.config.js
+  s_0373997fdb8cbf::t_884f316d450e89 60
+e2e/case/particleRenderer-emit-mesh-cone-scale-rotation.ts
+  s_0373997fdb8cbf::t_884f316d450e89 47,70,77,91,96,104,108,122
+packages/loader/src/ktx2/transcoder/BinomialLLCWorkerCode.ts
+  s_0373997fdb8cbf::t_884f316d450e89 98-100,103,114,124,179,201
+packages/design/src/shader-compiler/ICondition.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-156
+packages/design/src/physics/shape/IMeshColliderShape.ts
+  s_0373997fdb8cbf::t_884f316d450e89 9,11,13
+e2e/case/primitive-materials.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-137
+packages/core/src/BasicResources.ts
+  s_0373997fdb8cbf::t_884f316d450e89 11,14,16,32-43,47,77,140-143,156,159,174,181,186-201,203-205,207-208,222-225,242,312-313
+packages/shader/src/ShaderLibrary/Particle/ParticleCommon.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-15,20-57,106,108-115,117,119-124,162-164
+packages/shader/src/Shaders/2D/Sprite.shader
+  s_0373997fdb8cbf::t_884f316d450e89 1-52
+packages/shader-parser/src/ir/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-4
+packages/loader/src/gltf/extensions/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 3
+packages/core/src/2d/atlas/FontAtlas.ts
+  s_0373997fdb8cbf::t_884f316d450e89 23,93
+e2e/case/camera-ssao.ts
+  s_0373997fdb8cbf::t_884f316d450e89 19,21,29,31,62,72,84,90
+packages/core/src/input/pointer/PointerManager.ts
+  s_0373997fdb8cbf::t_884f316d450e89 121,208
+e2e/fixtures/originImage/Material_shader-renderState.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+packages/shader/src/sources.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-12
+packages/design/src/shader-compiler/IShaderCompiler.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-43
+e2e/case/particleRenderer-burst-cycles.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-108
+e2e/case/physx-mesh-collider-data.ts
+  s_0373997fdb8cbf::t_884f316d450e89 268
+packages/design/src/shader-compiler/IPrecompiledShader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-24
+docs/en/graphics/particle/renderer-limit-velocity-module.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 1-29
+packages/design/src/xr/IXRSession.ts
+  s_0373997fdb8cbf::t_884f316d450e89 22,27,39-43,53
+packages/loader/tsconfig.json
+  s_0373997fdb8cbf::t_884f316d450e89 2
+packages/core/src/renderingHardwareInterface/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,3,5,10-11
+packages/math/package.json
+  s_0373997fdb8cbf::t_884f316d450e89 3
+packages/core/src/particle/modules/RotationOverLifetimeModule.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2,15,17,19,21,24,26,28,30,32,34,36,38,59,61,63,69-71
+packages/design/src/spine/ISpineBoneData.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+packages/shader/src/ShaderLibrary/PostProcess/Tonemapping/ACES/ODT.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-4,133-135
+docs/en/graphics/particle/renderer-main-module.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 47-49
+packages/loader/src/ShaderLoader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 11,13-15,17-29,31-40
+packages/core/src/texture/RenderTarget.ts
+  s_0373997fdb8cbf::t_884f316d450e89 98,118,154
+packages/loader/src/schema/CommonSchema.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-52
+packages/galacean/skills/engine-knowledge/references/rendering-and-color.md
+  s_0373997fdb8cbf::t_884f316d450e89 1-90
+packages/core/src/2d/assembler/SimpleSpriteAssembler.ts
+  s_0373997fdb8cbf::t_884f316d450e89 7,19,33,56,70,73,87-88
+packages/core/src/Polyfill.ts
+  s_0373997fdb8cbf::t_884f316d450e89 9-13,20,34,48-50,52-57,61-89
+packages/loader/src/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 18,27-29
+e2e/fixtures/originImage/Primitive_primitive-topology.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+packages/core/src/physics/joint/FixedJoint.ts
+  s_0373997fdb8cbf::t_884f316d450e89 12
+packages/shader/src/ShaderLibrary/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-123
+packages/loader/src/gltf/extensions/KHR_materials_unlit.ts
+  s_0373997fdb8cbf::t_884f316d450e89 13
+packages/core/src/postProcess/PostProcessEffect.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,7,60
+packages/shader/src/Shaders/Lighting/ScalableAmbientOcclusion.shader
+  s_0373997fdb8cbf::t_884f316d450e89 1-29
+packages/core/src/RenderPipeline/DepthOnlyPass.ts
+  s_0373997fdb8cbf::t_884f316d450e89 16,22,27,51
+packages/core/src/asset/JSONAsset.ts
+  s_0373997fdb8cbf::t_884f316d450e89 8,12
+e2e/case/primitive-plane.ts
+  s_0373997fdb8cbf::t_884f316d450e89 23,31,46,58
+packages/math/src/Matrix3x3.ts
+  s_0373997fdb8cbf::t_884f316d450e89 233,278,678
+packages/rhi-webgl/src/GLTransformFeedback.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-53
+packages/loader/src/gltf/parser/GLTFTextureParser.ts
+  s_0373997fdb8cbf::t_884f316d450e89 11,37,40,46,59,65-85,87,94,121
+packages/shader-parser/src/common/BranchAnalysis.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-1043
+packages/core/src/Engine.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,7,13,25,28-29,32,43-44,66,78,80,82,85,87-89,92,94-96,99,102,104-105,125,134-135,137-138,145,201,214-215,249,253,262-264,266,287-290,301-302,305,313-314,322,399,495-497,505,535-538,540-541,543-544,546,553,558,561-562,623-633,636,640-647,657,663-673,682,688,690,703,712,714-717,737-738
+packages/design/src/physics/IPhysicsScene.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,4,47-65,68-69,71,76-100,108,113-120,127,132-141,150,155-160,162,165-169,171,174-180,187-193
+packages/shader/src/ShaderLibrary/PostProcess/FinalSRGB.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-2,4-9,15,21-22
+e2e/.dev/public/tank-pro.atlas
+  s_0373997fdb8cbf::t_884f316d450e89 1-65
+packages/core/src/mesh/primitive/SubdivisionUtils.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-96
+docs/zh/graphics/material/examples/shader-02-render-state.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 240
+packages/core/src/particle/enums/ParticleScaleMode.ts
+  s_0373997fdb8cbf::t_884f316d450e89 5-7,9-10
+packages/loader/src/BufferLoader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 16,20
+packages/loader/src/gltf/parser/GLTFParser.ts
+  s_0373997fdb8cbf::t_884f316d450e89 27,52,58,110
+docs/zh/graphics/material/examples/_meta.json
+  s_0373997fdb8cbf::t_884f316d450e89 2-6
+packages/shader/src/ShaderLibrary/Particle/Billboard/StretchedBillboard.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-3,23-25
+docs/en/script/attributes.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 49
+packages/shader/src/Shaders/PostProcess/FinalAntiAliasing.shader
+  s_0373997fdb8cbf::t_884f316d450e89 1-16
+packages/core/src/ui/IUICanvas.ts
+  s_0373997fdb8cbf::t_884f316d450e89 13-14
+packages/core/src/mesh/ModelMesh.ts
+  s_0373997fdb8cbf::t_884f316d450e89 15,20,59,92,438,607-608,632,646,649-650,671-675,678,686,692,695,698-700,705-710,712-716,723,742-745,751,754,769,820,826,832,838,847,866,881,1079,1103,1271
+packages/core/src/physics/Collider.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,3-4,11,18,66,76-77,90,103,135,142,147,149,156-173,175-177,204-206,208,215
+packages/core/src/postProcess/PostProcessEffectParameter.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,10,31,75-77,103,108,126-128,151-153,176-178,201-203
+packages/loader/src/ktx2/KTX2TargetFormat.ts
+  s_0373997fdb8cbf::t_884f316d450e89 15-20,25-26
+packages/shader/src/ShaderLibrary/Noise/NoiseSimplexGrad.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-11,79,81-83,86-87
+packages/shader-analyzer/README.md
+  s_0373997fdb8cbf::t_884f316d450e89 1-89
+packages/shader-analyzer/src/sourcePosition.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-22
+packages/rhi-null/src/NullTexture.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-40
+examples/src/shader-playground.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-148
+e2e/case/postProcess-customPass.ts
+  s_0373997fdb8cbf::t_884f316d450e89 21,24,26-42,44-57,59,66,98-99,101
+packages/core/src/postProcess/PostProcessUberPass.ts
+  s_0373997fdb8cbf::t_884f316d450e89 7,13,19,26,30,37,58,68-69,83,88,99-109,112,117,139-140,143-156,158,160,163,167,172-176,179-182,186-187,193-196,199-200,221-227,230,232-236,239
+packages/core/src/SceneManager.ts
+  s_0373997fdb8cbf::t_884f316d450e89 55-56,60-61,64,67-69,132-134,136,140
+docs/en/graphics/2D/spine/editor.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 9-10
+packages/core/src/particle/enums/attributes/ParticleInstanceVertexAttribute.ts
+  s_0373997fdb8cbf::t_884f316d450e89 8-10,12-18
+packages/core/src/particle/modules/shape/CircleShape.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,77-78,102,112
+packages/design/src/spine/ISpineAnimation.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-4
+packages/core/src/animation/animationCurve/AnimationVector2Curve.ts
+  s_0373997fdb8cbf::t_884f316d450e89 88,90
+packages/core/src/particle/modules/Burst.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,7,11-41,43,46-47,49-51,54-55
+examples/vite.config.js
+  s_0373997fdb8cbf::t_884f316d450e89 70-71
+packages/core/src/env-probe/Probe.ts
+  s_0373997fdb8cbf::t_884f316d450e89 35,44,51,59
+examples/src/spine-keli-4.2.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-61
+examples/src/shader-playground/samples.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-1083
+packages/core/src/input/pointer/PointerEventData.ts
+  s_0373997fdb8cbf::t_884f316d450e89 18
+packages/galacean/skills/engine-knowledge/SKILL.md
+  s_0373997fdb8cbf::t_884f316d450e89 1-25
+e2e/fixtures/originImage/PostProcess_postProcess-customPass.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+packages/core/src/material/Material.ts
+  s_0373997fdb8cbf::t_884f316d450e89 48,51-53,77-79,97-98
+docs/zh/graphics/material/baseUse.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 67,86,104,186
+packages/rhi-null/src/HeadlessCanvas.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-22
+examples/src/shader-02-render-state.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2,19,123,167
+e2e/case/primitive-sphere-sections.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-101
+packages/core/src/particle/modules/TextureSheetAnimationModule.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2,41,64
+packages/shader-parser/src/common/IBaseSymbol.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-12
+packages/loader/src/HDRDecoder.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2-5,12-15,54-60,62-64,67-88,90,92,95-99,146-190,193
+packages/rhi-null/src/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-4
+packages/loader/src/KTXCubeLoader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 18
+packages/core/src/mesh/BlendShapeManager.ts
+  s_0373997fdb8cbf::t_884f316d450e89 42,155-158,342,358-359,373,388,443-444,453,457-458,549
+e2e/.dev/public/tank-pro.json
+  s_0373997fdb8cbf::t_884f316d450e89 1
+e2e/fixtures/originImage/Particle_particleRenderer-fire.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+packages/shader/src/ShaderLibrary/Particle/Module/SizeOverLifetime.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-64
+packages/core/src/Scene.ts
+  s_0373997fdb8cbf::t_884f316d450e89 64,66,73,88,247,249,324,332-334,336-338,342,345,347,349,352,354,359,361,364,368,370,372,374,394-396,398,431,468-472,535
+packages/galacean/skills/engine-knowledge/references/resource-ownership.md
+  s_0373997fdb8cbf::t_884f316d450e89 1-21
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomPrefilter.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-67
+packages/loader/src/gltf/extensions/KHR_lights_punctual.ts
+  s_0373997fdb8cbf::t_884f316d450e89 14,19
+packages/shader/src/Shaders/Pipeline/ShadowCaster.shader
+  s_0373997fdb8cbf::t_884f316d450e89 1-117
+e2e/fixtures/originImage/Primitive_primitive-sphere-sections.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+docs/en/graphics/material/shaderAPI.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 10,17,78,109,111,115,119,144,167,177,182,196
+packages/shader/src/Shaders/Blit/Blit.shader
+  s_0373997fdb8cbf::t_884f316d450e89 1-41
+packages/loader/src/ktx2/KTX2Loader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 27,43-47,51-52,55-56,59-60,63-64,67,70,72,150,157,162,174-176,179,181-185,199,212-213,218-219,223,225,236,243,251,263,274,291
+packages/galacean/package.json
+  s_0373997fdb8cbf::t_884f316d450e89 3-16,23-24,33-34,47-48
+packages/physics-physx/src/PhysXPhysicsManager.ts
+  s_0373997fdb8cbf::t_884f316d450e89 6
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  s_0373997fdb8cbf::t_884f316d450e89 9,11,13-14,17-18,21,23,42-43,76,79-81,83,85,93,95-96,98-100,106,108-110,122,186-189,192-193,195-198,201-205,208,237-285,298-309,383,385,401,412,414-415,432,459,496,514,516,528-529,581-583,589,601
+packages/loader/src/JSONLoader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 14
+e2e/fixtures/originImage/Particle_particleRenderer-noise.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+docs/en/core/canvas.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 30,32,34-53,56-60,63-64,67,73,75,81,83-89,91,93-94,96,98-100,102-103,108,113-128
+examples/src/shader-04-multi-pass.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2,19,134-135,137-138,144,148,153,157,162,167,173,178,183,188,191,196,201,206,210,214-215,221
+packages/core/src/RenderPipeline/RenderQueue.ts
+  s_0373997fdb8cbf::t_884f316d450e89 5,8,18-22,26-28,32,47,55-56,61-62,68,71-82,85-86,88,94,102-105,107-109,112-115,122-124,138-140,142,146,149,170-174,190,195,197,200,203-204,206-226,235
+packages/shader/src/ShaderLibrary/Lighting/AmbientOcclusion/BilateralBlur.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-8,16-17,20,34,39-40,45,49-50,60
+examples/src/gpu-instancing-auto-batch.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-205
+examples/src/shader-05-advance.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2,17,25,45,83,129
+packages/rhi-webgl/src/GLTextureCube.ts
+  s_0373997fdb8cbf::t_884f316d450e89 12,15-16,33,42-51,55,63-64,94-95
+packages/core/src/RenderPipeline/RenderContext.ts
+  s_0373997fdb8cbf::t_884f316d450e89 31-33,35,40,81
+e2e/fixtures/originImage/Particle_particleRenderer-burst-cycles.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+e2e/fixtures/originImage/Physics_physx-customUrl.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+docs/en/assets/load.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 80
+e2e/case/particleRenderer-emit-mesh-size-over-lifetime.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-90
+packages/core/src/particle/modules/InheritVelocityModule.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-255
+e2e/case/shader-mrt.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2,7,10,12,14,85,100
+docs/zh/core/color.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 57,60,77
+packages/design/src/spine/ISpineSlot.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-8
+packages/design/src/spine/ISpineTrackEntry.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-24
+packages/loader/src/FontLoader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 8-9,17,22-24
+packages/shader/src/ShaderLibrary/PostProcess/UberPost.glsl
+  s_0373997fdb8cbf::t_884f316d450e89 1-53
+packages/loader/src/gltf/parser/GLTFSceneParser.ts
+  s_0373997fdb8cbf::t_884f316d450e89 21-22,28,36-39,46,58,60,63,66,74,92,105,129,134,137,141,198-201
+packages/loader/src/PrimitiveMeshLoader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 4,8,13-14,16,19-21,24-135,137-166
+packages/loader/src/resource-deserialize/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 8-9,19-25,35
+packages/loader/src/SpriteLoader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 16-25,29-31,36-42
+docs/en/UI/system.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 104,108
+packages/design/src/spine/ISpineSkin.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-5
+e2e/fixtures/originImage/Physics_physx-mesh-collider.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 2-3
+packages/rhi-null/tsconfig.json
+  s_0373997fdb8cbf::t_884f316d450e89 1-18
+packages/core/src/animation/internal/AnimatorLayerData.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,3-4,9,17-21,25,28-35
+packages/shader-parser/src/parser/MacroExpansionFacts.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-306
+packages/shader-compiler/src/codeGen/types.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1,5
+e2e/case/particleRenderer-rateOverDistance.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-117
+packages/shader-parser/src/parser/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-7
+e2e/case/animator-event.ts
+  s_0373997fdb8cbf::t_884f316d450e89 21,28,56-58
+packages/shader-compiler/src/ShaderPrecompiler.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-125
+packages/core/src/physics/shape/MeshColliderShape.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2,4,10-14,19-22,24-25,37-39,41-45,52,62-71,73,75-83,91,95,97-104,106,108-109,111-114,138,141-150,153,156,162,165-168,171,174-181,183-189,191,194-199,201,203,208-213,216-217,219-220,222,224-227
+docs/en/graphics/background/texture.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 27
+packages/shader-analyzer/src/DiagnosticType.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-68
+packages/shader-parser/src/parser/PassParser.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-51
+eslint.config.mjs
+  s_0373997fdb8cbf::t_884f316d450e89 1-29
+e2e/config.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2-15,87,134,152,154,156,160,162,178,180,214,228,232-267,271,283,336,348,354,361-366,380,388-399,410,472-483,489-536,549-550,555-556,561-574,576,598,605-607
+packages/loader/src/schema/MaterialSchema.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-45
+packages/loader/src/gltf/parser/GLTFMeshParser.ts
+  s_0373997fdb8cbf::t_884f316d450e89 48,58,60,137,201,211,218-220,227-228,235,251,289
+docs/en/script/edit.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 27,34
+docs/zh/graphics/postProcess/customPostProcess.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 55-89,91-98,105,111,176-187
+packages/core/src/Transform.ts
+  s_0373997fdb8cbf::t_884f316d450e89 5-6,10,12,47,49,51,56,234-244,355-362,490,520,599-600,602,604-605,607-610,612-621,623-634,671
+e2e/case/material-blinn-phong.ts
+  s_0373997fdb8cbf::t_884f316d450e89 40,44
+packages/loader/src/PrimitiveMeshAsset.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-285
+packages/core/src/animation/AnimationClip.ts
+  s_0373997fdb8cbf::t_884f316d450e89 49,58,66,79-80,85,195,212,228-230
+packages/core/src/asset/AssetPromise.ts
+  s_0373997fdb8cbf::t_884f316d450e89 100-101,143,152,167,173,177,179,184-185,192-193,235,249-252
+packages/loader/src/SceneLoader.ts
+  s_0373997fdb8cbf::t_884f316d450e89 6,15-18,20-28,30-40,42-46,48-54,56-62,65-68,70-72,74-88,90-109,111-125,127-135,137-159,161-176
+packages/core/src/Entity.ts
+  s_0373997fdb8cbf::t_884f316d450e89 13,25-35,39,54,60,119-120,123,137-138,162,188,190,194,214,216,233,235,250-271,283-289,291-296,337,340,362,369,382-384,387,392-394,396,411-413,415,458-459,462-464,484,487,493-497,508,513,517,522,537,552,565-570,579,589,611-612,623-624,654,659,663,722-724,729-731,736,738-741,743,763-768,801-806,809,811,830
+packages/core/src/particle/modules/BirthSubEmitterCommand.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-103
+packages/design/src/physics/shape/IColliderShape.ts
+  s_0373997fdb8cbf::t_884f316d450e89 45-49
+packages/loader/src/schema/SceneSchema.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-61
+packages/shader-compiler/src/codeGen/GLES300.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-234
+packages/core/src/input/wheel/WheelManager.ts
+  s_0373997fdb8cbf::t_884f316d450e89 65-66
+packages/design/src/spine/ISpineAnimationStateData.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-5
+e2e/fixtures/originImage/Particle_particleRenderer-sub-emitter.jpg
+  s_0373997fdb8cbf::t_884f316d450e89 1-3
+packages/shader-analyzer/src/ShaderIOValidator.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-331
+packages/design/src/spine/ISpineSkeleton.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-22
+packages/shader-parser/src/common/ShaderRange.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-23
+packages/core/src/material/BaseMaterial.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2,31-41,67,95,112-115,122,126-128,131-136,145-146,150-153,156-159,168-169,173,176,179,207,238,248
+packages/shader-compiler/src/codeGen/GLESVisitor.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-1200
+packages/core/src/particle/modules/SubEmittersModule.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-481
+packages/galacean/src/index.ts
+  s_0373997fdb8cbf::t_884f316d450e89 2-3,14,17-31
+packages/shader/src/Shaders/PostProcess/Bloom.shader
+  s_0373997fdb8cbf::t_884f316d450e89 1-52
+packages/physics-physx/src/PhysXDynamicCollider.ts
+  s_0373997fdb8cbf::t_884f316d450e89 167,169-186,201-208,215
+docs/zh/graphics/material/shaderAPI.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 10,17,80,113,115,119,123,150,175,185,190,204
+packages/design/src/shader-compiler/IShaderProgramSource.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-15
+packages/core/src/graphic/Primitive.ts
+  s_0373997fdb8cbf::t_884f316d450e89 3,17,22,29,36,105,121,149,171
+packages/core/src/shader/enums/ShaderPreprocessorDirective.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-22
+packages/loader/src/gltf/parser/GLTFParserContext.ts
+  s_0373997fdb8cbf::t_884f316d450e89 42,58,65-66,68-69,78,100,121,127,173,182,195-199,203,209
+packages/core/src/particle/modules/CustomDataModule.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-309
+packages/shader-parser/src/backends/GLESShaderInfo.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-452
+packages/galacean/tests/EngineKnowledgeSkill.test.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-215
+packages/core/src/shader/state/DepthState.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-2,13,48-51,53-56,58-60,71,76-81
+e2e/case/particleRenderer-emit-mesh-no-shape-world.ts
+  s_0373997fdb8cbf::t_884f316d450e89 46,69,88
+packages/core/src/particle/ParticleGenerator.ts
+  s_0373997fdb8cbf::t_884f316d450e89 1-7,17-20,22-24,30-31,33,35,37,42,44-45,50-62,65-74,87-88,97-104,107,127,130-132,135,138,140,142,144,146,148-149,151,153,155,157,159-160,195,197,201,207-211,237,259-260,271,278-281,283-288,295-298,303-308,310-314,316-318,323-326,328-335,337-346,348-349,351-353,360-399,401-402,405-406,409-419,421-422,424,428-490,497-498,506-519,521-543,546-548,552,559-563,570-578,580-587,590-592,600,603,608-610,623-624,627-629,635-636,642-675,677-689,696-700,706-707,712,714-717,723-748,750-754,757-858,860-871,873,875-881,883-889,891-908,910-919,923-939,948-952,954-971,974-986,996-1004,1007,1013,1033,1039-1041,1043,1047,1052,1055,1061,1064-1071,1075,1081,1086,1088-1090,1093,1095,1097-1098,1104-1105,1107,1109-1111,1113-1116,1119-1120,1126-1128,1131-1138,1140-1176,1178-1179,1181-1209,1211,1214-1226,1228-1237,1239-1283,1286-1314,1317-1323,1326-1335,1337,1339-1360,1362,1366-1369,1371-1372,1375-1383,1385,1387-1395,1398-1404,1406-1416,1420,1424-1430,1432-1442,1444-1451,1453-1455,1457-1458,1460-1464,1466-1471,1473-1475,1478-1486,1489-1493,1495-1497,1499-1506,1508-1509,1512-1545,1547-1550,1553-1568,1570,1573,1576-1578,1580-1585,1587-1591,1593-1595,1597-1631,1634-1645
+docs/zh/graphics/material/examples/shader-04-multi-pass.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 179
+docs/en/graphics/mesh/primitiveMesh.mdx
+  s_0373997fdb8cbf::t_884f316d450e89 15-19,23-27,31-35,39,47,60,73,86,99,112,125,131-361
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "73ffd4dadd47ac75f7ac14e4b244990892be3949",
+  "prompts": {},
+  "sessions": {
+    "s_0373997fdb8cbf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a192e5-99f1-7531-8f6e-963a84b12db4",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

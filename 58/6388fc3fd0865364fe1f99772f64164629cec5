@@ -1,0 +1,38 @@
+packages/core/src/physics/Collider.ts
+  s_603183729b1668::t_94968dac82b161 62,64-67
+.github/HOW_TO_CONTRIBUTE.md
+  s_603183729b1668::t_575c4108d6659b 141
+packages/core/src/physics/CharacterController.ts
+  s_603183729b1668::t_990ca89b8f9880 294-296,331-339
+packages/core/src/physics/Rigidbody.ts
+  s_603183729b1668::t_f863e5c8cbd1f8 916-945
+packages/physics-physx/src/shape/PhysXShape.ts
+  s_603183729b1668::t_41bce56ea02a6f 23-24
+packages/core/src/physics/joint/Joint.ts
+  s_603183729b1668::t_f8049901356cee 23-25,292-299,335-338
+  s_31a37b5e302225::t_790a2c86cd01dd 339-340
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "586388fc3fd0865364fe1f99772f64164629cec5",
+  "prompts": {},
+  "sessions": {
+    "s_31a37b5e302225": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a208a0-deef-7270-91bc-db24e62911c6",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_603183729b1668": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a20863-e294-70b7-9002-cf5b39cb692f",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

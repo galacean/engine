@@ -1,0 +1,21 @@
+packages/core/src/animation/AnimationClipCurveBinding.ts
+  s_4cf4bd323b0d5f::t_c988eb696a31ef 36,66-67,70
+tests/src/core/Animator.test.ts
+  s_4cf4bd323b0d5f::t_f3382bec69bcbe 121-160
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c2b34d294a102bf67434f77583fd84e7efff098e",
+  "prompts": {},
+  "sessions": {
+    "s_4cf4bd323b0d5f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21723-9665-7ee3-9bfe-c96d76924eae",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

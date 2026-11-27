@@ -1,0 +1,35 @@
+tests/src/core/physics/MeshCollider.test.ts
+  s_87cc7a3b1b4ffa::t_7c4e2c3fc503b6 180,184-187,189-194,198-202
+  s_87cc7a3b1b4ffa::t_fdd2cfc5b541e4 177-179,181-183,188,195-197
+packages/physics-physx/src/PhysXCollider.ts
+  s_87cc7a3b1b4ffa::t_07cab6d88efc7b 60-61
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_87cc7a3b1b4ffa::t_ee458600e0bd1a 178,188-190
+  s_87cc7a3b1b4ffa::t_58eee9f3b32ba4 62-70
+  s_87cc7a3b1b4ffa::t_d992d82e4dec63 409-417
+  s_edd40dbb103ae6::t_c1a991f9982aab 407-408,418-419
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7d0ce6ca8cffb8045c7157e6d85197d239f1efc3",
+  "prompts": {},
+  "sessions": {
+    "s_87cc7a3b1b4ffa": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f72a317a-6fd5-4cfb-824b-a6a922a66a1d",
+        "model": "claude-fable-5-2"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_edd40dbb103ae6": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1e4a3-c644-7226-bf42-33df4d8bbbe7",
+        "model": "Kimi-K3.1-Pro:glink_domestic"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

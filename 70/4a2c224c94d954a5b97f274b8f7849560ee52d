@@ -1,0 +1,72 @@
+packages/building/src/building/parts/architecture/BuildingCpu.ts
+  h_ddbf152d31b140 121-124,127
+packages/building/src/building/parts/architecture/BuildingCpuClient.ts
+  h_ddbf152d31b140 108,144-152
+packages/building/src/building/parts/architecture/BuildingDetail.ts
+  h_ddbf152d31b140 4,6-30,39,41-46,50,54-59
+packages/building/src/building/parts/architecture/BuildingRender.ts
+  h_ddbf152d31b140 17,24,32-33,41,43
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  h_ddbf152d31b140 1-2,29,724-725,1068-1069,1071,1079
+packages/building/src/building/parts/architecture/BuildingWorker.ts
+  h_ddbf152d31b140 20-21,39-64,68-72,74
+packages/building/src/building/parts/architecture/BuildingWorkerProtocol.ts
+  h_ddbf152d31b140 18,20
+packages/building/src/building/render/CoreBuilding.ts
+  h_ddbf152d31b140 36-37,1838-1908,1914-1915,1921,1933-1942,1949-1964,1970
+packages/building/src/building/render/GridUnitKernel.ts
+  h_ddbf152d31b140 61-62,167,226,283
+packages/building/src/building/runtime/BrickPackKernel.ts
+  h_ddbf152d31b140 1-168
+packages/building/src/building/runtime/BrickUnitLod.js
+  h_ddbf152d31b140 28-98,101-106
+packages/building/src/building/runtime/BuildingDistanceView.ts
+  h_ddbf152d31b140 33,36,70-243,257-258,305-314,318-319,342-343,358,365-366,369,397,410-425,427-428,430-433,435-438,443-452,454-489,491-499,502-583,585-659,662-667,669,676-694,696-698,705-777,780-810,813,815-851,860-903,906,908-920,936-952,958-963,995-1008,1022,1025-1026,1028-1037,1039,1041,1050-1085,1093,1106,1113-1120,1123,1129,1131,1143,1149,1158,1160-1165
+packages/building/src/building/runtime/BuildingFarProxy.ts
+  h_ddbf152d31b140 37-40,47-53,55,58-60,63-68,73,79-85,87-90,102-104,109,154,163-246,249-439,443-444,446-447,449,454-480,482-490,497,499-502,509-514,516,519,522-618,649-655,661-673,678,691-698,702,719-720,726-729,736-738,746-749,751-752,754-758,773,788,807-808,810-814,816-822,824-827,836,850-851,863-865
+packages/building/src/building/runtime/BuildingGlobalProxy.ts
+  h_ddbf152d31b140 1-1065
+packages/building/src/building/runtime/BuildingObjectIdentity.ts
+  h_ddbf152d31b140 8-11
+packages/building/src/building/runtime/BuildingRenderPackage.ts
+  h_ddbf152d31b140 27,36,64-65,147-158,212-232
+packages/building/src/building/runtime/ConstructionDecorationRender.ts
+  h_ddbf152d31b140 93-96
+packages/building/src/building/runtime/ConstructionGroundSupports.ts
+  h_ddbf152d31b140 11-20,22,29-34,42-43,54-89,92,95-127,130-133,135-180,182-186,191-208,210-211,216
+packages/building/src/building/runtime/ConstructionPackage.ts
+  h_ddbf152d31b140 6,14-15,40-47,61,65-68
+packages/building/src/building/runtime/ConstructionPlasterRender.ts
+  h_ddbf152d31b140 84
+packages/building/src/building/runtime/ConstructionUnitRender.ts
+  h_ddbf152d31b140 19-23
+packages/building/src/building/runtime/EngineResidentScene.ts
+  h_ddbf152d31b140 29,173,288,293-301,311,332,364,368,451-454,616,697,735-739,762-766,775-777,780,812-821
+packages/building/src/building/runtime/MasonryFarProxy.shader
+  h_ddbf152d31b140 44-45,49-56,94,111-115
+packages/building/src/building/runtime/MasonryGlobalProxy.shader
+  h_ddbf152d31b140 1-285
+packages/building/src/building/runtime/MasonryLodPolicy.ts
+  h_ddbf152d31b140 23-31
+packages/building/src/building/runtime/MasonryResidency.ts
+  h_ddbf152d31b140 4,20,175,253-256,265,267,279,283,311,315,318,372-374,393,399
+packages/water/src/water/runtime/ocean/OceanWaterCompiledResource.ts
+  h_ddbf152d31b140 188-196,207
+packages/world-planning/src/semantic-study/PlanningHeightmap.ts
+  h_ddbf152d31b140 537,544-548,564
+packages/world-planning/src/semantic-study/PlanningRasterClient.ts
+  h_ddbf152d31b140 36-48,71-74,112,146-149
+world/demos/seed-world/src/planning/semantic-study/PlanningWorkerClient.ts
+  h_ddbf152d31b140 17,29-32,148-154
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "704a2c224c94d954a5b97f274b8f7849560ee52d",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

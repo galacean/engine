@@ -1,0 +1,36 @@
+docs/en/physics/collider/characterController.mdx
+  h_dd004f51a3e5ec 19,34,37,92,236
+docs/en/physics/collider/overview.mdx
+  h_dd004f51a3e5ec 17,212
+docs/zh/physics/collider/characterController.mdx
+  h_dd004f51a3e5ec 19,34,37,234
+docs/zh/physics/collider/overview.mdx
+  h_dd004f51a3e5ec 17,212
+packages/core/src/physics/BoxCollider.ts
+  h_dd004f51a3e5ec 34-51,88
+packages/core/src/physics/CharacterController.ts
+  h_dd004f51a3e5ec 12,244-245,247-249,277
+packages/design/src/physics/ICharacterController.ts
+  h_dd004f51a3e5ec 5
+packages/physics-physx/src/PhysXCharacterController.ts
+  h_dd004f51a3e5ec 47,179,186,212-215
+tests/src/core/physics/CharacterController.test.ts
+  h_dd004f51a3e5ec 99-101,109,111-112,227,231,243,256-257,262,266,268,274,276,290-305,318,321-322,326,329,335,338,346,348,351,354,366,368-370,379,384,390,393,400-411,413-442,446,459,509,548-549,584-585,587,589-591,595-598,600,605,608,706,725,779-787,792,795-796,798,801,810,813,823-824,834-835,843,848,853-854,899-900,927-928,935
+tests/src/core/physics/ColliderLayer.test.ts
+  h_dd004f51a3e5ec 127-146
+tests/src/core/physics/PhysicsGameplay.test.ts
+  h_dd004f51a3e5ec 217,222,224-225
+tests/src/core/physics/PhysicsScene.test.ts
+  h_dd004f51a3e5ec 16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1202e621416714949b942e6804a1ec392ae4e0b4",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

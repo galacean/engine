@@ -1,0 +1,36 @@
+packages/ai-chat/src/ai-chat/agent-loop.ts
+  h_ddbf152d31b140 1,348-349,404-407,410,489-490,584-585,596-598,779,786,849-859,916-926,933,935-954,989-1007
+packages/ai-chat/src/ai-chat/agent-native-files.ts
+  h_ddbf152d31b140 21-24,26-31,86,186,198-213,391-394,414-420,422,424-427,432-433,440-580,583
+packages/ai-chat/src/ai-chat/agent-script-checker.ts
+  h_ddbf152d31b140 154-157,182-226,238-252,260-264
+packages/ai-chat/tests/agent-file-tools.spec.ts
+  h_ddbf152d31b140 313-532
+packages/ai-chat/tests/agent-native-files.spec.ts
+  h_ddbf152d31b140 290-419
+packages/animals/src/skills/animals/SKILL.md
+  h_ddbf152d31b140 16-18
+packages/building/src/skills/building/SKILL.md
+  h_ddbf152d31b140 16-18,22
+packages/building/src/skills/building/references/planning.md
+  h_ddbf152d31b140 91-103
+packages/building/src/skills/building/references/wall.md
+  h_ddbf152d31b140 17,20-29
+packages/water/src/skills/water/SKILL.md
+  h_ddbf152d31b140 10
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 54,227
+world/demos/seed-world/agent-adapter/SeedWorldKnowledge.ts
+  h_ddbf152d31b140 34,106-125
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "692430f2e37aa2694fac422a76f2468ac8991913",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

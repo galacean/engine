@@ -1,0 +1,23 @@
+packages/core/src/physics/Collider.ts
+  s_c56f03ac26fead::t_881a0332c5e13e 193
+packages/core/src/physics/PhysicsScene.ts
+  s_c56f03ac26fead::t_474a31b5b4a29c 312-313,326-327
+packages/core/src/physics/PhysicsUtils.ts
+  s_c56f03ac26fead::t_11511277c5941b 3,74-178
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f131ce6629ebffcada74134a18eee3a39fd946fc",
+  "prompts": {},
+  "sessions": {
+    "s_c56f03ac26fead": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a210dd-80de-7c01-82da-497ab348ed48",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

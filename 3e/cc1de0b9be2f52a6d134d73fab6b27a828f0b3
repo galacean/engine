@@ -1,0 +1,67 @@
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionSettings.ts
+  s_37f36ddb216819::t_8a29515f17f1b0 7-12,21,39,68-72,101-104
+  s_37f36ddb216819::t_8605b3680fb192 105-106
+packages/modify/src/native/core/src/RenderPipeline/enums/PipelineStage.ts
+  s_37f36ddb216819::t_8a29515f17f1b0 12-14
+  s_37f36ddb216819::t_765f8794255e42 11
+packages/water/src/water/shaders/heightfield/ForwardPass.glsl
+  s_37f36ddb216819::t_bacd5a975bc771 394-397
+  s_37f36ddb216819::t_934d9b475ab21b 392-393
+packages/water/src/water/shaders/HeightfieldWater.shader
+  s_37f36ddb216819::t_bacd5a975bc771 80
+  s_37f36ddb216819::t_741174f83668a1 29-79,81-82
+packages/modify/src/native/loader/src/schema/MaterialSchema.ts
+  s_37f36ddb216819::t_8a29515f17f1b0 6
+packages/modify/src/native/loader/src/MaterialLoader.ts
+  s_37f36ddb216819::t_8a29515f17f1b0 125
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflection.ts
+  s_37f36ddb216819::t_8a29515f17f1b0 4,143-145,203-205,227-228,351,382,481-485,502-503,533,536,616-618,656-666,1189-1193,1228-1229,1261,1483-1485
+  s_37f36ddb216819::t_a339a337994a72 486-501,653
+  s_37f36ddb216819::t_94c840c3fd8b45 679-689,1333,1336-1338
+  s_37f36ddb216819::t_485d88da1e2b17 652,654-655,1339-1342
+packages/water/src/water/shaders/river/FinalOutput.glsl
+  s_37f36ddb216819::t_bacd5a975bc771 117-120
+  s_37f36ddb216819::t_6d3e350bc0a7ce 115-116
+packages/water/src/water/shaders/RiverWater.shader
+  s_37f36ddb216819::t_bacd5a975bc771 77
+  s_37f36ddb216819::t_ac0902d6fec2a5 28-76,78-79
+packages/modify/tests/ScreenSpaceReflectionContribution.test.ts
+  s_37f36ddb216819::t_0ac18a195c17d3 147-403
+  s_37f36ddb216819::t_c1dbef245dd51b 1-146,404-422
+packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_37f36ddb216819::t_672b0132753de9 12
+  s_37f36ddb216819::t_5a51891f917654 13-16,585-597
+packages/modify/src/native/core/src/material/Material.ts
+  s_37f36ddb216819::t_8a29515f17f1b0 74-76,155
+packages/modify/SSR_AUTHORING.md
+  s_37f36ddb216819::t_7d1c40dffc9410 1,3
+  s_37f36ddb216819::t_9a5408c6404db3 5,7,9-13,15,17,19,21,23,25-28,30,32,34,36,38,40,42,51,53,55,57,59-61
+packages/modify/src/native/core/src/RenderPipeline/RenderTargetPool.ts
+  s_37f36ddb216819::t_5484955a15967e 31-32,48-49,87,214-215,239-243
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts
+  s_37f36ddb216819::t_3366b10e7d79a7 5,51-53,108-109,293-380,464-471,522-523,554-557,804,818-821,824
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionProfiler.ts
+  s_37f36ddb216819::t_a4350cb6317262 5-9
+packages/modify/src/native/shader/src/ShaderLibrary/PBR/ForwardPassPBR.glsl
+  s_37f36ddb216819::t_d01aefddb8808d 103-106
+packages/modify/src/native/shader/src/Shaders/PBR.shader
+  s_37f36ddb216819::t_b19be8a33e9b46 177-229
+packages/modify/tests/ScreenSpaceReflectionAuthoring.test.ts
+  s_37f36ddb216819::t_88c675fcc8f71e 160-171,260-270
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3ecc1de0b9be2f52a6d134d73fab6b27a828f0b3",
+  "prompts": {},
+  "sessions": {
+    "s_37f36ddb216819": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a5b4-0e3b-7012-9d7a-e5ae58790463",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

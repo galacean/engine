@@ -1,0 +1,38 @@
+packages/core/src/animation/animationCurve/AnimationArrayCurve.ts
+  h_dd004f51a3e5ec 23
+packages/core/src/animation/animationCurve/AnimationBoolCurve.ts
+  h_dd004f51a3e5ec 15
+packages/core/src/animation/animationCurve/AnimationColorCurve.ts
+  h_dd004f51a3e5ec 19
+packages/core/src/animation/animationCurve/AnimationCurve.ts
+  h_dd004f51a3e5ec 429
+packages/core/src/animation/animationCurve/AnimationFloatArrayCurve.ts
+  h_dd004f51a3e5ec 23
+packages/core/src/animation/animationCurve/AnimationFloatCurve.ts
+  h_dd004f51a3e5ec 17
+packages/core/src/animation/animationCurve/AnimationQuaternionCurve.ts
+  h_dd004f51a3e5ec 17
+packages/core/src/animation/animationCurve/AnimationRectCurve.ts
+  h_dd004f51a3e5ec 18
+packages/core/src/animation/animationCurve/AnimationRefCurve.ts
+  h_dd004f51a3e5ec 15
+packages/core/src/animation/animationCurve/AnimationStringCurve.ts
+  h_dd004f51a3e5ec 15
+packages/core/src/animation/animationCurve/AnimationVector2Curve.ts
+  h_dd004f51a3e5ec 19
+packages/core/src/animation/animationCurve/AnimationVector3Curve.ts
+  h_dd004f51a3e5ec 19
+packages/core/src/animation/animationCurve/AnimationVector4Curve.ts
+  h_dd004f51a3e5ec 19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d9899b5a83529e0057497efaef90d99c34c3ca28",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

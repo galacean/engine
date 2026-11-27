@@ -1,0 +1,172 @@
+examples/seed-world/warmup/assets/modules/terrain/Surface.ShadowCaster.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-85
+examples/seed-world/warmup/assets/modules/building/sdf-brick.Forward.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-747
+examples/seed-world/warmup/assets/modules/building/glass.Forward.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-393
+examples/seed-world/warmup/assets/modules/terrain/Surface.ShadowCaster.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-148
+examples/seed-world/warmup/assets/modules/building/brick_roof.Forward.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-654
+examples/seed-world/warmup/assets/modules/building/decoration-stone.Forward.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-1156
+examples/seed-world/warmup/assets/modules/terrain/Surface.Forward.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-1463
+examples/seed-world/warmup/assets/modules/terrain/Terrain.ShadowCaster.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-560
+examples/seed-world/warmup/assets/modules/terrain/Vegetation.DepthOnly.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-203
+examples/seed-world/warmup/assets/modules/terrain/Water/ocean-near-detailed.Forward.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-649
+examples/seed-world/warmup/assets/modules/terrain/Surface.DepthOnly.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-109
+examples/seed-world/warmup/assets/modules/terrain/Terrain.Forward.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-2390
+examples/seed-world/warmup/assets/modules/terrain/Vegetation.ShadowCaster.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-1014
+examples/seed-world/warmup/assets/modules/building/decoration_stone_frame.Forward.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-492
+examples/seed-world/warmup/assets/catalog.py
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-74
+examples/seed-world/warmup/assets/modules/building/decoration_stone_frame.Forward.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-616
+examples/seed-world/warmup/assets/modules/building/roof.Forward.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-1474
+examples/seed-world/warmup/assets/modules/building/wooden-arch-frame.Forward.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-168
+examples/seed-world/warmup/assets/modules/building/decoration-stone.Forward.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-526
+examples/seed-world/warmup/assets/modules/terrain/Grass.Forward.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-2123
+examples/seed-world/warmup/assets/modules/terrain/Grass.Forward.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-1288
+examples/seed-world/warmup/assets/modules/terrain/Water/ocean-far-graded.Forward.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-181
+examples/seed-world/warmup/assets/modules/building/sdf-brick_roof.Forward.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-941
+examples/seed-world/fixture.mjs
+  s_3cd6502d102d7f::t_df39d7a825aa82 2-3,18-19,105-130,133-134,137-140,143-144
+examples/seed-world/warmup/assets/modules/terrain/Billboard.ShadowCaster.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-488
+examples/seed-world/warmup/assets/modules/terrain/Terrain.SSRReceiver.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-1298
+examples/seed-world/warmup/assets/modules/terrain/Vegetation.Forward.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-1107
+examples/seed-world/warmup/residual/plugin.mjs
+  s_3cd6502d102d7f::t_daf663198e3182 1-15
+examples/seed-world/warmup/assets/modules/terrain/Billboard.Forward.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-1780
+examples/seed-world/warmup/assets/modules/building/roof.Forward.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-1233
+examples/seed-world/warmup/assets/modules/building/wooden-arch-frame.Forward.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-543
+examples/seed-world/warmup/assets/modules/building/brick.Forward.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-456
+examples/seed-world/warmup/assets/modules/terrain/Billboard.Forward.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-1478
+examples/seed-world/warmup/assets/modules/building/brick.Forward.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-964
+examples/seed-world/warmup/assets/stage.py
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-127
+examples/seed-world/warmup/assets/modules/terrain/Vegetation.DepthOnly.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-985
+examples/seed-world/warmup/assets/modules/terrain/Water/lake-heightfield-high-hybrid-v2.Forward.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-426
+examples/seed-world/warmup/assets/modules/building/plaster.Forward.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-779
+examples/seed-world/warmup/assets/.gitattributes
+  s_3cd6502d102d7f::t_d91d0b590d63c6 1-3
+examples/seed-world/warmup/assets/modules/terrain/Water/ocean-near-detailed.Forward.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-3102
+examples/seed-world/warmup/assets/modules/terrain/Terrain.ShadowCaster.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-83
+examples/seed-world/warmup/loading/plugin.mjs
+  s_3cd6502d102d7f::t_daf663198e3182 1-150
+examples/seed-world/warmup/assets/modules/building/decoration.Forward.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-310
+examples/seed-world/fixture-vite.mjs
+  s_3cd6502d102d7f::t_df39d7a825aa82 151,160-170
+examples/seed-world/warmup/assets/modules/building/sdf-brick_clip.Forward.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-991
+examples/seed-world/warmup/assets/modules/building/wood.Forward.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-254
+examples/seed-world/warmup/assets/modules/terrain/Terrain.DepthOnly.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-71
+examples/seed-world/warmup/loading/modules.mjs
+  s_3cd6502d102d7f::t_daf663198e3182 1-47
+examples/seed-world/warmup/assets/modules/terrain/Terrain.DepthOnly.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-517
+examples/seed-world/warmup/assets/modules/terrain/Water/lake-heightfield-high-hybrid-v2.SSRReceiver.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-210
+examples/seed-world/warmup/assets/catalog.json
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-11989
+examples/seed-world/warmup/assets/modules/terrain/Water/lake-heightfield-high-hybrid-v2.SSRReceiver.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-574
+examples/seed-world/warmup/assets/modules/building/wood_roof.Forward.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-453
+examples/seed-world/warmup/loading/extend.mjs
+  s_3cd6502d102d7f::t_daf663198e3182 1-121
+examples/seed-world/README.md
+  s_3cd6502d102d7f::t_a5061e1455c96a 10,37-50
+  s_3cd6502d102d7f::t_7ed341ffd965c4 51
+examples/seed-world/warmup/assets/modules/building/sdf-brick_clip.Forward.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-841
+examples/seed-world/warmup/assets/modules/terrain/Terrain.SSRReceiver.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-533
+examples/seed-world/warmup/assets/modules/terrain/Water/ocean-far-graded.Forward.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-1178
+examples/seed-world/warmup/residual/device.mjs
+  s_3cd6502d102d7f::t_daf663198e3182 1-58
+examples/seed-world/warmup/assets/modules/building/brick_roof.Forward.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-972
+examples/seed-world/warmup/assets/modules/building/sdf-brick.Forward.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-983
+examples/seed-world/warmup/assets/modules/building/wood.Forward.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-792
+examples/seed-world/warmup/assets/modules/terrain/Billboard.ShadowCaster.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-1420
+examples/seed-world/warmup/assets/modules/terrain/Surface.Forward.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-244
+examples/seed-world/warmup/assets/modules/terrain/Water/lake-heightfield-high-hybrid-v2.Forward.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-3424
+examples/seed-world/warmup/assets/modules/building/plaster.Forward.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-519
+examples/seed-world/warmup/assets/modules/building/decoration.Forward.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-642
+examples/seed-world/warmup/assets/modules/building/frame.Forward.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-78
+examples/seed-world/warmup/assets/modules/terrain/Vegetation.Forward.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-1809
+examples/seed-world/warmup/assets/modules/building/frame.Forward.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-491
+examples/seed-world/warmup/residual/runtime.mjs
+  s_3cd6502d102d7f::t_daf663198e3182 1-39
+examples/seed-world/warmup/assets/modules/terrain/Surface.DepthOnly.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-73
+examples/seed-world/warmup/assets/modules/terrain/Terrain.Forward.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-646
+examples/seed-world/warmup/assets/modules/terrain/Vegetation.ShadowCaster.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-148
+examples/seed-world/warmup/assets/modules/building/glass.Forward.vertex.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-505
+examples/seed-world/warmup/residual/recipes.json
+  s_3cd6502d102d7f::t_daf663198e3182 1
+examples/seed-world/warmup/assets/modules/building/sdf-brick_roof_clip.Forward.fragment.wgsl
+  s_3cd6502d102d7f::t_2db401f1dee8c7 1-1035
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b90f80fa3b762e49b70d57847bf632ba8b807d25",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

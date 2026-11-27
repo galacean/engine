@@ -1,0 +1,41 @@
+scripts/test-editor-preload.js
+  s_71b60d26703905::t_5cdbd86b2bcdc4 38,43-51,56,70-78
+packages/core/src/physics/PhysicsMaterial.ts
+  s_71b60d26703905::t_a629a89fe4a82b 32-34
+tests/src/core/physics/PhysicsMaterial.test.ts
+  s_71b60d26703905::t_cc712d4bdbf33d 274,278
+.github/workflows/release.yml
+  s_71b60d26703905::t_a629a89fe4a82b 82
+tests/src/core/postProcess/PostProcess.test.ts
+  s_71b60d26703905::t_cc712d4bdbf33d 494-496
+tests/src/core/physics/Collider.test.ts
+  s_71b60d26703905::t_cc712d4bdbf33d 261-264
+packages/physics-physx/src/shape/PhysXShape.ts
+  s_71b60d26703905::t_a629a89fe4a82b 54-55
+.github/workflows/release-official-kit.yml
+  s_71b60d26703905::t_a629a89fe4a82b 58
+.github/workflows/release-editor-kit.yml
+  s_71b60d26703905::t_a629a89fe4a82b 68
+rollup.config.js
+  s_71b60d26703905::t_a629a89fe4a82b 89-114
+scripts/build-official-preload.js
+  s_71b60d26703905::t_a629a89fe4a82b 64-72
+packages/physics-physx/package.json
+  s_71b60d26703905::t_a629a89fe4a82b 23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3218aff0c883189888217988dbd7580b99fdde52",
+  "prompts": {},
+  "sessions": {
+    "s_71b60d26703905": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2086b-2423-7963-bec2-7a56a2f3c1cb",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,25 @@
+packages/math/src/Quaternion.ts
+  s_d2c65ec75a2f3e::t_940e19ff53bb9c 811
+packages/core/src/physics/Rigidbody.ts
+  s_d2c65ec75a2f3e::t_19ffe966a36aae 51-58,1121,1136
+  s_d2c65ec75a2f3e::t_29a1ab82e29c1f 1133-1135
+  s_d2c65ec75a2f3e::t_10c7d9778a7f02 1137-1139
+packages/math/src/index.ts
+  s_d2c65ec75a2f3e::t_940e19ff53bb9c 11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "af513370626f80a6a9ede2b63102ce0a64d063f5",
+  "prompts": {},
+  "sessions": {
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

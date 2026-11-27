@@ -1,0 +1,28 @@
+packages/world-planning/src/integrations/terrain/rock-formation/Variants.ts
+  s_8bf9055786777f::t_652b8d54db6843 180-181
+  s_8bf9055786777f::t_36df4956180efb 28,172-179,182-185,202
+packages/world-planning/src/integrations/terrain/rock-formation/RockVariantCatalog.json
+  s_8bf9055786777f::t_36df4956180efb 49,60
+world/tests/seed-world/WorldTemplates.spec.ts
+  s_8bf9055786777f::t_5fbfe26853e258 102-114
+  s_8bf9055786777f::t_652b8d54db6843 6-10
+  s_8bf9055786777f::t_91a23baf7160a4 115-117
+packages/world-planning/src/integrations/terrain/rock-formation/Client.ts
+  s_8bf9055786777f::t_36df4956180efb 3,39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a5e894a64206ce86a422cb58e1fc284825f2468e",
+  "prompts": {},
+  "sessions": {
+    "s_8bf9055786777f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ee96-b5bc-70f0-80d2-77de3948a671",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+packages/world-planning/src/runtime/SeedWorldDetailInstancedMesh.ts
+  h_79b10db07e6052 7,41-46,49-56,78-239,343,411-412,418-419,424-425,431-432,436-449,465-485,500
+packages/world-planning/src/runtime/SeedWorldForwardGrass.ts
+  h_79b10db07e6052 379,386
+packages/world-planning/src/runtime/SeedWorldPopulationRuntime.ts
+  h_79b10db07e6052 546-548,572-573,576-577,584-609,1415-1420,1455,1793,1800-1809,2682-2694,2701-2702,2726-2727,2775,2926-2937,3394,4142,4230
+packages/world-planning/src/runtime/SeedWorldPopulationRuntimeCell.ts
+  h_79b10db07e6052 31,34
+packages/world-planning/tests/SeedWorldGrassMeshLod.spec.ts
+  h_79b10db07e6052 1-147
+world/demos/seed-world/src/SeedWorldLodDebugPanel.ts
+  h_79b10db07e6052 7-12,195-196,249,257-258,262-263,412-413
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0a0c5ff39f0a5d21705835098ba73aa3f3268b57",
+  "prompts": {},
+  "humans": {
+    "h_79b10db07e6052": {
+      "author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}

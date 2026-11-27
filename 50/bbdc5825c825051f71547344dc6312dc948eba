@@ -1,0 +1,20 @@
+tests/benchmarks/webgl2-submission/scenes.js
+  s_3cd6502d102d7f::t_e2d1bca081e41a 157-165
+  s_3cd6502d102d7f::t_c24d3cd917e99e 108-110,112,114-115,143-146,185
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "50bbdc5825c825051f71547344dc6312dc948eba",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

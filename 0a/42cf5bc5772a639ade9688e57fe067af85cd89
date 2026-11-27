@@ -1,0 +1,18 @@
+packages/core/src/physics/joint/Joint.ts
+  h_dd004f51a3e5ec 119-120,127-128,141-142,149-150
+packages/physics-physx/src/joint/PhysXJoint.ts
+  h_dd004f51a3e5ec 63,73
+tests/src/core/physics/Joint.test.ts
+  h_dd004f51a3e5ec 613-615,617,619,621,623,628-647
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0a42cf5bc5772a639ade9688e57fe067af85cd89",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

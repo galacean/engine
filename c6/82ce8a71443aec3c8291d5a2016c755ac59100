@@ -1,0 +1,20 @@
+packages/modify/src/native/loader/src/ktx2/KTX2Loader.ts
+  s_d5da8c666c9067::t_13bc71960f140d 157-193,200-204
+  s_d5da8c666c9067::t_ac3b5942d5f837 205
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c682ce8a71443aec3c8291d5a2016c755ac59100",
+  "prompts": {},
+  "sessions": {
+    "s_d5da8c666c9067": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21229-2698-7642-9db8-6417cc7a2560",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

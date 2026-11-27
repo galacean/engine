@@ -1,0 +1,38 @@
+packages/physics-physx/src/joint/PhysXHingeJoint.ts
+  s_3754ebc6b108f2::t_3d9de30c6f54f3 18-19,22-23,44,46,50,57
+  s_3754ebc6b108f2::t_71c248a1c61026 20,45,58-62,146-147
+packages/core/src/physics/joint/HingeJoint.ts
+  s_3754ebc6b108f2::t_3d9de30c6f54f3 164-169
+packages/core/src/physics/joint/Joint.ts
+  s_3754ebc6b108f2::t_71c248a1c61026 358
+  s_3754ebc6b108f2::t_3d9de30c6f54f3 312,315,335-339,394,431,446
+packages/design/src/physics/joints/IJoint.ts
+  s_3754ebc6b108f2::t_3d9de30c6f54f3 9,11,14,16
+packages/core/src/physics/joint/SpringJoint.ts
+  s_3754ebc6b108f2::t_3d9de30c6f54f3 106-111
+packages/core/src/physics/joint/FixedJoint.ts
+  s_3754ebc6b108f2::t_3d9de30c6f54f3 8-13
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_3754ebc6b108f2::t_3d9de30c6f54f3 19,243-244,250-251,257
+  s_3754ebc6b108f2::t_c4381588f58947 258
+packages/physics-physx/src/joint/PhysXJoint.ts
+  s_3754ebc6b108f2::t_3d9de30c6f54f3 4,11-12,15-31,34,36-37,44,50-52
+packages/physics-physx/src/joint/PhysXSpringJoint.ts
+  s_3754ebc6b108f2::t_3d9de30c6f54f3 10-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "68032af857d94d11865526c60760f42312b8410e",
+  "prompts": {},
+  "sessions": {
+    "s_3754ebc6b108f2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a218cd-a576-7eb3-aadd-5c308d16914c",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

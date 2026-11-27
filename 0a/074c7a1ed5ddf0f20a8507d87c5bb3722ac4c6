@@ -1,0 +1,28 @@
+packages/core/src/asset/ReferResource.ts
+  h_bd4dd7d663e619 121
+packages/loader/src/GLTFLoader.ts
+  h_bd4dd7d663e619 56
+packages/loader/src/gltf/parser/GLTFParserContext.ts
+  h_bd4dd7d663e619 196-198
+packages/loader/src/gltf/parser/GLTFSceneParser.ts
+  h_bd4dd7d663e619 54,149,187
+packages/loader/src/prefab/PrefabParser.ts
+  h_bd4dd7d663e619 12-30
+tests/src/core/resource/ResourceManager.test.ts
+  h_bd4dd7d663e619 595,600,602,604-617
+tests/src/loader/GLTFLoader.test.ts
+  h_bd4dd7d663e619 1229-1338
+tests/src/loader/PrefabResource.test.ts
+  h_bd4dd7d663e619 1,3,5,58-59,63-114,250-251,255
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "0a074c7a1ed5ddf0f20a8507d87c5bb3722ac4c6",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

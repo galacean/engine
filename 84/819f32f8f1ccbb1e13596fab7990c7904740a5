@@ -1,0 +1,32 @@
+packages/core/src/mesh/BlendShapeManager.ts
+  h_bd4dd7d663e619 293-298,314-315,325,363
+packages/core/src/mesh/ModelMesh.ts
+  h_bd4dd7d663e619 760-761
+packages/loader/src/GLTFLoader.ts
+  h_bd4dd7d663e619 58-60
+packages/loader/src/gltf/extensions/EXT_texture_webp.ts
+  h_bd4dd7d663e619 24
+packages/loader/src/gltf/extensions/KHR_texture_basisu.ts
+  h_bd4dd7d663e619 37,61,69
+packages/loader/src/gltf/parser/GLTFMaterialParser.ts
+  h_bd4dd7d663e619 191
+packages/loader/src/gltf/parser/GLTFMeshParser.ts
+  h_bd4dd7d663e619 50,134,160,277
+packages/loader/src/gltf/parser/GLTFParserContext.ts
+  h_bd4dd7d663e619 41-42,193,219,222
+packages/loader/src/gltf/parser/GLTFSceneParser.ts
+  h_bd4dd7d663e619 75
+packages/loader/src/gltf/parser/GLTFTextureParser.ts
+  h_bd4dd7d663e619 58,73,122
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "84819f32f8f1ccbb1e13596fab7990c7904740a5",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

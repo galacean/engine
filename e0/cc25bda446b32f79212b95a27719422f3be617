@@ -1,0 +1,63 @@
+tests/benchmarks/backend-parity/compare.mjs
+  s_3cd6502d102d7f::t_bcbb41f0e68446 45-49,58-60
+tests/benchmarks/backend-parity/run.mjs
+  s_3cd6502d102d7f::t_bcbb41f0e68446 7,148,161
+packages/rhi-webgpu/src/WebGPUGraphicDevice.ts
+  s_3cd6502d102d7f::t_9e62fbb8ad6e0e 1209,1214-1215,1217-1219
+  s_3cd6502d102d7f::t_b98c8707c659bd 287,1188-1191,1194-1198,1425
+  s_3cd6502d102d7f::t_57a110d3b17c41 893
+packages/core/src/graphic/Primitive.ts
+  s_3cd6502d102d7f::t_382ecd5d00e51e 16-18,47,49-51
+  s_3cd6502d102d7f::t_923b83b78ff63e 165-166
+tests/src/rhi-webgpu/ShaderPreparation.test.ts
+  s_3cd6502d102d7f::t_7a81b64da61625 33,55-60
+packages/rhi-webgpu/src/WebGPUPrimitive.ts
+  s_3cd6502d102d7f::t_57a110d3b17c41 42,48,77-78,83-88
+  s_3cd6502d102d7f::t_1f0bf3924a76cf 2,14,127,194-195,208-209
+packages/rhi-webgpu/src/WebGPUShaderProgram.ts
+  s_3cd6502d102d7f::t_9e62fbb8ad6e0e 388
+packages/core/src/shader/ShaderProgramMap.ts
+  s_3cd6502d102d7f::t_382ecd5d00e51e 21-23,31,35-36,40-41,62-66
+  s_3cd6502d102d7f::t_2d441a13f85d63 75
+  s_3cd6502d102d7f::t_b02fde11527049 79-81
+tests/benchmarks/webgl2-submission/recovery.js
+  s_3cd6502d102d7f::t_2a234ab5d4dfc4 40-42
+packages/core/src/renderingHardwareInterface/IPlatformTransformFeedback.ts
+  s_3cd6502d102d7f::t_d9ce18d5d04135 1,23
+packages/core/src/renderingHardwareInterface/IPlatformTransformFeedbackPrimitive.ts
+  s_3cd6502d102d7f::t_03c8e512a21528 1,42
+packages/rhi-webgl/src/GLPrimitive.ts
+  s_3cd6502d102d7f::t_acd9acd16701a0 2,14-15,21,45-52,54-58,60,106-113
+packages/rhi-webgl/src/GLPrimitiveFormats.ts
+  s_3cd6502d102d7f::t_986658b737137e 1-32
+packages/rhi-webgl/src/GLTransformFeedback.ts
+  s_3cd6502d102d7f::t_442a4c747492dd 1,13-14,29-30
+packages/rhi-webgl/src/GLTransformFeedbackPrimitive.ts
+  s_3cd6502d102d7f::t_da521c35eadbd2 2,8,23-24,71-72,134-141
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  s_3cd6502d102d7f::t_ada8e6cceeaeda 39,199-200,304,351
+packages/rhi-webgpu/src/WebGPUBuffer.ts
+  s_3cd6502d102d7f::t_db07239319ef0d 72-79
+tests/src/core/material/BaseMaterial.test.ts
+  s_3cd6502d102d7f::t_d5e3303876e541 32-45
+tests/src/rhi-webgl/PrimitiveFormats.test.ts
+  s_3cd6502d102d7f::t_e609aa81bb37ce 1-71
+tests/src/rhi-webgpu/NativeRendering.test.ts
+  s_3cd6502d102d7f::t_d7c7fe940458d0 101-136
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e0cc25bda446b32f79212b95a27719422f3be617",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

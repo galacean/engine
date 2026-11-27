@@ -1,0 +1,50 @@
+packages/animals/src/gameplay/animal/CuteZooToon.shader
+  h_171a11afaf879a 25,186-188
+packages/building/src/building/runtime/ConstructionSceneLighting.glsl
+  h_171a11afaf879a 11,97,124,146
+packages/modify/native-overrides.json
+  h_171a11afaf879a 494-497
+packages/modify/src/native/shader/src/ShaderLibrary/Common/OilPaintBrush.glsl
+  h_171a11afaf879a 1-69
+packages/modify/src/native/shader/src/ShaderLibrary/index.ts
+  h_171a11afaf879a 11,82
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/shaders/grass/GrassForwardPass.glsl
+  h_171a11afaf879a 277,382
+packages/terrain/src/shaders/shared/Lighting.glsl
+  h_171a11afaf879a 6,40-53,73-90,92,96-97
+packages/terrain/src/shaders/shared/ProceduralTreeWind.glsl
+  h_171a11afaf879a 34,38,52,54,116,121,143,148
+packages/vegetation/src/world/SeedWorldGroundWindTuning.ts
+  h_171a11afaf879a 120
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  h_171a11afaf879a 55-58,1497-1498
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetation.ts
+  h_171a11afaf879a 64,119-120,125,149,153
+packages/world-planning/src/spatial/runtime/TemplateProceduralPlants.ts
+  h_171a11afaf879a 1134-1138
+world/demos/animals/roaming/registrations.json
+  h_171a11afaf879a 2011,2015
+world/demos/seed-world/src/oil-paint/OilPaintPostPass.ts
+  h_171a11afaf879a 22-26
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime.ts
+  h_171a11afaf879a 12,138,393,730-732,822,1048,1089
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3d1532e97863c94e9caa9f53da2b64b9ad7bfc5d",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

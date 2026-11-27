@@ -1,0 +1,20 @@
+packages/terrain/src/skills/terrain/SKILL.md
+  h_ddbf152d31b140 11
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  h_ddbf152d31b140 1322,1551
+packages/world-planning/src/spatial/runtime/PlanningWorldPicking.ts
+  h_ddbf152d31b140 81-84
+packages/world-planning/tests/PlanningWorldPicking.spec.ts
+  h_ddbf152d31b140 84-85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5db54998b0add3ddb677007203c993887127518f",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

@@ -1,0 +1,23 @@
+packages/loader/src/gltf/parser/GLTFAnimationParser.ts
+  s_3e551792d86977::t_484eccca3f0605 91
+  s_3e551792d86977::t_92d91735833a97 92-93,97-106,108,134
+tests/src/loader/GLTFLoader.test.ts
+  s_3e551792d86977::t_ce25e1a5df8d55 763-765
+  s_3e551792d86977::t_91c81d9ea8d51a 711-762,766-774
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "055ea8bad8f971da97f56ee4ffb43168f08053c3",
+  "prompts": {},
+  "sessions": {
+    "s_3e551792d86977": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a216f5-1079-7e73-89fc-3e69db337785",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

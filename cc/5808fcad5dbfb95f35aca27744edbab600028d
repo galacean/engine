@@ -1,0 +1,44 @@
+packages/world-planning/package.json
+  h_171a11afaf879a 117
+packages/world-planning/src/integrations/terrain/rock-formation/Authoring.ts
+  h_171a11afaf879a 48-54
+packages/world-planning/src/integrations/terrain/rock-formation/Collider.ts
+  h_171a11afaf879a 51-55
+packages/world-planning/src/integrations/terrain/rock-formation/RockVariantCatalog.json
+  h_171a11afaf879a 8-12,17-21,26-30,35-39,44-48,55-59,64-68,73-77,83-87,92-96,102-106,111-115
+packages/world-planning/src/integrations/terrain/rock-formation/Variants.ts
+  h_171a11afaf879a 23,32-33,158-159,194-271
+packages/world-planning/src/integrations/terrain/rock-formation/View.ts
+  h_171a11afaf879a 32-67,224
+packages/world-planning/src/semantic-study/IslandPlanModel.ts
+  h_171a11afaf879a 331,333-334
+packages/world-planning/src/spatial/RockCollisionPolicy.ts
+  h_171a11afaf879a 70-72,78-83
+packages/world-planning/src/spatial/V2Model.ts
+  h_171a11afaf879a 93-94
+packages/world-planning/src/spatial/WorldTemplatePlanning.ts
+  h_171a11afaf879a 259,282
+packages/world-planning/src/spatial/layout/DerivedEdits.ts
+  h_171a11afaf879a 38
+packages/world-planning/src/spatial/layout/LayoutPlanAdapter.ts
+  h_171a11afaf879a 7-8,30,82
+packages/world-planning/src/spatial/layout/SpatialInstanceEdits.ts
+  h_171a11afaf879a 219,221-232
+packages/world-planning/src/spatial/runtime/WorldTemplateRuntime.ts
+  h_171a11afaf879a 493-496
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAnimalHabitat.ts
+  h_171a11afaf879a 7,215,228-234,246
+world/tests/seed-world/SeedWorldRockCollider.spec.ts
+  h_171a11afaf879a 72,74-76,349-361,363-370,380-461
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "cc5808fcad5dbfb95f35aca27744edbab600028d",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

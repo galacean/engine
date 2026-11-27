@@ -1,0 +1,45 @@
+packages/ui/src/component/UIRenderer.ts
+  s_0373997fdb8cbf::t_9566bac1a5a6b9 332-334,337-339
+  s_0373997fdb8cbf::t_7f482ef3419ab5 8,38,324,330-331,335-336,340,345,348,372,381
+tests/src/ui/Mask.test.ts
+  s_0373997fdb8cbf::t_9566bac1a5a6b9 415-416,418-481
+  s_0373997fdb8cbf::t_99c996962b937a 400-414,417
+packages/core/src/2d/sprite/MaskRenderable.ts
+  s_0373997fdb8cbf::t_15de287ea75f7b 22,140,152-154
+packages/core/src/2d/sprite/SpriteMaskUtils.ts
+  s_0373997fdb8cbf::t_5705266602a0bc 4,6-38,48-50,52-54,67-73,75-82,84-88,91,99-103
+packages/core/src/Camera.ts
+  s_0373997fdb8cbf::t_14a5de24f19c86 522,526-540
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_0373997fdb8cbf::t_99eba7b658d2ff 156-161,402-408
+packages/core/src/RenderPipeline/CullingResults.ts
+  s_0373997fdb8cbf::t_3506569a02c299 15,25
+packages/ui/src/component/UICanvas.ts
+  s_0373997fdb8cbf::t_963552d3ef8d81 264,271
+packages/ui/src/component/advanced/Mask.ts
+  s_0373997fdb8cbf::t_0a80f6dc00d0bf 11-12
+packages/ui/src/component/advanced/RectMask2D.ts
+  s_0373997fdb8cbf::t_ee5b0237f123bf 11
+packages/ui/src/input/UIPointerEventEmitter.ts
+  s_0373997fdb8cbf::t_f5726d518f5fb7 10,27,51-52,55,74-75,78,92
+packages/ui/src/interface/IGraphics.ts
+  s_0373997fdb8cbf::t_aad1e4319c0946 9
+tests/src/ui/RectMask2DOutside.test.ts
+  s_0373997fdb8cbf::t_90cc5f5c87792d 389-391,394-436,438,727-731,737,750,755,783-784,786-791,802-803,809
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "99c1c63ff59928f2a44e173f1fd4edffdeb422f0",
+  "prompts": {},
+  "sessions": {
+    "s_0373997fdb8cbf": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a192e5-99f1-7531-8f6e-963a84b12db4",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

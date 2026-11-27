@@ -1,0 +1,16 @@
+packages/world-planning/src/spatial/runtime/TemplateProceduralPlants.ts
+  h_171a11afaf879a 4-5,368,372-385,390-393,395-413,424,428-429,431-432,444-446,450,452-455,466,491-495,511-761,770,773,779-786,788,790-791,796-801,807-850,852-855,857,859-863,867-869,873,875-877,879,890-907,910-921,923-951,954-955,964,973-978,994,997,1001,1003-1004,1009,1012-1016,1337-1338,1393,1413-1433,1453,1458-1472,1474,1490,1494-1495,1507-1508,1519,1527-1530
+world/tests/seed-world/ForestTemplateLods.spec.mjs
+  h_171a11afaf879a 7-9,13-16,173-220
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "75b352a2559499667ffe88a1d629f60f11cdbebf",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

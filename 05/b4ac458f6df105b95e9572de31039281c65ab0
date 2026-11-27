@@ -1,0 +1,20 @@
+packages/core/src/Transform.ts
+  h_dd004f51a3e5ec 238-239,241-243,246,731-732,826-827,914-915,917
+packages/core/src/physics/Collider.ts
+  h_dd004f51a3e5ec 771,778-779,782
+tests/src/core/Transform.test.ts
+  h_dd004f51a3e5ec 185,200-202
+tests/src/core/physics/Collider.test.ts
+  h_dd004f51a3e5ec 177,179,183-190
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "05b4ac458f6df105b95e9572de31039281c65ab0",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

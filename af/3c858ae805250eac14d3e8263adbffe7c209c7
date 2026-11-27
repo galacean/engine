@@ -1,0 +1,19 @@
+tests/benchmarks/seed-templates/fixture-capabilities.mjs
+  s_3cd6502d102d7f::t_8b6dd346b1a869 36-41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "af3c858ae805250eac14d3e8263adbffe7c209c7",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

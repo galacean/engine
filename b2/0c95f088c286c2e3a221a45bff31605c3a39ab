@@ -1,0 +1,82 @@
+docs/en/physics/collider/rigidbody.mdx
+  h_dd004f51a3e5ec 35-37
+docs/zh/physics/collider/rigidbody.mdx
+  h_dd004f51a3e5ec 35-37
+packages/core/src/2d/sprite/SpriteMask.ts
+  h_dd004f51a3e5ec 239,274
+packages/core/src/2d/sprite/SpriteRenderer.ts
+  h_dd004f51a3e5ec 315,346
+packages/core/src/2d/text/TextRenderer.ts
+  h_dd004f51a3e5ec 272,381,436
+packages/core/src/Camera.ts
+  h_dd004f51a3e5ec 37-46,168-175,331-332,335,350,543,625-647,649,651,665,669,678-689,691,754,759-798,914-917,966-980,983-986
+packages/core/src/RenderPipeline/InstanceBuffer.ts
+  h_dd004f51a3e5ec 66
+packages/core/src/Renderer.ts
+  h_dd004f51a3e5ec 79-80,139,393-397,402,476-484
+packages/core/src/Scene.ts
+  h_dd004f51a3e5ec 487
+packages/core/src/Transform.ts
+  h_dd004f51a3e5ec 7,56-59,627-651
+packages/core/src/input/pointer/emitter/PhysicsPointerEventEmitter.ts
+  h_dd004f51a3e5ec 31,40-41,45
+packages/core/src/lighting/DirectLight.ts
+  h_dd004f51a3e5ec 33-34,51-59,67-68
+packages/core/src/lighting/Light.ts
+  h_dd004f51a3e5ec 1,11-13,83-89
+packages/core/src/lighting/PointLight.ts
+  h_dd004f51a3e5ec 44-48
+packages/core/src/lighting/SpotLight.ts
+  h_dd004f51a3e5ec 76-81
+packages/core/src/mesh/MeshRenderer.ts
+  h_dd004f51a3e5ec 108
+packages/core/src/mesh/Skin.ts
+  h_dd004f51a3e5ec 25-26,78-87,92-98
+packages/core/src/mesh/SkinnedMeshRenderer.ts
+  h_dd004f51a3e5ec 224
+packages/core/src/physics/PhysicsScene.ts
+  h_dd004f51a3e5ec 39-47,50,696-719,731,757,821,854
+packages/core/src/physics/Rigidbody.ts
+  h_dd004f51a3e5ec 2,68-69,94,480,550-567,815,991,1003,1005-1016,1028-1059,1241-1287
+packages/core/src/postProcess/PostProcessManager.ts
+  h_dd004f51a3e5ec 1,17,66,87
+packages/core/src/shadow/CascadedShadowCasterPass.ts
+  h_dd004f51a3e5ec 129,133
+packages/core/src/shadow/ShadowUtils.ts
+  h_dd004f51a3e5ec 215
+packages/core/src/sky/Sky.ts
+  h_dd004f51a3e5ec 83,91
+packages/math/src/Quaternion.ts
+  h_dd004f51a3e5ec 257,261,267
+packages/spine/src/renderer/SpineAnimationRenderer.ts
+  h_dd004f51a3e5ec 323
+packages/ui/src/component/UICanvas.ts
+  h_dd004f51a3e5ec 17,47,263,269,311-327,370,670-673,677-678
+packages/ui/src/component/UIRenderer.ts
+  h_dd004f51a3e5ec 134-139,149,254,256-260,265
+packages/ui/src/component/advanced/Image.ts
+  h_dd004f51a3e5ec 159,165,174-175,205
+packages/ui/src/component/advanced/Text.ts
+  h_dd004f51a3e5ec 213,304,361
+packages/ui/src/input/UIPointerEventEmitter.ts
+  h_dd004f51a3e5ec 9,11,16,30-32,78,82-94,107-109
+packages/ui/src/interface/IGraphics.ts
+  h_dd004f51a3e5ec 9
+tests/src/core/physics/PhysicsInterpolation.test.ts
+  h_dd004f51a3e5ec 1-285
+tests/src/math/Quaternion.test.ts
+  h_dd004f51a3e5ec 132-135
+tests/src/ui/UIInterpolation.test.ts
+  h_dd004f51a3e5ec 1-136
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b20c95f088c286c2e3a221a45bff31605c3a39ab",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+packages/core/src/physics/Collider.ts
+  s_b2443e4dfc4aa1::t_d59a17744a46b6 356-357
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7111a587c5c9bb4488c0e2f1993144969527b4e5",
+  "prompts": {},
+  "sessions": {
+    "s_b2443e4dfc4aa1": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a211c0-5d94-764f-afdb-89bf246b5af6",
+        "model": "deepseek-v4.1-flash"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

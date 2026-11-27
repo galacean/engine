@@ -1,0 +1,14 @@
+packages/core/src/asset/request.ts
+  h_bd4dd7d663e619 43-48,50-51,63,69,124,138-140,146-157,162,164
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "dd98d4b5b7105c36ecd5fd9bd6f59e8466e100f1",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

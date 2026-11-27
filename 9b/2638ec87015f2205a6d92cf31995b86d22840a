@@ -1,0 +1,40 @@
+e2e/case/physx-mesh-collider.ts
+  s_87cc7a3b1b4ffa::t_29d048d998a241 124
+  s_87cc7a3b1b4ffa::t_f61770fef6f2ae 80
+  s_87cc7a3b1b4ffa::t_1117a762d25d2d 8,14,20
+  s_87cc7a3b1b4ffa::t_6b3c29290bbdc4 48-50
+e2e/case/physx-mesh-collider-data.ts
+  s_87cc7a3b1b4ffa::t_29f3ba34df5408 173-176
+  s_87cc7a3b1b4ffa::t_30f82bc4577a59 77-78
+  s_87cc7a3b1b4ffa::t_fb1ba123dd99fa 12,19
+e2e/case/physx-deferred-contact.ts
+  s_87cc7a3b1b4ffa::t_663146113aadb4 45-50
+  s_87cc7a3b1b4ffa::t_37a5c13ce5be52 76
+  s_87cc7a3b1b4ffa::t_34c48b169fd377 64
+  s_87cc7a3b1b4ffa::t_fda3a3dcd9369b 7-8
+e2e/case/physx-customUrl.ts
+  s_87cc7a3b1b4ffa::t_aaae6b8b8fc46e 126,130,132,136
+  s_87cc7a3b1b4ffa::t_da4ecc51bdf209 45,47-50
+  s_87cc7a3b1b4ffa::t_65cd127ed15410 7-9,16
+  s_87cc7a3b1b4ffa::t_08156a02a06be6 95,97-100,102-103
+e2e/case/physx-collision-group.ts
+  s_87cc7a3b1b4ffa::t_09aa299bd02dcb 7-9,16,26,32,61,63-64,66,112-113
+e2e/case/physx-collision.ts
+  s_87cc7a3b1b4ffa::t_cb80d98c1b98fc 7-9,16,46,48-51,90,92-95,97-98,121,125,127,131
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9b2638ec87015f2205a6d92cf31995b86d22840a",
+  "prompts": {},
+  "sessions": {
+    "s_87cc7a3b1b4ffa": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f72a317a-6fd5-4cfb-824b-a6a922a66a1d",
+        "model": "claude-fable-5-2"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

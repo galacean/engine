@@ -1,0 +1,19 @@
+packages/physics-physx/src/PhysXPhysics.ts
+  s_87cc7a3b1b4ffa::t_cf766d405ba2d4 69,72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1203b9e70810822f209aeb4838e93cc18838e203",
+  "prompts": {},
+  "sessions": {
+    "s_87cc7a3b1b4ffa": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f72a317a-6fd5-4cfb-824b-a6a922a66a1d",
+        "model": "claude-fable-5-2"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,50 @@
+docs/en/physics/collider/overview.mdx
+  h_dd004f51a3e5ec 97,175-177,205
+docs/zh/physics/collider/overview.mdx
+  h_dd004f51a3e5ec 97,175-177,205
+e2e/case/physx-collision-group.ts
+  h_dd004f51a3e5ec 16,48-50
+e2e/case/physx-collision.ts
+  h_dd004f51a3e5ec 18,49,53,94,98
+e2e/case/physx-customUrl.ts
+  h_dd004f51a3e5ec 18,48,52,99,103
+e2e/case/physx-deferred-contact.ts
+  h_dd004f51a3e5ec 15,48,51
+packages/core/README.md
+  h_dd004f51a3e5ec 7,11
+packages/core/src/physics/Collider.ts
+  h_dd004f51a3e5ec 152
+tests/package-consumer/PhysicsMaterialApi.test.ts
+  h_dd004f51a3e5ec 5
+tests/package-consumer/fixtures/PhysicsMaterialApi.ts
+  h_dd004f51a3e5ec 19-20
+tests/src/core/physics/Collider.test.ts
+  h_dd004f51a3e5ec 615,618
+tests/src/core/physics/Collision.test.ts
+  h_dd004f51a3e5ec 2-12,26,29
+tests/src/core/physics/HingeJoint.test.ts
+  h_dd004f51a3e5ec 2-11,25-28
+tests/src/core/physics/Joint.test.ts
+  h_dd004f51a3e5ec 11,34-37
+tests/src/core/physics/PhysicsGameplay.test.ts
+  h_dd004f51a3e5ec 22,117,120,322,325,373,376,497-500
+tests/src/core/physics/PhysicsMaterial.test.ts
+  h_dd004f51a3e5ec 35,47-48,71,75,84,87,150,156-157,168-169,175,190-193,195-196,201,206,208-209,227,229,286,304,307,341-342,349-377,379,388-389,399-401,413-415,427-429,442-444,463-464,486-487,506,508-509,515-516,532,534-535,545,547-548,564,566-567,581,583-584,603,606,627,629-630,644,646-647,663,665-666,680,682-683,699,701-702,716,718-719,735,737-738,752,754-755
+tests/src/core/physics/PhysicsMaterialOwnership.test.ts
+  h_dd004f51a3e5ec 34-35,68-69,172,174-175,182-183
+tests/src/core/physics/Rigidbody.test.ts
+  h_dd004f51a3e5ec 38-41,50-53,1002,1005
+tests/src/core/physics/SpringJoint.test.ts
+  h_dd004f51a3e5ec 2,16-19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "52026f4e107875960682d40811afbe50acdde95c",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

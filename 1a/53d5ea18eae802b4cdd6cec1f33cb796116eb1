@@ -1,0 +1,25 @@
+tests/src/core/physics/UnityPhysicsPrototype.test.ts
+  s_87cc7a3b1b4ffa::t_96c1fbc0a08d7c 78
+  s_87cc7a3b1b4ffa::t_2be473fdb025e1 176-179
+  s_87cc7a3b1b4ffa::t_7d041bec6f531e 20,27-28
+  s_87cc7a3b1b4ffa::t_3755929c65d45f 29,112-166,169-172,175,180-183,187-223
+  s_87cc7a3b1b4ffa::t_0a263c9d2052ab 167-168,173-174,184-186
+  s_87cc7a3b1b4ffa::t_0ba58724282f06 279
+  s_87cc7a3b1b4ffa::t_17a0c14317fae4 30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1a53d5ea18eae802b4cdd6cec1f33cb796116eb1",
+  "prompts": {},
+  "sessions": {
+    "s_87cc7a3b1b4ffa": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f72a317a-6fd5-4cfb-824b-a6a922a66a1d",
+        "model": "claude-fable-5-2"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

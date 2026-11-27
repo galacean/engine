@@ -1,0 +1,665 @@
+packages/farming/src/farming/presentation/harvest/HarvestProduceMesh.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 2
+packages/project/src/rendering/runtime-pick-source.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-14
+packages/rhi-null/src/NullGraphicDevice.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 22-23,83-84
+packages/rhi-webgl/src/GLRenderTarget.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 16-23,33,36,42,78-87,107-108,111-129,133,135,137-138,140-142,145-161,163-188,191-194,197,202-204,207-217,221-233,236-237,239-242,244,246-248,250-259,262-263,272-295,318,362,373,397
+packages/water/src/water/runtime/resources/destroyWaterOwnedMesh.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 4
+world/tests/seed-world/editor/seed-world-project.spec.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 13,140-175
+  s_c72f930c19d1f3::t_c07dec5dc51c7f 176
+packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-2785
+packages/loader/src/ktx2/KTX2Loader.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 14,26-27,29,107-110,117-119,125-133,154-191,200-205,302,315-323,335,337,344,353-361
+packages/loader/src/TextureLoader.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 28-34,38-49,81-102
+packages/shader/src/Shaders/Lighting/RealtimeIBLAccumulate.shader
+  s_c72f930c19d1f3::t_630b6629b14f75 1-155
+packages/core/src/RenderPipeline/RenderTargetPool.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 7-10,15-17,20-22,39-42,57-59,64-66,73,80-92,94-110,112-117,158-159,165-166,170-205,209,220-246,256-258,264-267,270,281-286,289,293
+  s_c72f930c19d1f3::t_5b153a71bef210 4-6
+packages/water/tests/WaterPackageBuild.test.mjs
+  s_c72f930c19d1f3::t_630b6629b14f75 135-136,323
+packages/loader/src/ImageDecoder.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 13,18-32,35-37,45,51-52
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmLandLayer.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 21
+packages/core/src/Renderer.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 14-15,435
+packages/farming/src/farming/presentation/soil/SoilRenderBatches.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 27
+packages/core/src/RenderPipeline/index.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 2,10-15
+packages/core/src/lighting/environment/ProbeVolumeBinary.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-369
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 13,17
+world/package.json
+  s_c72f930c19d1f3::t_630b6629b14f75 17
+packages/water/package.json
+  s_c72f930c19d1f3::t_630b6629b14f75 433
+packages/core/src/lighting/volumetricClouds/index.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-8
+packages/building/src/building/runtime/ConstructionLodTexture.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 2
+packages/project/package.json
+  s_c72f930c19d1f3::t_630b6629b14f75 42-50,58-59
+packages/core/src/graphic/index.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 16-18
+packages/shader/src/ShaderLibrary/Lighting/RealtimeSphericalHarmonics.glsl
+  s_c72f930c19d1f3::t_630b6629b14f75 1-37
+packages/core/src/renderingHardwareInterface/IHardwareRenderer.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 18,33,73-81
+world/scripts/build-seed-world-flash-app.mjs
+  s_c72f930c19d1f3::t_630b6629b14f75 53,55
+packages/core/src/lighting/volumetricClouds/VolumetricCloudMultipleScatteringLUT.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-142
+packages/world-planning/tests/PlanningWorldPicking.spec.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 24
+packages/core/src/lighting/volumetricClouds/VolumetricCloudMaterial.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-1000
+packages/project/src/geometry/destroyOwnedMesh.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-29
+packages/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionCommon.glsl
+  s_c72f930c19d1f3::t_630b6629b14f75 1-101
+packages/shader/src/Shaders/Pipeline/DepthOnly.shader
+  s_c72f930c19d1f3::t_630b6629b14f75 7-11,18-25,27-28,30-37
+packages/shader/src/ShaderLibrary/index.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 11,16-20,46,50,59,67,82,87-91,117,121,130,138
+packages/core/src/particle/index.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 27
+packages/shader/src/Shaders/Lighting/RealtimeIBLResolve.shader
+  s_c72f930c19d1f3::t_630b6629b14f75 1-97
+world/demos/seed-world/src/planning/spatial/runtime/PlanningSeedObbDebug.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 13
+packages/core/src/lighting/ambientOcclusion/ScalableAmbientObscurancePass.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 9,19-20,46,139,141,145-149,154-158,161,163-167,186-191
+  s_c72f930c19d1f3::t_b47e86ee07c53f 192-193
+packages/building/src/building/runtime/BuildingDistanceView.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 28,69,74
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 22-24,97-110,128-129,131-136,267-275,353-370,372,422-430,452,455-566,572,574-575,578,583-586,618,657-658,678,716-718,744-746,756-757,765-767,775,778,780-789,794,800-915
+  s_c72f930c19d1f3::t_6854c173f8684e 916
+packages/world-planning/src/spatial/runtime/NaturalUnderstoryInstancedPool.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 36
+packages/core/src/RenderPipeline/PipelinePass.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 4-15,21-22,26
+packages/core/src/lighting/wind/WindTypes.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-308
+packages/core/src/lighting/screenSpaceReflection/SSRProgramResolver.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-137
+packages/shader/src/ShaderLibrary/PostProcess/UberPost.glsl
+  s_c72f930c19d1f3::t_630b6629b14f75 19-92,96-99,118-145,148-151,153
+packages/core/src/RenderPipeline/DepthOnlyPass.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 4,14,19,22,28,42-45,51-68
+packages/loader/src/SceneLoader.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 13-14,31-39,53,181
+packages/shader/src/ShaderLibrary/Lighting/VolumetricCloudComposition.glsl
+  s_c72f930c19d1f3::t_630b6629b14f75 1-133
+packages/shader/src/ShaderLibrary/PBR/LightDirectPBR.glsl
+  s_c72f930c19d1f3::t_630b6629b14f75 42,98-100,111-115,121,126,133
+world/demos/seed-world/assistant/shaders/SeedWorldVoiceOrb.shader
+  s_c72f930c19d1f3::t_630b6629b14f75 1-388
+packages/rhi-webgl/src/GLTexture.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 490-498,592,609
+  s_c72f930c19d1f3::t_64ed38f2543260 489
+packages/core/src/postProcess/FinalPass.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 9,22,61,65-69,74-86,88-92,104-112
+  s_c72f930c19d1f3::t_5144d367547ead 113
+packages/core/src/audio/AudioManager.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-5,13-80,110-115,125-126
+packages/core/src/graphic/BufferUtil.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 12,20-78,105,109-113,193
+packages/farming/package.json
+  s_c72f930c19d1f3::t_630b6629b14f75 200
+packages/project/src/rendering/V2ViewGeometry.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-196
+packages/core/src/shadow/CascadedShadowCasterPass.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 10,58,80-91,136-139,182,188-209,279,282-331,335-342
+packages/core/src/lighting/weather/WeatherState.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-313
+packages/shader/src/Shaders/PBR.shader
+  s_c72f930c19d1f3::t_630b6629b14f75 21,64,134,136,139,142,170,176-178,180
+world/demos/seed-world/src/planning/spatial/farming/PlanningFarmGrassOverlay.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 2
+packages/core/src/Background.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 94-100,103
+world/scripts/acceptance/prepare-tests.mjs
+  s_c72f930c19d1f3::t_630b6629b14f75 99,102
+packages/loader/src/schema/SceneSchema.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1,15
+world/scripts/tests/generate-water-assets.test.mjs
+  s_c72f930c19d1f3::t_630b6629b14f75 10,28
+packages/core/src/shader/ShaderData.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 33-35,637-638,775-779
+packages/shader/src/Shaders/Effect/ParticleFeedback.shader
+  s_c72f930c19d1f3::t_630b6629b14f75 78,189-203,251-260,318-331
+packages/rhi-null/src/NullTexture.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 30-32
+packages/core/src/lighting/environment/RealtimeIBLBaker.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-1004
+world/tests/seed-world-browser/ForwardGrass.test.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 17
+packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionSettings.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-212
+packages/world-planning/src/spatial/runtime/WorldTemplateRuntime.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 59,91
+packages/farming/src/farming/presentation/soil/disposeSoilMesh.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 2
+packages/core/src/asset/ResourceManager.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 9,13,115-132,217-243,248-284,412-414,500-519,714,716,720-728
+world/scripts/typecheck.mjs
+  s_c72f930c19d1f3::t_630b6629b14f75 16-17,27-43,45-54,57-67,69-75,77-79
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-4,7-9,16,18-24,33,44,48-52,54-84,99,103-106,108-133,147,156-157,159-175,189-196,200-214,223-327,346-391,399,409,414-423,428,430,438,440,442,444,446,448,451-456,480,484-508,519-702,709-711,726-764,766,772-794,796-803,806-814,816-820,837-840,842-901,903-922,924,928-949,954-967,974-975,977-981,983,1002-1011,1014-1022,1187-1239
+world/scripts/acceptance/modified-engine.config.mjs
+  s_c72f930c19d1f3::t_630b6629b14f75 4,27,31,40-41
+world/tests/seed-world-browser/SeedWorldPerfRegressions.test.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 7,9,13,20-24,554-570,584,586,589,626-627,653
+packages/shader/src/ShaderLibrary/Lighting/Light.glsl
+  s_c72f930c19d1f3::t_630b6629b14f75 27,114-115,122-126,131-133
+packages/farming/src/farming/presentation/FarmingTargetHint.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 17
+packages/world-planning/src/spatial/runtime/PlanningSeedSolids.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 7
+packages/core/src/lighting/wind/WindGpuPass.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-84
+world/tests/seed-world/ShadowCascadeBlend.spec.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-95
+packages/project/src/rendering/shaders/SeedWorldLiquidGlass.shader
+  s_c72f930c19d1f3::t_630b6629b14f75 1-302
+packages/shader/src/ShaderLibrary/Pipeline/DepthOnlyPass.glsl
+  s_c72f930c19d1f3::t_630b6629b14f75 1-88
+packages/farming/src/farming/presentation/FarmingPlotSelection.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 17-18
+packages/core/src/lighting/environment/ProbeVolumeSamplingMode.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-9
+packages/galacean/src/ShaderPool.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 26-40,44-48,59-62,64-135,138-159
+packages/building/src/building/runtime/EngineResidentScene.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 33
+packages/farming/src/farming/procedural/runtime/PlantResourcePool.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-2
+world/demos/seed-world/assistant/SeedWorldVoiceHudShaders.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 12,17,23,25,31,36,40-41
+packages/core/src/material/PBRMaterial.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 4,8,29-30,577,593,611,624,807,815-837,866-867
+world/demos/seed-world/src/SeedWorldCameraButton.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 127,135,139,163,171-172,183-185,193-194
+packages/core/src/renderingHardwareInterface/index.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 12-14
+packages/core/src/renderingHardwareInterface/IPlatformTexture2D.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 53-60
+packages/shader/src/Shaders/Pipeline/SSRReceiver.shader
+  s_c72f930c19d1f3::t_630b6629b14f75 1-304
+packages/core/src/asset/AssetType.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 17-18,55
+packages/core/src/postProcess/effects/ColorAdjustmentsEffect.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-70
+packages/core/src/graphic/TransformFeedbackPrimitive.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 16,22,30,37,39-44,51,58,66,81,97-99,103,117-118,120,124,126,129,142,165
+packages/core/src/lighting/volumetricClouds/VolumetricCloudDirectionCacheSchedule.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-84
+packages/core/src/lighting/volumetricClouds/VolumetricCloudLightingProfile.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-262
+packages/shader/src/Shaders/World/VolumetricCloud.shader
+  s_c72f930c19d1f3::t_630b6629b14f75 1-777
+packages/farming/src/farming/procedural/runtime/ProceduralPlant.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-2
+packages/world-planning/src/masonry/NativeBuildingHost.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 9
+packages/shader/src/Shaders/Sky/Skybox.shader
+  s_c72f930c19d1f3::t_630b6629b14f75 13-14,44-47,69-72
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectStorage.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 9,20,40-46,54-55,120-121,123,146-149
+packages/rhi-webgl/src/GLTextureReadback.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-89
+packages/core/src/renderingHardwareInterface/RenderPassLoadAction.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-18
+packages/core/src/lighting/wind/WindSceneBridge.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-1755
+packages/core/src/lighting/environment/EnvironmentState.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-59
+packages/core/src/sky/SkyBoxMaterial.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 4,14-15,18,33-55,96
+packages/loader/src/index.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 12
+world/demos/seed-world/assistant/SeedWorldChatPanel.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 83,85-86,393,402,1272,1274,1735,2169-2171,2185,2203-2205,2207-2209,2225,2418-2419,2430-2433,2435-2450,2463,2474,2561,2564,2611,2624
+packages/shader/src/Shaders/PostProcess/VolumetricLight.shader
+  s_c72f930c19d1f3::t_630b6629b14f75 1-68
+packages/loader/src/prefab/PrefabParser.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 32-35
+packages/core/src/lighting/environment/RealtimeSphericalHarmonicsGPU.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-155
+packages/core/src/RenderPipeline/enums/PipelineStage.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 9-12
+packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionQuality.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-13
+packages/core/src/RenderPipeline/OpaqueTexturePass.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 4-5,18-19,25-29,36-47,51-53,56-57,60-64,67-75,80-97
+packages/core/src/shader/ShaderProgram.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 76-83,89-91,95,97,107-121,124-126,129,132-134,140-178,310-313,390,397-398,411,416-426,434-449,461-472,489-505,508-517,519,521-522,652-654,692-701,704-705,737-766
+packages/core/src/material/BaseMaterial.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 2,42-62
+  s_c72f930c19d1f3::t_a8ae55348c156b 63
+packages/core/src/particle/modules/WindOverLifetimeModule.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-121
+packages/core/src/sky/SkyProceduralMaterial.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-2,4,7,22-47,54-55,57-68,71-75,77-92,96-99,102-121,173-190,202-294,317-343,355-508,518-519,521-530,533-535,537-599,608
+packages/core/src/postProcess/PostProcessUberPass.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-2,5-16,18,21-38,42-63,67-68,74-113,129-169,174,179-185,196-205,216-238,241,249-274,281-292,302-304,307-912,915,934,968,1003-1005,1007-1011,1015-1019,1023,1025-1029,1054,1064-1066
+packages/core/src/shader/enums/ConstantBufferBindingPoint.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 6-7
+world/tests/seed-world/ShaderMacroCollection.spec.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-84
+packages/core/src/lighting/wind/index.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-48
+packages/core/src/lighting/wind/WindSystem.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-1177
+packages/shader/src/ShaderLibrary/PostProcess/SunLensFlare.glsl
+  s_c72f930c19d1f3::t_630b6629b14f75 1-220
+packages/core/src/lighting/environment/ProbeVolumeRegion.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-16
+packages/core/src/renderingHardwareInterface/RenderPassDescriptor.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-84
+packages/world-planning/src/integrations/terrain/rock-formation/RockLodView.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 23
+packages/shader/src/Shaders/Lighting/ScreenSpaceReflection.shader
+  s_c72f930c19d1f3::t_630b6629b14f75 1-1124
+packages/runtime-editor/src/runtime-inspection/runtime-mesh-picking.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 6
+packages/core/src/lighting/volumetricClouds/VolumetricCloudShapeProfile.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-246
+packages/shader/src/ShaderLibrary/PBR/LightIndirectPBR.glsl
+  s_c72f930c19d1f3::t_630b6629b14f75 19-50,67,72-218,221-240,242-246,256-275,283-311,338
+packages/core/src/lighting/volumetricClouds/VolumetricCloudWind.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-6
+packages/shader/src/ShaderLibrary/PBR/ReflectionLobe.glsl
+  s_c72f930c19d1f3::t_630b6629b14f75 29,35
+packages/core/src/particle/ParticleGenerator.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 44,88-89,178-185,217,490-492,495,619,669,711-716
+  s_c72f930c19d1f3::t_dd2c26d255bb28 717
+world/scripts/acceptance/native-material.config.mjs
+  s_c72f930c19d1f3::t_630b6629b14f75 12
+packages/shader/src/ShaderLibrary/Common/OilPaintBrush.glsl
+  s_c72f930c19d1f3::t_630b6629b14f75 1-118
+packages/core/src/shader/state/RasterState.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 68-71
+packages/project/src/rendering/SeedWorldPickBatch.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-24
+packages/core/src/lighting/dayNight/DayNightClock.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-60
+packages/building/src/building/runtime/RigidDecorationRenderer.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 13
+packages/core/src/base/EngineObject.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 87-101
+world/tests/seed-world-browser/RegisteredPipelinePass.test.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-46
+packages/project/src/rendering/FarShadowCascadeProxy.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-31
+packages/core/src/audio/AudioListener.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-29
+packages/core/src/lighting/environment/RealtimeIBLSourceMipmapSchedule.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-70
+packages/core/src/postProcess/effects/VolumetricLightEffect.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-280
+packages/building/src/building/runtime/BrickPackKernel.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 24
+packages/core/src/lighting/dayNight/DayNightEnvironmentAdapter.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-124
+packages/building/src/building/render/GridUnitKernel.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 30
+packages/core/src/shader/BuiltinShaders.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 28
+packages/core/src/postProcess/PostProcessManager.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 27-28,173-178,183-186,194-195,205,208,211-215,279-281,283,287,291,299-320,335-340
+packages/core/src/shader/ShaderFactory.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 18,22-24,177-184
+  s_c72f930c19d1f3::t_12d67ab0cbb92a 185-186
+world/demos/seed-world/systems/runtime-declarations-index.json
+  s_c72f930c19d1f3::t_630b6629b14f75 1
+world/scripts/build-seed-world-flash-source.mjs
+  s_c72f930c19d1f3::t_630b6629b14f75 234-235
+packages/shader/src/Shaders/World/WindGpuField.shader
+  s_c72f930c19d1f3::t_630b6629b14f75 1-126
+packages/water/src/bridges/SuspensionBridgeView.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1
+packages/core/src/renderingHardwareInterface/IPlatformTransformFeedbackPrimitive.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 39-40,42
+packages/core/src/graphic/enums/VertexElementFormat.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 36-38
+packages/core/src/lighting/wind/WindGpuFieldRenderer.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-519
+packages/core/src/lighting/dayNight/DayNightSystem.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-99
+packages/shader/src/Shaders/PostProcess/SunLensFlare.shader
+  s_c72f930c19d1f3::t_630b6629b14f75 1-27
+packages/core/src/lighting/index.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 8-19
+packages/core/src/lighting/dayNight/DayNightAdapters.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-181
+packages/core/src/postProcess/effects/index.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 2-3,5
+packages/loader/src/resource-deserialize/resources/texture/TexturePixelsDecoder.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-133
+packages/core/src/RenderPipeline/Blitter.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 4-5,9,23-27,30,33-37,41,46,56-96,104-105,148-165
+packages/loader/src/ShaderLoader.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 33,36,38-70
+packages/shader/src/Shaders/Pipeline/SSRContributionDepth.shader
+  s_c72f930c19d1f3::t_630b6629b14f75 1-115
+packages/farming/src/farming/presentation/harvest/HarvestProduce.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 2
+packages/core/src/lighting/volumetricClouds/VolumetricCloudDirectionCacheRenderer.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-423
+packages/shader/src/ShaderLibrary/Common/Fog.glsl
+  s_c72f930c19d1f3::t_630b6629b14f75 7-9,11-53,58-63,75-86
+world/demos/snow-wind/main.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 30
+packages/water/vitest.config.mjs
+  s_c72f930c19d1f3::t_630b6629b14f75 2,8,15
+packages/core/src/audio/index.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 2,4
+packages/project/src/rendering/CameraDepthTexturePrePass.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-69
+packages/core/src/lighting/dayNight/DayNightMoonLighting.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-168
+packages/shader/src/ShaderLibrary/Shadow/Shadow.glsl
+  s_c72f930c19d1f3::t_630b6629b14f75 4,26-27,32-82,89,149,162-167,169-184,191
+packages/core/src/lighting/weather/index.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-12
+packages/farming/src/farming/presentation/soil/SoilWorkPresenter.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 2
+packages/core/src/lighting/environment/ProbeVolumeBaker.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-879
+packages/shader/src/ShaderLibrary/PBR/LightIndirectFunctions.glsl
+  s_c72f930c19d1f3::t_630b6629b14f75 30-34,48-64
+packages/shader/src/ShaderLibrary/Particle/Module/WindOverLifetime.glsl
+  s_c72f930c19d1f3::t_630b6629b14f75 1-83
+packages/core/src/RenderPipeline/RenderContext.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 6-7,11-34,63-64,109-151,154
+packages/building/src/building/runtime/BuildingGlobalProxy.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 51
+packages/core/src/particle/ParticleBounds.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 51-63,93-95,109-116,353-394,794-795,874-894,944-1104,1164-1168,1171-1173,1176-1178
+packages/core/src/shader/state/DepthState.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 86-90
+packages/core/src/base/Time.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 23
+packages/rhi-webgl/src/GLPrimitive.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 13,18,28,41,43,78-79,119-130,150,154,163,173,175-177
+packages/core/src/renderingHardwareInterface/RenderPassStoreAction.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-18
+packages/world-planning/src/world/SeedWorldVisualQuery.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 4
+world/scripts/acceptance/native-paths.mjs
+  s_c72f930c19d1f3::t_630b6629b14f75 14
+world/tests/seed-world/SeedWorldVoiceHudController.spec.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 685,892,985,995,1019,1031
+packages/world-planning/src/runtime/SeedWorldForwardGrass.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 33
+world/migration/files.json
+  s_c72f930c19d1f3::t_630b6629b14f75 1582
+packages/shader/src/ShaderLibrary/PostProcess/VolumetricLight.glsl
+  s_c72f930c19d1f3::t_630b6629b14f75 1-362
+packages/project/build/vite.mjs
+  s_c72f930c19d1f3::t_630b6629b14f75 1-102
+packages/rhi-webgl/src/GLBuffer.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 8,12,23,37,42,44-52,57-60
+world/tests/seed-world-browser/ScreenSpaceReflection.test.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-5733
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectSource.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 67,438-460,468,471
+packages/core/src/Scene.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 13,15,29,67-69,293,481-482,484-487,492
+packages/world-planning/src/runtime/SeedWorldPopulationRuntime.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 33,905,1413,2003,2711-2712,2731-2753,3235-3236
+world/demos/seed-world/SeedWorldDemo.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 38,87,117,566,586-587,1212
+packages/core/src/graphic/Buffer.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 107-128,130-135,279
+world/demos/seed-world/systems/runtime-declarations.json
+  s_c72f930c19d1f3::t_630b6629b14f75 1
+packages/core/src/lighting/wind/WindGpuFieldShader.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-5
+packages/rhi-webgl/src/GLTexture2D.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 3,87-98
+  s_c72f930c19d1f3::t_3b23001bef3e70 99
+packages/farming/src/farming/presentation/FarmItemPresentation.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 30
+packages/core/src/lighting/environment/ProbeVolume.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-1853
+world/scripts/check-boundaries.mjs
+  s_c72f930c19d1f3::t_630b6629b14f75 7,16
+packages/core/src/lighting/environment/index.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-31
+packages/core/src/lighting/environment/EnvironmentLighting.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-347
+world/scripts/generate-water-assets.mjs
+  s_c72f930c19d1f3::t_630b6629b14f75 7,18
+packages/shader/src/Shaders/index.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 14-17,19,22-23,28-29,31,36-39,59-62,64,67-68,73-74,76,81-84
+packages/core/src/lighting/dayNight/DayNightSolarPosition.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-182
+world/tests/seed-world/ShaderSourceCompatibility.spec.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-46
+world/tests/seed-world-browser/VegetationPigment.test.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 43
+packages/world-planning/src/spatial/runtime/PlanningWaterRuntime.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 11
+packages/core/src/lighting/wind/WindConsumer.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-332
+packages/loader/src/resource-deserialize/resources/mesh/BufferMeshDecoder.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-172
+world/tests/seed-world-browser/VoiceHudGlass.test.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 117,120
+packages/core/src/Engine.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 2,20,202,215-216,375-377,383-384,509,614-615
+world/vite.config.mjs
+  s_c72f930c19d1f3::t_630b6629b14f75 6,595,599,620
+packages/core/src/asset/ReferResource.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 60-79
+  s_c72f930c19d1f3::t_617aa03975a2dd 59
+packages/shader/src/Shaders/BlinnPhong.shader
+  s_c72f930c19d1f3::t_630b6629b14f75 52
+packages/world-planning/src/spatial/runtime/TemplateProceduralPlants.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 74
+world/tests/seed-world/SunLensFlare.spec.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-118
+packages/core/src/lighting/dayNight/DayNightMoonPosition.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-328
+packages/loader/src/MeshLoader.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-61
+packages/shader/src/Shaders/World/WindGpuTreeResponse.shader
+  s_c72f930c19d1f3::t_630b6629b14f75 1-180
+packages/water/src/water/runtime/optics/CameraWaterFeatureBroker.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 6
+world/tests/seed-world-browser/LegacyToolkit.test.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-21
+world/tests/seed-world-browser/MaterialLoaderCompatibility.test.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-220
+packages/core/src/Camera.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 9-10,14,24-28,35,37,46-48,60-61,73-101,184-189,202,216-219,235-239,495-503,511-512,735-885,1022-1027,1044-1068,1095-1096
+packages/loader/src/prefab/PrefabResource.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 35-37
+packages/core/src/shader/ShaderPass.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 28-29,47-48,52-95,157-159,161-162,166-179,183-187,190-198,221-223,226-231,238-261,263,293-294
+  s_c72f930c19d1f3::t_49c74cd85c40ca 295
+packages/core/src/lighting/dayNight/DayNightSolarTransmittance.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-102
+packages/rhi-webgl/src/GLTransformFeedbackPrimitive.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 8,16,23-25,56-58,65,67-70,74,77-79,93,98,115,143-145
+packages/project/src/rendering/LiquidGlassPostProcessPass.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-341
+packages/core/src/RenderPipeline/RenderViewCulling.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-199
+packages/core/src/texture/Texture2D.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 171-210
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomPrefilter.glsl
+  s_c72f930c19d1f3::t_630b6629b14f75 8,49-51
+packages/core/src/lighting/screenSpaceReflection/SSRDiagnostics.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-29
+packages/shader/src/Shaders/Lighting/RealtimeIBLProjectSH.shader
+  s_c72f930c19d1f3::t_630b6629b14f75 1-147
+packages/shader/src/Shaders/World/WindGpuGroundResponse.shader
+  s_c72f930c19d1f3::t_630b6629b14f75 1-152
+packages/core/src/lighting/screenSpaceReflection/index.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-5
+world/tests/seed-world-browser/FarShadowCascadeProxy.test.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-124
+packages/shader/src/Shaders/PostProcess/SunLensFlareVisibility.shader
+  s_c72f930c19d1f3::t_630b6629b14f75 1-12
+packages/world-planning/src/integrations/terrain/rock-formation/View.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 14
+packages/core/src/lighting/dayNight/index.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-26
+packages/shader/src/Shaders/Sky/SkyProcedural.shader
+  s_c72f930c19d1f3::t_630b6629b14f75 1-2,6-11,22-23,26-35,40-58,77-85,88-95,108-111,118-120,123-126,129-154,162-192,198-218,221-390,395-396,398,402-677,692-708,710,713-714,716-719,726-740,742-743,746-749,751-758
+package.json
+  s_c72f930c19d1f3::t_630b6629b14f75 11
+packages/farming/src/farming/presentation/harvest/BasketContentsMesh.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 5
+packages/world-planning/src/semantic-study/WorldPlanning3DView.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 28
+packages/core/src/audio/AudioSource.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 7-18,26-29,41-65,109-211,213-219,302,304-313,321-333,335,359-367,389,405,436-445,453-463,476-479,497,531-534,552-660
+world/scripts/acceptance/unit.config.mjs
+  s_c72f930c19d1f3::t_630b6629b14f75 6,33,48
+packages/shader/src/ShaderLibrary/PBR/VaryingsPBR.glsl
+  s_c72f930c19d1f3::t_630b6629b14f75 11,22-25,41
+packages/building/src/building/runtime/BuildingFarProxy.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 38-39
+packages/core/src/lighting/volumetricClouds/VolumetricCloudNoiseAtlas.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-261
+packages/core/src/graphic/TransformFeedbackSimulator.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 32,39-40,42,80-82,92-93,95-96
+packages/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflectionSample.glsl
+  s_c72f930c19d1f3::t_630b6629b14f75 1-158
+packages/world-planning/src/spatial/runtime/PlanningWorldPicking.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 4
+packages/core/src/shader/ShaderProgramMap.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 20-21,57,60-62,65-81,83-93
+packages/farming/src/farming/presentation/storage/StorageProduceLibrary.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 3
+packages/world-planning/src/world/SeedWorldPhotoGraphics.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1
+packages/world-planning/src/world/SeedWorldPicker.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 35
+packages/loader/src/resource-deserialize/index.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 10-11
+packages/core/src/lighting/dayNight/DayNightProfileFactory.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-55
+world/demos/seed-world/src/SeedWorldGrassDrawOrder.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-98
+packages/core/src/postProcess/effects/SunLensFlareEffect.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-264
+world/tests/seed-world/ScreenSpaceReflection.spec.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-580
+packages/rhi-webgl/src/GLCapability.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 12,25-29
+  s_c72f930c19d1f3::t_ac2cfc65ea0a87 30-31
+packages/world-planning/src/runtime/SeedWorldTerrainRuntime.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 23
+world/tests/seed-world/VolumetricLight.spec.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-226
+packages/loader/src/schema/MaterialSchema.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 5-7,37
+packages/shader/src/Shaders/Lighting/ProbeDepthCapture.shader
+  s_c72f930c19d1f3::t_630b6629b14f75 1-23
+world/tests/seed-world-browser/GrassDrawOrder.test.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-105
+packages/core/src/lighting/screenSpaceReflection/SSRHistoryState.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-151
+packages/core/src/material/Material.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 6,13-17,21-39,43,47-62,98,117-137
+packages/project/src/rendering/RestorableResources.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-66
+packages/animals/package.json
+  s_c72f930c19d1f3::t_630b6629b14f75 75
+packages/animals/src/controls/FreeControlJoystickUi.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 11
+packages/core/src/lighting/environment/RealtimeIBLPrefilterSchedule.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-217
+packages/loader/src/MaterialLoader.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 4,15-23,29,33-38,61-62,69,72-75,78-81,84-87,90-92,95-96,104-105,117-151
+packages/core/src/sky/index.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 3-8
+packages/core/src/lighting/weather/WeatherSystem.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-403
+packages/core/src/RenderPipeline/RenderQueue.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 4,12,53-89,93-95,103-105,109-115,118-120,131-134,155-156,172-173,199-207,313-315
+packages/building/src/building/parts/architecture/BuildingRuntime.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 63
+packages/core/src/lighting/dayNight/DayNightProceduralSky.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-121
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 63-103,114,120,137-140,147,151,165,176,183,230,235,279,294-299,304
+  s_c72f930c19d1f3::t_96f8eef459df1c 300-303
+packages/rhi-webgl/src/GLTexture2DArray.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 117,120
+packages/shader/src/ShaderLibrary/Lighting/VolumetricCloudShadow.glsl
+  s_c72f930c19d1f3::t_630b6629b14f75 1-119
+packages/water/scripts/prepare-builtin-shaders.mjs
+  s_c72f930c19d1f3::t_630b6629b14f75 6,18
+packages/core/src/lighting/AmbientLight.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 5,16-18,20,22,30-31,36-41,46-47,49,93,123,128-133,135-160,189,193,204-209,212,216,225-227,229-250,261-289,295-305,307
+world/demos/seed-world/src/SeedWorldPhotoWorkspace.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 761-774,776-777,780-781,786-787,822
+world/scripts/build-seed-world-npm.mjs
+  s_c72f930c19d1f3::t_630b6629b14f75 87-88
+world/tests/seed-world/EngineStartup.spec.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-63
+world/tests/seed-world-browser/BuiltinShaderIdentity.test.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-59
+packages/core/src/lighting/dayNight/DayNightProfile.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-650
+packages/world-planning/tests/SeedWorldPhotoGraphics.spec.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 312
+world/tests/seed-world-browser/MarkupButton.test.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 7,9,17,25,27,35-36,38,43,47
+packages/core/src/lighting/volumetricClouds/VolumetricCloudWeatherMap.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 1-345
+packages/core/src/Entity.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 484-489,492
+world/demos/seed-world/agent-adapter/contracts/run-agent-contracts.mjs
+  s_c72f930c19d1f3::t_630b6629b14f75 4,14
+packages/shader/src/ShaderLibrary/PBR/ForwardPassPBR.glsl
+  s_c72f930c19d1f3::t_630b6629b14f75 26,60-70,120,128,144-147,152
+packages/animals/src/gameplay/animal/FireflyPresenter.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 22-23
+packages/core/src/texture/RenderTarget.ts
+  s_c72f930c19d1f3::t_630b6629b14f75 217-222,255,258
+packages/building/src/building/runtime/BuildingUnitWallUV.ts
+  s_c72f930c19d1f3::t_31ec3ea0014180 12
+packages/building/src/building/runtime/BuildingUnitWallUVFeedback.ts
+  s_c72f930c19d1f3::t_fd105843b2e2e4 18
+packages/building/src/building/runtime/BuildingWallBakeBinding.ts
+  s_c72f930c19d1f3::t_9d6a2297868c2c 11
+packages/building/src/building/runtime/BuildingWallBakeLayout.ts
+  s_c72f930c19d1f3::t_db35107b9a45d3 10
+packages/building/src/building/runtime/BuildingWallBakePagesView.ts
+  s_c72f930c19d1f3::t_89577312c77a2f 9
+pnpm-lock.yaml
+  s_c72f930c19d1f3::t_8c06537a398607 240,242,381-383,604,606
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "81897077b82dec733fdf76cfee55dc29631498ae",
+  "prompts": {},
+  "sessions": {
+    "s_c72f930c19d1f3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21604-5ead-7042-b751-c18d1813c1a0",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

@@ -1,0 +1,38 @@
+packages/environment/src/terrain/lighting/TerrainScreenSpaceReflectionTuning.ts
+  h_a3c79ce84ffdc2 19-21
+packages/modify/src/native/core/src/Camera.ts
+  h_a3c79ce84ffdc2 78,84,93
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflection.ts
+  h_a3c79ce84ffdc2 289-290,337,346,1179
+packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts
+  h_a3c79ce84ffdc2 13,45,100-116,127-140,315-323,374,376,383,418-424,740,751
+packages/modify/src/native/shader/src/Shaders/Lighting/ScreenSpaceReflection.shader
+  h_a3c79ce84ffdc2 52
+packages/modify/tests/ScreenSpaceReflectionAuthoring.test.ts
+  h_a3c79ce84ffdc2 292,300,309
+packages/modify/tests/ScreenSpaceReflectionOpaqueReuse.test.ts
+  h_a3c79ce84ffdc2 146-208
+packages/modify/tests/ScreenSpaceReflectionPipelineOptimizations.test.ts
+  h_a3c79ce84ffdc2 476-573
+packages/terrain/src/terrain/debug/TerrainScreenSpaceReflectionPanel.ts
+  h_a3c79ce84ffdc2 11,80-92
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_a3c79ce84ffdc2 971-972
+world/demos/seed-world/SeedWorldDemo.ts
+  h_a3c79ce84ffdc2 138,140-141,233-243,856,859,861-863
+world/tests/seed-world/SeedWorldRendererWarmup.spec.ts
+  h_a3c79ce84ffdc2 668-679
+world/tests/seed-world/SeedWorldScreenSpaceReflection.spec.ts
+  h_a3c79ce84ffdc2 14,271-303
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c94815878f4c38038ed7c98ac54bccf5b0d52d08",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

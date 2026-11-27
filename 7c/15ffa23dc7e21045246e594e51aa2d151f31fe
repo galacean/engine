@@ -1,0 +1,20 @@
+packages/core/src/Camera.ts
+  h_ddbf152d31b140 321,324
+packages/core/src/Renderer.ts
+  h_ddbf152d31b140 412
+packages/core/src/lighting/Light.ts
+  h_ddbf152d31b140 79-81
+packages/math/src/Matrix.ts
+  h_ddbf152d31b140 520-687
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7c15ffa23dc7e21045246e594e51aa2d151f31fe",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

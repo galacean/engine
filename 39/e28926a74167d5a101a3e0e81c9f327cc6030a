@@ -1,0 +1,19 @@
+tests/src/loader/AnimationClipDecoder.test.ts
+  s_1b90b9b0db4a1b::t_19f7895e3ca90f 11,145-151,153-154
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "39e28926a74167d5a101a3e0e81c9f327cc6030a",
+  "prompts": {},
+  "sessions": {
+    "s_1b90b9b0db4a1b": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1cee4-5917-74ee-926a-29cbca9a4a8b",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

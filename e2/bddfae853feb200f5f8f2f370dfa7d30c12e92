@@ -1,0 +1,16 @@
+packages/core/src/physics/CharacterController.ts
+  h_dd004f51a3e5ec 1,301-302
+packages/core/src/physics/Collider.ts
+  h_dd004f51a3e5ec 1-7,151,173,192,474-475
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e2bddfae853feb200f5f8f2f370dfa7d30c12e92",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

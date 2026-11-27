@@ -1,0 +1,21 @@
+packages/core/src/physics/Collider.ts
+  s_a20fbf413cca3c::t_6a555a3ea10198 421,423
+packages/core/src/physics/CharacterController.ts
+  s_a20fbf413cca3c::t_6a555a3ea10198 215,254
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "edaee7eb47364848899814e22d59bb078d5164c7",
+  "prompts": {},
+  "sessions": {
+    "s_a20fbf413cca3c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2088c-3f7f-7131-8505-b699d01f3e8d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,23 @@
+.agents/skills/seed-world-local-debug/references/start.md
+  s_02781447abdd68::t_896b6718afd5c8 6,44,49,69,75-76
+.agents/skills/seed-world-local-debug/SKILL.md
+  s_02781447abdd68::t_896b6718afd5c8 18-19,21
+.agents/skills/seed-world-local-debug/references/prepare.md
+  s_02781447abdd68::t_896b6718afd5c8 14-16,27,39,43,47-51,80-81,90,96,104-105
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b7f8c5a711fff889693b6506e8418633e4cc5ca7",
+  "prompts": {},
+  "sessions": {
+    "s_02781447abdd68": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cdd2-e33f-7600-95dc-ac58eab2f9bb",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

@@ -1,0 +1,128 @@
+e2e/case/material-shaderReplacement.ts
+  h_171a11afaf879a 142
+e2e/case/spriteMask-customStencil.ts
+  h_171a11afaf879a 101
+packages/core/src/Camera.ts
+  h_171a11afaf879a 610
+packages/core/src/env-probe/Probe.ts
+  h_171a11afaf879a 35
+packages/core/src/graphic/enums/BufferBindFlag.ts
+  h_171a11afaf879a 9
+packages/core/src/particle/enums/ParticleInheritVelocityMode.ts
+  h_171a11afaf879a 11
+packages/core/src/particle/modules/SubEmittersModule.ts
+  h_171a11afaf879a 26
+packages/core/src/shader/ShaderPass.ts
+  h_171a11afaf879a 17-18
+packages/core/src/shader/ShaderProgram.ts
+  h_171a11afaf879a 273,275,429,432,435,438,441,444,449-451,460,463,466,509,511,513,517
+packages/core/src/shader/ShaderUniform.ts
+  h_171a11afaf879a 257,261,265,269,273,277
+packages/core/src/shader/state/BlendState.ts
+  h_171a11afaf879a 63,65,160
+packages/core/src/shader/state/DepthState.ts
+  h_171a11afaf879a 81
+packages/core/src/shader/state/RasterState.ts
+  h_171a11afaf879a 62
+packages/core/src/shader/state/StencilState.ts
+  h_171a11afaf879a 157
+packages/core/src/texture/Texture.ts
+  h_171a11afaf879a 159
+packages/core/src/texture/TextureUtils.ts
+  h_171a11afaf879a 57
+packages/galacean/skills/engine-knowledge/references/spine.md
+  h_171a11afaf879a 33
+packages/loader/src/TextureLoader.ts
+  h_171a11afaf879a 57
+packages/loader/src/gltf/parser/GLTFTextureParser.ts
+  h_171a11afaf879a 72
+packages/rhi-webgl/src/GLBuffer.ts
+  h_171a11afaf879a 31,85,100
+packages/rhi-webgl/src/GLTexture.ts
+  h_171a11afaf879a 343-344,348,350,502
+packages/rhi-webgl/src/GLTexture2DArray.ts
+  h_171a11afaf879a 1
+packages/rhi-webgl/src/GLTransformFeedback.ts
+  h_171a11afaf879a 14
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_171a11afaf879a 242,246,251,260,268
+packages/shader/src/ShaderLibrary/BlinnPhong/ForwardPassBlinnPhong.glsl
+  h_171a11afaf879a 78
+packages/shader/src/ShaderLibrary/BlinnPhong/MobileBlinnPhong.glsl
+  h_171a11afaf879a 41,45,49
+packages/shader/src/ShaderLibrary/Common/Common.glsl
+  h_171a11afaf879a 49,85
+packages/shader/src/ShaderLibrary/Common/Normal.glsl
+  h_171a11afaf879a 6
+packages/shader/src/ShaderLibrary/Lighting/AmbientOcclusion/BilateralBlur.glsl
+  h_171a11afaf879a 33,40
+packages/shader/src/ShaderLibrary/Lighting/AmbientOcclusion/ScalableAmbientOcclusion.glsl
+  h_171a11afaf879a 65-66,81-84,95-98,141,195
+packages/shader/src/ShaderLibrary/PBR/BSDF.glsl
+  h_171a11afaf879a 358,398,424
+packages/shader/src/ShaderLibrary/PBR/FragmentPBR.glsl
+  h_171a11afaf879a 138,153,159,221,225,241,245,256,273,280,287,293,300,307,314
+packages/shader/src/ShaderLibrary/PBR/LightIndirectFunctions.glsl
+  h_171a11afaf879a 28
+packages/shader/src/ShaderLibrary/PBR/VertexPBR.glsl
+  h_171a11afaf879a 66
+packages/shader/src/ShaderLibrary/Particle/Module/NoiseModule.glsl
+  h_171a11afaf879a 54
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomBlurH.glsl
+  h_171a11afaf879a 13-21
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomBlurV.glsl
+  h_171a11afaf879a 13-17
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomPrefilter.glsl
+  h_171a11afaf879a 13-25,36
+packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomUpsample.glsl
+  h_171a11afaf879a 13,18
+packages/shader/src/ShaderLibrary/PostProcess/FXAA/FXAA3_11.glsl
+  h_171a11afaf879a 508,609-613,635-638
+packages/shader/src/ShaderLibrary/PostProcess/Filtering.glsl
+  h_171a11afaf879a 41-44
+packages/shader/src/ShaderLibrary/PostProcess/FinalAntiAliasing.glsl
+  h_171a11afaf879a 7,33
+packages/shader/src/ShaderLibrary/PostProcess/FinalSRGB.glsl
+  h_171a11afaf879a 9
+packages/shader/src/ShaderLibrary/PostProcess/UberPost.glsl
+  h_171a11afaf879a 20,26,33
+packages/shader/src/ShaderLibrary/Shadow/Shadow.glsl
+  h_171a11afaf879a 51,54,62-65,74,79-87,104
+packages/shader/src/ShaderLibrary/Skin/Skin.glsl
+  h_171a11afaf879a 11,13-16
+packages/shader/src/Shaders/2D/Spine.shader
+  h_171a11afaf879a 63
+packages/shader/src/Shaders/2D/Sprite.shader
+  h_171a11afaf879a 47
+packages/shader/src/Shaders/2D/SpriteMask.shader
+  h_171a11afaf879a 30
+packages/shader/src/Shaders/2D/Text.shader
+  h_171a11afaf879a 47
+packages/shader/src/Shaders/2D/UIDefault.shader
+  h_171a11afaf879a 53
+packages/shader/src/Shaders/Effect/Particle.shader
+  h_171a11afaf879a 89,94
+packages/shader/src/Shaders/Effect/Trail.shader
+  h_171a11afaf879a 136,142
+packages/shader/src/Shaders/Pipeline/ShadowCaster.shader
+  h_171a11afaf879a 69,100
+packages/shader/src/Shaders/Sky/BackgroundTexture.shader
+  h_171a11afaf879a 35
+packages/shader/src/Shaders/Sky/Skybox.shader
+  h_171a11afaf879a 62
+packages/shader/src/Shaders/Unlit.shader
+  h_171a11afaf879a 135
+packages/spine/README.md
+  h_171a11afaf879a 134
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e5871a625a804988578b544549d42fd7a6243c6e",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

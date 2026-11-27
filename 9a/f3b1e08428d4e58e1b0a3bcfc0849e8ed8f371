@@ -1,0 +1,68 @@
+packages/ai-chat/src/ai-chat/context-compaction.ts
+  h_ddbf152d31b140 181-187
+packages/ai-chat/tests/context-compaction-loop.spec.ts
+  h_ddbf152d31b140 215,227-229,239
+world/demos/seed-world/agent-adapter/SeedWorldKnowledge.ts
+  h_ddbf152d31b140 3,6,33-35,39,43
+world/demos/seed-world/agent-adapter/contracts/generate-agent-contracts.ts
+  h_ddbf152d31b140 763-773
+world/demos/seed-world/agent-adapter/contracts/generated/SeedWorldApiSearchRegistry.ts
+  h_ddbf152d31b140 4,299,304,309,319,324,334,339,349,354,364,369,379,384,768,1103,1110,1118,1124,1180,1187,1195,1203,1229,1240,1251,1273,1284,1306,1317,1339,1350,1372,1383,1405,1416
+world/demos/seed-world/agent-adapter/contracts/generated/api/common/MutationResult.d.ts
+  h_ddbf152d31b140 31,62,93
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/animals.config.get.d.ts
+  h_ddbf152d31b140 12
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/animals.config.reset.d.ts
+  h_ddbf152d31b140 12
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/animals.config.update.d.ts
+  h_ddbf152d31b140 12-13,21,27,34
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/environment.config.reset.d.ts
+  h_ddbf152d31b140 12
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/environment.config.update.d.ts
+  h_ddbf152d31b140 12-13,21,27,34
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/spatial.config.reset.d.ts
+  h_ddbf152d31b140 12
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/spatial.config.update.d.ts
+  h_ddbf152d31b140 12-13,21,27,34
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/terrain.config.reset.d.ts
+  h_ddbf152d31b140 12
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/terrain.config.update.d.ts
+  h_ddbf152d31b140 12-13,21,27,34
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/terrain.create.d.ts
+  h_ddbf152d31b140 106,116-125,147
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/terrain.update.d.ts
+  h_ddbf152d31b140 99,109-118,140
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.config.reset.d.ts
+  h_ddbf152d31b140 12
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.config.update.d.ts
+  h_ddbf152d31b140 12-13,21,27,34
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.create.d.ts
+  h_ddbf152d31b140 79,89-106,138
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.update.d.ts
+  h_ddbf152d31b140 118,128-149,179
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/water.config.reset.d.ts
+  h_ddbf152d31b140 12
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/water.config.update.d.ts
+  h_ddbf152d31b140 12-13,21,27,34
+world/demos/seed-world/agent-adapter/tools/landscape-tools.ts
+  h_ddbf152d31b140 22,31,317,369
+world/demos/seed-world/agent-adapter/tools/parameter-tools.ts
+  h_ddbf152d31b140 258-259,261-263,306-327,347,356-357,365,526-542,546
+world/demos/seed-world/agent-adapter/tools/tool-contract.ts
+  h_ddbf152d31b140 109,346-386,430
+world/tests/seed-world/AgentKnowledgeAudit.spec.ts
+  h_ddbf152d31b140 298-312
+world/tests/seed-world/PoiSizeWeightPersistence.spec.ts
+  h_ddbf152d31b140 59-77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9af3b1e08428d4e58e1b0a3bcfc0849e8ed8f371",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+packages/shader/src/ShaderLibrary/PBR/BSDF.glsl
+  h_a3c79ce84ffdc2 218,236,243-246
+packages/shader/src/ShaderLibrary/PBR/FragmentPBR.glsl
+  h_a3c79ce84ffdc2 292-295,299-310
+packages/shader/src/ShaderLibrary/PBR/LightIndirectFunctions.glsl
+  h_a3c79ce84ffdc2 5,45
+packages/shader/src/ShaderLibrary/PBR/LightIndirectPBR.glsl
+  h_a3c79ce84ffdc2 66-72
+packages/shader/src/ShaderLibrary/PBR/ReflectionLobe.glsl
+  h_a3c79ce84ffdc2 28-29,36
+tests/src/core/material/PBRAnisotropy.test.ts
+  h_a3c79ce84ffdc2 4,16-18,56-60,112,167-341
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a18a98f86ef2cbb3db2e900b0d4a4d2a38607cbb",
+  "prompts": {},
+  "humans": {
+    "h_a3c79ce84ffdc2": {
+      "author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

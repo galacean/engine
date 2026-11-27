@@ -1,0 +1,52 @@
+packages/core/src/physics/MeshCollider.ts
+  s_a20fbf413cca3c::t_37eeb561d2b8d3 159-163,165-166
+  s_a20fbf413cca3c::t_fe30a074214a55 135-138
+  s_a20fbf413cca3c::t_b779e0021d3d78 2,7,134,139-158,164,167-174
+  s_a20fbf413cca3c::t_e8260f0b98f7ff 175-176
+tests/src/core/physics/ColliderBounds.test.ts
+  s_a20fbf413cca3c::t_78dd9cb746a0b5 171-172,174,233
+  s_a20fbf413cca3c::t_816077223451f0 1-170,173,175-232,234-237
+packages/core/src/physics/Collider.ts
+  s_a20fbf413cca3c::t_37eeb561d2b8d3 424-426,428,431,578
+  s_a20fbf413cca3c::t_3021aee8e6318b 2,52-55,226-236,330,422,430
+  s_a20fbf413cca3c::t_4243f588eb26ef 421,423,427,429
+  s_a20fbf413cca3c::t_a72d7dff193b33 432
+packages/core/src/physics/CapsuleCollider.ts
+  s_a20fbf413cca3c::t_3021aee8e6318b 2,6,16-18,92-110,112-134,161-164
+packages/core/src/physics/CharacterController.ts
+  s_a20fbf413cca3c::t_fe30a074214a55 21
+  s_a20fbf413cca3c::t_4243f588eb26ef 215,254
+  s_a20fbf413cca3c::t_b779e0021d3d78 7,13,25,208-214,216-218,237,239-240,244,329-340
+  s_a20fbf413cca3c::t_fc8a1665e591ce 341
+packages/core/src/physics/BoxCollider.ts
+  s_a20fbf413cca3c::t_3021aee8e6318b 2,6,40-51,53-54,70-78
+  s_a20fbf413cca3c::t_ea116fe0950e53 79
+packages/core/src/physics/PlaneCollider.ts
+  s_a20fbf413cca3c::t_b779e0021d3d78 9
+docs/en/physics/collider/overview.mdx
+  s_a20fbf413cca3c::t_fe30a074214a55 58-60,86,96
+  s_a20fbf413cca3c::t_6c6d6280f7e010 97
+docs/zh/physics/collider/overview.mdx
+  s_a20fbf413cca3c::t_fe30a074214a55 58-60,86,96
+  s_a20fbf413cca3c::t_42efd8057196d6 97
+packages/core/src/physics/colliderBounds.ts
+  s_a20fbf413cca3c::t_3021aee8e6318b 1-77
+packages/core/src/physics/SphereCollider.ts
+  s_a20fbf413cca3c::t_3021aee8e6318b 2,5,36-46,53-54,63-67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "b3930d19dfb650683189a6f5822a68b1ff96e0eb",
+  "prompts": {},
+  "sessions": {
+    "s_a20fbf413cca3c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2088c-3f7f-7131-8505-b699d01f3e8d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

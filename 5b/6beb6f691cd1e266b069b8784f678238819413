@@ -1,0 +1,182 @@
+packages/loader/src/prefab/PrefabParser.ts
+  s_d2c65ec75a2f3e::t_85c71643961f59 18-26
+  s_d2c65ec75a2f3e::t_37dccfafd02db7 12-14,17,28-33
+  s_d2c65ec75a2f3e::t_9c50c9cbea9788 46
+  s_d2c65ec75a2f3e::t_fdad4262b830f7 15-16,27
+tests/src/core/Scene.test.ts
+  s_d2c65ec75a2f3e::t_353d1e6e09ccbf 183,205-224
+  s_d2c65ec75a2f3e::t_8d71bfd869ecbb 185-204,258-279
+  s_d2c65ec75a2f3e::t_dcfb1c92f459a5 225-238,240-242,244,246-254,256
+  s_d2c65ec75a2f3e::t_358957ee1a74e9 239,243,245,255,257
+  s_d2c65ec75a2f3e::t_efde517c8ff966 168,174,176,179,181-182
+  s_377380b9d9a256::t_b7d73dc3f03c5e 184
+packages/core/src/Component.ts
+  s_d2c65ec75a2f3e::t_d976a7f79ffb4e 85,87
+packages/core/src/SceneManager.ts
+  s_d2c65ec75a2f3e::t_89e714dd2d1c2e 68-69,72,84-85,88
+packages/design/src/physics/index.ts
+  s_d2c65ec75a2f3e::t_03ca2c098f106b 10
+packages/core/src/physics/PhysicsScene.ts
+  s_d2c65ec75a2f3e::t_603aff16ff0c3c 871
+  s_d2c65ec75a2f3e::t_2b9d01cf8333a1 872
+  s_d2c65ec75a2f3e::t_03ca2c098f106b 1,23-24,932-941,943-946,955-956,960,963-964,966-983,985-987
+packages/core/src/physics/Rigidbody.ts
+  s_d2c65ec75a2f3e::t_603aff16ff0c3c 635,639
+  s_d2c65ec75a2f3e::t_2b9d01cf8333a1 153,155,633-634,636-638,640
+tests/src/core/physics/PhysicsGameplay.test.ts
+  s_d2c65ec75a2f3e::t_f8168bac4e1045 865,1520,1659,1723,2038
+  s_d2c65ec75a2f3e::t_4b066447f3bba8 1750,1760-1762,1844
+  s_d2c65ec75a2f3e::t_78b134c750b298 1434
+  s_d2c65ec75a2f3e::t_f9bddcfa3eda8f 438,979
+tests/src/core/physics/PhysicsScene.test.ts
+  s_d2c65ec75a2f3e::t_11ce14872e605e 323-353
+packages/core/src/Engine.ts
+  s_d2c65ec75a2f3e::t_a96687628c9c5a 508
+packages/loader/src/resource-deserialize/resources/parser/ReflectionParser.ts
+  s_d2c65ec75a2f3e::t_34c1aa9312e7b0 28-30
+  s_d2c65ec75a2f3e::t_76fb3401e968e8 67,88,90,225-227
+  s_d2c65ec75a2f3e::t_f814f006a48cc2 1,19,36-37,39,87,89,183
+tests/src/core/Entity.test.ts
+  s_d2c65ec75a2f3e::t_ef0ee6f3f70c27 831-861
+packages/core/src/Scene.ts
+  s_d2c65ec75a2f3e::t_89e714dd2d1c2e 104-105,107,410-416
+  s_d2c65ec75a2f3e::t_cccdf5088dbe61 424-441,445,527
+  s_377380b9d9a256::t_985b5c47be0ade 417-418
+packages/loader/src/SceneLoader.ts
+  s_d2c65ec75a2f3e::t_f814f006a48cc2 174-177
+tests/src/core/postProcess/PostProcess.test.ts
+  s_d2c65ec75a2f3e::t_0358d6bf21dcd3 19,441-447,450
+packages/core/src/Entity.ts
+  s_d2c65ec75a2f3e::t_cccdf5088dbe61 57,694
+  s_d2c65ec75a2f3e::t_7792946d2f18cd 490,492,502,528-530,533-537,539-555,559-561,563-582
+  s_d2c65ec75a2f3e::t_ebe115b24e411c 481
+  s_d2c65ec75a2f3e::t_808e37fd2ee2a7 491,493-495,499-501,503-516,520-522,524-526
+  s_d2c65ec75a2f3e::t_4f92ddb3bdb39a 450-454,456,603,607-609,622
+  s_d2c65ec75a2f3e::t_efde517c8ff966 794
+  s_d2c65ec75a2f3e::t_c0f62b5ba1058b 527
+packages/core/src/physics/BoxCollider.ts
+  s_d2c65ec75a2f3e::t_586af00a599318 63,66
+tests/src/loader/PrefabResource.test.ts
+  s_d2c65ec75a2f3e::t_ab1c9886e7d234 1321
+  s_d2c65ec75a2f3e::t_1dee8d25b71bc6 121
+  s_d2c65ec75a2f3e::t_4c34d36d3be44f 4,48-117
+  s_d2c65ec75a2f3e::t_1ae277e65f8e80 130
+  s_d2c65ec75a2f3e::t_1d06ee42d47150 1,3,1268-1285,1287-1292,1295,1297-1298,1301-1308,1313-1314,1326-1328,1330-1338,1340-1344,1346-1350,1353-1354,1357-1370
+  s_d2c65ec75a2f3e::t_db60dbf4126138 2,1309-1312,1315
+  s_d2c65ec75a2f3e::t_b2d675b6194855 118-119
+tests/src/loader/SceneFormatV2.test.ts
+  s_d2c65ec75a2f3e::t_6ec4e6e7e566d9 523,539,565,585,602,617,638,663,698,714
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  s_d2c65ec75a2f3e::t_f814f006a48cc2 39-40,44,50,302
+  s_d2c65ec75a2f3e::t_85c71643961f59 68,321,330-331
+  s_d2c65ec75a2f3e::t_76fb3401e968e8 367
+  s_d2c65ec75a2f3e::t_9c50c9cbea9788 1,61
+  s_d2c65ec75a2f3e::t_34c1aa9312e7b0 270,394,397-398
+  s_d2c65ec75a2f3e::t_ba4f24f43a94d4 332-341,343-345
+packages/core/src/physics/Collider.ts
+  s_d2c65ec75a2f3e::t_6b0c1dd9cf9e38 91
+  s_d2c65ec75a2f3e::t_a5b1c00b92afd7 49,707-713,715-717
+  s_d2c65ec75a2f3e::t_acfd172e009758 325,335
+  s_d2c65ec75a2f3e::t_652d0742827b5b 106,108,628-634,636-637
+  s_d2c65ec75a2f3e::t_abbe343a07f371 92-93,104,663,667,670
+  s_d2c65ec75a2f3e::t_6a568172b20133 269-286
+tests/src/core/physics/PhysicsMaterialInitialization.test.ts
+  s_d2c65ec75a2f3e::t_c78f4f0a7fd0b7 1-8
+tests/src/loader/PhysicsMaterialLoader.test.ts
+  s_d2c65ec75a2f3e::t_5ab30e7b25965b 244,260-262,309-310
+  s_d2c65ec75a2f3e::t_eebb26599d9e58 267,277-281,286,288,303
+  s_d2c65ec75a2f3e::t_9668b4fb2d6f4f 205-243
+  s_d2c65ec75a2f3e::t_29595017abc22e 133-134,245-259,307-308,311-312
+  s_d2c65ec75a2f3e::t_b22fd93a1e7667 263
+  s_d2c65ec75a2f3e::t_dcd22f5c7b7d28 202,204
+  s_d2c65ec75a2f3e::t_529b5abe0ff9fd 264-266,268-276,282,290-300,302
+  s_d2c65ec75a2f3e::t_392c6b2d68fa81 2,102-123,125-132
+  s_d2c65ec75a2f3e::t_d2739a1bdf4a76 135-141,144,146-147,150-183,185-194,196,198-201,203
+  s_d2c65ec75a2f3e::t_8eed4224d559a7 283-285,287,301,304-306
+  s_d2c65ec75a2f3e::t_93a520f1485d66 124
+  s_d2c65ec75a2f3e::t_57ad689eec30e8 289
+  s_d2c65ec75a2f3e::t_203ed6534ded34 142-143,145,148-149,184,195,197
+packages/core/src/physics/CharacterController.ts
+  s_d2c65ec75a2f3e::t_abbe343a07f371 235,294,300-302,305
+  s_d2c65ec75a2f3e::t_586af00a599318 371,373
+  s_d2c65ec75a2f3e::t_14facbdefd358f 268-286,290,308,311-312,314
+tests/src/core/CompomentDependencies.test.ts
+  s_d2c65ec75a2f3e::t_0f828e26ff1d12 1-10,108-113,116-119,122-133,135-136,138,140-143
+  s_d2c65ec75a2f3e::t_a9b033201434e6 12,76,78-101,107,120-121,137,144-158
+  s_d2c65ec75a2f3e::t_0358d6bf21dcd3 31,39
+  s_d2c65ec75a2f3e::t_081138cc674dc7 77,102-106,114-115,134,139
+  s_5a35d60243d181::t_0eb0be20e39ba5 159
+packages/core/src/physics/MeshCollider.ts
+  s_d2c65ec75a2f3e::t_17a36b2118a60b 217-218,222-223,226-227
+packages/core/src/utils/DisorderedArray.ts
+  s_d2c65ec75a2f3e::t_03ca2c098f106b 110-117,130-138,157-158,162-163
+packages/loader/src/PrefabLoader.ts
+  s_d2c65ec75a2f3e::t_37dccfafd02db7 9-12
+packages/core/src/physics/PhysicsMaterial.ts
+  s_d2c65ec75a2f3e::t_bd10e32950c50c 33,35
+packages/loader/src/resource-deserialize/resources/parser/ParserContext.ts
+  s_d2c65ec75a2f3e::t_f814f006a48cc2 40
+  s_d2c65ec75a2f3e::t_76fb3401e968e8 1-10,22-33
+tests/src/core/physics/MeshCollider.test.ts
+  s_d2c65ec75a2f3e::t_6c25c92e5db2c5 675-682,684-689
+  s_d2c65ec75a2f3e::t_95d57fc673da3a 683
+packages/loader/src/PhysicsMaterialLoader.ts
+  s_d2c65ec75a2f3e::t_bd10e32950c50c 19,22-26
+packages/core/src/ComponentsDependencies.ts
+  s_d2c65ec75a2f3e::t_a96687628c9c5a 53,55-56,67,99,101-102,112,163-166,172-173,178,180,182,185-186
+  s_d2c65ec75a2f3e::t_a6f42801b8ed19 158,174-177
+packages/loader/src/prefab/PrefabResource.ts
+  s_d2c65ec75a2f3e::t_203ed6534ded34 32-33,40-42
+  s_d2c65ec75a2f3e::t_d510f7396e2db0 11,34-36,38-39,66-68,70-72
+  s_d2c65ec75a2f3e::t_1b6b4b6888bd53 37
+  s_d2c65ec75a2f3e::t_37dccfafd02db7 49
+  s_d2c65ec75a2f3e::t_0cce130d91c157 10,57-65,73
+  s_d2c65ec75a2f3e::t_85c71643961f59 69
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_d2c65ec75a2f3e::t_a5b1c00b92afd7 37-41,158,171,182,184,345-346,501-503
+  s_d2c65ec75a2f3e::t_03ca2c098f106b 495-500,562
+  s_d2c65ec75a2f3e::t_6b0c1dd9cf9e38 70
+  s_d2c65ec75a2f3e::t_75edb6888e8536 2-8
+tests/src/core/Script.test.ts
+  s_d2c65ec75a2f3e::t_11ce14872e605e 222-258
+packages/design/src/physics/IPhysicsEvents.ts
+  s_d2c65ec75a2f3e::t_03ca2c098f106b 3-9,14,23-24
+packages/loader/README.md
+  s_d2c65ec75a2f3e::t_f814f006a48cc2 3
+packages/core/src/postProcess/PostProcessManager.ts
+  s_d2c65ec75a2f3e::t_5deef40f4fc10c 100
+  s_d2c65ec75a2f3e::t_a16e4012e751d7 65,91-93
+  s_d2c65ec75a2f3e::t_debec2059f6c89 94
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5b6beb6f691cd1e266b069b8784f678238819413",
+  "prompts": {},
+  "sessions": {
+    "s_377380b9d9a256": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f7dd-8702-7241-99bf-b5e87945a0bd",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_5a35d60243d181": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "01a1ed48-97e3-712a-aa7d-1aaa63db1f0b",
+        "model": "swe-2"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_d2c65ec75a2f3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2c1-96c2-77f3-a2dd-e76c94ab0c6d",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

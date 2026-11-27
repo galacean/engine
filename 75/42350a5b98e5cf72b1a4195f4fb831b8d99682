@@ -1,0 +1,27 @@
+packages/runtime-editor/src/runtime-editor/scene/runtime-scene-edit.ts
+  s_9cc19efe6cb9e3::t_efed742e01cd72 157-158,167,186,316,336,360,380,564-565,567,582,588,590
+packages/runtime-editor/tests/runtime-prefab-edit.spec.ts
+  s_9cc19efe6cb9e3::t_f4345364c7b06f 2,43-58
+packages/project/src/runtime-editor/project/runtime-project.ts
+  s_9cc19efe6cb9e3::t_029450fb7e00bb 38-48
+packages/project/src/runtime-editor/project/runtime-project-edit.ts
+  s_9cc19efe6cb9e3::t_0a4babcef90cbd 8,96-101
+packages/runtime-editor/src/runtime-editor/scene/runtime-instance-source.ts
+  s_9cc19efe6cb9e3::t_2bae898d75a803 7-10,40-49,65-67,72-73,137
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7542350a5b98e5cf72b1a4195f4fb831b8d99682",
+  "prompts": {},
+  "sessions": {
+    "s_9cc19efe6cb9e3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1a5d0-adc0-7cf2-99f0-6032732bfb59",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": null
+    }
+  }
+}

@@ -1,0 +1,44 @@
+packages/modify/native-overrides.json
+  h_ddbf152d31b140 398-401
+packages/modify/src/native/core/src/Engine.ts
+  h_ddbf152d31b140 128,140-141,148,290-293,304-305,308,576-577,662-668
+packages/modify/src/native/core/src/shader/ShaderData.ts
+  h_ddbf152d31b140 622-624,627-633
+packages/modify/src/native/core/src/shader/ShaderProgram.ts
+  h_ddbf152d31b140 1,18
+packages/modify/src/native/loader/src/ImageDecoder.ts
+  h_ddbf152d31b140 1,4-8,11-57,60-68,70-85,87,90-94
+packages/modify/src/native/loader/src/TextureLoader.ts
+  h_ddbf152d31b140 20,82
+packages/modify/tests/ScreenSpaceReflection.spec.ts
+  h_ddbf152d31b140 13-14
+packages/rhi-webgl/src/GLPrimitive.ts
+  h_ddbf152d31b140 37,73-76,139,148
+packages/rhi-webgl/src/GLRenderTarget.ts
+  h_ddbf152d31b140 121
+packages/rhi-webgl/src/GLTransformFeedbackPrimitive.ts
+  h_ddbf152d31b140 21-22,53,60,62,66,69-70,104
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_ddbf152d31b140 242
+packages/runtime-editor/src/runtime-editor/generated/engine-runtime-files.json
+  h_ddbf152d31b140 1
+packages/runtime-editor/src/runtime-editor/generated/engine-runtime-index.json
+  h_ddbf152d31b140 1
+packages/runtime-editor/src/runtime-editor/generated/engine-scene-settings.js
+  h_ddbf152d31b140 1-2,8-9,12,25-31,35,46,50
+packages/runtime-editor/tests/engine-runtime-files.spec.ts
+  h_ddbf152d31b140 7,10,15,43-44,47
+world/tests/seed-world/PlanningFarmCheckpoint.spec.ts
+  h_ddbf152d31b140 962
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "947b42f07a0731c7d2218b7578cc2ad42e4d7d34",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

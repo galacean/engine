@@ -1,0 +1,17 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d45e5f440b0c4ec96eb207208cd69fadf39950ab",
+  "prompts": {},
+  "sessions": {
+    "s_c72f930c19d1f3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21604-5ead-7042-b751-c18d1813c1a0",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+tests/benchmarks/seed-templates/seed-native.patch
+  s_3cd6502d102d7f::t_1a158f8974e7e7 637-647
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "12c41cd387e68a3fe43de831cd5fc4161331e1cb",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

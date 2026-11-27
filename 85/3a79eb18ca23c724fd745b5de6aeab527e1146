@@ -1,0 +1,27 @@
+packages/core/src/Entity.ts
+  s_8553eae0743f94::t_d0a73e2ecd9640 23-25,27-51,189-190,825-828,855,857,859,866,1017,1023-1025,1029-1031,1070,1075-1076,1106,1134-1136,1141-1149,1183,1185,1189-1195,1198,1207
+packages/core/src/physics/MeshCollider.ts
+  s_8553eae0743f94::t_694753d028e10b 14-19,25-32,50,53-54,56
+packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts
+  s_8553eae0743f94::t_bb17e8fb81b0fc 18-25,315-316,352-353,357-361,363,368-369,371-379,382-396,399-402,459,461-469,472-475,477,482-484,489,523-531,545-553,568,602-609
+packages/loader/src/resource-deserialize/resources/parser/ReflectionParser.ts
+  s_8553eae0743f94::t_054306d14d8122 6-10,24-55,60-61,75,79,90,94,99,107-118,121,172-177,179
+tests/src/loader/PrefabResource.test.ts
+  s_8553eae0743f94::t_3832ab21c86d39 1640-1723
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "853a79eb18ca23c724fd745b5de6aeab527e1146",
+  "prompts": {},
+  "sessions": {
+    "s_8553eae0743f94": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1f2cc-1a9a-77c2-b2be-9e8ac7b76064",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

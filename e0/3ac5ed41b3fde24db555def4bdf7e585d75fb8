@@ -1,0 +1,74 @@
+docs/en/physics/joint/configurableJoint.mdx
+  h_dd004f51a3e5ec 1-22
+docs/en/physics/joint/fixedJoint.mdx
+  h_dd004f51a3e5ec 55,91-92
+docs/en/physics/joint/hingeJoint.mdx
+  h_dd004f51a3e5ec 59-67,79,92,115-116,120,140
+docs/en/physics/joint/overview.mdx
+  h_dd004f51a3e5ec 8,25-27,30-33,52-54,57-59
+docs/en/physics/joint/springJoint.mdx
+  h_dd004f51a3e5ec 75
+docs/zh/physics/joint/configurableJoint.mdx
+  h_dd004f51a3e5ec 1-22
+docs/zh/physics/joint/fixedJoint.mdx
+  h_dd004f51a3e5ec 55,91-92
+docs/zh/physics/joint/hingeJoint.mdx
+  h_dd004f51a3e5ec 59-67,79,92,115-116,120,140
+docs/zh/physics/joint/overview.mdx
+  h_dd004f51a3e5ec 8,25-27,30-32,51-53,56-58
+docs/zh/physics/joint/springJoint.mdx
+  h_dd004f51a3e5ec 75
+packages/core/src/Script.ts
+  h_dd004f51a3e5ec 8,129-134
+packages/core/src/physics/PhysicsScene.ts
+  h_dd004f51a3e5ec 12,48,855,926,958-961,965-966,970,983-984
+packages/core/src/physics/joint/ConfigurableJoint.ts
+  h_dd004f51a3e5ec 1-266
+packages/core/src/physics/joint/HingeJoint.ts
+  h_dd004f51a3e5ec 5,20-21,44,66,76,99-100,102-103,106-108,113-130,180,186,214,241-251
+packages/core/src/physics/joint/Joint.ts
+  h_dd004f51a3e5ec 7,28-29,32-33,125-126,133-135,147-148,155-157,169-170,172-173,176-182,187-188,190-191,194-200,205-208,216,223-226,234,240-262,287,289,330,339-340,362,365,378-379,490,495-518
+packages/core/src/physics/joint/JointLimits.ts
+  h_dd004f51a3e5ec 14,19-20,28,35-36,44,52,57,63-65,73-93,107,119-124
+packages/core/src/physics/joint/JointMotor.ts
+  h_dd004f51a3e5ec 5,31
+packages/core/src/physics/joint/index.ts
+  h_dd004f51a3e5ec 1-6
+packages/design/src/physics/IPhysics.ts
+  h_dd004f51a3e5ec 8,131-136
+packages/design/src/physics/IPhysicsEvents.ts
+  h_dd004f51a3e5ec 36
+packages/design/src/physics/joints/IConfigurableJoint.ts
+  h_dd004f51a3e5ec 1-13
+packages/design/src/physics/joints/IHingeJoint.ts
+  h_dd004f51a3e5ec 14,25-26,28,30,34-35,41-45,52
+packages/design/src/physics/joints/IJoint.ts
+  h_dd004f51a3e5ec 24,34,39,41,44,46,58-66
+packages/design/src/physics/joints/index.ts
+  h_dd004f51a3e5ec 3
+packages/physics-physx/src/PhysXPhysics.ts
+  h_dd004f51a3e5ec 6,26,199-205
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  h_dd004f51a3e5ec 44,64-66,173
+packages/physics-physx/src/joint/PhysXConfigurableJoint.ts
+  h_dd004f51a3e5ec 1-49
+packages/physics-physx/src/joint/PhysXHingeJoint.ts
+  h_dd004f51a3e5ec 2,5,25,89,102-103,110-115
+packages/physics-physx/src/joint/PhysXJoint.ts
+  h_dd004f51a3e5ec 58,60-61,64,66-67,70-72,75-77,96-110,130-136
+tests/src/core/physics/HingeJoint.test.ts
+  h_dd004f51a3e5ec 108,133,137-169,189,191-192,201,220,222-223,232,251,253-254,263,285,288-297,300-310,400,408,435-436,447,449-450,453-455,466,468-469,533,535-536,545,585,623-624,629,635,663-664,670,674
+tests/src/core/physics/Joint.test.ts
+  h_dd004f51a3e5ec 2-18,78-240,375-393,395-397,399-400,403-412
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e03ac5ed41b3fde24db555def4bdf7e585d75fb8",
+  "prompts": {},
+  "humans": {
+    "h_dd004f51a3e5ec": {
+      "author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

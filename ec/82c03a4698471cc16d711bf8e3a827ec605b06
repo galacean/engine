@@ -1,0 +1,23 @@
+tests/src/loader/GLTFLoader.test.ts
+  s_4cf4bd323b0d5f::t_7fd98949c7f075 775,784
+  s_4cf4bd323b0d5f::t_ed5c78cce3de11 846-859,868-878,888-890,904-906,943
+packages/loader/src/gltf/parser/GLTFAnimationParser.ts
+  s_4cf4bd323b0d5f::t_d0fd6395e3d382 16,19,46-47,55,57,62,64-78,118,120-121,128,131,138-187
+  s_4cf4bd323b0d5f::t_caebdc25537a5f 188-189
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ec82c03a4698471cc16d711bf8e3a827ec605b06",
+  "prompts": {},
+  "sessions": {
+    "s_4cf4bd323b0d5f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21723-9665-7ee3-9bfe-c96d76924eae",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,268 @@
+packages/water/src/water/runtime/ocean/OceanWaterRuntimeController.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1,232,333,337,467,471
+packages/water/src/water/native/assets/Water/Shaders/builtin/lake.json
+  s_7fe30a98288265::t_7c16f857a311ef 1
+world/tests/seed-world/SeedWorldRockCollider.spec.ts
+  s_7fe30a98288265::t_7c16f857a311ef 68
+world/demos/seed-world/src/SeedWorldSandstorm.ts
+  s_7fe30a98288265::t_7c16f857a311ef 16,21-23,25-31,38-61,79-103,106-112,157
+packages/water/src/water/native/assets/Water/Shaders/ocean.shader
+  s_7fe30a98288265::t_7c16f857a311ef 61-65,67-79,217-218,309-310,1927-1928,1931-1932,1952-1953,1956-1957,2212,2245-2246,2253,2307,2500-2501
+packages/water/tests/WaterCreationPresets.test.ts
+  s_7fe30a98288265::t_7c16f857a311ef 22,24
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  s_7fe30a98288265::t_7c16f857a311ef 1
+packages/world-planning/tests/fixtures/water-default-look/provenance.json
+  s_7fe30a98288265::t_7c16f857a311ef 1-143
+packages/water/src/water/runtime/surface/WaterSurfaceCausticsBinding.ts
+  s_7fe30a98288265::t_7c16f857a311ef 11-17
+world/demos/seed-world/src/DesertVegetation.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1-457
+world/demos/seed-world/src/planning/spatial/PlanningStartupTemplate.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1,4-6,47,102-103,106-180
+  s_7fe30a98288265::t_a2d611d5091c20 181
+packages/water/tests/WaterBuiltinTextures.test.ts
+  s_7fe30a98288265::t_7c16f857a311ef 20
+packages/water/src/water/native/index.ts
+  s_7fe30a98288265::t_7c16f857a311ef 75-78
+packages/modify/src/native/loader/src/MaterialLoader.ts
+  s_7fe30a98288265::t_7c16f857a311ef 92-93
+packages/terrain/src/shaders/shared/RockGrassGround.glsl
+  s_7fe30a98288265::t_7c16f857a311ef 12-13
+packages/water/src/water/runtime/ocean/OceanTextureLibrary.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1,4-10,18,23
+packages/world-planning/src/runtime/SeedWorldPopulationRuntime.ts
+  s_7fe30a98288265::t_7c16f857a311ef 735,1670,1672,3111
+packages/terrain/src/shaders/shared/RockTerrainContact.glsl
+  s_7fe30a98288265::t_7c16f857a311ef 32
+packages/world-planning/tests/NativeWaterRendering.test.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1,4-5,10-11,21,35-37,59-60,63,72,85-93,95-96,115
+world/demos/seed-world/src/planning/spatial/PlanningVisualAuthoring.ts
+  s_7fe30a98288265::t_7c16f857a311ef 34
+world/tests/seed-world/SeedWorldGrassRockAppearance.spec.ts
+  s_7fe30a98288265::t_7c16f857a311ef 8,39
+packages/water/src/water/runtime/river/RiverMaterialFactory.ts
+  s_7fe30a98288265::t_7c16f857a311ef 211-217
+packages/water/src/water/native/WaterMaterial.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1,6-7,11-14,47,50-85,88,95-101,140-156
+packages/world-planning/src/integrations/terrain/rock-formation/Variants.ts
+  s_7fe30a98288265::t_7c16f857a311ef 23,40,136-140,225
+packages/world-planning/src/semantic-study/PlanningWaterView.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1,68
+packages/water/src/water/runtime/ocean/OceanWaterBackend.ts
+  s_7fe30a98288265::t_7c16f857a311ef 20,79-83,88-89
+packages/world-planning/src/spatial/runtime/PlanningWaterRuntime.ts
+  s_7fe30a98288265::t_7c16f857a311ef 2,162-163
+packages/world-planning/src/semantic-study/IslandPlanModel.ts
+  s_7fe30a98288265::t_7c16f857a311ef 9
+world/tests/seed-world/SeedWorldRockColorPalette.spec.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1,10-11,43-45
+world/tests/seed-world/SeedWorldRockFormationEdit.spec.ts
+  s_7fe30a98288265::t_7c16f857a311ef 2,27,29,169-171
+packages/water/src/water/native/assets/Water/Shaders/river.shader
+  s_7fe30a98288265::t_7c16f857a311ef 2,94-96,98-104,339-340,1873-1875,1880,1892-1894,1899,2348-2349,2840-2842,2847,2859-2861,2866
+packages/world-planning/src/integrations/terrain/rock-formation/Edit.ts
+  s_7fe30a98288265::t_7c16f857a311ef 6
+world/scripts/tests/generate-water-assets.test.mjs
+  s_7fe30a98288265::t_7c16f857a311ef 123,125
+world/demos/seed-world/SeedWorldDemo.ts
+  s_7fe30a98288265::t_7c16f857a311ef 150,329,705,899-900,1172,1175,1229,1262,1307,1330,1339,1346,1376,1596,1882-1888,1890,1935-1939,2049-2050
+packages/water/src/water/native/assets/Water/Materials/lake.mat
+  s_7fe30a98288265::t_7c16f857a311ef 362-373
+packages/water/src/water/compiler/surface/WaterSurfaceAppearanceV2Validator.ts
+  s_7fe30a98288265::t_7c16f857a311ef 325-326,342
+packages/water/tests/WaterTextureBinding.test.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1-402
+packages/water/src/water/shaders/library/surface/WaterSurfaceAppearanceV2Uniforms.glsl
+  s_7fe30a98288265::t_7c16f857a311ef 9-10
+packages/world-planning/src/integrations/terrain/rock-formation/Publication.ts
+  s_7fe30a98288265::t_7c16f857a311ef 27,37,47,55,65,103
+packages/water/tests/WaterStandaloneLifecycle.test.ts
+  s_7fe30a98288265::t_7c16f857a311ef 15-17,20,30,45,48-52,139-166,244-246,299-305
+packages/water/src/water/native/assets/Water/Shaders/builtin/ocean.json
+  s_7fe30a98288265::t_7c16f857a311ef 1
+packages/water/src/water/runtime/ocean/OceanFarMaterial.ts
+  s_7fe30a98288265::t_7c16f857a311ef 73,200
+packages/world-planning/src/spatial/layout/MojaveDesertLayout.ts
+  s_7fe30a98288265::t_7c16f857a311ef 31
+world/tests/seed-world/SeedWorldGeneratedRockGrass.spec.ts
+  s_7fe30a98288265::t_7c16f857a311ef 32,42,48,53,57,110-111
+packages/water/src/water/native/README.md
+  s_7fe30a98288265::t_7c16f857a311ef 34-43
+world/demos/seed-world/systems/runtime-declarations.json
+  s_7fe30a98288265::t_7c16f857a311ef 1
+packages/water/tests/WaterLookCompatibility.test.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1-250
+packages/terrain/src/shaders/shared/GrassRockAppearance.glsl
+  s_7fe30a98288265::t_7c16f857a311ef 45
+packages/water/src/water/native/WaterBuiltinMaterialTextures.ts
+  s_7fe30a98288265::t_7c16f857a311ef 4
+packages/water/src/water/runtime/heightfield/HeightfieldWaterRuntimeController.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1,570,602,917
+packages/water/tests/WaterQualityMaterial.test.ts
+  s_7fe30a98288265::t_7c16f857a311ef 27
+packages/world-planning/src/integrations/terrain/rock-formation/GrassRockAppearance.ts
+  s_7fe30a98288265::t_7c16f857a311ef 39
+packages/water/package.json
+  s_7fe30a98288265::t_7c16f857a311ef 384
+packages/world-planning/src/integrations/terrain/rock-formation/Panel.ts
+  s_7fe30a98288265::t_7c16f857a311ef 6,12,38,42,108
+world/scripts/generate-water-assets.mjs
+  s_7fe30a98288265::t_7c16f857a311ef 18,23-24,39-40,104-105,126-127,130,139,142-145,149
+packages/water/src/water/native/WaterAuthoring.ts
+  s_7fe30a98288265::t_7c16f857a311ef 390-392,409-415
+world/demos/prompt-noise-world/main.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1,479
+packages/water/tests/WaterNativeMaterial.test.ts
+  s_7fe30a98288265::t_7c16f857a311ef 2-14,18,24,26,28,36-38,41-42,44-64,72,75-95,97-101,107,109,111-120,122-124,127,131,137-145,151,153-154,156,160,165-167,170-178,184-213
+packages/terrain/src/rock-formation/types.ts
+  s_7fe30a98288265::t_7c16f857a311ef 44,47
+packages/world-planning/src/integrations/terrain/rock-formation/Client.ts
+  s_7fe30a98288265::t_7c16f857a311ef 6,8,12-14,24-30,54
+packages/water/src/water/native/WaterBodyComponent.ts
+  s_7fe30a98288265::t_7c16f857a311ef 20,323,382,391,423-424,455,473,515-526,609,631
+packages/world-planning/tests/NativeWaterLifecycle.test.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1,66-68,73,77-79
+world/demos/seed-world/src/planning/spatial/runtime/PlanningWaterInitialization.ts
+  s_7fe30a98288265::t_7c16f857a311ef 288-289,292,294-304
+world/demos/seed-world/masonry/BuildingInitializationInputs.ts
+  s_7fe30a98288265::t_7c16f857a311ef 38
+packages/water/src/water/compiler/surface/WaterSurfaceTextureReferences.ts
+  s_7fe30a98288265::t_7c16f857a311ef 15
+packages/water/src/water/runtime/river/RiverRuntimeController.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1,622-627,889,921,928-967,969-970,972-978,982,1058-1076,1078-1082,1088
+packages/world-planning/src/integrations/terrain/rock-formation/View.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1,10,43,57
+packages/water/tests/WaterOwnedMaterialLifecycle.test.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1-187
+packages/water/src/water/native/assets/Water/Shaders/lake.shader
+  s_7fe30a98288265::t_7c16f857a311ef 80-81,83-86,275-276,1795-1797,1802,1811-1813,1818,2316-2317,2684-2686,2691,2700-2702,2707
+packages/world-planning/tests/NativeWaterDrops.test.ts
+  s_7fe30a98288265::t_7c16f857a311ef 2-6,8-16
+packages/water/src/water/scripts/generate-native-api.mjs
+  s_7fe30a98288265::t_7c16f857a311ef 45-50
+packages/world-planning/tests/fixtures/water-default-look/README.md
+  s_7fe30a98288265::t_7c16f857a311ef 1-15
+world/tests/seed-world/WorldTemplates.spec.ts
+  s_7fe30a98288265::t_7c16f857a311ef 2,103-113
+world/demos/seed-world/src/planning/spatial/runtime/PlanningSpawnView.ts
+  s_7fe30a98288265::t_7c16f857a311ef 30,46,83-86,166-168,215-216,220-227,231-237,241-251,261-265,268-277,299,304
+packages/world-planning/src/integrations/terrain/rock-formation/Settings.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1-4,9,12,17,19,22,26-33,40-44
+packages/terrain/src/rock-formation/GrassSurface.ts
+  s_7fe30a98288265::t_7c16f857a311ef 33,227-228
+packages/world-planning/src/spatial/layout/SpatialWorld.ts
+  s_7fe30a98288265::t_7c16f857a311ef 469-476,478
+packages/water/scripts/prepare-builtin-shaders.mjs
+  s_7fe30a98288265::t_7c16f857a311ef 18
+packages/water/src/water/native/assets/Water/Shaders/builtin/river.json
+  s_7fe30a98288265::t_7c16f857a311ef 1
+packages/water/src/water/runtime/ocean/OceanWaterRuntimeTypes.ts
+  s_7fe30a98288265::t_7c16f857a311ef 5
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  s_7fe30a98288265::t_7c16f857a311ef 86-87,98,408-416,457-458,671,1276,1446,1648,1651,1654,1657,1659,1682-1701,1706,1735
+packages/water/src/water/runtime/ocean/OceanFarFieldShader.ts
+  s_7fe30a98288265::t_7c16f857a311ef 13-15,18-22,33-36
+packages/water/src/water/runtime/ocean/OceanMaterial.ts
+  s_7fe30a98288265::t_7c16f857a311ef 72,280-290
+world/tests/seed-world/SeedWorldRockPanel.spec.ts
+  s_7fe30a98288265::t_7c16f857a311ef 176,179
+packages/world-planning/src/runtime/SeedWorldWaterRuntime.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1,187-188
+packages/world-planning/tests/WaterEditor.test.ts
+  s_7fe30a98288265::t_7c16f857a311ef 164,464,542
+packages/water/src/water/native/WaterBuiltinShaderNames.ts
+  s_7fe30a98288265::t_7c16f857a311ef 8,10
+world/tests/seed-world/SeedWorldRockColliderPhysX.spec.ts
+  s_7fe30a98288265::t_7c16f857a311ef 36
+packages/water/src/water/runtime/heightfield/HeightfieldWaterMaterialFactory.ts
+  s_7fe30a98288265::t_7c16f857a311ef 971
+packages/water/src/water/shaders/ocean/OceanSurfaceDetail.glsl
+  s_7fe30a98288265::t_7c16f857a311ef 34-35,38-39,59-60,63-64
+packages/water/tests/WaterBuiltinShaders.test.ts
+  s_7fe30a98288265::t_7c16f857a311ef 6,28-29,71,75-80
+packages/water/src/water/native/WaterSystem.ts
+  s_7fe30a98288265::t_7c16f857a311ef 17-18,39-44,307,373,442,613-625,1049,1062,1138-1140,1143-1144,1149-1150,1176
+packages/water/src/water/native/WaterMaterialFile.ts
+  s_7fe30a98288265::t_7c16f857a311ef 13-20,97,102-103,109,115-116,213,237-249,257,262,324-331,336,349-350,369-377,383-387,390,406,408-409
+packages/water/src/water/runtime/resources/destroyWaterOwnedMaterial.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1-38
+world/demos/seed-world/src/planning/spatial/runtime/PlanningProjectSource.ts
+  s_7fe30a98288265::t_7c16f857a311ef 7,16,18-23,136-149,151,153-201
+packages/water/src/water/runtime/ocean/OceanTextures.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1-73
+packages/world-planning/src/spatial/WorldTemplateCatalog.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1-2,27-28,39,150,160
+packages/water/src/water/native/assets/Water/Materials/ocean.mat
+  s_7fe30a98288265::t_7c16f857a311ef 276-305
+packages/water/src/water/shaders/ocean/ForwardPass.glsl
+  s_7fe30a98288265::t_7c16f857a311ef 15-16,340,373-374,381,435
+world/tests/seed-world/PlanningWaterOwnership.spec.ts
+  s_7fe30a98288265::t_7c16f857a311ef 26,33,58,60,86-115,137-160,174-262
+  s_7fe30a98288265::t_e2f1c717c62f95 263
+packages/modify/tests/MaterialLoaderCompatibility.test.ts
+  s_7fe30a98288265::t_7c16f857a311ef 3,90-100,120-150,166-167,179,186-219
+  s_7fe30a98288265::t_8c161379238e8c 220
+packages/modify/src/native/loader/src/schema/MaterialSchema.ts
+  s_7fe30a98288265::t_7c16f857a311ef 37
+packages/water/src/water/native/WaterMaterialTextureSlots.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1-63
+packages/world-planning/tests/NativeWaterDefaultLook.test.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1-207
+packages/water/tests/RiverMaterialCleanup.test.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1-390
+packages/water/src/water/native/assets/Water/Materials/river.mat
+  s_7fe30a98288265::t_7c16f857a311ef 434-451
+packages/terrain/src/data/grasslands/source/public/Shader/Grass.shaderc
+  s_7fe30a98288265::t_7c16f857a311ef 1
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1032-1033,1038,1050,1071
+packages/terrain/src/shaders/grass/GrassForwardPass.glsl
+  s_7fe30a98288265::t_7c16f857a311ef 211
+packages/water/src/water/runtime/surface/WaterSurfaceAppearanceV2Shader.ts
+  s_7fe30a98288265::t_7c16f857a311ef 45,207
+world/tests/seed-world/SeedWorldRockAssemblyMaterial.spec.ts
+  s_7fe30a98288265::t_7c16f857a311ef 39
+packages/world-planning/src/spatial/layout/SpatialInstanceEdits.ts
+  s_7fe30a98288265::t_7c16f857a311ef 15
+world/tests/seed-world/SeedWorldRockGrassCoverage.spec.ts
+  s_7fe30a98288265::t_7c16f857a311ef 18
+packages/water/src/water/native/assets/Water/Shaders/builtin/sources.json
+  s_7fe30a98288265::t_7c16f857a311ef 2-4
+packages/world-planning/src/integrations/terrain/rock-formation/ColorPalette.ts
+  s_7fe30a98288265::t_7c16f857a311ef 30,45
+packages/world-planning/src/integrations/terrain/rock-formation/Authoring.ts
+  s_7fe30a98288265::t_7c16f857a311ef 9,29,37,44,46
+packages/world-planning/src/integrations/terrain/rock-formation/RockVariantCatalog.json
+  s_7fe30a98288265::t_7c16f857a311ef 2-3
+world/tests/seed-world/PlanningSeedScenePublication.spec.ts
+  s_7fe30a98288265::t_7c16f857a311ef 841,1677
+packages/world-planning/src/landforms/RockAtoms.ts
+  s_7fe30a98288265::t_7c16f857a311ef 128
+packages/terrain/src/data/grasslands/public/Shader/Grass.shaderc
+  s_7fe30a98288265::t_7c16f857a311ef 1
+packages/world-planning/src/integrations/terrain/rock-formation/RockMaterial.ts
+  s_7fe30a98288265::t_7c16f857a311ef 1,4,6,8
+vitest.config.ts
+  s_7fe30a98288265::t_7c16f857a311ef 5
+packages/water/src/water/shaders/library/surface/WaterSurfaceAppearanceV2NormalDetail.glsl
+  s_7fe30a98288265::t_7c16f857a311ef 20-21,23,29,35,67-68,70,76,82
+world/demos/seed-world/src/DesertPresentation.ts
+  s_7fe30a98288265::t_7c16f857a311ef 17,54-57,69-70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a7e5011572278fa026996d31af81973dfda6fe16",
+  "prompts": {},
+  "sessions": {
+    "s_7fe30a98288265": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d456-3277-7a31-a653-8428bd196f06",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

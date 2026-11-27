@@ -1,0 +1,174 @@
+packages/terrain/src/shaders/shared/RockGrassGround.glsl
+  s_ae6fab0fbe1884::t_0fc8d4f4a9806e 12-13
+world/demos/seed-world/SeedWorldDemo.ts
+  s_ae6fab0fbe1884::t_c949f32fcd20f0 147,1084
+  s_ae6fab0fbe1884::t_9a61707fa5f40d 1147
+  s_ae6fab0fbe1884::t_0fc8d4f4a9806e 325,1192
+  s_ae6fab0fbe1884::t_50f34a200358ff 1117,1211,1409
+  s_ae6fab0fbe1884::t_ee2add88458da0 241,413,1455-1457
+packages/terrain/src/terrain/clipmap/TerrainGroundBinding.ts
+  s_ae6fab0fbe1884::t_a1606572533355 70-71
+world/demos/seed-world/SeedWorldProject.ts
+  s_ae6fab0fbe1884::t_63bfe56a5667f0 17,31-33,36,63,71
+world/tests/seed-world/SeedWorldRockAssemblyMaterial.spec.ts
+  s_ae6fab0fbe1884::t_49d16663b4c6a7 181
+  s_ae6fab0fbe1884::t_ab11c08636d40f 165,311,338
+world/tests/seed-world/SeedWorldRockPanel.spec.ts
+  s_ae6fab0fbe1884::t_a314c944b33b4e 179
+  s_ae6fab0fbe1884::t_b2bec4989d600b 176
+world/demos/seed-world/src/planning/spatial/WorldTemplatePicker.ts
+  s_ae6fab0fbe1884::t_63bfe56a5667f0 29
+packages/world-planning/src/integrations/terrain/rock-formation/Client.ts
+  s_ae6fab0fbe1884::t_a1606572533355 36,43
+  s_ae6fab0fbe1884::t_49d16663b4c6a7 19,59
+  s_ae6fab0fbe1884::t_50f34a200358ff 47-48
+  s_ae6fab0fbe1884::t_29075d00c22d6f 7-13,45-46,53
+  s_ae6fab0fbe1884::t_43be8f8a67d48e 4,15,20-21,31-35,37-38,40,58,60
+  s_ae6fab0fbe1884::t_2c562df8cda5b7 6,41-42,44,49-52,54-55,57,62
+packages/terrain/src/shaders/shared/GrassRockAppearance.glsl
+  s_ae6fab0fbe1884::t_0fc8d4f4a9806e 45
+packages/world-planning/src/integrations/terrain/rock-formation/Edit.ts
+  s_ae6fab0fbe1884::t_9a61707fa5f40d 6
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAuthoringComponents.ts
+  s_ae6fab0fbe1884::t_c100d089a0ee63 187
+packages/world-planning/src/integrations/terrain/rock-formation/View.ts
+  s_ae6fab0fbe1884::t_c100d089a0ee63 137-151
+  s_ae6fab0fbe1884::t_43be8f8a67d48e 136,172-173
+  s_ae6fab0fbe1884::t_0fc8d4f4a9806e 19,165
+  s_ae6fab0fbe1884::t_1fa117bd7c97a9 26-88,166-169,175-189,191-193,278
+  s_ae6fab0fbe1884::t_c5cdce1c3fc8fc 2,4-7,17,23,95,98-102,108-109,122,160-164,170-171,174,190,194,255-256,260-261,272-277
+packages/terrain/src/rock-formation/RockFormation.shader
+  s_ae6fab0fbe1884::t_a1606572533355 25-26,50,52-57
+  s_ae6fab0fbe1884::t_0fc8d4f4a9806e 48
+  s_ae6fab0fbe1884::t_903f64d28607b8 24,51
+packages/world-planning/src/integrations/terrain/rock-formation/Variants.ts
+  s_ae6fab0fbe1884::t_43be8f8a67d48e 1-8,19,39,47-52,57-61,64,66-77,106-107,109,111-115,133-135,137,165
+  s_ae6fab0fbe1884::t_d50104f973471f 153
+  s_ae6fab0fbe1884::t_50f34a200358ff 26-27,101,159-161
+  s_ae6fab0fbe1884::t_a060e265bd26a0 9-18,20,28,33,38,41-42,44-45,56,78-88,90-100,102-104,108,110,116-119,121-128,131,139-141,156-158,162,166,171-174,176-177,180,183,185-186,188-189,191,193-194,196-198,211-214,217-230,232-242,245-251,258-261,264,266-268
+  s_ae6fab0fbe1884::t_c949f32fcd20f0 152
+  s_ae6fab0fbe1884::t_29075d00c22d6f 129-130,142-145,147-150,167-170,181,199-210,231
+  s_ae6fab0fbe1884::t_a1606572533355 136,138,151,154-155
+  s_ae6fab0fbe1884::t_443ad5e02026e0 21-25
+  s_ae6fab0fbe1884::t_382be4a7b0580b 29-32
+  s_ae6fab0fbe1884::t_7d4648efde9b40 34-37
+  s_ae6fab0fbe1884::t_c8b58ca514b364 40
+  s_ae6fab0fbe1884::t_bc20d0429719a4 43
+  s_ae6fab0fbe1884::t_559403bcf491ef 46
+  s_ae6fab0fbe1884::t_db206b58300c1d 53-55
+  s_ae6fab0fbe1884::t_22120e871c0073 62-63
+  s_ae6fab0fbe1884::t_c6a5e536d358f4 65
+  s_ae6fab0fbe1884::t_8f9b214d0ab72e 89
+  s_ae6fab0fbe1884::t_eaf7d572dccf26 105
+  s_ae6fab0fbe1884::t_4b3b01632c593b 120
+  s_ae6fab0fbe1884::t_f305447647f01f 132
+  s_ae6fab0fbe1884::t_a58a74800481d1 146
+  s_ae6fab0fbe1884::t_55cf6b14b5fe13 163-164
+  s_ae6fab0fbe1884::t_798bbf3547810c 175
+  s_ae6fab0fbe1884::t_c3e4b56109522e 178-179
+  s_ae6fab0fbe1884::t_a735828aeea51d 182
+  s_ae6fab0fbe1884::t_7f8e3616461b71 184
+  s_ae6fab0fbe1884::t_ecf9ee5b3c9cf3 187
+  s_ae6fab0fbe1884::t_a754134e8c89b5 190
+  s_ae6fab0fbe1884::t_f2a9d29020dd8d 192
+  s_ae6fab0fbe1884::t_bfb3496ef8982b 195
+  s_ae6fab0fbe1884::t_be7a0e30add5c3 215-216
+  s_ae6fab0fbe1884::t_f1c4f177906dc7 243-244
+  s_ae6fab0fbe1884::t_76c9bf66b3c3e6 252-257
+  s_ae6fab0fbe1884::t_74b71aae163ad0 262-263
+  s_ae6fab0fbe1884::t_a9963428015f9a 265
+  s_ae6fab0fbe1884::t_4a6e5055043439 269
+world/tests/seed-world/editor/seed-world-project.spec.ts
+  s_ae6fab0fbe1884::t_77e61fdd366741 177-199
+packages/terrain/src/shaders/grass/GrassForwardPass.glsl
+  s_ae6fab0fbe1884::t_9a61707fa5f40d 213
+world/demos/seed-world/main.ts
+  s_ae6fab0fbe1884::t_77e61fdd366741 90-93
+packages/terrain/src/rock-formation/types.ts
+  s_ae6fab0fbe1884::t_50f34a200358ff 53
+  s_ae6fab0fbe1884::t_a060e265bd26a0 41-52,54-55,64-65
+  s_ae6fab0fbe1884::t_d3b3b28b1a6403 66
+packages/terrain/src/rock-formation/GrassSurface.ts
+  s_ae6fab0fbe1884::t_c100d089a0ee63 227-228
+world/demos/seed-world/src/SeedWorldMojavePreview.ts
+  s_ae6fab0fbe1884::t_04198ee499608a 7-8
+world/demos/seed-world/systems/runtime-declarations.json
+  s_ae6fab0fbe1884::t_50f34a200358ff 1
+packages/world-planning/src/integrations/terrain/rock-formation/Publication.ts
+  s_ae6fab0fbe1884::t_0fc8d4f4a9806e 37,55
+  s_ae6fab0fbe1884::t_9a61707fa5f40d 27,65
+  s_ae6fab0fbe1884::t_49d16663b4c6a7 47,103
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  s_ae6fab0fbe1884::t_c100d089a0ee63 1507-1509,1515,1586-1590
+  s_ae6fab0fbe1884::t_a1606572533355 1521
+  s_ae6fab0fbe1884::t_50f34a200358ff 1431-1433,1435-1438
+  s_ae6fab0fbe1884::t_01df6de97a8336 84-85,87-95,98,105,391-399,440-441,652,673-674,676,698,1160,1294,1305,1487-1491,1494-1495,1498,1500-1501,1503,1505-1506,1511-1514,1516-1520,1522-1545,1547-1567,1571-1583
+  s_ae6fab0fbe1884::t_0fc8d4f4a9806e 1510
+  s_ae6fab0fbe1884::t_34e10aa451c116 675,697,1584-1585
+packages/world-planning/src/integrations/terrain/rock-formation/Placement.ts
+  s_ae6fab0fbe1884::t_a060e265bd26a0 54-58
+world/demos/seed-world/masonry/BuildingInitializationInputs.ts
+  s_ae6fab0fbe1884::t_49d16663b4c6a7 38
+packages/world-planning/src/integrations/terrain/rock-formation/GrassRockAppearance.ts
+  s_ae6fab0fbe1884::t_c100d089a0ee63 9,145
+packages/world-planning/src/runtime/SeedWorldPopulationRuntime.ts
+  s_ae6fab0fbe1884::t_9a61707fa5f40d 736,1647
+  s_ae6fab0fbe1884::t_0fc8d4f4a9806e 3088
+world/demos/seed-world/src/planning/spatial/SpatialEditor.ts
+  s_ae6fab0fbe1884::t_63bfe56a5667f0 13,135-141
+packages/world-planning/src/integrations/terrain/rock-formation/RockMaterial.ts
+  s_ae6fab0fbe1884::t_0fc8d4f4a9806e 1,45-46
+packages/world-planning/src/integrations/terrain/rock-formation/RockVariantCatalog.json
+  s_ae6fab0fbe1884::t_a1606572533355 109,111-116
+  s_ae6fab0fbe1884::t_50f34a200358ff 7-108
+  s_ae6fab0fbe1884::t_e11b11ccf4aba8 1-6,110,117
+packages/world-planning/src/integrations/terrain/rock-formation/Jobs.ts
+  s_ae6fab0fbe1884::t_a060e265bd26a0 8
+  s_ae6fab0fbe1884::t_c100d089a0ee63 34
+packages/world-planning/src/integrations/terrain/rock-formation/Authoring.ts
+  s_ae6fab0fbe1884::t_8a44a782052477 9,29,37,44,46
+packages/world-planning/src/integrations/terrain/rock-formation/ColorPalette.ts
+  s_ae6fab0fbe1884::t_a3a7d8225163e3 30,45
+packages/world-planning/src/integrations/terrain/rock-formation/Panel.ts
+  s_ae6fab0fbe1884::t_528ecb1aa12b51 6,12,38,42,108
+packages/world-planning/src/integrations/terrain/rock-formation/Settings.ts
+  s_ae6fab0fbe1884::t_12aa309d9dd31c 1-4,9,12,17,19,22,26-33,40-44
+packages/world-planning/src/spatial/world-templates/sakura-pearl.json
+  s_ae6fab0fbe1884::t_fbbf76308b85fd 334
+world/demos/seed-world/src/planning/spatial/PlanningVisualAuthoring.ts
+  s_ae6fab0fbe1884::t_3462689495f565 35
+world/tests/seed-world/PlanningSeedScenePublication.spec.ts
+  s_ae6fab0fbe1884::t_fa1aef3389d5e2 842
+world/tests/seed-world/SeedWorldGeneratedRockGrass.spec.ts
+  s_ae6fab0fbe1884::t_449aeb25ef5713 32,42,48,53,57,110-111
+world/tests/seed-world/SeedWorldGrassRockAppearance.spec.ts
+  s_ae6fab0fbe1884::t_b4e753fbb9cd7b 8,39
+world/tests/seed-world/SeedWorldRockCollider.spec.ts
+  s_ae6fab0fbe1884::t_868d6241fe49e2 68
+world/tests/seed-world/SeedWorldRockColliderPhysX.spec.ts
+  s_ae6fab0fbe1884::t_f2abcba287d329 36
+world/tests/seed-world/SeedWorldRockColorPalette.spec.ts
+  s_ae6fab0fbe1884::t_bd160870b1776c 10-11,47
+world/tests/seed-world/SeedWorldRockFormationEdit.spec.ts
+  s_ae6fab0fbe1884::t_0e18fc139d7259 2,27,29,169-171
+world/tests/seed-world/SeedWorldRockGrassCoverage.spec.ts
+  s_ae6fab0fbe1884::t_431f67be047e64 18
+world/tests/seed-world/WorldTemplates.spec.ts
+  s_ae6fab0fbe1884::t_cdad16940cab46 279
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ca8e91c87349c40c912130bf38f9fcb29ef90907",
+  "prompts": {},
+  "sessions": {
+    "s_ae6fab0fbe1884": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1cde9-e5eb-7580-948b-3731733934fb",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

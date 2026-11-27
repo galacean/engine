@@ -1,0 +1,16 @@
+packages/shader-compiler/src/codeGen/GLESVisitor.ts
+  h_c385727b10f40c 39-40,87,122,137,243,355-359,393-404
+tests/src/shader-compiler/InterfaceValueSemantics.test.ts
+  h_c385727b10f40c 65-66,70-81,512-514
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "06aee2b406eddbed58d53bc8e9f1870e61c102ca",
+  "prompts": {},
+  "humans": {
+    "h_c385727b10f40c": {
+      "author": "shensi.zxd <shensi.zxd@antgroup.com>"
+    }
+  }
+}

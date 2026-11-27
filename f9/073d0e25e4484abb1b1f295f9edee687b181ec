@@ -1,0 +1,193 @@
+LICENSE
+  s_f1a7b8285f1df2::t_c903c04322eef2 22-63
+README.md
+  s_f1a7b8285f1df2::t_b0dbb632aa1830 66
+docs/en/graphics/mesh/primitiveMesh.mdx
+  s_f1a7b8285f1df2::t_fa5348128e063c 15-19,23-27,31-35,131-304
+docs/en/graphics/renderer/meshRenderer.mdx
+  s_f1a7b8285f1df2::t_cbba169064029c 26
+docs/zh/graphics/mesh/primitiveMesh.mdx
+  s_f1a7b8285f1df2::t_ba9cd4d8478739 15-19,23-27,31-35,131-310
+docs/zh/graphics/renderer/meshRenderer.mdx
+  s_f1a7b8285f1df2::t_a7fae5b0352c9b 26
+e2e/case/.initPostProcessEnv.ts
+  s_f1a7b8285f1df2::t_7921acf1043206 50
+e2e/case/.primitiveMeshGallery.ts
+  s_f1a7b8285f1df2::t_7815bbc5c3e3c4 1-188
+e2e/case/camera-opaque-texture.ts
+  s_f1a7b8285f1df2::t_0443455b2dd61d 156
+e2e/case/camera-ssao.ts
+  s_f1a7b8285f1df2::t_5aba737dae79a3 55,64
+e2e/case/canvas-transparency.ts
+  s_f1a7b8285f1df2::t_447c0883cb1206 85,114,127
+e2e/case/gpu-instancing-custom-data.ts
+  s_f1a7b8285f1df2::t_ecb68e3dcf4ab4 82
+e2e/case/material-LUT.ts
+  s_f1a7b8285f1df2::t_338cfd9275e3e1 59
+e2e/case/material-white-furnace.ts
+  s_f1a7b8285f1df2::t_db8019e788db43 98
+e2e/case/multi-camera-no-clear.ts
+  s_f1a7b8285f1df2::t_ab28d6942f7413 57,86
+e2e/case/multi-scene-clear.ts
+  s_f1a7b8285f1df2::t_cb0847981f6251 44,76
+e2e/case/multi-scene-no-clear.ts
+  s_f1a7b8285f1df2::t_e13c26cc92a70e 51,83
+e2e/case/physx-collision-group.ts
+  s_f1a7b8285f1df2::t_e5c457184d2599 58,110-114
+e2e/case/physx-collision.ts
+  s_f1a7b8285f1df2::t_52b34d03f7a638 39,90
+e2e/case/physx-customUrl.ts
+  s_f1a7b8285f1df2::t_17f98983f36125 38,95
+e2e/case/physx-deferred-contact.ts
+  s_f1a7b8285f1df2::t_d99514e4b98614 42
+e2e/case/physx-mesh-collider.ts
+  s_f1a7b8285f1df2::t_76046f6d043a83 41
+e2e/case/primitive-all.ts
+  s_f1a7b8285f1df2::t_a0214ae1ac7f7c 1-279
+e2e/case/primitive-capsule.ts
+  s_f1a7b8285f1df2::t_c6b4774976c88f 58
+e2e/case/primitive-contours.ts
+  s_f1a7b8285f1df2::t_a01acf9235d25a 1-127
+e2e/case/primitive-materials.ts
+  s_f1a7b8285f1df2::t_8923115a7304d0 1-128
+e2e/case/primitive-sections.ts
+  s_f1a7b8285f1df2::t_aa3555bd05a87a 1-106
+e2e/case/primitive-sphere-sections.ts
+  s_f1a7b8285f1df2::t_1b80ef0e2261b2 1-102
+e2e/case/primitive-sphere.ts
+  s_f1a7b8285f1df2::t_051f1d34eba7d9 58
+e2e/case/primitive-topology.ts
+  s_f1a7b8285f1df2::t_08159542dd1c98 1-168
+e2e/case/shadow-basic.ts
+  s_f1a7b8285f1df2::t_cae58640e21b69 39
+e2e/case/shadow-transparent.ts
+  s_f1a7b8285f1df2::t_cf929acc9b8893 45
+e2e/case/texture-R8G8.ts
+  s_f1a7b8285f1df2::t_b797c66b50b44f 35
+e2e/case/texture-hdr.ts
+  s_f1a7b8285f1df2::t_f6ca99a80e05e9 40
+e2e/case/texture-sRGB-KTX2.ts
+  s_f1a7b8285f1df2::t_8cfd6f95ba8574 40
+e2e/config.ts
+  s_f1a7b8285f1df2::t_45ac7b51eb26dd 232-267
+e2e/fixtures/originImage/Advance_multi-camera-no-clear.jpg
+  s_f1a7b8285f1df2::t_d490bf65147d9a 2-3
+e2e/fixtures/originImage/Material_material-white-furnace.jpg
+  s_f1a7b8285f1df2::t_a11ea60b288d37 2-3
+e2e/fixtures/originImage/Material_shader-mrt.jpg
+  s_f1a7b8285f1df2::t_831a79b3707049 2-3
+e2e/fixtures/originImage/Material_shader-renderState.jpg
+  s_f1a7b8285f1df2::t_dd5473ea049158 2-3
+e2e/fixtures/originImage/Physics_physx-collision-group.jpg
+  s_f1a7b8285f1df2::t_bf1bc86961e28d 2-3
+e2e/fixtures/originImage/Physics_physx-collision.jpg
+  s_f1a7b8285f1df2::t_1dceef2f308e6c 2-3
+e2e/fixtures/originImage/Physics_physx-customUrl.jpg
+  s_f1a7b8285f1df2::t_a4a92b8faeb3ff 2-3
+e2e/fixtures/originImage/Primitive_primitive-all.jpg
+  s_f1a7b8285f1df2::t_eb4b5e70df0e33 1-3
+e2e/fixtures/originImage/Primitive_primitive-contours.jpg
+  s_f1a7b8285f1df2::t_c682ebb44ec6cc 1-3
+e2e/fixtures/originImage/Primitive_primitive-materials.jpg
+  s_f1a7b8285f1df2::t_fad4e79f9d1d44 1-3
+e2e/fixtures/originImage/Primitive_primitive-sections.jpg
+  s_f1a7b8285f1df2::t_18732eb2a6345f 1-3
+e2e/fixtures/originImage/Primitive_primitive-sphere-sections.jpg
+  s_f1a7b8285f1df2::t_1c87c33d5c8cd2 1-3
+e2e/fixtures/originImage/Primitive_primitive-topology.jpg
+  s_f1a7b8285f1df2::t_e190dfc3288fe1 1-3
+e2e/primitive-mesh.md
+  s_f1a7b8285f1df2::t_0a63feb558a83a 1-24
+examples/src/gltf-loader.ts
+  s_f1a7b8285f1df2::t_e1ec413047f2f2 204
+examples/src/gpu-instancing-auto-batch.ts
+  s_f1a7b8285f1df2::t_7826367d642e63 160
+examples/src/gpu-instancing-custom-data.ts
+  s_f1a7b8285f1df2::t_3879061973f430 131
+examples/src/shader-01-basic-shader.ts
+  s_f1a7b8285f1df2::t_40e63aac495738 83
+examples/src/shader-02-render-state.ts
+  s_f1a7b8285f1df2::t_13d0ca0d576fb7 116
+examples/src/shader-03-ui-script.ts
+  s_f1a7b8285f1df2::t_a97bd5f1ed0a98 191
+examples/src/shader-04-multi-pass.ts
+  s_f1a7b8285f1df2::t_cd4b2c6cedf5d4 137
+packages/core/src/mesh/MeshTangentUtils.ts
+  s_f1a7b8285f1df2::t_65cc5ce16e110c 1-142
+packages/core/src/mesh/ModelMesh.ts
+  s_f1a7b8285f1df2::t_272ac7b762569b 15,671-676,687-688,690-695,704,707-709,714-723,753-759,805,816-823,831-833,836-838,905,909,942,946,950,954,958,962,966,970,974,978,982,986,990,994,1292-1293
+packages/core/src/mesh/PrimitiveMesh.ts
+  s_f1a7b8285f1df2::t_367e630ab38ebc 1,7-28,30-34,37-40,50-175,177-198,201-204,206-221,223-235,240-243,245-269,274-277,279-306,308-321,326-329,331-337,342-345,347-371,373,375-388,393-396,398-411,413,415-475,480-484,486-521,523-524,526-530,535-539,541,543-544,546-570,575-578,580-854,856-1313,1315-1395,1397-1775,1779-1780,1784,1813,1825,1839,1841-1852,1859,1865,1869-1872,1875,1879-1881,1886,1891,1893,1896-1903,1905-1908,1910-1930,1932-1933,1936-1945,1948-1953,1955-1967,1969-1970,1972-1973,1976-1978,1980-1981,1983-1986,1988,1990,1993-1998,2000,2003-2005,2007-2010
+packages/core/src/mesh/PrimitiveMeshOptions.ts
+  s_f1a7b8285f1df2::t_df6e60d437b844 1-627
+packages/core/src/mesh/enums/PrimitiveMeshCapMode.ts
+  s_f1a7b8285f1df2::t_9381f9dc248890 1-21
+packages/core/src/mesh/index.ts
+  s_f1a7b8285f1df2::t_2075169fcdeb99 7-29,32
+packages/core/src/mesh/primitive/MeshPathUtils.ts
+  s_f1a7b8285f1df2::t_f3c0e6733fd647 1-151
+packages/core/src/mesh/primitive/PolygonUtils.ts
+  s_f1a7b8285f1df2::t_c5f9a12740455a 1-741
+packages/core/src/mesh/primitive/PrimitiveMeshBuilder.ts
+  s_f1a7b8285f1df2::t_6bba133576d520 1-112
+packages/core/src/mesh/primitive/PrimitiveMeshRestorer.ts
+  s_f1a7b8285f1df2::t_4443b0a9296c2f 1-5,10-14,16-18,20-23,27-58,62-65
+packages/core/src/mesh/primitive/SubdivisionUtils.ts
+  s_f1a7b8285f1df2::t_c9d81bcc38237a 1-96
+packages/galacean/README.md
+  s_f1a7b8285f1df2::t_5bfb595ba30ea5 65
+packages/galacean/skills/engine-knowledge/references/mesh-geometry.md
+  s_f1a7b8285f1df2::t_4f7d36676f7675 5-15,30,51-82
+packages/loader/src/PrimitiveMeshAsset.ts
+  s_f1a7b8285f1df2::t_235785bc1b936e 1-125
+packages/loader/src/PrimitiveMeshLoader.ts
+  s_f1a7b8285f1df2::t_0d3ea3c2e6f3d6 4,8,13-14,20-21,24-83,85-114
+packages/loader/src/index.ts
+  s_f1a7b8285f1df2::t_c05b31c168b994 30
+tests/package-consumer/PrimitiveMeshApi.test.ts
+  s_f1a7b8285f1df2::t_b57dc140f21cce 1-89
+tests/package-consumer/fixtures/PrimitiveMeshApi.ts
+  s_f1a7b8285f1df2::t_c9559d29bba85d 1-315
+tests/package-consumer/fixtures/PrimitiveMeshAsset.ts
+  s_f1a7b8285f1df2::t_b6ffd27c386742 1-136
+tests/src/core/DeviceLost.test.ts
+  s_f1a7b8285f1df2::t_49e82ae7ec3336 44
+tests/src/core/Light.test.ts
+  s_f1a7b8285f1df2::t_46c66f059bcd53 247
+tests/src/core/MeshRenderer.test.ts
+  s_f1a7b8285f1df2::t_442b828bafab3d 41,50
+tests/src/core/Shader.test.ts
+  s_f1a7b8285f1df2::t_a3bb3f875d8a00 159,201
+tests/src/core/mesh/BlendShape.test.ts
+  s_f1a7b8285f1df2::t_2ee472584750ab 179
+tests/src/core/mesh/BlendShapeManager.test.ts
+  s_f1a7b8285f1df2::t_563afcffdb163b 220-228,287,305,321,331,341
+tests/src/core/mesh/PrimitiveMesh.test.ts
+  s_f1a7b8285f1df2::t_73479bbb21536c 3,23-28,31,35,43-51,61-62,70-73,76-77,80,83-86,89,101-103,107-108,127-133,151-157,163,174-181,184,190,200-212,214-222
+tests/src/core/mesh/ProceduralMesh.test.ts
+  s_f1a7b8285f1df2::t_0e05a4d5a6a085 1-2072
+tests/src/core/physics/ColliderLayer.test.ts
+  s_f1a7b8285f1df2::t_898f2cf9c2bd10 104-112
+tests/src/core/physics/MeshColliderLayer.test.ts
+  s_f1a7b8285f1df2::t_7d24cc5e81cb75 28-36
+tests/src/loader/PrimitiveMeshLoader.test.ts
+  s_f1a7b8285f1df2::t_14544ba2da07b6 1-643
+tests/src/spine/SpineAlpha.test.ts
+  s_f1a7b8285f1df2::t_2cb12c0428d618 124
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f9073d0e25e4484abb1b1f295f9edee687b181ec",
+  "prompts": {},
+  "sessions": {
+    "s_f1a7b8285f1df2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d54e-3c87-7273-b01d-79d652eaed37",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

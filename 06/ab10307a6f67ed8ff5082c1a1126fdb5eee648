@@ -1,0 +1,20 @@
+packages/shader/src/ShaderLibrary/BlinnPhong/ForwardPassBlinnPhong.glsl
+  h_171a11afaf879a 139
+packages/shader/src/Shaders/Pipeline/ShadowCaster.shader
+  h_171a11afaf879a 27-29,83-86,109-111
+packages/shader/src/Shaders/Unlit.shader
+  h_171a11afaf879a 80-82,125-128,145-148
+tests/src/core/material/BuiltinShaderVertexColor.test.ts
+  h_171a11afaf879a 1-122
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "06ab10307a6f67ed8ff5082c1a1126fdb5eee648",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

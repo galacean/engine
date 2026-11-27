@@ -1,0 +1,54 @@
+packages/ai-chat/src/ai-chat/agent-native-files.ts
+  h_ddbf152d31b140 36-37,43
+packages/ai-chat/src/ai-chat/context-compaction.ts
+  h_ddbf152d31b140 114-115,132,146,149,217,380,386-397,399,407,432-433,439-442
+packages/ai-chat/tests/agent-native-files.spec.ts
+  h_ddbf152d31b140 506-522
+packages/ai-chat/tests/context-compaction.spec.ts
+  h_ddbf152d31b140 205-269
+packages/building/tests/BuildingSceneLifecycle.spec.ts
+  h_ddbf152d31b140 127,137,147,150
+packages/farming/src/skills/farming/references/overview.md
+  h_ddbf152d31b140 3
+packages/runtime-editor/src/runtime-editor-agent/runtime-native-editor.ts
+  h_ddbf152d31b140 51-54
+packages/world-planning/src/agent-adapter/contracts/SeedWorldAssetContracts.ts
+  h_ddbf152d31b140 245-246
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  h_ddbf152d31b140 2927-2931
+packages/world-planning/tests/PlanningInstancedTreeCrudEffects.spec.ts
+  h_ddbf152d31b140 560-599
+world/demos/seed-world/agent-adapter/SeedWorldAgentApplication.ts
+  h_ddbf152d31b140 1734-1739
+world/demos/seed-world/agent-adapter/SeedWorldAgentDefinition.ts
+  h_ddbf152d31b140 23-28
+world/demos/seed-world/agent-adapter/SeedWorldKnowledge.ts
+  h_ddbf152d31b140 46-57,59-61,134
+world/demos/seed-world/agent-adapter/SeedWorldPlanningResources.ts
+  h_ddbf152d31b140 16-20,28,32-42
+world/demos/seed-world/agent-adapter/contracts/generated/SeedWorldApiSearchRegistry.ts
+  h_ddbf152d31b140 688
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/ShrubAsset.d.ts
+  h_ddbf152d31b140 9-12
+world/demos/seed-world/agent-adapter/tools/parameter-tools.ts
+  h_ddbf152d31b140 320-323,329-357
+world/demos/seed-world/src/planning/spatial/runtime/PlanningSeedWorldSession.ts
+  h_ddbf152d31b140 200,204
+world/tests/seed-world/MemberRangeAgent.spec.ts
+  h_ddbf152d31b140 62,64,66,70-75
+world/tests/seed-world/SeedWorldAgentApplication.spec.ts
+  h_ddbf152d31b140 1812,1823-1833,1836,1839,1866-1876,1885-1913
+world/tests/seed-world/SeedWorldKnowledge.spec.ts
+  h_ddbf152d31b140 188-199
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "372979946e8b7457cf64e88bfa6f9e316b6eb1b4",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

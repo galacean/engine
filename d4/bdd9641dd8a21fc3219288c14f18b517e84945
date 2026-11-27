@@ -1,0 +1,244 @@
+packages/terrain/package.json
+  h_171a11afaf879a 100-102,111
+packages/terrain/src/data/seed-world/public/production-catalog.json
+  h_171a11afaf879a 1303-1314,1352-1363,1401-1412,1450-1461
+packages/terrain/src/rock-formation/GrassCoverage.ts
+  h_171a11afaf879a 1-8,11-14,16-49,51-53,55-61,63-80
+packages/terrain/src/rock-formation/GrassSurface.ts
+  h_171a11afaf879a 1,3,34-39,45-55,75,78,80,174,209-212,227-228
+packages/terrain/src/rock-formation/Projection.glsl
+  h_171a11afaf879a 2-9,11-22,25-42
+packages/terrain/src/rock-formation/RockFormation.shader
+  h_171a11afaf879a 20,42-43,45,47-48,50,52-55,72-73
+packages/terrain/src/rock-formation/Slope.ts
+  h_171a11afaf879a 1
+packages/terrain/src/rock-formation/SurfaceAttributes.ts
+  h_171a11afaf879a 3-4,7-10,12,16-20,22
+packages/terrain/src/rock-formation/TransitionCoverage.ts
+  h_171a11afaf879a 4
+packages/terrain/src/rock-formation/generator/body-profile.js
+  h_171a11afaf879a 1-37
+packages/terrain/src/rock-formation/generator/loft-rock.js
+  h_171a11afaf879a 1-808
+packages/terrain/src/rock-formation/generator/open-recesses.js
+  h_171a11afaf879a 1-9,11-33,35,38-50,52-69,71
+packages/terrain/src/rock-formation/generator/outline.js
+  h_171a11afaf879a 1-322
+packages/terrain/src/rock-formation/generator/rock-body.js
+  h_171a11afaf879a 1-204
+packages/terrain/src/rock-formation/generator/simplify-rock.js
+  h_171a11afaf879a 1-2,4,7-14,16,18-40,42-59,61,63-99,101-113,115-123,125,127-132,135-148,150-183,185-249,252-284,286-305,307-361,363,365-369,371-379,382-388,391-419
+packages/terrain/src/rock-formation/generator/solid-api.js
+  h_171a11afaf879a 1-10
+packages/terrain/src/rock-formation/generator/solid-surface.js
+  h_171a11afaf879a 1-52
+packages/terrain/src/rock-formation/generator/vendor/meshopt_simplifier.js
+  h_171a11afaf879a 1-676
+packages/terrain/src/rock-formation/generator/vendor/meshoptimizer-LICENSE.md
+  h_171a11afaf879a 1-21
+packages/terrain/src/rock-formation/generator/wall-composition.js
+  h_171a11afaf879a 1-150
+packages/terrain/src/rock-formation/math.ts
+  h_171a11afaf879a 21-25
+packages/terrain/src/rock-formation/types.ts
+  h_171a11afaf879a 49-63,65-72
+packages/terrain/src/shaders/shared/RockGrassGround.glsl
+  h_171a11afaf879a 13,21
+packages/terrain/src/shaders/shared/RockSurfaceColor.glsl
+  h_171a11afaf879a 7-19
+packages/vegetation/src/asset-assembly/AssetAssemblyCatalog.ts
+  h_171a11afaf879a 90-93
+packages/vegetation/src/asset-assembly/AssetAssemblyPresetFactory.ts
+  h_171a11afaf879a 202,250-252,255,258,757
+packages/vegetation/src/asset-assembly/AssetAssemblySourceLibrary.ts
+  h_171a11afaf879a 15,168-174,216,218,220-222,224,229,247-248,388-402,405,417,446-469,474-490,520,708-709,711,713-722
+packages/vegetation/src/asset-assembly/SeedWorldAssetSourceLibrary.ts
+  h_171a11afaf879a 17,36-37
+packages/vegetation/src/asset-assembly/VegetationAssemblyRuntime.ts
+  h_171a11afaf879a 371-372,553-555,559-561,570,635,685-687,693
+packages/vegetation/src/asset-assembly/generated/procedural-trees/plant-project-production-catalog.json
+  h_171a11afaf879a 1
+packages/vegetation/src/asset-assembly/offline/generate-seed-world-assets.mjs
+  h_171a11afaf879a 596-598,740,763-767,794
+packages/world-planning/package.json
+  h_171a11afaf879a 97
+packages/world-planning/src/integrations/terrain/rock-formation/Client.ts
+  h_171a11afaf879a 4,8-9,15-16,21,23,27-34,44,47,53,60-61,68-69,73-91,95-96,101-103,105-106,114,134-153,156-171,173-174,176-184,194-195,218,223,226-228,230-236,241,245,252-254
+packages/world-planning/src/integrations/terrain/rock-formation/ColorMaterial.ts
+  h_171a11afaf879a 5
+packages/world-planning/src/integrations/terrain/rock-formation/ColorPalette.ts
+  h_171a11afaf879a 30-32,40,45,48-50
+packages/world-planning/src/integrations/terrain/rock-formation/CompanionRocks.ts
+  h_171a11afaf879a 3,6,12,25,43,46
+packages/world-planning/src/integrations/terrain/rock-formation/Generate.ts
+  h_171a11afaf879a 1-4,6,8,10-18,20-38,42-52,54-55,58,61-62,64-78,80-82,84-100,104,106-118,120
+packages/world-planning/src/integrations/terrain/rock-formation/GrassRockAppearance.ts
+  h_171a11afaf879a 9,29,32,39
+packages/world-planning/src/integrations/terrain/rock-formation/Jobs.ts
+  h_171a11afaf879a 6,15,33,86
+packages/world-planning/src/integrations/terrain/rock-formation/OverlapGroups.ts
+  h_171a11afaf879a 1-55
+packages/world-planning/src/integrations/terrain/rock-formation/Panel.ts
+  h_171a11afaf879a 11,13,20-21,23,27,41-43,46-51,53-61,63-64,67-72,82,86,88-90,93-97,101-104,107,112-119,139,142,144-148,150,155,157-160,170,179-182,188,190,208,218,222
+packages/world-planning/src/integrations/terrain/rock-formation/RockFormation.worker.ts
+  h_171a11afaf879a 1,3,6-26,28-33
+packages/world-planning/src/integrations/terrain/rock-formation/RockMaterial.ts
+  h_171a11afaf879a 3-5,14-35,37-38,40-41,45-69,93-94,97-124,127-140,184,210
+packages/world-planning/src/integrations/terrain/rock-formation/Settings.ts
+  h_171a11afaf879a 4,8-24,28-32,35-38,46-47,50,56,58-63,65-66,69,71-72,74-89,169,173-177,179-198,201,212-226
+packages/world-planning/src/integrations/terrain/rock-formation/Union.ts
+  h_171a11afaf879a 1-119
+packages/world-planning/src/integrations/terrain/rock-formation/View.ts
+  h_171a11afaf879a 21-22,25,51,55,83,88-90,106,120,129,132,134-139,141-142,168,170,217,221,225,247-248
+packages/world-planning/src/integrations/vegetation/AtomicAssetPreview.ts
+  h_171a11afaf879a 740,743,746,749-759
+packages/world-planning/src/integrations/vegetation/VegetationLandscapePreview.ts
+  h_171a11afaf879a 615-617,645-647
+packages/world-planning/src/runtime/SeedWorldPopulationRuntime.ts
+  h_171a11afaf879a 11,2745,2934
+packages/world-planning/src/runtime/SeedWorldRockAssemblyRuntime.ts
+  h_171a11afaf879a 313
+packages/world-planning/src/runtime/SeedWorldRockRuntime.ts
+  h_171a11afaf879a 371
+packages/world-planning/src/runtime/SeedWorldTerrainRuntime.ts
+  h_171a11afaf879a 220,222,239-247,524-525
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  h_171a11afaf879a 18-19,34,54,101-103,110,153,337-340,348,368-376,381-385,394,403,411-420,555,697-704,884,888-895,912-921,1005,1276-1283,1288-1295,1353,1478,1481,1489-1490,1493-1503,1505,1507-1599
+packages/world-planning/src/spatial/runtime/PlanningPopulationRuntime.ts
+  h_171a11afaf879a 49-50
+packages/world-planning/src/world/SeedWorldExactPrefabRuntimeProfile.ts
+  h_171a11afaf879a 68-69,84-86,103-105,122-124,126-129,139-140,200,214-218
+pnpm-lock.yaml
+  h_171a11afaf879a 560-562,844-846,1092-1094,1637-1645,1666-1811,1882-1884,1975-1977,2424-2426,2653-2655,2866-2869,2964-2966,3056-3059,3386-3392,3413-3415,3680-3682,3690-3692,3749-3751,3977-3985,4240-4251,4387-4390,4513-4515,4742-4746,4754-4762,4928-4930,5112-5114,5347-5350,5648-5652,5977-5996,6013-6118,6207-6208,6281-6282,6643-6644,6919-6920,7149-7150,7253-7256,7329-7330,7683-7696,7709-7710,8006-8007,8014-8015,8057-8058,8295-8309,8772-8794,8964-8965,9058-9059,9303-9304,9312-9344,9514-9517,9689-9690,9910-9911
+vitest.config.ts
+  h_171a11afaf879a 5
+world/demos.json
+  h_171a11afaf879a 211-216
+world/demos/procedural-rock/Bake.worker.js
+  h_171a11afaf879a 1-21
+world/demos/procedural-rock/ColorBlend.glsl
+  h_171a11afaf879a 1-8
+world/demos/procedural-rock/CompoundRock.js
+  h_171a11afaf879a 1-3,5-33,35-70,72-124,128-167,171-191
+world/demos/procedural-rock/Environment.ts
+  h_171a11afaf879a 1-128
+world/demos/procedural-rock/GrassCoverage.ts
+  h_171a11afaf879a 1-4,6,8-29,39-40,42-52,55-65,67,70-84
+world/demos/procedural-rock/Material.ts
+  h_171a11afaf879a 1-49
+world/demos/procedural-rock/NativeGrass.ts
+  h_171a11afaf879a 1-329
+world/demos/procedural-rock/NativeGrassBindings.ts
+  h_171a11afaf879a 1-80
+world/demos/procedural-rock/OutlinePanel.js
+  h_171a11afaf879a 1-168
+world/demos/procedural-rock/Projection.glsl
+  h_171a11afaf879a 1-44
+world/demos/procedural-rock/README.md
+  h_171a11afaf879a 1-23
+world/demos/procedural-rock/Rock.shader
+  h_171a11afaf879a 1-90
+world/demos/procedural-rock/RockGrassGround.glsl
+  h_171a11afaf879a 1-24
+world/demos/procedural-rock/RockMaterial.ts
+  h_171a11afaf879a 1-181
+world/demos/procedural-rock/RockPanel.js
+  h_171a11afaf879a 1-741
+world/demos/procedural-rock/RockPicking.ts
+  h_171a11afaf879a 1-13,15-19,21-37,39-43,45-82,84
+world/demos/procedural-rock/RockSurfaceColor.glsl
+  h_171a11afaf879a 1-22
+world/demos/procedural-rock/ShadowReceiver.glsl
+  h_171a11afaf879a 1-66
+world/demos/procedural-rock/Surface.ts
+  h_171a11afaf879a 1-8
+world/demos/procedural-rock/SurfaceShaders.ts
+  h_171a11afaf879a 1-4,6-10,12-14,16-28,30-36
+world/demos/procedural-rock/Viewer.ts
+  h_171a11afaf879a 1-793
+world/demos/procedural-rock/index.html
+  h_171a11afaf879a 1-228
+world/demos/procedural-rock/main.ts
+  h_171a11afaf879a 1-32
+world/demos/procedural-rock/presets.js
+  h_171a11afaf879a 1-303
+world/demos/procedural-rock/style.css
+  h_171a11afaf879a 1-758
+world/demos/seed-world/SeedWorldDemo.ts
+  h_171a11afaf879a 149,258,528-529,742,789,796-799,805-806,942,954-957,970-971
+world/demos/seed-world/agent-adapter/runtime/SeedWorldRuntimeEnginePort.ts
+  h_171a11afaf879a 450-451
+world/demos/seed-world/src/planning/spatial/PlanningVisualAuthoring.ts
+  h_171a11afaf879a 35-37
+world/demos/seed-world/src/planning/spatial/runtime/PlanningAuthoringComponents.ts
+  h_171a11afaf879a 183,186-202
+world/demos/seed-world/src/planning/spatial/runtime/PlanningSeedRuntimeDebug.ts
+  h_171a11afaf879a 404-405,409-410
+world/demos/seed-world/systems/runtime-declarations.json
+  h_171a11afaf879a 28-31,79
+world/demos/vegetation/main.ts
+  h_171a11afaf879a 2210
+world/package.json
+  h_171a11afaf879a 28
+world/tests/procedural-rock/CompoundRock.spec.ts
+  h_171a11afaf879a 1-116
+world/tests/procedural-rock/RockBodyGeometry.spec.ts
+  h_171a11afaf879a 1-381
+world/tests/procedural-rock/RockMeshReduction.spec.ts
+  h_171a11afaf879a 1-362
+world/tests/procedural-rock/RockOutline.spec.ts
+  h_171a11afaf879a 1-24
+world/tests/procedural-rock/RockWallComposition.spec.ts
+  h_171a11afaf879a 1-135
+world/tests/procedural-rock/SilhouetteMeasurement.js
+  h_171a11afaf879a 1-255
+world/tests/procedural-rock/vitest.config.mjs
+  h_171a11afaf879a 1-8
+world/tests/seed-world/SeedWorldCompanionRockProfile.spec.ts
+  h_171a11afaf879a 1,4-11,14-16,21,25,42,47,49-60,62,64-87,90,95-98,105-113,146-147,152-163
+world/tests/seed-world/SeedWorldExactPrefabRuntimeProfile.spec.ts
+  h_171a11afaf879a 1-170
+world/tests/seed-world/SeedWorldGeneratedRockGrass.spec.ts
+  h_171a11afaf879a 1-494
+world/tests/seed-world/SeedWorldGrassRockAppearance.spec.ts
+  h_171a11afaf879a 1-80
+world/tests/seed-world/SeedWorldRockAssemblyMaterial.spec.ts
+  h_171a11afaf879a 1-393
+world/tests/seed-world/SeedWorldRockCollider.spec.ts
+  h_171a11afaf879a 1-3,5-51,53-58,60-87,89-110,113-122,124-138
+world/tests/seed-world/SeedWorldRockColliderPhysX.spec.ts
+  h_171a11afaf879a 1-149
+world/tests/seed-world/SeedWorldRockColorPalette.spec.ts
+  h_171a11afaf879a 7-8,10-16,47
+world/tests/seed-world/SeedWorldRockFormationClient.spec.ts
+  h_171a11afaf879a 1-361
+world/tests/seed-world/SeedWorldRockFormationEdit.spec.ts
+  h_171a11afaf879a 331,334,339,374-377,379,382,386,388,392,400,414,424,428,430,437-438,440,530,570,797,825-826
+world/tests/seed-world/SeedWorldRockFormationView.spec.ts
+  h_171a11afaf879a 2-5,18-19,22,41-45,47-49,52-54,101,117-122,156,231-234,237-252,254-257,260,265,272,298,300-314,319-323,329,333-343,345-352,354,356,359,361,363-374,378-379
+world/tests/seed-world/SeedWorldRockGeneration.spec.ts
+  h_171a11afaf879a 1-94
+world/tests/seed-world/SeedWorldRockGenerationProfile.spec.ts
+  h_171a11afaf879a 162-164,170,465-472,479-487,538,547-549
+world/tests/seed-world/SeedWorldRockGrassCoverage.spec.ts
+  h_171a11afaf879a 1-155
+world/tests/seed-world/SeedWorldRockPanel.spec.ts
+  h_171a11afaf879a 1,159,177-178,190,192-193,195-196,198-205,208-210,216,218,220-221,223,229-232,234,236,241,243-244,246-248,250-251
+world/tests/seed-world/SeedWorldRockUnion.spec.ts
+  h_171a11afaf879a 2-13,15-17,20-23,25,27,30,33-48,50-66,69,71-84,88,90-110,112-116,119-123,125-132,135-144
+world/tests/seed-world/SeedWorldTerrainRuntimeIntegration.spec.ts
+  h_171a11afaf879a 501,503,838
+world/vite.config.mjs
+  h_171a11afaf879a 60-65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d4bdd9641dd8a21fc3219288c14f18b517e84945",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

@@ -1,0 +1,230 @@
+packages/world-planning/src/agent-adapter/contracts/SeedWorldAssetContracts.ts
+  s_8194e95e35d740::t_a10c357262e017 4,215,246,275,278
+  s_8194e95e35d740::t_3ce94de198c0c1 248,284-289
+  s_8194e95e35d740::t_4a5a39ea28d0be 290-291
+world/tests/seed-world/SeedWorldAgentApplication.spec.ts
+  s_8194e95e35d740::t_7c69d869382251 212
+  s_8194e95e35d740::t_73f9bf55474e66 12,190-192,222-224,229-232
+  s_8194e95e35d740::t_278fc53c327617 261-263
+  s_8194e95e35d740::t_c8d32a91f03edd 277,284,287-289,292
+  s_8194e95e35d740::t_fd5968881bf5dd 48-169
+  s_8194e95e35d740::t_4a9b1fbbc6f706 171,175-176,180-186,189,193-194,196-198,201,206,233,239-243,249-250,255-260,268,293
+  s_8194e95e35d740::t_1cbe345547dede 172-174,177-179,187-188,195,199-200,202-205,207-211,213-221,225-228,234-238,244-248,251-254,264-267,1668-1669
+  s_8194e95e35d740::t_5da9e8ae9fba02 45-47,170
+  s_8194e95e35d740::t_24ff652087f769 269-276,278-283,285-286,290-291
+packages/terrain/src/shaders/Vegetation.shader
+  s_8194e95e35d740::t_894ab0f84e6b07 74,208
+world/tests/seed-world/PlanningTreePreview.spec.ts
+  s_8194e95e35d740::t_9ca74da907592d 103-105,120-130,132-133,165
+  s_8194e95e35d740::t_1cbe345547dede 13,15-18,106-119
+  s_8194e95e35d740::t_4d1ded4ed48c69 11-12,134-140,144,149-154,156-160,164
+  s_8194e95e35d740::t_24ff652087f769 141-143,145-148,155,161-163
+  s_8194e95e35d740::t_2cb45b9cf68884 14,27,31-32,36,43,47-49,51-52,67,71-73,81-83,86-87,89-94,98-102
+  s_8194e95e35d740::t_fd5968881bf5dd 28-30,33-35,37-42,44-46,50,53-66,68-70,74-80,84-85,88,95-97
+  s_8194e95e35d740::t_2862f8acf65645 131
+packages/world-planning/src/agent-adapter/ports/SeedWorldEnginePort.ts
+  s_8194e95e35d740::t_90329a142065c8 522,614,631-637
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/ShrublandAsset.d.ts
+  s_8194e95e35d740::t_cdbe10c90036ba 22-35
+  s_8194e95e35d740::t_ab54593b3aa862 19-21,36-38
+packages/world-planning/src/spatial/runtime/NaturalUnderstoryInstancedPool.ts
+  s_8194e95e35d740::t_cd31b594d2db0e 520,853
+  s_8194e95e35d740::t_1cbe345547dede 796-819
+  s_8194e95e35d740::t_7b8cfaa9ba5599 124,290,298,315,792-793,795,820-821,823-824
+  s_8194e95e35d740::t_2869a6ff499909 786,825
+  s_8194e95e35d740::t_f22e8cad76291f 27,125,787-791,794,822,1304
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/FlowerFieldAsset.d.ts
+  s_8194e95e35d740::t_6d728b3eb5e719 15-16,19-20
+  s_8194e95e35d740::t_cdbe10c90036ba 24-37
+  s_8194e95e35d740::t_5d8b50cd0b2e1c 21-23,38-40
+packages/world-planning/src/spatial/runtime/TemplateVertexColorTree.shader
+  s_8194e95e35d740::t_ba8cb95b3e1927 1-27
+world/demos/seed-world/agent-adapter/tools/tool-contract.ts
+  s_8194e95e35d740::t_a10c357262e017 409
+packages/world-planning/src/spatial/layout/SpatialEditInputs.ts
+  s_8194e95e35d740::t_1cbe345547dede 56-62
+packages/vegetation/src/asset-assembly/TreeAssemblyInstancedMesh.ts
+  s_8194e95e35d740::t_1cbe345547dede 165,167-174,176
+  s_8194e95e35d740::t_f22e8cad76291f 161-164,184
+  s_8194e95e35d740::t_3dd194678f228e 25
+  s_8194e95e35d740::t_1b717df1169f2f 166,175
+packages/world-planning/src/spatial/world-templates/LowPolyValley.ts
+  s_8194e95e35d740::t_5e7366ece41306 38,42
+  s_8194e95e35d740::t_8e04d18fa1d0e9 5
+  s_8194e95e35d740::t_4714fd01fc705d 21-24
+world/tests/seed-world/NaturalUnderstoryInstancedPool.spec.ts
+  s_8194e95e35d740::t_1cbe345547dede 262,266-274,282-284
+  s_8194e95e35d740::t_48c65a4e333ca6 51-52,263-265,275-281,285-296
+  s_8194e95e35d740::t_596c1148f70060 297-298
+packages/world-planning/src/spatial/runtime/PlanningWorldPicking.ts
+  s_8194e95e35d740::t_876505d7f6cca6 121,126-128
+  s_8194e95e35d740::t_4714fd01fc705d 31-38,44-47,55-58
+  s_8194e95e35d740::t_3ce94de198c0c1 18,29,39-43,79
+  s_8194e95e35d740::t_71054d53cf0bc8 17,19-20,24-28,30,48-52,226
+  s_8194e95e35d740::t_7b9b7a9d4dbf99 80-83
+packages/world-planning/tests/PlanningWorldPicking.spec.ts
+  s_8194e95e35d740::t_1cbe345547dede 82-84
+packages/world-planning/src/spatial/WorldTemplateArtDirection.ts
+  s_8194e95e35d740::t_8e04d18fa1d0e9 4
+  s_8194e95e35d740::t_5e7366ece41306 411,421,706
+  s_8194e95e35d740::t_71054d53cf0bc8 483
+world/tests/seed-world/WorldTemplates.spec.ts
+  s_8194e95e35d740::t_3abc827f1a8857 60,270-271
+  s_8194e95e35d740::t_24ff652087f769 265-269
+packages/world-planning/src/spatial/PlantMaterialParameters.ts
+  s_8194e95e35d740::t_ec53f6e3ce7a9c 21,63
+packages/world-planning/package.json
+  s_8194e95e35d740::t_90329a142065c8 312
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/ForestAsset.d.ts
+  s_8194e95e35d740::t_cdbe10c90036ba 22-35
+  s_8194e95e35d740::t_7642395cd86f03 19-21,36-38
+world/tests/seed-world/SeedWorldToolCatalog.spec.ts
+  s_8194e95e35d740::t_28db29075a3fbc 57,616-617
+  s_8194e95e35d740::t_5b672f01cf3735 84-86
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.update.d.ts
+  s_8194e95e35d740::t_7ef625e45fb013 17,21-36,63-67,86-90,103-124,181
+  s_8194e95e35d740::t_bc9ffb9c1dc3e8 16,125-127,180,182-184
+packages/world-planning/src/spatial/VegetationColors.ts
+  s_8194e95e35d740::t_3ce94de198c0c1 1-227
+packages/world-planning/src/spatial/layout/SpatialInstanceEdits.ts
+  s_8194e95e35d740::t_1cbe345547dede 36-38,450-457
+world/tests/seed-world-browser/VegetationPigment.test.ts
+  s_8194e95e35d740::t_a56d7e0e46ccab 280,286,288,291,404,409-415,418-419,421-424,436-444,484-485,487-489,491-497,500,507-511,513-514,516,518-519,522-527,529,547-550,553,573,575-578,581
+  s_8194e95e35d740::t_dc61560df63f43 420,554-562,564-565,568-572
+  s_8194e95e35d740::t_52b6decbd8d0e3 533-535
+  s_8194e95e35d740::t_4714fd01fc705d 149-158,162-170,190-198,221-223,264-265,274-277,298-403,405-408,416-417,425-435,445-483,486,490,498-499,501-506,512,515,517,520-521,528,530-532,536-546,551-552,563,566-567,574,579-580
+  s_8194e95e35d740::t_bf0c6683ab103a 1-148,159-161,171-189,199-220,224-233,235-244,253-259,267,295-296
+  s_8194e95e35d740::t_86833ce7e3ab33 245-246
+  s_8194e95e35d740::t_36c1f51b8cfe07 234,247-252,271-272,294
+  s_8194e95e35d740::t_7b4008d8d7997b 260-263,266,268-270,273,278-279,281-285,287,289-290,292-293,297
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/TreeAsset.d.ts
+  s_8194e95e35d740::t_cdbe10c90036ba 12-25
+  s_8194e95e35d740::t_a3b73d5770432b 9-11,26-28
+packages/world-planning/src/spatial/PlanningSession.ts
+  s_8194e95e35d740::t_1cbe345547dede 954-956
+packages/world-planning/src/spatial/runtime/PlanningNaturalVegetationRuntime.ts
+  s_8194e95e35d740::t_5bad05a6f6c7fe 19,1398-1402,1405,1426-1430,1439-1440,1443,1448,1450
+  s_8194e95e35d740::t_ec53f6e3ce7a9c 96,1451-1455
+  s_8194e95e35d740::t_24ff652087f769 1148-1149,1204-1206
+  s_8194e95e35d740::t_a3be6219b89f1b 1150,1202-1203,1420-1424
+  s_8194e95e35d740::t_1cbe345547dede 1409-1414,1431-1438,1441-1442,3296-3297
+  s_8194e95e35d740::t_7b8cfaa9ba5599 261,1396-1397,1403-1404,1406-1408,1415-1419,1425,1444-1447,1449,1456-1457,1460,1469,1480
+world/demos/seed-world/scripts/generate-low-poly-assets.py
+  s_8194e95e35d740::t_5e7366ece41306 16,23,101-102,105,123,125,128-130,132,140-141,149-155,263,273,275,280,282
+world/demos/seed-world/src/planning/spatial/runtime/PlanningSeedWorldSession.ts
+  s_8194e95e35d740::t_3ce94de198c0c1 51,196-197
+  s_8194e95e35d740::t_5b672f01cf3735 201-202
+  s_8194e95e35d740::t_876505d7f6cca6 212
+packages/world-planning/src/spatial/world-templates/sakura-pearl.json
+  s_8194e95e35d740::t_71054d53cf0bc8 347-348
+world/demos/seed-world/agent-adapter/SeedWorldPlanningResources.ts
+  s_8194e95e35d740::t_5b672f01cf3735 17-18
+  s_8194e95e35d740::t_90329a142065c8 10,78-79,81,87-92
+  s_8194e95e35d740::t_1cbe345547dede 55-70,80,82-86,136-144
+packages/world-planning/src/spatial/runtime/TemplateProceduralPlants.ts
+  s_8194e95e35d740::t_52b6decbd8d0e3 73,770,777,786,788,1587,1590-1596,1598
+  s_8194e95e35d740::t_4714fd01fc705d 779-784,789-794,798-800,804-805,1276,1280,1602-1607
+  s_8194e95e35d740::t_8e04d18fa1d0e9 71
+  s_8194e95e35d740::t_326313d2b44849 72
+  s_8194e95e35d740::t_1b717df1169f2f 58-59,74,771-776,778,785,787,795-797,801-803,806-817,819,837,1012,1266,1271,1274-1275,1277-1279,1281,1286,1308,1358-1360,1422,1484,1486,1529-1531,1547,1571-1573,1582-1586,1588-1589,1597,1599-1601,1608-1614
+world/demos/seed-world/agent-adapter/contracts/generated/api/tools/vegetation.recolorArea.d.ts
+  s_8194e95e35d740::t_6d728b3eb5e719 1-54
+packages/terrain/src/shaders/shared/AssetAssemblyInstancing.glsl
+  s_8194e95e35d740::t_cd31b594d2db0e 417-418,434-438,451-452,454-455
+  s_8194e95e35d740::t_894ab0f84e6b07 419-433,439-441
+world/demos/seed-world/SeedWorldDemo.ts
+  s_8194e95e35d740::t_3ce94de198c0c1 358
+  s_8194e95e35d740::t_6683e976adccb8 56-57,334,3036-3038,3041-3042,3044-3046
+  s_8194e95e35d740::t_82f52542db05e5 3043
+packages/terrain/src/shaders/Surface.shader
+  s_8194e95e35d740::t_894ab0f84e6b07 70,157
+world/demos/seed-world/agent-adapter/tools/landscape-tools.ts
+  s_8194e95e35d740::t_cd19916e015bc2 405,408,415,485,487,510-512
+  s_8194e95e35d740::t_a10c357262e017 486,488-489,566,663,666,669,676-677,692,750
+  s_8194e95e35d740::t_1cbe345547dede 2-6,513-514,664-665,667-668,670-675,751-752
+  s_8194e95e35d740::t_c8d32a91f03edd 568
+  s_8194e95e35d740::t_a6ccfab839f262 753
+packages/world-planning/src/spatial/WorldTemplateVegetation.ts
+  s_8194e95e35d740::t_1b0a9f860b8383 58
+  s_8194e95e35d740::t_fe852e34d860db 1-6,13-52,55-57,59,67-70,78-84,87-89,97-103,106-111
+  s_8194e95e35d740::t_4714fd01fc705d 7-12,53-54,60-66,71-77,85-86,90-96,104-105
+packages/world-planning/src/spatial/runtime/WorldTemplateRuntime.ts
+  s_8194e95e35d740::t_1b0a9f860b8383 233,472-473,515,1572-1573,1577,1593-1595
+  s_8194e95e35d740::t_d7b5da1ea383a5 108-111
+  s_8194e95e35d740::t_326313d2b44849 229,503,1769-1770
+  s_8194e95e35d740::t_1cbe345547dede 511-513
+  s_8194e95e35d740::t_ba8cb95b3e1927 90,99,230,1576,1578-1581,1588-1591,1771
+  s_8194e95e35d740::t_582ce6f0c28b6c 91-92,105-107,228
+  s_8194e95e35d740::t_0d43db0f0879cb 668,677
+  s_8194e95e35d740::t_902362b8f0cd6a 266-269,304-305,319,398,623,626,633-634,644-650,661-662,666,670,1566,1574-1575,1782
+  s_8194e95e35d740::t_4714fd01fc705d 78-88,270-272,474-502,504-505,624-625,635-643,1582-1587,1612-1616
+  s_8194e95e35d740::t_78e28e9590cf32 231-232,234-238,471,509-510,514,516-519,1565,1567-1571,1592,1596-1611,1617-1620,1766-1768
+packages/world-planning/src/spatial/PlanningResources.ts
+  s_8194e95e35d740::t_22898c2c474454 172,183
+  s_8194e95e35d740::t_1cbe345547dede 55-60,173-176
+  s_8194e95e35d740::t_90329a142065c8 11,53,61,126,177,192,204
+packages/world-planning/src/spatial/world-templates/OasisFloodplain.ts
+  s_8194e95e35d740::t_8e04d18fa1d0e9 4
+packages/terrain/src/shaders/surface/SurfaceEvaluation.glsl
+  s_8194e95e35d740::t_894ab0f84e6b07 197-200
+packages/world-planning/src/spatial/runtime/TemplateTranslucent.shader
+  s_8194e95e35d740::t_78e28e9590cf32 19-21,31-41,48,70,83
+packages/runtime-editor/src/runtime-inspection/runtime-mesh-picking.ts
+  s_8194e95e35d740::t_582ce6f0c28b6c 128,133-134,141
+  s_8194e95e35d740::t_326313d2b44849 127
+world/demos/seed-world/agent-adapter/contracts/generated/SeedWorldApiSearchRegistry.ts
+  s_8194e95e35d740::t_7ef625e45fb013 1210
+  s_8194e95e35d740::t_cdbe10c90036ba 687,695,711
+  s_8194e95e35d740::t_6d728b3eb5e719 703,727
+  s_8194e95e35d740::t_9811481d506656 4,289,292-296,1224-1235
+packages/world-planning/src/spatial/WorldTemplateGeometry.ts
+  s_8194e95e35d740::t_4714fd01fc705d 29-30
+  s_8194e95e35d740::t_71054d53cf0bc8 27
+  s_8194e95e35d740::t_1b0a9f860b8383 28,31
+packages/terrain/src/shaders/vegetation/VegetationEvaluation.glsl
+  s_8194e95e35d740::t_78e28e9590cf32 11-13,325-329
+  s_8194e95e35d740::t_894ab0f84e6b07 47-48,330-331
+  s_8194e95e35d740::t_d6282493a1f8e0 332
+world/demos/seed-world/agent-adapter/SeedWorldAgentApplication.ts
+  s_8194e95e35d740::t_894e92ecd41b26 929,935-937,949-950,1632,1634-1641,1644,1672,1693
+  s_8194e95e35d740::t_22c96151bf7b1c 1574-1582,1592-1596,1616-1617,1622-1624,2294,2298,2301
+  s_8194e95e35d740::t_2869a6ff499909 1583-1585,1599,1602-1603,1605-1607,1611-1614,1618-1621
+  s_8194e95e35d740::t_febdacb099f67f 1649
+  s_8194e95e35d740::t_fd5968881bf5dd 2539-2540
+  s_8194e95e35d740::t_1cbe345547dede 8-18,930-934,939-948,1642-1643,2295-2297,2299-2300,2386-2397,2542-2551,2558-2565
+  s_8194e95e35d740::t_2461773028899e 19,938,1597-1598,1608-1610,1615,2537-2538,2541,2552-2557,2566-2567
+  s_8194e95e35d740::t_24ff652087f769 1647-1648,1650-1670
+  s_8194e95e35d740::t_5b672f01cf3735 475-478
+  s_8194e95e35d740::t_cd23a6f95cf3e0 1631,1633,1645-1646,1671,1795-1796,1801,2226-2227,2235,2258,2371-2372
+  s_8194e95e35d740::t_3ce94de198c0c1 1600-1601,1604
+  s_8194e95e35d740::t_0354c0e1526f45 1586-1591
+  s_8194e95e35d740::t_67d95627be665e 2568
+packages/world-planning/src/spatial/WorldTemplateConfig.ts
+  s_8194e95e35d740::t_71054d53cf0bc8 25
+packages/vegetation/src/skills/vegetation/SKILL.md
+  s_8194e95e35d740::t_2777acd801aa2c 15-16
+  s_8194e95e35d740::t_31509c52d50b93 14,42
+  s_8194e95e35d740::t_22898c2c474454 17-19,30
+world/demos/seed-world/agent-adapter/contracts/generated/api/assets/ShrubAsset.d.ts
+  s_8194e95e35d740::t_cdbe10c90036ba 12-25
+  s_8194e95e35d740::t_6d728b3eb5e719 29-30
+  s_8194e95e35d740::t_d27a24abe1e0f6 9-11,26-28
+world/demos/seed-world/src/planning/spatial/runtime/PlanningVegetationCatalog.ts
+  s_8194e95e35d740::t_876505d7f6cca6 38-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c4ebda50e88f3290d94bcdb00c28371e146834d0",
+  "prompts": {},
+  "sessions": {
+    "s_8194e95e35d740": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a210f4-352f-72f0-ae11-dfbf8d7333db",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}

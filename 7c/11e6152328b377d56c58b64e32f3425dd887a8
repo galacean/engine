@@ -1,0 +1,14 @@
+packages/core/src/texture/enums/TextureFormat.ts
+  h_bd4dd7d663e619 2,5-6,9-12,14,16,18,20,24,29,32-35,37-40,48,53,58,63,68,71-72,74,76,78,80,82,84,86,88,90,92,94,96,98,100,102,104,106,109,111-114,116,118,120,122,124,126
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7c11e6152328b377d56c58b64e32f3425dd887a8",
+  "prompts": {},
+  "humans": {
+    "h_bd4dd7d663e619": {
+      "author": "chenmo.gl <chenmo.gl@antgroup.com>"
+    }
+  }
+}

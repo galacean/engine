@@ -1,0 +1,44 @@
+packages/animals/src/skills/animals/SKILL.md
+  h_ddbf152d31b140 3,10,12,14,18,24,26,47,51,56,63,65,67,69,71-72,76
+packages/environment/src/skills/environment/SKILL.md
+  h_ddbf152d31b140 16-17
+packages/runtime-editor/src/skills/scene-nodes/SKILL.md
+  h_ddbf152d31b140 3
+packages/terrain/src/skills/terrain/SKILL.md
+  h_ddbf152d31b140 3,10-12,18-21
+packages/vegetation/src/skills/vegetation/SKILL.md
+  h_ddbf152d31b140 3,13,15-17,21,23,27,35,37,39,45-46
+packages/water/src/skills/water/SKILL.md
+  h_ddbf152d31b140 10
+packages/world-planning/src/spatial/AnimalPopulationComponent.ts
+  h_ddbf152d31b140 82
+packages/world-planning/src/spatial/PlanningGrassAppearance.ts
+  h_ddbf152d31b140 19
+packages/world-planning/src/spatial/PlanningLightingParameters.ts
+  h_ddbf152d31b140 50,54
+packages/world-planning/src/spatial/PlanningPoiKnowledge.ts
+  h_ddbf152d31b140 13,22,29,37-42
+packages/world-planning/src/spatial/PlanningSubjectView.ts
+  h_ddbf152d31b140 98
+packages/world-planning/src/spatial/PlantMaterialParameters.ts
+  h_ddbf152d31b140 64,158
+world/demos/seed-world/agent-adapter/SeedWorldKnowledge.ts
+  h_ddbf152d31b140 23,25,31-60,63-64,82-84,97-98,109,111-113,124-129,131-133,136-139,144,147,150-156,158-160
+world/demos/seed-world/agent-adapter/skills/runtime/SKILL.md
+  h_ddbf152d31b140 2-3,6,8,10-11
+world/demos/seed-world/agent-adapter/skills/spatial/SKILL.md
+  h_ddbf152d31b140 26
+world/demos/seed-world/src/planning/spatial/ecology/VegetationSystemDeclaration.ts
+  h_ddbf152d31b140 17-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "697bc072b147817d63774ba67b2e1263a90126c0",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

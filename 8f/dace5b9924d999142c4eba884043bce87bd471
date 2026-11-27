@@ -1,0 +1,14 @@
+world/demos/seed-world/src/SeedWorldMojavePreview.ts
+  h_171a11afaf879a 30-33,63-64,92-102,106-110,112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "8fdace5b9924d999142c4eba884043bce87bd471",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

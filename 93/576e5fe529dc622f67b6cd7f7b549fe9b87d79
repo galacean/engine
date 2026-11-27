@@ -1,0 +1,32 @@
+packages/core/src/Script.ts
+  s_3754ebc6b108f2::t_778c39edc157f0 275-279
+packages/design/src/physics/IPhysicsEvents.ts
+  s_3754ebc6b108f2::t_778c39edc157f0 25-29
+packages/core/src/physics/PhysicsScene.ts
+  s_3754ebc6b108f2::t_778c39edc157f0 796,857,885,888,984-985,1032-1036
+tests/src/core/physics/PhysicsScene.test.ts
+  s_3754ebc6b108f2::t_778c39edc157f0 19,2961,2976-2977
+  s_3754ebc6b108f2::t_1202b65ced1f66 2991-2993
+packages/design/src/physics/IPhysicsScene.ts
+  s_3754ebc6b108f2::t_778c39edc157f0 221-234
+packages/design/src/physics/index.ts
+  s_3754ebc6b108f2::t_778c39edc157f0 6
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_3754ebc6b108f2::t_778c39edc157f0 13,102,475-487,587,717-720
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "93576e5fe529dc622f67b6cd7f7b549fe9b87d79",
+  "prompts": {},
+  "sessions": {
+    "s_3754ebc6b108f2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a218cd-a576-7eb3-aadd-5c308d16914c",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

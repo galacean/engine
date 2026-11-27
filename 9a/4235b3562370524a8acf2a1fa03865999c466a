@@ -1,0 +1,22 @@
+tests/src/shader-compiler/WebGPUBackend.test.ts
+  s_3cd6502d102d7f::t_3f7fd038a927c8 107-132,136-153
+  s_3cd6502d102d7f::t_627797e02b9178 133-135
+packages/shader-compiler/src/webgpu/OutputArguments.ts
+  s_3cd6502d102d7f::t_7500f6483a665d 1-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9a4235b3562370524a8acf2a1fa03865999c466a",
+  "prompts": {},
+  "sessions": {
+    "s_3cd6502d102d7f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ff3c-e758-7810-9ea7-ca9134966774",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
