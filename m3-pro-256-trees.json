@@ -1,0 +1,655 @@
+{
+  "device": "Apple M3 Pro",
+  "browser": "Chrome, Metal",
+  "runs": [
+    {
+      "index": 0,
+      "shader": "before",
+      "settings": {
+        "seed": 1729,
+        "treeCount": 256,
+        "shadowCascades": 2,
+        "wind": true,
+        "width": 960,
+        "height": 720
+      },
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36",
+      "route": {
+        "positions": 120,
+        "nearMetres": 18,
+        "farMetres": 110
+      },
+      "passes": [
+        {
+          "label": "Empty A",
+          "trees": 0,
+          "frameSampleCount": 120,
+          "frameP50Milliseconds": 16.699999999999818,
+          "frameP95Milliseconds": 16.700000000000728,
+          "fieldCpuSampleCount": 120,
+          "fieldCpuP50Milliseconds": 0,
+          "fieldCpuP95Milliseconds": 0.09999999403953552,
+          "gpuTimerSource": "EXT_disjoint_timer_query_webgl2",
+          "gpuSampleCount": 119,
+          "gpuP50Milliseconds": 1.417166,
+          "gpuP95Milliseconds": 5.416875,
+          "gpuDisjointSampleCount": 0,
+          "gpuMemoryBytes": 46203810,
+          "submissions": {
+            "sampledFrames": 120,
+            "drawCalls": 2,
+            "instancedDrawCalls": 0,
+            "instances": 0,
+            "triangles": 3,
+            "shadowTileSize": 0,
+            "shadowCascades": []
+          }
+        },
+        {
+          "label": "Forest",
+          "trees": 256,
+          "frameSampleCount": 120,
+          "frameP50Milliseconds": 16.69999999999891,
+          "frameP95Milliseconds": 16.700000000000728,
+          "fieldCpuSampleCount": 120,
+          "fieldCpuP50Milliseconds": 0.20000001788139343,
+          "fieldCpuP95Milliseconds": 0.4000000059604645,
+          "gpuTimerSource": "EXT_disjoint_timer_query_webgl2",
+          "gpuSampleCount": 119,
+          "gpuP50Milliseconds": 7.194624,
+          "gpuP95Milliseconds": 9.660958,
+          "gpuDisjointSampleCount": 0,
+          "gpuMemoryBytes": 46203810,
+          "submissions": {
+            "sampledFrames": 120,
+            "drawCalls": 32,
+            "instancedDrawCalls": 30,
+            "instances": 1318,
+            "triangles": 517150,
+            "shadowTileSize": 512,
+            "shadowCascades": [
+              {
+                "cascade": 0,
+                "drawCalls": 6,
+                "instances": 57,
+                "triangles": 8857
+              },
+              {
+                "cascade": 1,
+                "drawCalls": 9,
+                "instances": 665,
+                "triangles": 102616
+              }
+            ]
+          }
+        },
+        {
+          "label": "Empty B",
+          "trees": 0,
+          "frameSampleCount": 120,
+          "frameP50Milliseconds": 16.69999999999891,
+          "frameP95Milliseconds": 16.700000000000728,
+          "fieldCpuSampleCount": 120,
+          "fieldCpuP50Milliseconds": 0,
+          "fieldCpuP95Milliseconds": 0.10000002384185791,
+          "gpuTimerSource": "EXT_disjoint_timer_query_webgl2",
+          "gpuSampleCount": 119,
+          "gpuP50Milliseconds": 5.128541,
+          "gpuP95Milliseconds": 7.631166,
+          "gpuDisjointSampleCount": 0,
+          "gpuMemoryBytes": 46203810,
+          "submissions": {
+            "sampledFrames": 120,
+            "drawCalls": 2,
+            "instancedDrawCalls": 0,
+            "instances": 0,
+            "triangles": 3,
+            "shadowTileSize": 0,
+            "shadowCascades": []
+          }
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "shader": "after",
+      "settings": {
+        "seed": 1729,
+        "treeCount": 256,
+        "shadowCascades": 2,
+        "wind": true,
+        "width": 960,
+        "height": 720
+      },
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36",
+      "route": {
+        "positions": 120,
+        "nearMetres": 18,
+        "farMetres": 110
+      },
+      "passes": [
+        {
+          "label": "Empty A",
+          "trees": 0,
+          "frameSampleCount": 120,
+          "frameP50Milliseconds": 16.699999999999818,
+          "frameP95Milliseconds": 16.799999999999272,
+          "fieldCpuSampleCount": 120,
+          "fieldCpuP50Milliseconds": 0.09999999403953552,
+          "fieldCpuP95Milliseconds": 0.10000002384185791,
+          "gpuTimerSource": "EXT_disjoint_timer_query_webgl2",
+          "gpuSampleCount": 119,
+          "gpuP50Milliseconds": 1.77325,
+          "gpuP95Milliseconds": 4.282333,
+          "gpuDisjointSampleCount": 0,
+          "gpuMemoryBytes": 46203810,
+          "submissions": {
+            "sampledFrames": 120,
+            "drawCalls": 2,
+            "instancedDrawCalls": 0,
+            "instances": 0,
+            "triangles": 3,
+            "shadowTileSize": 0,
+            "shadowCascades": []
+          }
+        },
+        {
+          "label": "Forest",
+          "trees": 256,
+          "frameSampleCount": 120,
+          "frameP50Milliseconds": 16.69999999999891,
+          "frameP95Milliseconds": 16.700000000000728,
+          "fieldCpuSampleCount": 120,
+          "fieldCpuP50Milliseconds": 0.3999999761581421,
+          "fieldCpuP95Milliseconds": 0.7000000178813934,
+          "gpuTimerSource": "EXT_disjoint_timer_query_webgl2",
+          "gpuSampleCount": 119,
+          "gpuP50Milliseconds": 3.429916,
+          "gpuP95Milliseconds": 7.1135,
+          "gpuDisjointSampleCount": 0,
+          "gpuMemoryBytes": 46203810,
+          "submissions": {
+            "sampledFrames": 120,
+            "drawCalls": 32,
+            "instancedDrawCalls": 30,
+            "instances": 1318,
+            "triangles": 517150,
+            "shadowTileSize": 512,
+            "shadowCascades": [
+              {
+                "cascade": 0,
+                "drawCalls": 6,
+                "instances": 57,
+                "triangles": 8857
+              },
+              {
+                "cascade": 1,
+                "drawCalls": 9,
+                "instances": 665,
+                "triangles": 102616
+              }
+            ]
+          }
+        },
+        {
+          "label": "Empty B",
+          "trees": 0,
+          "frameSampleCount": 120,
+          "frameP50Milliseconds": 16.69999999999891,
+          "frameP95Milliseconds": 16.700000000000728,
+          "fieldCpuSampleCount": 120,
+          "fieldCpuP50Milliseconds": 0,
+          "fieldCpuP95Milliseconds": 0.09999999403953552,
+          "gpuTimerSource": "EXT_disjoint_timer_query_webgl2",
+          "gpuSampleCount": 119,
+          "gpuP50Milliseconds": 4.556708,
+          "gpuP95Milliseconds": 7.734666,
+          "gpuDisjointSampleCount": 0,
+          "gpuMemoryBytes": 46203810,
+          "submissions": {
+            "sampledFrames": 120,
+            "drawCalls": 2,
+            "instancedDrawCalls": 0,
+            "instances": 0,
+            "triangles": 3,
+            "shadowTileSize": 0,
+            "shadowCascades": []
+          }
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "shader": "after",
+      "settings": {
+        "seed": 1729,
+        "treeCount": 256,
+        "shadowCascades": 2,
+        "wind": true,
+        "width": 960,
+        "height": 720
+      },
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36",
+      "route": {
+        "positions": 120,
+        "nearMetres": 18,
+        "farMetres": 110
+      },
+      "passes": [
+        {
+          "label": "Empty A",
+          "trees": 0,
+          "frameSampleCount": 120,
+          "frameP50Milliseconds": 16.699999999999818,
+          "frameP95Milliseconds": 16.799999999999272,
+          "fieldCpuSampleCount": 120,
+          "fieldCpuP50Milliseconds": 0,
+          "fieldCpuP95Milliseconds": 0.10000002384185791,
+          "gpuTimerSource": "EXT_disjoint_timer_query_webgl2",
+          "gpuSampleCount": 119,
+          "gpuP50Milliseconds": 0.562083,
+          "gpuP95Milliseconds": 2.342083,
+          "gpuDisjointSampleCount": 0,
+          "gpuMemoryBytes": 46203810,
+          "submissions": {
+            "sampledFrames": 120,
+            "drawCalls": 2,
+            "instancedDrawCalls": 0,
+            "instances": 0,
+            "triangles": 3,
+            "shadowTileSize": 0,
+            "shadowCascades": []
+          }
+        },
+        {
+          "label": "Forest",
+          "trees": 256,
+          "frameSampleCount": 120,
+          "frameP50Milliseconds": 16.69999999999891,
+          "frameP95Milliseconds": 16.700000000000728,
+          "fieldCpuSampleCount": 120,
+          "fieldCpuP50Milliseconds": 0.30000001192092896,
+          "fieldCpuP95Milliseconds": 0.6000000238418579,
+          "gpuTimerSource": "EXT_disjoint_timer_query_webgl2",
+          "gpuSampleCount": 119,
+          "gpuP50Milliseconds": 3.104208,
+          "gpuP95Milliseconds": 4.756916,
+          "gpuDisjointSampleCount": 0,
+          "gpuMemoryBytes": 46203810,
+          "submissions": {
+            "sampledFrames": 120,
+            "drawCalls": 32,
+            "instancedDrawCalls": 30,
+            "instances": 1318,
+            "triangles": 517150,
+            "shadowTileSize": 512,
+            "shadowCascades": [
+              {
+                "cascade": 0,
+                "drawCalls": 6,
+                "instances": 57,
+                "triangles": 8857
+              },
+              {
+                "cascade": 1,
+                "drawCalls": 9,
+                "instances": 665,
+                "triangles": 102616
+              }
+            ]
+          }
+        },
+        {
+          "label": "Empty B",
+          "trees": 0,
+          "frameSampleCount": 120,
+          "frameP50Milliseconds": 16.69999999999891,
+          "frameP95Milliseconds": 16.700000000000728,
+          "fieldCpuSampleCount": 120,
+          "fieldCpuP50Milliseconds": 0,
+          "fieldCpuP95Milliseconds": 0.09999999403953552,
+          "gpuTimerSource": "EXT_disjoint_timer_query_webgl2",
+          "gpuSampleCount": 119,
+          "gpuP50Milliseconds": 3.330333,
+          "gpuP95Milliseconds": 7.456083,
+          "gpuDisjointSampleCount": 0,
+          "gpuMemoryBytes": 46203810,
+          "submissions": {
+            "sampledFrames": 120,
+            "drawCalls": 2,
+            "instancedDrawCalls": 0,
+            "instances": 0,
+            "triangles": 3,
+            "shadowTileSize": 0,
+            "shadowCascades": []
+          }
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "shader": "before",
+      "settings": {
+        "seed": 1729,
+        "treeCount": 256,
+        "shadowCascades": 2,
+        "wind": true,
+        "width": 960,
+        "height": 720
+      },
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36",
+      "route": {
+        "positions": 120,
+        "nearMetres": 18,
+        "farMetres": 110
+      },
+      "passes": [
+        {
+          "label": "Empty A",
+          "trees": 0,
+          "frameSampleCount": 120,
+          "frameP50Milliseconds": 16.699999999999818,
+          "frameP95Milliseconds": 16.700000000000728,
+          "fieldCpuSampleCount": 120,
+          "fieldCpuP50Milliseconds": 0.09999999403953552,
+          "fieldCpuP95Milliseconds": 0.19999998807907104,
+          "gpuTimerSource": "EXT_disjoint_timer_query_webgl2",
+          "gpuSampleCount": 119,
+          "gpuP50Milliseconds": 3.554625,
+          "gpuP95Milliseconds": 8.069999,
+          "gpuDisjointSampleCount": 0,
+          "gpuMemoryBytes": 46203810,
+          "submissions": {
+            "sampledFrames": 120,
+            "drawCalls": 2,
+            "instancedDrawCalls": 0,
+            "instances": 0,
+            "triangles": 3,
+            "shadowTileSize": 0,
+            "shadowCascades": []
+          }
+        },
+        {
+          "label": "Forest",
+          "trees": 256,
+          "frameSampleCount": 120,
+          "frameP50Milliseconds": 16.69999999999891,
+          "frameP95Milliseconds": 16.700000000000728,
+          "fieldCpuSampleCount": 120,
+          "fieldCpuP50Milliseconds": 0.30000001192092896,
+          "fieldCpuP95Milliseconds": 0.699999988079071,
+          "gpuTimerSource": "EXT_disjoint_timer_query_webgl2",
+          "gpuSampleCount": 119,
+          "gpuP50Milliseconds": 4.090083,
+          "gpuP95Milliseconds": 8.863833,
+          "gpuDisjointSampleCount": 0,
+          "gpuMemoryBytes": 46203810,
+          "submissions": {
+            "sampledFrames": 120,
+            "drawCalls": 32,
+            "instancedDrawCalls": 30,
+            "instances": 1318,
+            "triangles": 517150,
+            "shadowTileSize": 512,
+            "shadowCascades": [
+              {
+                "cascade": 0,
+                "drawCalls": 6,
+                "instances": 57,
+                "triangles": 8857
+              },
+              {
+                "cascade": 1,
+                "drawCalls": 9,
+                "instances": 665,
+                "triangles": 102616
+              }
+            ]
+          }
+        },
+        {
+          "label": "Empty B",
+          "trees": 0,
+          "frameSampleCount": 120,
+          "frameP50Milliseconds": 16.69999999999891,
+          "frameP95Milliseconds": 16.700000000000728,
+          "fieldCpuSampleCount": 120,
+          "fieldCpuP50Milliseconds": 0,
+          "fieldCpuP95Milliseconds": 0.09999999403953552,
+          "gpuTimerSource": "EXT_disjoint_timer_query_webgl2",
+          "gpuSampleCount": 119,
+          "gpuP50Milliseconds": 2.436583,
+          "gpuP95Milliseconds": 7.070999,
+          "gpuDisjointSampleCount": 0,
+          "gpuMemoryBytes": 46203810,
+          "submissions": {
+            "sampledFrames": 120,
+            "drawCalls": 2,
+            "instancedDrawCalls": 0,
+            "instances": 0,
+            "triangles": 3,
+            "shadowTileSize": 0,
+            "shadowCascades": []
+          }
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "shader": "before",
+      "settings": {
+        "seed": 1729,
+        "treeCount": 256,
+        "shadowCascades": 2,
+        "wind": true,
+        "width": 960,
+        "height": 720
+      },
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36",
+      "route": {
+        "positions": 120,
+        "nearMetres": 18,
+        "farMetres": 110
+      },
+      "passes": [
+        {
+          "label": "Empty A",
+          "trees": 0,
+          "frameSampleCount": 120,
+          "frameP50Milliseconds": 16.699999999999818,
+          "frameP95Milliseconds": 16.700000000000728,
+          "fieldCpuSampleCount": 120,
+          "fieldCpuP50Milliseconds": 0.09999999403953552,
+          "fieldCpuP95Milliseconds": 0.10000002384185791,
+          "gpuTimerSource": "EXT_disjoint_timer_query_webgl2",
+          "gpuSampleCount": 119,
+          "gpuP50Milliseconds": 5.225208,
+          "gpuP95Milliseconds": 7.176749,
+          "gpuDisjointSampleCount": 0,
+          "gpuMemoryBytes": 46203810,
+          "submissions": {
+            "sampledFrames": 120,
+            "drawCalls": 2,
+            "instancedDrawCalls": 0,
+            "instances": 0,
+            "triangles": 3,
+            "shadowTileSize": 0,
+            "shadowCascades": []
+          }
+        },
+        {
+          "label": "Forest",
+          "trees": 256,
+          "frameSampleCount": 120,
+          "frameP50Milliseconds": 16.69999999999891,
+          "frameP95Milliseconds": 16.799999999999272,
+          "fieldCpuSampleCount": 120,
+          "fieldCpuP50Milliseconds": 0.3999999761581421,
+          "fieldCpuP95Milliseconds": 0.699999988079071,
+          "gpuTimerSource": "EXT_disjoint_timer_query_webgl2",
+          "gpuSampleCount": 119,
+          "gpuP50Milliseconds": 3.357041,
+          "gpuP95Milliseconds": 7.855249,
+          "gpuDisjointSampleCount": 0,
+          "gpuMemoryBytes": 46203810,
+          "submissions": {
+            "sampledFrames": 120,
+            "drawCalls": 32,
+            "instancedDrawCalls": 30,
+            "instances": 1318,
+            "triangles": 517150,
+            "shadowTileSize": 512,
+            "shadowCascades": [
+              {
+                "cascade": 0,
+                "drawCalls": 6,
+                "instances": 57,
+                "triangles": 8857
+              },
+              {
+                "cascade": 1,
+                "drawCalls": 9,
+                "instances": 665,
+                "triangles": 102616
+              }
+            ]
+          }
+        },
+        {
+          "label": "Empty B",
+          "trees": 0,
+          "frameSampleCount": 120,
+          "frameP50Milliseconds": 16.69999999999891,
+          "frameP95Milliseconds": 16.700000000000728,
+          "fieldCpuSampleCount": 120,
+          "fieldCpuP50Milliseconds": 0,
+          "fieldCpuP95Milliseconds": 0.10000002384185791,
+          "gpuTimerSource": "EXT_disjoint_timer_query_webgl2",
+          "gpuSampleCount": 119,
+          "gpuP50Milliseconds": 5.36975,
+          "gpuP95Milliseconds": 7.448958,
+          "gpuDisjointSampleCount": 0,
+          "gpuMemoryBytes": 46203810,
+          "submissions": {
+            "sampledFrames": 120,
+            "drawCalls": 2,
+            "instancedDrawCalls": 0,
+            "instances": 0,
+            "triangles": 3,
+            "shadowTileSize": 0,
+            "shadowCascades": []
+          }
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "shader": "after",
+      "settings": {
+        "seed": 1729,
+        "treeCount": 256,
+        "shadowCascades": 2,
+        "wind": true,
+        "width": 960,
+        "height": 720
+      },
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36",
+      "route": {
+        "positions": 120,
+        "nearMetres": 18,
+        "farMetres": 110
+      },
+      "passes": [
+        {
+          "label": "Empty A",
+          "trees": 0,
+          "frameSampleCount": 120,
+          "frameP50Milliseconds": 16.699999999999818,
+          "frameP95Milliseconds": 16.700000000000728,
+          "fieldCpuSampleCount": 120,
+          "fieldCpuP50Milliseconds": 0,
+          "fieldCpuP95Milliseconds": 0.09999999403953552,
+          "gpuTimerSource": "EXT_disjoint_timer_query_webgl2",
+          "gpuSampleCount": 119,
+          "gpuP50Milliseconds": 4.076416,
+          "gpuP95Milliseconds": 7.799791,
+          "gpuDisjointSampleCount": 0,
+          "gpuMemoryBytes": 46203810,
+          "submissions": {
+            "sampledFrames": 120,
+            "drawCalls": 2,
+            "instancedDrawCalls": 0,
+            "instances": 0,
+            "triangles": 3,
+            "shadowTileSize": 0,
+            "shadowCascades": []
+          }
+        },
+        {
+          "label": "Forest",
+          "trees": 256,
+          "frameSampleCount": 120,
+          "frameP50Milliseconds": 16.69999999999891,
+          "frameP95Milliseconds": 16.799999999999272,
+          "fieldCpuSampleCount": 120,
+          "fieldCpuP50Milliseconds": 0.29999998211860657,
+          "fieldCpuP95Milliseconds": 0.699999988079071,
+          "gpuTimerSource": "EXT_disjoint_timer_query_webgl2",
+          "gpuSampleCount": 119,
+          "gpuP50Milliseconds": 6.859291,
+          "gpuP95Milliseconds": 9.509583,
+          "gpuDisjointSampleCount": 0,
+          "gpuMemoryBytes": 46203810,
+          "submissions": {
+            "sampledFrames": 120,
+            "drawCalls": 32,
+            "instancedDrawCalls": 30,
+            "instances": 1318,
+            "triangles": 517150,
+            "shadowTileSize": 512,
+            "shadowCascades": [
+              {
+                "cascade": 0,
+                "drawCalls": 6,
+                "instances": 57,
+                "triangles": 8857
+              },
+              {
+                "cascade": 1,
+                "drawCalls": 9,
+                "instances": 665,
+                "triangles": 102616
+              }
+            ]
+          }
+        },
+        {
+          "label": "Empty B",
+          "trees": 0,
+          "frameSampleCount": 120,
+          "frameP50Milliseconds": 16.69999999999891,
+          "frameP95Milliseconds": 16.700000000000728,
+          "fieldCpuSampleCount": 120,
+          "fieldCpuP50Milliseconds": 0,
+          "fieldCpuP95Milliseconds": 0.10000002384185791,
+          "gpuTimerSource": "EXT_disjoint_timer_query_webgl2",
+          "gpuSampleCount": 119,
+          "gpuP50Milliseconds": 4.1105,
+          "gpuP95Milliseconds": 7.917708,
+          "gpuDisjointSampleCount": 0,
+          "gpuMemoryBytes": 46203810,
+          "submissions": {
+            "sampledFrames": 120,
+            "drawCalls": 2,
+            "instancedDrawCalls": 0,
+            "instances": 0,
+            "triangles": 3,
+            "shadowTileSize": 0,
+            "shadowCascades": []
+          }
+        }
+      ]
+    }
+  ],
+  "errors": []
+}
