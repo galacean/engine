@@ -1,5 +1,11 @@
 {
   "bySha256": {
+    "0028a3a2d922473d4060f56c21deb58c5fc4308f256ba793bfbfcafc157f82e4": {
+      "examplePath": "assets/seed-world-common-bin-bundle-0028a3a2.bin",
+      "ext": ".bin",
+      "size": 715975,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/0028a3a2d922473d-seed-world-common-bin-bundle-0028a3a2.bin"
+    },
     "00577844dcefe72123592f680c4e2dfbc3f4de1624a5f42224a25b630aa7ad00": {
       "examplePath": "packages/building/src/building/assets/native/Textures/stone_floor--stone_floor_seed.ktx2",
       "ext": ".ktx2",
@@ -59,6 +65,12 @@
       "ext": ".mesh",
       "size": 72888,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/0525f4e56ee14b84-decoration-window_gothic_3x1_hat_full.mesh"
+    },
+    "0535de763f64231c8235e54ff9761039c475eaeee5f5cc24efc12c24e6aa2717": {
+      "examplePath": "packages/terrain/src/data/seed-world/public/Shader/Surface.shaderc",
+      "ext": ".shaderc",
+      "size": 504499,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/0535de763f64231c-Surface.shaderc"
     },
     "057aea70cbf935a9c2465ab56a60cbe81b712d3fa8a7661448777efbe0d51103": {
       "examplePath": "packages/vegetation/src/asset-assembly/generated/procedural-trees/meadow-sm_birchbush_04-structure.json",
@@ -804,6 +816,18 @@
       "size": 43133,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/42c74f68026ff3b7-ocean-far-graded.42c74f68026ff3b73cd8fc3fef979d2199219dce4c9223e806abee6.shaderc"
     },
+    "42e425536aa24019a92a7d2c0ae8ef9250caf2e3133dd2c718b1fbe7bd5502f8": {
+      "examplePath": "packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc",
+      "ext": ".shaderc",
+      "size": 888115,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/42e425536aa24019-Vegetation.shaderc"
+    },
+    "431fff3e46e74e7301b28fff4f94c6ddfae8f98fc2cc704445b0bf72817e45b2": {
+      "examplePath": "packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc",
+      "ext": ".shaderc",
+      "size": 448251,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/431fff3e46e74e73-Grass.shaderc"
+    },
     "43a13eb0acd5e6cfac1373f6f1491fa6162dadf3702b24ad364b571c173790a4": {
       "examplePath": "packages/terrain/src/data/seed-world/public/atoms/lotus-group-2-lod0.glb",
       "ext": ".glb",
@@ -1061,6 +1085,12 @@
       "ext": ".mesh",
       "size": 988,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/5718b45235c300db-roof.mesh"
+    },
+    "5730ef718d93540b58b556dae1e5e2253cea6627e401bacdad8cc8ca1381b673": {
+      "examplePath": "assets/seed-world-project-text-bundle-5730ef71.json",
+      "ext": ".json",
+      "size": 1180376,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/5730ef718d93540b-seed-world-project-text-bundle-5730ef71.json"
     },
     "574827dde03cf0158cb3b5f3482ab190fdefe45fc4ee7a651b01ac5eddba4273": {
       "examplePath": "packages/building/src/building/assets/native/Meshes/decoration-window_cottage_3x1_full_dormer.mesh",
@@ -2082,6 +2112,12 @@
       "size": 13100,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/b5e3959c9a54c1b4-stones-lod0.glb"
     },
+    "b6ae9a57c091992943a0654ae12e7c75af7292c6bb25a9304ce170ec7f165e38": {
+      "examplePath": "assets/seed-world-common-bin-bundle-b6ae9a57.bin",
+      "ext": ".bin",
+      "size": 715939,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/b6ae9a57c0919929-seed-world-common-bin-bundle-b6ae9a57.bin"
+    },
     "b6dfc27cb935e40d8b17f75c99fd6acea0528d5660911fe0a4f5fb972a00f3db": {
       "examplePath": "assets/shrub-b6dfc27c.wav",
       "ext": ".wav",
@@ -2838,6 +2874,12 @@
       "size": 431465,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/f0c8b9be35c2f143-Terrain.shaderc"
     },
+    "f150023345190026805e76bbd8b34bf0826f92c7d68b6c4696e3cbb1f2e3c103": {
+      "examplePath": "packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc",
+      "ext": ".shaderc",
+      "size": 477994,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/f150023345190026-Terrain.shaderc"
+    },
     "f1cbcd5185518acedab0b69ce19c21c7ce0eb55fc23a171eec2b7be871d8bf1c": {
       "examplePath": "packages/terrain/src/data/seed-world/public/Texture/791ebd8ec6ddef70.ktx2",
       "ext": ".ktx2",
@@ -2921,6 +2963,12 @@
       "ext": ".wav",
       "size": 52844,
       "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/fa1d1f2a3e260f56-step-dirt-4-fa1d1f2a.wav"
+    },
+    "fa3341acf6a7c7e2bf719f135fdeec41a40d170e4e4b2cefa5b0589258a6ba76": {
+      "examplePath": "packages/terrain/src/data/seed-world/public/Shader/Billboard.shaderc",
+      "ext": ".shaderc",
+      "size": 291831,
+      "url": "https://mdn.alipayobjects.com/asap_serivce/uri/file/as/seed-world-flash/fa3341acf6a7c7e2-Billboard.shaderc"
     },
     "fa49391b7112ac8b46be649244b752476528a66aececccc1b5070dee1eb8899b": {
       "examplePath": "packages/water/src/water/native/assets/Water/Shaders/ocean.shader",
