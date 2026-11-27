@@ -2,6 +2,7 @@
 #define TERRAIN_PROJECT_PROCEDURAL_TREE_WIND_INCLUDED
 
 #include "shared/SceneWind.glsl"
+#include "shared/TreeLeafFlutter.glsl"
 
 /** x: whole-tree limit; y: whole-tree frequency Hz; z: leaf-local limit; w: leaf frequency Hz. */
 vec4 material_ProceduralTreeWindParams;
@@ -24,6 +25,8 @@ vec3 terrainProjectProceduralTreeWindOuterPointWS(vec3 sourcePositionOS, Attribu
     terrainProjectAssetAssemblyRotation(attributes),
     sourcePositionOS * terrainProjectAssetAssemblyEmbeddedScale(attributes)
   ) + terrainProjectAssetAssemblyOriginOS(attributes);
+  #elif defined(RENDERER_DETAIL_INSTANCE) || defined(RENDERER_SEED_WORLD_DETAIL_COMPACT)
+    vec3 positionOS = terrainProjectDetailPositionOS(sourcePositionOS, attributes);
   #else
     vec3 positionOS = sourcePositionOS;
   #endif
@@ -127,20 +130,24 @@ vec3 terrainProjectApplyProceduralTreeWind(
     tangentWS = normalize(terrainProjectProceduralTreeWindRotate(tangentWS, bendAxisWS, weightedWholeTreeAngle));
   #endif
 
+  windShadingResponse = 1.0;
   #ifdef MATERIAL_VEGETATION_CLIMATE_LEAF
-    // Phase must come from immutable rest topology. Hashing an already-deformed pivot feeds the
-    // wind result back into its own oscillator and creates visible jitter.
-    float leafIdentity;
-    #ifdef RENDERER_PROCEDURAL_TREE_GPU_LEAF_FRAME
-      leafIdentity = attributes.TEXCOORD_2.x;
-    #else
-      leafIdentity = terrainProjectProceduralTreeWindHash(originWS + treeOriginWS);
+    float localLimit = max(material_ProceduralTreeWindParams.z, 0.0);
+    #ifndef MATERIAL_WIND_GROUP_SWAY
+      localLimit *= terrainProjectTreeLeafFlutterScale(distance(camera_Position, treeOriginWS));
     #endif
-    float leafPhase = fract(treePhase * 0.37 + fract(leafIdentity * 0.61803398875) * 0.63);
+    if (localLimit <= 0.0) return positionWS;
+    #ifdef MATERIAL_WIND_GROUP_SWAY
+      // A foliage group uses this hinge for a whole bough or stem.
+      float groupIdentity = terrainProjectProceduralTreeWindHash(originWS + treeOriginWS);
+      float localPhase = fract(treePhase * 0.37 + fract(groupIdentity * 0.61803398875) * 0.63) * 6.2831853;
+    #else
+      float localPhase = terrainProjectTreeLeafFlutterPhase(originWS - treeOriginWS, treePhase);
+    #endif
     float leafTime = timeSeconds * max(material_ProceduralTreeWindParams.w, 0.01) * 6.2831853;
-    float leafFlutter = sin(leafTime + leafPhase * 6.2831853);
+    float leafFlutter = sin(leafTime + localPhase);
     float leafLoad = clamp(horizontalSpeed / 6.0, 0.0, 1.0);
-    float leafAngle = max(material_ProceduralTreeWindParams.z, 0.0) * leafLoad * leafFlutter;
+    float leafAngle = localLimit * leafLoad * leafFlutter;
 
     vec3 leafPivotWS = originWS;
     leafPivotWS = terrainProjectProceduralTreeWindRotatePoint(
@@ -171,7 +178,6 @@ vec3 terrainProjectApplyProceduralTreeWind(
     #endif
   #endif
 
-  windShadingResponse = 1.0;
   return positionWS;
 }
 

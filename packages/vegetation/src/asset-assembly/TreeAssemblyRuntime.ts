@@ -1333,6 +1333,7 @@ export function configureProceduralPlantWindMaterial(material: Material, leaf: b
 function configureProceduralWindMaterial(material: Material, leaf: boolean): void {
   material.shaderData.enableMacro(WIND_MACRO);
   material.shaderData.enableMacro(PROCEDURAL_TREE_WIND_MACRO);
+  material.shaderData.disableMacro("MATERIAL_WIND_GROUP_SWAY");
   if (leaf) {
     material.shaderData.enableMacro(LEAF_CLIMATE_MACRO);
     material.shaderData.disableMacro(BRANCH_CLIMATE_MACRO);

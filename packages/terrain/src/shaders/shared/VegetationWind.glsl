@@ -3,6 +3,7 @@
 
 #include "shared/DetailInstancing.glsl"
 #include "shared/SceneWind.glsl"
+#include "shared/TreeLeafFlutter.glsl"
 
 #ifndef MATERIAL_WIND_PROCEDURAL_TREE
 vec3 scene_WindSpectrumAdvectionOffset;
@@ -1977,10 +1978,8 @@ vec3 terrainProjectApplyVegetationWind(
           #endif
         #endif
       #else
-      // Full and Reduced tree variants are selected from authored projected size. A second
-      // physical-distance gate here would make two equally large trees consume different wind
-      // bandwidth and would erase LOD1 motion before the authored LOD2 transition. Generic
-      // vegetation keeps the continuous distance policy; tree SLOD owns its complete bandwidth.
+      // Authored projected size controls the tree's structural motion. Fine leaf flutter
+      // has a separate distance envelope so the crown can keep swaying at every LOD.
       #ifdef MATERIAL_WIND_HERO_TREE_HIERARCHY
         float windLod = 0.0;
       #else
@@ -2301,6 +2300,10 @@ vec3 terrainProjectApplyVegetationWind(
           float microEnvelope = terrainProjectWindMicroEnvelope(wind.steadyHorizontalSpeed, profile);
           float leafPressureLoad = 1.0;
         #endif
+        #if defined(MATERIAL_WIND_HERO_TREE_HIERARCHY) && defined(MATERIAL_VEGETATION_CLIMATE_LEAF)
+          float leafFlutterScale = terrainProjectTreeLeafFlutterScale(cameraDistanceToOrigin);
+          microEnvelope *= leafFlutterScale;
+        #endif
         float flutter = wind.micro * profile.microGain * microEnvelope * wind.turbulence * material_WindWavesScale *
           material_WindForce * 0.08 * windWeight * terrainProjectVegetationFlutterWeight(attributes, profile) *
           leafPressureLoad;
@@ -2399,7 +2402,7 @@ vec3 terrainProjectApplyVegetationWind(
             resolvedMicroOscillation,
             material_WindLeafMotionParams.x * max(material_WindFlutterTuning.w, 0.0),
             material_WindLeafMotionParams.y,
-            material_WindLeafMotionParams.z,
+            material_WindLeafMotionParams.z * leafFlutterScale,
             material_WindLeafMotionParams.w,
             leafSpanMask,
             leafBladeFlexion,
@@ -2441,25 +2444,28 @@ vec3 terrainProjectApplyVegetationWind(
           #endif
           #endif
         #elif defined(MATERIAL_WIND_VERTEX_PIVOT)
-          // Imported foliage supplies one hinge and phase per connected leaf/card.
+          // Imported foliage supplies one hinge per connected leaf/card.
           // Follow the shared root bend first, then rotate rigidly around that hinge.
-          vec3 pivotOS = vec3(attributes.TEXCOORD_1.x, attributes.TEXCOORD_2.x, attributes.TEXCOORD_1.y);
-          #ifdef RENDERER_ASSET_ASSEMBLY_INSTANCE
-            pivotOS = terrainProjectAssetAssemblyPositionOS(pivotOS, attributes);
-          #else
-            pivotOS = terrainProjectDetailPositionOS(pivotOS, attributes);
-          #endif
-          vec3 pivotWS = (renderer_ModelMat * vec4(pivotOS, 1.0)).xyz;
-          pivotWS = originWS + terrainProjectRotateAroundAxis(pivotWS - originWS, bendAxis, bendAngle);
-          float pivotPhase = attributes.TEXCOORD_2.y * 6.2831853;
-          float pivotLoad = clamp(horizontalSpeed / max(material_WindPivotFlutter.z, 0.01), 0.0, 1.0);
-          float pivotAngle = sin(scene_WindFieldParams.w * material_WindPivotFlutter.y * 6.2831853 + pivotPhase) *
-            material_WindPivotFlutter.x * pivotLoad * (1.0 - smoothstep(1.0, 2.0, windLod));
-          windPositionWS = pivotWS + terrainProjectRotateAroundAxis(windPositionWS - pivotWS, bendAxis, pivotAngle);
-          windNormalWS = normalize(terrainProjectRotateAroundAxis(windNormalWS, bendAxis, pivotAngle * normalResponse));
-          #ifdef NEED_VERTEX_TANGENT
-            windTangentWS = normalize(terrainProjectRotateAroundAxis(windTangentWS, bendAxis, pivotAngle * normalResponse));
-          #endif
+          float pivotLimit = material_WindPivotFlutter.x * terrainProjectTreeLeafFlutterScale(cameraDistanceToOrigin);
+          if (pivotLimit != 0.0) {
+            vec3 pivotOS = vec3(attributes.TEXCOORD_1.x, attributes.TEXCOORD_2.x, attributes.TEXCOORD_1.y);
+            #ifdef RENDERER_ASSET_ASSEMBLY_INSTANCE
+              pivotOS = terrainProjectAssetAssemblyPositionOS(pivotOS, attributes);
+            #else
+              pivotOS = terrainProjectDetailPositionOS(pivotOS, attributes);
+            #endif
+            vec3 pivotWS = (renderer_ModelMat * vec4(pivotOS, 1.0)).xyz;
+            float pivotPhase = terrainProjectTreeLeafFlutterPhase(pivotWS - originWS, terrainProjectTreePhase(originWS));
+            pivotWS = originWS + terrainProjectRotateAroundAxis(pivotWS - originWS, bendAxis, bendAngle);
+            float pivotLoad = clamp(horizontalSpeed / max(material_WindPivotFlutter.z, 0.01), 0.0, 1.0);
+            float pivotAngle = sin(scene_WindFieldParams.w * material_WindPivotFlutter.y * 6.2831853 + pivotPhase) *
+              pivotLimit * pivotLoad;
+            windPositionWS = pivotWS + terrainProjectRotateAroundAxis(windPositionWS - pivotWS, bendAxis, pivotAngle);
+            windNormalWS = normalize(terrainProjectRotateAroundAxis(windNormalWS, bendAxis, pivotAngle * normalResponse));
+            #ifdef NEED_VERTEX_TANGENT
+              windTangentWS = normalize(terrainProjectRotateAroundAxis(windTangentWS, bendAxis, pivotAngle * normalResponse));
+            #endif
+          }
         #elif defined(MATERIAL_WIND_ROOT_LOAD)
           // Woody receiver follows the root bend; no unanchored flutter translation.
         #elif defined(MATERIAL_WIND_HERO_TREE_HIERARCHY) && defined(MATERIAL_VEGETATION_CLIMATE_LEAF)
@@ -2553,7 +2559,11 @@ vec3 terrainProjectVegetationPositionWS(
     #endif
   #else
     vec3 detailPositionOS = terrainProjectDetailPositionOS(positionOS.xyz, attributes);
-    vec3 detailOriginOS = terrainProjectDetailOriginOS(attributes);
+    #if defined(MATERIAL_WIND_PROCEDURAL_TREE) && defined(MATERIAL_VEGETATION_CLIMATE_LEAF)
+      vec3 detailOriginOS = terrainProjectDetailPositionOS(proceduralTreeWindOriginOS, attributes);
+    #else
+      vec3 detailOriginOS = terrainProjectDetailOriginOS(attributes);
+    #endif
   #endif
   vec4 homogeneousPositionWS = renderer_ModelMat * vec4(detailPositionOS, 1.0);
   vec3 positionWS = homogeneousPositionWS.xyz / homogeneousPositionWS.w;

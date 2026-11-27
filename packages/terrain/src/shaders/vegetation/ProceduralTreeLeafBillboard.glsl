@@ -89,7 +89,11 @@ void terrainProjectBuildProceduralTreeLeafFrame(
   positionWS = pivotWS +
     cameraRightWS * (length(rightVectorWS) * local.x * cardScale) +
     cameraUpWS * (length(upVectorWS) * local.y * cardScale);
-  originWS = terrainProjectProceduralTreeLeafOriginWS(attributes);
+  #ifdef MATERIAL_WIND_PROCEDURAL_TREE
+    originWS = pivotWS;
+  #else
+    originWS = terrainProjectProceduralTreeLeafOriginWS(attributes);
+  #endif
 }
 
 #endif

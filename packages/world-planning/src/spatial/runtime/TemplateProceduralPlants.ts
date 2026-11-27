@@ -1229,6 +1229,8 @@ function createProceduralWindMaterial(
     data.setTexture("material_BaseTexture", null!);
   }
   configureProceduralPlantWindMaterial(material, isLeaf);
+  // These ground plants use local pivots for their authored stem and shrub motion.
+  if (isLeaf) data.enableMacro("MATERIAL_WIND_GROUP_SWAY");
   data.setFloat("material_ProceduralTreeHeight", windHeight);
   data.setVector4("material_ProceduralTreeWindParams", new Vector4(...windParams));
   data.setColor("material_BaseColor", shading?.verticalGradient?.baseColor ?? new Color(1, 1, 1, 1));
