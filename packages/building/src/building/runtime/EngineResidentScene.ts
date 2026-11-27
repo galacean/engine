@@ -1,3 +1,4 @@
+import { BUILDING_RENDER_LAYER } from "./BuildingRenderLayer";
 import { MountedDecorationRenderer } from "./MountedDecorationRenderer";
 import { RigidDecorationRenderer, type RigidDecorationBinding } from "./RigidDecorationRenderer";
 import { injectWallRoofJoint } from "./ConstructionWallRoofJointShader";
@@ -443,6 +444,7 @@ export class EngineResidentScene {
     private readonly terrainGrid?: ConstructionTerrainGrid
   ) {
     this.root = parent.createChild("Masonry");
+    this.root.layer = BUILDING_RENDER_LAYER;
   }
   releasePackageData(): void {
     this.pack = null;

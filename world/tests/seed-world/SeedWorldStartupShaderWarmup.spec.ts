@@ -162,7 +162,7 @@ describe("startup shader publication boundary", () => {
         {
           prepareShaderWarmup: async () => ({
             renderers: [fakeRenderer],
-            decorationPointLightBudget: 4,
+            getPointLightCountDeltas: () => [1, 2, 3, 4],
             dispose: disposeMasonry
           })
         },
@@ -203,7 +203,7 @@ describe("startup shader publication boundary", () => {
       includeGenerationReveal: false,
       additionalRenderers: [fakeRenderer, { name: "rock-grass-warmup" }],
       additionalInstancedRenderers: [fakeVegRenderer],
-      additionalPointLightCounts: [4],
+      additionalPointLightCounts: [1, 2, 3, 4],
       includeLiquidGlassMask: true,
       includePhotoCopy: true
     });
@@ -224,7 +224,7 @@ describe("startup shader publication boundary", () => {
         {
           prepareShaderWarmup: async () => ({
             renderers: [fakeRenderer],
-            decorationPointLightBudget: 4,
+            getPointLightCountDeltas: () => [1, 2, 3, 4],
             dispose: disposeMasonry
           })
         },
@@ -248,7 +248,7 @@ describe("startup shader publication boundary", () => {
       pollIntervalMilliseconds: 4,
       additionalRenderers: [fakeRenderer, { name: "rock-grass-warmup" }],
       additionalInstancedRenderers: [fakeVegRenderer],
-      additionalPointLightCounts: [4],
+      additionalPointLightCounts: [1, 2, 3, 4],
       includeLodDither: false,
       includeOpaqueScreenSpaceReflection: false,
       includeLiquidGlassMask: true,
@@ -270,7 +270,7 @@ describe("startup shader publication boundary", () => {
         {
           prepareShaderWarmup: async () => ({
             renderers: [fakeRenderer],
-            decorationPointLightBudget: 4,
+            getPointLightCountDeltas: () => [1, 2, 3, 4],
             dispose: disposeMasonry
           })
         },
@@ -306,7 +306,7 @@ describe("startup shader publication boundary", () => {
     expect(f.collectVariants.mock.calls[1][4]).toMatchObject({
       additionalRenderers: [fakeRenderer, { name: "rock-grass-warmup" }],
       additionalInstancedRenderers: [fakeVegRenderer],
-      additionalPointLightCounts: [4]
+      additionalPointLightCounts: [1, 2, 3, 4]
     });
     expect(disposeMasonry).toHaveBeenCalledOnce();
     expect(disposeVegetation).toHaveBeenCalledOnce();
@@ -536,7 +536,7 @@ describe("startup shader publication boundary", () => {
         prepareMasonryShaderWarmup: async () => ({
           renderers: [],
           extraMaterials: new Map([[gpRenderer, [gpShadowOnlyMat as any]]]),
-          decorationPointLightBudget: 0,
+          getPointLightCountDeltas: () => [],
           dispose: () => {}
         }),
         prepareVegetationShaderWarmup: () => ({ renderers: [vegRenderer], dispose: () => {} }),
@@ -1233,7 +1233,7 @@ describe("animal presentation preparation", () => {
     const prepareMasonry = vi.fn(async () => ({
       renderers: [masonryRenderer],
       extraMaterials: new Map([[masonryRenderer, [masonryMat]]]),
-      decorationPointLightBudget: 4,
+      getPointLightCountDeltas: () => [1, 2, 3, 4],
       dispose: disposeMasonry
     }));
     const prepareAnimal = vi.fn(async () => ({
@@ -1320,7 +1320,7 @@ describe("animal presentation preparation", () => {
     expect(deferredOpts.additionalRenderers).toEqual([animalRenderer]);
     expect(deferredOpts.additionalInstancedRenderers).toEqual([vegRenderer]);
     expect(deferredOpts.additionalRendererMaterials.get(animalRenderer)).toEqual([animalMat]);
-    expect(deferredOpts.additionalPointLightCounts).toEqual([4]);
+    expect(deferredOpts.additionalPointLightCounts).toEqual([1, 2, 3, 4]);
     expect(disposeAnimal).toHaveBeenCalledOnce();
     expect(disposeVeg).toHaveBeenCalledOnce();
   });

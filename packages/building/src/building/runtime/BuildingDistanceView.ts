@@ -1,3 +1,4 @@
+import { BUILDING_RENDER_LAYER } from "./BuildingRenderLayer";
 import { buildingPartKey, buildingGroupKey } from "./BuildingObjectIdentity";
 import type { PrefabResource } from "@galacean/engine";
 import { constructionStoneFloorGLSL } from "./ConstructionStoneFloorShader";
@@ -322,6 +323,7 @@ export async function createBuildingDistanceView(
     meshes: [],
     materials: []
   };
+  resources.root.layer = BUILDING_RENDER_LAYER;
   // Stable shadow silhouette shares existing meshes, independent of visual LOD.
   // No forward/depth/picking pass, no extra vertex buffers or detailed tile draws.
   const visualRoot = resources.root.createChild("Visual surfaces");

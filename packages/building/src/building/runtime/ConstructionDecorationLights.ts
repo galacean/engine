@@ -9,8 +9,10 @@ import {
   type Camera,
   type Scene
 } from "@galacean/engine";
+import { BUILDING_RENDER_LAYER } from "./BuildingRenderLayer";
 import {
   ConstructionDecorationLightPolicy,
+  DEFAULT_DECORATION_LIGHT_BUDGET,
   type ConstructionDecorationLight
 } from "./ConstructionDecorationLightPolicy";
 export { constructionDecorationLights } from "./ConstructionDecorationLightPolicy";
@@ -60,7 +62,7 @@ export class ConstructionDecorationLights {
     }
     return true;
   }
-  constructor(parent: Entity, budget = 4) {
+  constructor(parent: Entity, budget = DEFAULT_DECORATION_LIGHT_BUDGET) {
     this.policy = new ConstructionDecorationLightPolicy(budget);
     this.root = parent.createChild("MasonryLocalLights");
     this.root.isActive = false;
@@ -69,11 +71,11 @@ export class ConstructionDecorationLights {
     ).registerWorldChangeFlag?.();
     for (let i = 0; i < budget; i++) {
       const emitter = this.root.createChild("slot-" + i).addComponent(PointLight);
+      emitter.enabled = false;
+      emitter.cullingMask = BUILDING_RENDER_LAYER;
       emitter.shadowType = ShadowType.None;
       emitter.color.set(0, 0, 0, 1);
       emitter.distance = 3.5;
-      // Keep the scene's light count stable after construction: idle slots carry
-      // zero energy, avoiding shader-variant churn as the camera moves.
       this.emitters.push(emitter);
     }
     this.metrics.allocated = budget;
@@ -146,13 +148,13 @@ export class ConstructionDecorationLights {
         this.colors[offset + 1] = light.color[1];
         this.colors[offset + 2] = light.color[2];
         this.colors[offset + 3] = energy;
-        if (energy > 0) this.metrics.active++;
-      } else emitter.color.set(0, 0, 0, 1);
+      }
+      emitter.enabled = energy > 0;
+      if (emitter.enabled) this.metrics.active++;
     }
     this.metrics.updates++;
     this.lastKeepPoolActive = keepPoolActive;
-    // Keep the fixed-size pool active when the world owns decoration lights so idle zero-energy
-    // slots keep `SCENE_POINT_LIGHT_COUNT` constant and avoid compiling dual 0-light / 4-light shaders.
+    // Callers may keep the parent active. Only enabled emitters register with the scene.
     this.root.isActive = keepPoolActive || this.metrics.active > 0;
     const scene = this.root.scene!;
     if (ConstructionDecorationLights.publishers.get(scene) !== this) {
@@ -193,7 +195,9 @@ export class ConstructionDecorationLights {
       for (let slot = 0; slot < this.emitters.length; slot++) {
         const light = this.emitters[slot],
           index = (light as PointLight & { _lightIndex: number })._lightIndex;
-        const local = this.colors[slot * 4 + 3] > Math.fround(0.0001);
+        // The extra wall-light lobe also runs for slots beyond the engine light cap.
+        const local =
+          (light.cullingMask & BUILDING_RENDER_LAYER) !== 0 && this.colors[slot * 4 + 3] > Math.fround(0.0001);
         if (light.enabled && index >= 0 && index < count) {
           owned |= 1 << index;
           if (local) legacy |= 1 << index;

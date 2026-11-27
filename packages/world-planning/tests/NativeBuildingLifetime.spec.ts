@@ -102,13 +102,13 @@ it("routes NativeBuildingWorld.prepareShaderWarmup to the uncommitted candidate 
   const candidateWarmup = vi.fn(async () => ({
     renderers: [],
     extraMaterials: new Map(),
-    decorationPointLightBudget: 4,
+    getPointLightCountDeltas: () => [1, 2, 3, 4],
     dispose() {}
   }));
   const systemWarmup = vi.fn(async () => ({
     renderers: [],
     extraMaterials: new Map(),
-    decorationPointLightBudget: 0,
+    getPointLightCountDeltas: () => [],
     dispose() {}
   }));
   const system = { visible: true, bounds: [], captureOccupancyQuery: liveQuery, prepareShaderWarmup: systemWarmup };
@@ -125,13 +125,13 @@ it("routes NativeBuildingWorld.prepareShaderWarmup to the uncommitted candidate 
   const preCommit = await world.prepareShaderWarmup(signal);
   expect(candidateWarmup).toHaveBeenCalledWith(signal);
   expect(systemWarmup).not.toHaveBeenCalled();
-  expect(preCommit.decorationPointLightBudget).toBe(4);
+  expect(preCommit.getPointLightCountDeltas()).toEqual([1, 2, 3, 4]);
 
   world.commitPublication();
   world.activate();
   const postActivate = await world.prepareShaderWarmup(signal);
   expect(systemWarmup).toHaveBeenCalledWith(signal);
-  expect(postActivate.decorationPointLightBudget).toBe(0);
+  expect(postActivate.getPointLightCountDeltas()).toEqual([]);
 });
 
 it("prepareTerrain candidate prepareShaderWarmup emits negative point-light delta when decoration lights are already active even for a building-free target", async () => {
@@ -143,7 +143,7 @@ it("prepareTerrain candidate prepareShaderWarmup emits negative point-light delt
     members: new Map(),
     views: new Map(),
     revision: 0,
-    lights: { root: { isActiveInHierarchy: true }, metrics: { allocated: 4 } },
+    lights: { root: { isActiveInHierarchy: true }, metrics: { allocated: 4, active: 2 } },
     residency: { desired: new Set(), invalidate() {} },
     async flush() {},
     readTransforms() {},
@@ -160,25 +160,28 @@ it("prepareTerrain candidate prepareShaderWarmup emits negative point-light delt
     new AbortController().signal
   );
   const warmup = await candidate.prepareShaderWarmup();
-  expect(warmup.decorationPointLightBudget).toBe(-4);
+  expect(warmup.getPointLightCountDeltas()).toEqual([-2]);
   warmup.dispose();
 
   // When decoration lights are inactive and target has no buildings, delta is 0.
   system.lights.root.isActiveInHierarchy = false;
   const inactiveWarmup = await candidate.prepareShaderWarmup();
-  expect(inactiveWarmup.decorationPointLightBudget).toBe(0);
+  expect(inactiveWarmup.getPointLightCountDeltas()).toEqual([]);
   inactiveWarmup.dispose();
   candidate.discard();
 
-  // When decoration lights are already active and target views also own decoration lights,
-  // the pool stays active with zero-energy idle slots so delta is 0 (no 0-light/4-light doubling).
+  // A single target lamp can enter or leave camera range after warmup preparation.
   system.lights.root.isActiveInHierarchy = true;
   const steadyWarmup = await (BuildingManager.prototype as any).prepareShaderWarmupForViews.call(
     system,
     [],
     [{ lights: [{ descriptor: { ownerId: "house-1" } }] }]
   );
-  expect(steadyWarmup.decorationPointLightBudget).toBe(0);
+  expect(steadyWarmup.getPointLightCountDeltas()).toEqual([-2, -1]);
+  system.lights.metrics.active = 1;
+  expect(steadyWarmup.getPointLightCountDeltas()).toEqual([-1]);
+  system.lights.metrics.active = 0;
+  expect(steadyWarmup.getPointLightCountDeltas()).toEqual([1]);
   steadyWarmup.dispose();
 });
 

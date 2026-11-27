@@ -45,6 +45,7 @@ import {
   ConstructionDecorationLights,
   type ConstructionDecorationLight
 } from "../../runtime/ConstructionDecorationLights";
+import { DEFAULT_DECORATION_LIGHT_BUDGET } from "../../runtime/ConstructionDecorationLightPolicy";
 import { buildingAssets, retainBuildingResource } from "../../resources/BuildingAssetKit";
 import { resolveDocument } from "../../runtime/PlacementDocument.js";
 import { inspectMasonrySurface } from "../../runtime/MasonrySurfaceInspection";
@@ -421,7 +422,6 @@ export class BuildingRuntime extends Script {
   private closed = false;
   private lights?: ConstructionDecorationLights;
   private lightsDirty = true;
-  private hasWorldDecorationLights = false;
   private readonly lightDescriptors: ConstructionDecorationLight[] = [];
   private readonly lightPosition = new Vector3();
   private readonly entrance = new ConstructionEntrance();
@@ -1423,13 +1423,11 @@ export class BuildingRuntime extends Script {
     if (this.lightsDirty) {
       this.lightsDirty = false;
       this.lightDescriptors.length = 0;
-      let hasAnyViewLights = false;
       if (this.shown)
         for (const view of this.views.values())
           for (const light of view.lights) {
             const object = light.member;
             if (!this.members.has(object)) continue;
-            hasAnyViewLights = true;
             if (view.kind === "profile" && (this.entrance.states.get(light.descriptor.ownerId)?.progress ?? 1) < 1)
               continue;
             Vector3.transformCoordinate(light.local, object.entity.transform.worldMatrix, this.lightPosition);
@@ -1439,11 +1437,9 @@ export class BuildingRuntime extends Script {
             p[2] = this.lightPosition.z;
             this.lightDescriptors.push(light.descriptor);
           }
-      this.hasWorldDecorationLights = hasAnyViewLights;
     }
-    if (!this.lights && (this.lightDescriptors.length || this.hasWorldDecorationLights))
-      this.lights = new ConstructionDecorationLights(this.entity, 4);
-    this.lights?.update(this.lightDescriptors, this.host.camera, deltaSeconds, this.hasWorldDecorationLights);
+    if (!this.lights && this.lightDescriptors.length) this.lights = new ConstructionDecorationLights(this.entity);
+    this.lights?.update(this.lightDescriptors, this.host.camera, deltaSeconds);
   }
   private viewMatrixChanged(view: View, elements: Float32Array): boolean {
     const cached = view.occupancyMatrix;
@@ -1660,7 +1656,7 @@ export class BuildingRuntime extends Script {
   async prepareShaderWarmup(signal?: AbortSignal): Promise<{
     renderers: MeshRenderer[];
     extraMaterials: Map<MeshRenderer, Material[]>;
-    decorationPointLightBudget: number;
+    getPointLightCountDeltas(): readonly number[];
     dispose(): void;
   }> {
     return this.prepareShaderWarmupForViews(this.entries, [...this.views.values()], signal, this.publishedTerrain);
@@ -1674,37 +1670,35 @@ export class BuildingRuntime extends Script {
   ): Promise<{
     renderers: MeshRenderer[];
     extraMaterials: Map<MeshRenderer, Material[]>;
-    decorationPointLightBudget: number;
+    getPointLightCountDeltas(): readonly number[];
     dispose(): void;
   }> {
     const empty = {
       renderers: [] as MeshRenderer[],
       extraMaterials: new Map<MeshRenderer, Material[]>(),
-      decorationPointLightBudget: 0,
+      getPointLightCountDeltas: (): readonly number[] => [],
       dispose() {}
     };
     if (this.closed || !this.host) return empty;
     signal?.throwIfAborted();
 
-    // Report the signed delta for the 4-slot decoration point-light pool:
-    // - Once a world with decoration lights is mounted, the pool stays active with zero-energy idle slots
-    //   so `SCENE_POINT_LIGHT_COUNT` stays constant instead of compiling dual 0-light / 4-light shader sets.
-    // - If the pool is active and the target world also has decoration lights, no point-light transition occurs (`0`).
-    // - If the pool is active and the target world has no decoration lights, precompile `-activeSlots` (lights-OFF)
-    //   even when `profileEntries.length === 0`.
-    // - If the pool is inactive and the target world has decoration lights, precompile `+4` (lights-ON).
-    const activeDecorationLights = this.lights?.root.isActiveInHierarchy ? this.lights.metrics.allocated : 0;
-    const targetHasDecorationLights = allViews.some((view) => view.lights.length > 0);
-    const decorationPointLightBudget =
-      activeDecorationLights > 0
-        ? targetHasDecorationLights
-          ? 0
-          : -activeDecorationLights
-        : targetHasDecorationLights
-          ? 4
-          : 0;
+    // A camera can have anywhere from zero to the target world's lamp count in range.
+    // Deferred warmup can run after the camera moves. Read the live count at collection time.
+    let maxLights = 0;
+    for (const view of allViews) {
+      maxLights = Math.min(DEFAULT_DECORATION_LIGHT_BUDGET, maxLights + view.lights.length);
+      if (maxLights === DEFAULT_DECORATION_LIGHT_BUDGET) break;
+    }
+    const getPointLightCountDeltas = (): number[] => {
+      const active = this.lights?.root.isActiveInHierarchy ? this.lights.metrics.active : 0;
+      const deltas: number[] = [];
+      for (let count = 0; count <= maxLights; count++) {
+        if (count !== active) deltas.push(count - active);
+      }
+      return deltas;
+    };
 
-    if (profileEntries.length === 0) return { ...empty, decorationPointLightBudget };
+    if (profileEntries.length === 0) return { ...empty, getPointLightCountDeltas };
 
     const extraMaterials =
       BuildingGlobalProxy.existing(this.entity.scene!)?.getWarmupExtraMaterials() ??
@@ -1772,7 +1766,7 @@ export class BuildingRuntime extends Script {
         for (const f of candidates[bestIdx]!.features) seenFeatures.add(f);
       }
     }
-    if (selected.length === 0) return { renderers: [], extraMaterials, decorationPointLightBudget, dispose() {} };
+    if (selected.length === 0) return { renderers: [], extraMaterials, getPointLightCountDeltas, dispose() {} };
 
     const warmupRoot = this.entity.createChild("Masonry shader warmup");
     warmupRoot.isActive = false;
@@ -1827,7 +1821,7 @@ export class BuildingRuntime extends Script {
       return {
         renderers,
         extraMaterials,
-        decorationPointLightBudget,
+        getPointLightCountDeltas,
         dispose: () => {
           cleanedUp = true;
           controller.abort();
