@@ -1,4 +1,5 @@
 import { Entity } from "../../../Entity";
+import { Layer } from "../../../Layer";
 import { Scene } from "../../../Scene";
 import { CameraClearFlags } from "../../../enums/CameraClearFlags";
 import { HitResult } from "../../../physics";
@@ -37,10 +38,13 @@ export class PhysicsPointerEventEmitter extends PointerEventEmitter {
         ) {
           continue;
         }
-        camera.screenPointToRay(pointer.position, ray);
-        if (scenePhysics.raycast(ray, camera.farClipPlane, camera.cullingMask, <HitResult>hitResult)) {
-          this._updateRaycast(hitResult.entity, pointer);
-          return;
+        const mask = camera.physicsPointerMask ?? camera.cullingMask;
+        if (mask !== Layer.Nothing) {
+          camera.screenPointToRay(pointer.position, ray);
+          if (scenePhysics.raycast(ray, camera.farClipPlane, mask, <HitResult>hitResult)) {
+            this._updateRaycast(hitResult.entity, pointer);
+            return;
+          }
         }
         if (camera.clearFlags & CameraClearFlags.Color) {
           this._updateRaycast(null, pointer);
