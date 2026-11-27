@@ -105,6 +105,38 @@ it.each(["MODEL_GENERATION_FAILED", "RATE_LIMIT_EXCEEDED_ERROR"])("exports %s de
   expect(events.some((event: any) => ["script_started", "tool_started"].includes(event.type))).toBe(false);
 });
 
+it.each([
+  { legacy: false, recovers: true },
+  { legacy: false, recovers: false },
+  { legacy: true, recovers: false }
+])("retries an empty Seed World result at most once, legacy=$legacy recovers=$recovers", async ({ legacy, recovers }) => {
+  const empty = {
+    content: " ", toolCalls: [], finishReason: "stop",
+    ...(legacy ? {} : { content: "", error: { code: "MODEL_EMPTY_OUTPUT", message: "模型没有返回 Tool Call 或最终回复" } }),
+    traceId: "empty-trace"
+  };
+  const send = vi.fn(async (request) => seedWorldResponse(request, empty));
+  if (recovers) {
+    send.mockImplementationOnce(async (request) => seedWorldResponse(request, empty));
+    send.mockImplementationOnce(async (request) => seedWorldResponse(request, { content: "done", toolCalls: [], finishReason: "stop" }));
+  }
+  vi.stubGlobal("window", { location: { hostname: "example.com" }, lingguang: { ai: { seedWorldStop: vi.fn(), seedWorldStream: send } } });
+  const loop = createTestAgentLoop({ tools: [], definition: {
+    scriptApi: { catalog: "API", entries: [], modules: [] }, toolNames: []
+  } });
+  if (recovers) {
+    const result = await loop.run("inspect", {});
+    expect(result.steps[0].attempts[0]).toMatchObject({
+      errorCode: "MODEL_EMPTY_OUTPUT", traceId: "empty-trace", category: "protocol"
+    });
+  } else {
+    await expect(loop.run("inspect", {})).rejects.toThrow("模型没有返回 Tool Call 或最终回复");
+  }
+  expect(send).toHaveBeenCalledTimes(2);
+  expect(JSON.stringify(send.mock.calls[1][0].messages)).toContain("agent_protocol_correction");
+  expect(send.mock.calls[1][0].timeout).toBeLessThanOrEqual(send.mock.calls[0][0].timeout);
+});
+
 it.each([undefined, null, "invalid", []])("keeps the original model failure when optional details are absent or invalid: %j", async details => {
   vi.stubGlobal("window", { location: { hostname: "example.com" }, lingguang: { ai: { seedWorldStop: vi.fn(), seedWorldStream: async (request: any) => seedWorldResponse(request, {
     content: "", error: { code: "MODEL_GENERATION_FAILED", message: "original failure", details }

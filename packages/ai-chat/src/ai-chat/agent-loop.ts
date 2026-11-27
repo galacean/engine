@@ -1188,6 +1188,7 @@ export class AgentLoop {
     const roundStarted = performance.now();
     const deadline = roundStarted + MODEL_ROUND_TIMEOUT_MS;
     let correction: AgentMessage | undefined;
+    let retriedEmptyOutput = false;
     for (let attemptNumber = 1; attemptNumber <= this.#maxModelAttempts; attemptNumber += 1) {
       if (input.signal.aborted) throw new AgentModelRequestFailure(new AgentCancelledError(), attempts);
       const messages = buildAgentMessages({
@@ -1370,7 +1371,11 @@ export class AgentLoop {
           input.compactionState.skipUntilActiveLength = input.transcript.activeLength + 6;
         }
       }
+      const emptyOutput = result.finishReason === "stop" && !result.toolCalls.length && !result.content.trim();
       try {
+        if (result.error) {
+          throw new Error(result.error.message);
+        }
         if (result.finishReason === "length") {
           throw new Error("模型输出因长度上限被截断");
         }
@@ -1435,10 +1440,19 @@ export class AgentLoop {
               ? "content_filter"
               : "protocol";
         attempt.error = getErrorMessage(error, "模型响应不符合 Agent 协议");
+        if (result.error) {
+          attempt.errorCode = result.error.code;
+          attempt.errorDetails = result.error.details;
+        }
         attempts.push(attempt);
-        if (result.finishReason === "content_filter" || attemptNumber === this.#maxModelAttempts) {
+        if (
+          result.finishReason === "content_filter" ||
+          attemptNumber === this.#maxModelAttempts ||
+          (emptyOutput && retriedEmptyOutput)
+        ) {
           throw new AgentDecisionError(attempts);
         }
+        retriedEmptyOutput ||= emptyOutput;
         onRecovery({
           sequence: ++protocolSequence,
           phase: "retry_wait",

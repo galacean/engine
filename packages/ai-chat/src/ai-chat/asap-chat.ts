@@ -28,6 +28,7 @@ export type AsapChatResult = {
   reasoningContent?: string;
   toolCalls: AgentToolCall[];
   finishReason: AgentFinishReason;
+  error?: ServerModelError;
   traceId?: string;
   debug?: AgentModelDebug;
   telemetry?: ModelTelemetry;
@@ -477,11 +478,12 @@ function normalizeAsapChatResult(value: unknown): AsapChatResult {
   if (!isRecord(value) || typeof value.content !== "string") {
     throw modelProtocolError("ASAP AI 返回格式无效");
   }
-  if (value.error !== undefined) {
-    const error = normalizeServerModelError(value.error);
-    if (!error) {
-      throw modelProtocolError("ASAP AI 返回错误格式无效");
-    }
+  const error = normalizeServerModelError(value.error);
+  if (value.error !== undefined && !error) {
+    throw modelProtocolError("ASAP AI 返回错误格式无效");
+  }
+  // AgentLoop applies compaction before it retries an empty output.
+  if (error && error.code !== "MODEL_EMPTY_OUTPUT") {
     throw new AsapModelError(value, error);
   }
   const toolCalls = normalizeToolCalls(value.toolCalls);
@@ -493,14 +495,19 @@ function normalizeAsapChatResult(value: unknown): AsapChatResult {
   if (finishReason === "tool_calls" && toolCalls.length === 0) {
     throw modelProtocolError("ASAP AI 返回 tool_calls，但没有 Tool Call");
   }
-  if (value.reasoningContent !== undefined && typeof value.reasoningContent !== "string") {
+  if (error && (finishReason !== "stop" || value.content.trim() || toolCalls.length)) {
+    throw modelProtocolError("ASAP AI 返回了无效的空输出错误");
+  }
+  const reasoningContent = typeof value.reasoningContent === "string" ? value.reasoningContent : undefined;
+  if (value.reasoningContent !== undefined && reasoningContent === undefined) {
     throw modelProtocolError("ASAP AI reasoningContent 必须是字符串");
   }
   return {
     content: value.content,
-    ...(value.reasoningContent !== undefined ? { reasoningContent: value.reasoningContent } : {}),
+    ...(reasoningContent !== undefined ? { reasoningContent } : {}),
     toolCalls,
     finishReason: finishReason as AgentFinishReason,
+    ...(error ? { error } : {}),
     traceId: typeof value.traceId === "string" ? value.traceId : undefined,
     debug: normalizeDebug(value.debug),
     telemetry: normalizeModelTelemetry(value.telemetry),
