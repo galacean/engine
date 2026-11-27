@@ -1,0 +1,16 @@
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_171a11afaf879a 1348
+world/demos/seed-world/SeedWorldDemo.ts
+  h_171a11afaf879a 3485,3487,4315-4336,4341
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "e01ea00b2d638841dd8c2a0bc164a6eea67e0b63",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
