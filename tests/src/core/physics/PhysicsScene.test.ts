@@ -822,6 +822,7 @@ describe("Physics Test", () => {
       expect(physics.raycastAll(ray, results)).toBe(true);
       expect(results).toHaveLength(2);
       expect(storage._raycastSnapshots).toHaveLength(1);
+      enginePhysX.sceneManager.removeScene(scene);
       enginePhysX.resourceManager.gc();
       expect(storage._raycastSnapshots).toBeUndefined();
 
