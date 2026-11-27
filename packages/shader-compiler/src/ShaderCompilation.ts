@@ -1,5 +1,10 @@
 import { Logger, ShaderLanguage } from "@galacean/engine-core";
-import type { IRenderStates, IShaderSource, IWebGPUShaderCompiler } from "@galacean/engine-design";
+import type {
+  IComputeProgramSource,
+  IRenderStates,
+  IShaderSource,
+  IWebGPUShaderCompiler
+} from "@galacean/engine-design";
 import type { IShaderProgramSource } from "@galacean/engine-design/types/shader-compiler/IShaderProgramSource";
 import { Color } from "@galacean/engine-math";
 import {
@@ -69,6 +74,59 @@ export function generateParsedShaderPassData(
     );
   }
   return generateShaderProgram(parsed.ir, resolvedCoreInfo, backend, parsed.preprocessorExpressions);
+}
+
+/**
+ * Generates one WebGPU compute kernel from a parser-owned single-AST IR (WebGPU-only).
+ * @internal
+ */
+export function generateParsedComputeKernelData(
+  parsed: ParsedShaderPassData,
+  computeEntry: string,
+  workgroupSize: readonly [number, number, number],
+  webgpu?: IWebGPUShaderCompiler,
+  requireDefaultVariant = false
+): IComputeProgramSource | undefined {
+  if (parsed.blockingErrors.length) {
+    for (const error of parsed.blockingErrors) Logger.error(error.toString());
+    return undefined;
+  }
+  if (!parsed.ir) return undefined;
+  if (!webgpu?.generateWGSLCompute || !webgpu?.compileWebGPUComputeVariant) {
+    throw new Error("ComputeShader compilation requires a backend from createWebGPUShaderCompiler().");
+  }
+  const coreInfo = ShaderCoreInfo.createCompute(parsed.ir, computeEntry);
+  if (!coreInfo.computeEntry?.functions.length) {
+    Logger.error(`Compute entry function '${computeEntry}' not found.`);
+    return undefined;
+  }
+  if (coreInfo.computeEntry.hasDefiniteAmbiguity) {
+    Logger.error(`Compute entry function '${computeEntry}' resolves to multiple declarations.`);
+    return undefined;
+  }
+  const result = webgpu.generateWGSLCompute(parsed.ir, coreInfo, workgroupSize);
+  if (!result) return undefined;
+  result.wgslComputeInstructions = ShaderInstructionEncoder.parse(result.compute, parsed.preprocessorExpressions);
+  if (requireDefaultVariant) {
+    const wgsl = webgpu.compileWebGPUComputeVariant(result.compute, {
+      uniformBlocks: result.uniformBlocks,
+      workgroupSize
+    });
+    result.wgsl = wgsl;
+    result.compute = wgsl.compute;
+  } else {
+    try {
+      const wgsl = webgpu.compileWebGPUComputeVariant(result.compute, {
+        uniformBlocks: result.uniformBlocks,
+        workgroupSize
+      });
+      result.wgsl = wgsl;
+      result.compute = wgsl.compute;
+    } catch {
+      // Runtime ComputeShader sources may require macros before linking.
+    }
+  }
+  return result;
 }
 
 function validateStageEntries(coreInfo: ShaderCoreInfo): boolean {

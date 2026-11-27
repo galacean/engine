@@ -1,6 +1,9 @@
 import { Logger, ReturnableObjectPool, ShaderMacroProcessor } from "@galacean/engine-core";
 import type {
+  IComputeProgramSource,
   IShaderInfo,
+  IWebGPUComputeOptions,
+  IWebGPUComputeProgram,
   IWebGPUShaderCompiler,
   IWebGPUShaderOptions,
   IWebGPUShaderProgram
@@ -81,6 +84,56 @@ export function compileWebGPUShaderPass(
   return linked;
 }
 
+/** Generate raw WGSL compute stage string + metadata directly from the single ShaderLab IR. */
+export function generateWGSLComputeFromIR(
+  ir: ShaderClueIR,
+  coreInfo: ShaderCoreInfo,
+  workgroupSize: readonly [number, number, number]
+): IComputeProgramSource | undefined {
+  const visitor = wgslVisitorPool.get();
+  try {
+    return visitor.generateCompute(ir, coreInfo, workgroupSize);
+  } catch (error) {
+    visitor.dispose();
+    if (!(error instanceof GSError)) throw error;
+    Logger.error(`${error.file ? `${error.file}: ` : ""}${error.code ? `${error.code}: ` : ""}${error.toString()}`);
+    return undefined;
+  } finally {
+    wgslVisitorPool.return(visitor);
+  }
+}
+
+/** Compile a single-AST WGSL compute kernel for a concrete macro set. */
+export function compileWebGPUComputeKernel(
+  compiler: Pick<IWebGPUShaderCompiler, "compileWebGPUComputeVariant">,
+  kernel: Pick<IComputeProgramSource, "uniformBlocks" | "wgslComputeInstructions" | "workgroupSize">,
+  features: ReadonlyMap<string, string> = new Map(),
+  options: IWebGPUComputeOptions = {}
+): IWebGPUComputeProgram {
+  if (!compiler.compileWebGPUComputeVariant) {
+    throw new Error("WebGPU compute compilation requires compileWebGPUComputeVariant.");
+  }
+  const macros = new Map(ShaderMacroProcessor._defaultWebGPUMacros);
+  features.forEach((value, name) => macros.set(name, value));
+  const instructions = kernel.wgslComputeInstructions;
+  if (!instructions) {
+    throw new Error("WebGPU compute kernel is missing WGSL instructions; recompile from ComputeShader source.");
+  }
+  const evaluated = ShaderMacroProcessor.evaluate(instructions, macros);
+  const baseResolve = options.resolveConstant;
+  const resolveConstant = (name: string): number | undefined => {
+    const fromMacro = macros.get(name);
+    if (fromMacro !== undefined && /^-?\d+$/.test(fromMacro.trim())) return Number(fromMacro.trim());
+    return baseResolve?.(name);
+  };
+  return compiler.compileWebGPUComputeVariant(evaluated, {
+    ...options,
+    uniformBlocks: options.uniformBlocks ?? kernel.uniformBlocks,
+    workgroupSize: options.workgroupSize ?? kernel.workgroupSize,
+    resolveConstant
+  });
+}
+
 /** Create the single-AST WebGPU WGSL compiler (`WGSLVisitor` + zero-AST `WGSLProgramLinker`). */
 export function createWebGPUShaderCompilerSync(): IWebGPUShaderCompiler {
   const linker = new WGSLProgramLinker();
@@ -88,7 +141,11 @@ export function createWebGPUShaderCompilerSync(): IWebGPUShaderCompiler {
     generateWGSL(ir, coreInfo) {
       return generateWGSLFromIR(ir as ShaderClueIR, coreInfo as ShaderCoreInfo);
     },
+    generateWGSLCompute(ir, coreInfo, workgroupSize) {
+      return generateWGSLComputeFromIR(ir as ShaderClueIR, coreInfo as ShaderCoreInfo, workgroupSize);
+    },
     compileWebGPUVariant: linker.link.bind(linker),
+    compileWebGPUComputeVariant: linker.linkCompute.bind(linker),
     compileDefaultVariant(program: IShaderInfo) {
       return compileWebGPUShaderPass({ compileWebGPUVariant: linker.link.bind(linker) }, program);
     }

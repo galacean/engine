@@ -16,5 +16,10 @@ export enum ShaderBuiltinSemantic {
   FragmentOutput0 = "fragment-output-0",
   FragmentOutputArray = "fragment-output-array",
   FragmentDepth = "fragment-depth",
+  GlobalInvocationID = "global-invocation-id",
+  LocalInvocationID = "local-invocation-id",
+  WorkGroupID = "workgroup-id",
+  NumWorkGroups = "num-workgroups",
+  LocalInvocationIndex = "local-invocation-index",
   BuiltinLimit = "builtin-limit"
 }

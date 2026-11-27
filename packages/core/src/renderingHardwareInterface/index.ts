@@ -6,6 +6,7 @@ export type { IPlatformFeedbackCompute } from "./IPlatformFeedbackCompute";
 export type { IPlatformPrimitive } from "./IPlatformPrimitive";
 export type { IPlatformRenderTarget } from "./IPlatformRenderTarget";
 export type { IPlatformShaderProgram, IPlatformShaderSource, IPlatformUniform } from "./IPlatformShaderProgram";
+export type { IPlatformComputeProgram } from "./IPlatformComputeProgram";
 export type { IPlatformTexture } from "./IPlatformTexture";
 export type { IPlatformTexture2D } from "./IPlatformTexture2D";
 export type { IPlatformTexture2DArray } from "./IPlatformTexture2DArray";

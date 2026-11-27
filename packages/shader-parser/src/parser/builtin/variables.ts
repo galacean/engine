@@ -72,6 +72,37 @@ BuiltinVariable.createVariable(
 );
 
 BuiltinVariable.createVariable(
+  "gl_GlobalInvocationID",
+  Keyword.UVEC3,
+  EShaderStage.COMPUTE,
+  ShaderBuiltinSemantic.GlobalInvocationID
+);
+BuiltinVariable.createVariable(
+  "gl_LocalInvocationID",
+  Keyword.UVEC3,
+  EShaderStage.COMPUTE,
+  ShaderBuiltinSemantic.LocalInvocationID
+);
+BuiltinVariable.createVariable(
+  "gl_WorkGroupID",
+  Keyword.UVEC3,
+  EShaderStage.COMPUTE,
+  ShaderBuiltinSemantic.WorkGroupID
+);
+BuiltinVariable.createVariable(
+  "gl_NumWorkGroups",
+  Keyword.UVEC3,
+  EShaderStage.COMPUTE,
+  ShaderBuiltinSemantic.NumWorkGroups
+);
+BuiltinVariable.createVariable(
+  "gl_LocalInvocationIndex",
+  Keyword.UINT,
+  EShaderStage.COMPUTE,
+  ShaderBuiltinSemantic.LocalInvocationIndex
+);
+
+BuiltinVariable.createVariable(
   "gl_MaxVertexAttribs",
   Keyword.INT,
   EShaderStage.ALL,

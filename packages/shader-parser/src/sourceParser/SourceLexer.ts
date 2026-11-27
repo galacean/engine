@@ -26,6 +26,10 @@ export default class SourceLexer extends BaseLexer {
     Tags: Keyword.GSTags,
     VertexShader: Keyword.GSVertexShader,
     FragmentShader: Keyword.GSFragmentShader,
+    ComputeShader: Keyword.GSComputeShader,
+    Kernel: Keyword.GSKernel,
+    ComputeKernel: Keyword.GSComputeKernel,
+    WorkgroupSize: Keyword.GSWorkgroupSize,
     SubShader: Keyword.GSSubShader,
     Pass: Keyword.GSPass,
     BlendFactor: Keyword.GSBlendFactor,
@@ -121,6 +125,26 @@ export default class SourceLexer extends BaseLexer {
 
     this.scanLexeme(")");
     return new Color(r, g, b, a);
+  }
+
+  scanWorkgroupSize(): [number, number, number] {
+    this.scanLexeme("(");
+    const x = Math.max(1, Math.floor(this.scanNumber()));
+    let y = 1;
+    let z = 1;
+    this.skipCommentsAndSpace();
+    if (this.peek(1) !== ")") {
+      this.scanLexeme(",");
+      y = Math.max(1, Math.floor(this.scanNumber()));
+      this.skipCommentsAndSpace();
+      if (this.peek(1) !== ")") {
+        this.scanLexeme(",");
+        z = Math.max(1, Math.floor(this.scanNumber()));
+        this.skipCommentsAndSpace();
+      }
+    }
+    this.scanLexeme(")");
+    return [x, y, z];
   }
 
   override scanToken(): BaseToken | undefined {

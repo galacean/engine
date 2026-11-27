@@ -13,8 +13,10 @@ export { ShaderPreprocessorDirective } from "./enums/ShaderPreprocessorDirective
 export { ShaderPropertyType } from "./enums/ShaderPropertyType";
 export { StencilOperation } from "./enums/StencilOperation";
 export { Shader } from "./Shader";
+export { ComputeShader } from "./ComputeShader";
 export { ShaderData } from "./ShaderData";
 export type { ShaderPropertyValueType } from "./ShaderData";
+export { Std140FieldWriter } from "./Std140FieldWriter";
 export { ShaderBlockProperty } from "./ShaderBlockProperty";
 export { ShaderFactory } from "./ShaderFactory";
 export { ShaderMacro } from "./ShaderMacro";

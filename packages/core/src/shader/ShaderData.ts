@@ -6,6 +6,7 @@ import { IReferable } from "../asset/IReferable";
 import { ignoreClone } from "../clone/CloneDecorators";
 import type { ICloneHook } from "../clone/ICloneHook";
 import { Texture } from "../texture/Texture";
+import { Buffer } from "../graphic/Buffer";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderProperty } from "./ShaderProperty";
@@ -55,7 +56,8 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
     ShaderPropertyType.Texture |
     ShaderPropertyType.TextureArray |
     ShaderPropertyType.FloatArray |
-    ShaderPropertyType.IntArray;
+    ShaderPropertyType.IntArray |
+    ShaderPropertyType.Buffer;
 
   /** @internal */
   @ignoreClone
@@ -525,6 +527,42 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
   }
 
   /**
+   * Get GPU storage buffer by shader property name.
+   * @param propertyName - Shader storage block name
+   * @returns Buffer
+   */
+  getBuffer(propertyName: string): Buffer;
+
+  /**
+   * Get GPU storage buffer by shader property.
+   * @param property - Shader property, use `ShaderProperty.getByName` to get
+   * @returns Buffer
+   */
+  getBuffer(property: ShaderProperty): Buffer;
+
+  getBuffer(property: string | ShaderProperty): Buffer {
+    return this.getPropertyValue(property);
+  }
+
+  /**
+   * Set GPU storage buffer by shader property name (WebGPU storage buffer binding).
+   * @param propertyName - Shader storage block name
+   * @param value - Buffer
+   */
+  setBuffer(propertyName: string, value: Buffer | null): void;
+
+  /**
+   * Set GPU storage buffer by shader property (WebGPU storage buffer binding).
+   * @param property - Shader property, use `ShaderProperty.getByName` to get
+   * @param value - Buffer
+   */
+  setBuffer(property: ShaderProperty, value: Buffer | null): void;
+
+  setBuffer(property: string | ShaderProperty, value: Buffer | null): void {
+    this._setPropertyValue(property, ShaderPropertyType.Buffer, value);
+  }
+
+  /**
    * Get shader property value set on this shaderData.
    * @param property - Shader property
    * @returns Property value
@@ -700,6 +738,7 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
           (descriptor._requiresSharedInstanceValue ||
             ArrayBuffer.isView(property) ||
             property instanceof Texture ||
+            property instanceof Buffer ||
             Array.isArray(property))
         ) {
           targetFields.push(descriptor._uniqueId);
@@ -711,6 +750,8 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
         } else if (property instanceof Texture) {
           targetPropertyValueMap[k] = property;
           referCount > 0 && property._addReferCount(referCount);
+        } else if (property instanceof Buffer) {
+          targetPropertyValueMap[k] = property;
         } else if (property instanceof Array || property instanceof Float32Array || property instanceof Int32Array) {
           const cloned = property.slice();
           targetPropertyValueMap[k] = cloned;
@@ -881,5 +922,6 @@ export type ShaderPropertyValueType =
   | Matrix
   | Texture
   | Texture[]
+  | Buffer
   | Int32Array
   | Float32Array;

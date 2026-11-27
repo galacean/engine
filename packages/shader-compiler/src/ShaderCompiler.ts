@@ -1,6 +1,5 @@
 import { ShaderLanguage } from "@galacean/engine-core";
-import type { IWebGPUShaderCompiler } from "@galacean/engine-design";
-import type { IShaderSource } from "@galacean/engine-design";
+import type { IComputeProgramSource, IShaderSource, IWebGPUShaderCompiler } from "@galacean/engine-design";
 import type { IShaderProgramSource } from "@galacean/engine-design/types/shader-compiler/IShaderProgramSource";
 import {
   getParsedShaderPassPayload,
@@ -13,7 +12,11 @@ import {
   ShaderSourceParser
 } from "@galacean/engine-shader-parser/internal";
 import type { ParsedShaderPass } from "@galacean/engine-shader-parser/shared";
-import { generateParsedShaderPassData, requireValidShaderSource } from "./ShaderCompilation";
+import {
+  generateParsedComputeKernelData,
+  generateParsedShaderPassData,
+  requireValidShaderSource
+} from "./ShaderCompilation";
 
 /**
  * Compiles ShaderLab sources into runtime GLES programs.
@@ -122,5 +125,34 @@ export class ShaderCompiler {
   generate(pass: ParsedShaderPass, backend: ShaderLanguage): IShaderProgramSource | undefined {
     const { data, vertexEntry, fragmentEntry, coreInfo } = getParsedShaderPassPayload(pass);
     return generateParsedShaderPassData(data, vertexEntry, fragmentEntry, backend, coreInfo, this.webgpu);
+  }
+
+  /**
+   * Parses and generates one runtime WebGPU compute kernel from a `ComputeShader` source block.
+   * @internal
+   */
+  _parseComputeKernel(
+    source: string,
+    computeEntry: string,
+    workgroupSize: readonly [number, number, number],
+    sourceFile?: string,
+    sourceScopeStarts?: readonly number[]
+  ): IComputeProgramSource | undefined {
+    try {
+      const parserPool = (this._parserObjectPool ??= new ParserObjectPool());
+      const runtimeParser = (this._runtimeParser ??= createRuntimeShaderTargetParser(parserPool));
+      const parsed = parseRuntimeShaderPass(
+        source,
+        this._includeMap,
+        this._chunkOutputCache,
+        sourceFile,
+        parserPool,
+        runtimeParser,
+        sourceScopeStarts
+      );
+      return generateParsedComputeKernelData(parsed, computeEntry, workgroupSize, this.webgpu, false);
+    } finally {
+      this._scheduleIdleCleanup();
+    }
   }
 }

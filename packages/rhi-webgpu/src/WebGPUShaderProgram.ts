@@ -1,6 +1,7 @@
 import {
   BlendFactor,
   BlendOperation,
+  Buffer,
   CompareFunction,
   CullMode,
   Engine,
@@ -13,7 +14,14 @@ import {
   SubPrimitive,
   Texture
 } from "@galacean/engine-core";
-import type { IWebGPUShaderReflection, IWebGPUShaderUniformBlock, IWebGPUShaderTexture } from "@galacean/engine-design";
+import type {
+  IWebGPUShaderReflection,
+  IWebGPUShaderStorageBuffer,
+  IWebGPUShaderStorageTexture,
+  IWebGPUShaderUniformBlock,
+  IWebGPUShaderTexture
+} from "@galacean/engine-design";
+import type { WebGPUBuffer } from "./WebGPUBuffer";
 import type { WebGPUGraphicDevice } from "./WebGPUGraphicDevice";
 import type { RenderDrawCommands } from "./WebGPUDrawBundles";
 import { WebGPUPrimitive } from "./WebGPUPrimitive";
@@ -45,6 +53,14 @@ interface ViewBinding {
   layers: WebGPUTexture[];
   view?: GPUTextureView;
 }
+interface StorageBufferBinding {
+  layout: IWebGPUShaderStorageBuffer;
+  value?: Buffer;
+}
+interface StorageTextureBinding {
+  layout: IWebGPUShaderStorageTexture;
+  value?: Texture;
+}
 interface GroupBindings {
   views: ViewBinding[];
   index: number;
@@ -52,6 +68,8 @@ interface GroupBindings {
   samplers: SamplerBinding[];
   blocks: BlockBinding[];
   textures: TextureBinding[];
+  storageBuffers: StorageBufferBinding[];
+  storageTextures: StorageTextureBinding[];
   offsets: Uint32Array;
   entries: GPUBindGroupEntry[];
   cached?: GPUBindGroup;
@@ -110,6 +128,8 @@ export class WebGPUShaderProgram implements IPlatformShaderProgram {
       const entries: GPUBindGroupLayoutEntry[] = [];
       const blocks: BlockBinding[] = [];
       const textures: TextureBinding[] = [];
+      const storageBuffers: StorageBufferBinding[] = [];
+      const storageTextures: StorageTextureBinding[] = [];
       const samplers = new Map<number, SamplerBinding>();
       const views = new Map<number, ViewBinding>();
       let dynamicCount = 0;
@@ -209,14 +229,65 @@ export class WebGPUShaderProgram implements IPlatformShaderProgram {
           sampler.slots.push(slot);
         }
       }
+      if (this.reflection.storageBuffers) {
+        for (const layout of this.reflection.storageBuffers) {
+          if (layout.group !== group) continue;
+          const slot: StorageBufferBinding = { layout };
+          storageBuffers.push(slot);
+          this.uniforms.push({
+            name: layout.name,
+            propertyId: ShaderProperty.getByName(layout.name)._uniqueId,
+            isTexture: false,
+            apply(value) {
+              slot.value = value as Buffer;
+            }
+          });
+          entries.push({
+            binding: layout.binding,
+            visibility: this._visibility(layout.visibility),
+            buffer: { type: layout.access === "read" ? "read-only-storage" : "storage" }
+          });
+        }
+      }
+      if (this.reflection.storageTextures) {
+        for (const layout of this.reflection.storageTextures) {
+          if (layout.group !== group) continue;
+          const slot: StorageTextureBinding = { layout };
+          storageTextures.push(slot);
+          this.uniforms.push({
+            name: layout.name,
+            propertyId: ShaderProperty.getByName(layout.name)._uniqueId,
+            isTexture: true,
+            apply(value) {
+              slot.value = value as Texture;
+            }
+          });
+          entries.push({
+            binding: layout.binding,
+            visibility: this._visibility(layout.visibility),
+            storageTexture: {
+              access: layout.access,
+              format: layout.format as GPUTextureFormat,
+              viewDimension: layout.viewDimension
+            }
+          });
+        }
+      }
       if (!entries.length) {
         this._groupLayouts.push(null);
         continue;
       }
-      const singleDynamic = dynamicCount === 1 && blocks.length === 1 && !textures.length;
+      const singleDynamic =
+        dynamicCount === 1 &&
+        blocks.length === 1 &&
+        !textures.length &&
+        !storageBuffers.length &&
+        !storageTextures.length;
       this._groups.push({
         blocks,
         textures,
+        storageBuffers,
+        storageTextures,
         views: Array.from(views.values()),
         index: group,
         samplers: Array.from(samplers.values()),
@@ -384,6 +455,39 @@ export class WebGPUShaderProgram implements IPlatformShaderProgram {
         }
         i++;
       }
+      for (let j = 0; j < group.storageBuffers.length; j++) {
+        const slot = group.storageBuffers[j];
+        const platform = slot.value?._platformBuffer as WebGPUBuffer | undefined;
+        if (!platform) {
+          throw new Error(
+            `Missing storage buffer "${slot.layout.name}" for shader draw; bind it with shaderData.setBuffer("${slot.layout.name}", buffer).`
+          );
+        }
+        if (slot.layout.access === "read_write") platform._markShaderWrite();
+        platform._markUsed();
+        const prev = group.entries[i]?.resource as GPUBufferBinding | undefined;
+        if (!prev || prev.buffer !== platform._gpuBuffer) {
+          group.entries[i] = { binding: slot.layout.binding, resource: { buffer: platform._gpuBuffer } };
+          dirty = true;
+        }
+        i++;
+      }
+      for (let j = 0; j < group.storageTextures.length; j++) {
+        const slot = group.storageTextures[j];
+        const platform = slot.value?._platformTexture as WebGPUTexture | undefined;
+        if (!platform) {
+          throw new Error(
+            `Missing storage texture "${slot.layout.name}" for shader draw; bind it with shaderData.setTexture("${slot.layout.name}", texture).`
+          );
+        }
+        if (slot.layout.access !== "read-only") platform._invalidatePixels();
+        const view = platform.storageView();
+        if (group.entries[i]?.resource !== view) {
+          group.entries[i] = { binding: slot.layout.binding, resource: view };
+          dirty = true;
+        }
+        i++;
+      }
       if (dirty) group.cached = this._resolveGroup(index, group);
       this._graphicDevice._setBindGroup(pass, index, group.cached!, group.offsets);
     }
@@ -399,7 +503,7 @@ export class WebGPUShaderProgram implements IPlatformShaderProgram {
           const a = entry.entries[j].resource,
             b = group.entries[j].resource;
           if (a === b) continue;
-          if (j < group.blocks.length) {
+          if (a && b && typeof a === "object" && typeof b === "object" && "buffer" in a && "buffer" in b) {
             const previous = a as GPUBufferBinding,
               current = b as GPUBufferBinding;
             if (previous.buffer === current.buffer && previous.offset === current.offset) continue;

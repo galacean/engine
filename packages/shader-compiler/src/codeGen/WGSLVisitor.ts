@@ -1,4 +1,9 @@
-import type { IShaderInfo, IShaderInstancingNames, IShaderUniformBlock } from "@galacean/engine-design";
+import type {
+  IComputeProgramSource,
+  IShaderInfo,
+  IShaderInstancingNames,
+  IShaderUniformBlock
+} from "@galacean/engine-design";
 import type { IPoolElement } from "@galacean/engine-core";
 import {
   ASTNode,
@@ -36,14 +41,18 @@ import { ICodeSegment } from "./types";
 import type { ShaderBackend } from "../ShaderBackend";
 import { ShaderInstructionEncoder } from "../ShaderInstructionEncoder";
 import {
+  ATOMIC_BUILTINS,
+  BARRIER_BUILTINS,
   formatFloatLiteral,
   formatUintLiteral,
   galaceanTypeToBase,
   GLSL_BUILTIN_INT_LIMITS,
   glslBaseToWGSL,
   glslTypeToWGSL,
+  IMAGE_BUILTINS,
   inferBinaryType,
   inferBuiltinReturnType,
+  isImageType,
   isIntegerType,
   isSamplerType,
   isScalarType,
@@ -51,6 +60,7 @@ import {
   makeMatrixType,
   makeVectorType,
   matrixDims,
+  normalizeStorageFormat,
   normalizeSwizzle,
   samplerToWGSLSampler,
   samplerToWGSLTexture,
@@ -62,8 +72,10 @@ import {
   WT_BOOL,
   WT_FLOAT,
   WT_INT,
+  WT_IVEC2,
   WT_UINT,
   WT_UNKNOWN,
+  WT_UVEC3,
   WT_VEC2,
   WT_VEC3,
   WT_VEC4,
@@ -129,6 +141,17 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
   private readonly _fnInfoByName = new Map<string, WGSLFnInfo[]>();
   private readonly _uboMemberToBlock = new Map<VarSymbol, { blockVar: string; field: string; type: WGSLTypeDesc }>();
   private readonly _uboMemberByName = new Map<string, { blockVar: string; field: string; type: WGSLTypeDesc }>();
+  private readonly _ssboMemberToBlock = new Map<VarSymbol, { blockVar: string; field: string; type: WGSLTypeDesc }>();
+  private readonly _ssboMemberByName = new Map<string, { blockVar: string; field: string; type: WGSLTypeDesc }>();
+  private readonly _storageTexBySym = new Map<
+    VarSymbol,
+    { wgslName: string; base: string; format: string; access: string }
+  >();
+  private readonly _storageTexByName = new Map<
+    string,
+    { wgslName: string; base: string; format: string; access: string }
+  >();
+  private readonly _sharedVarBySym = new Map<VarSymbol, { wgslName: string; type: WGSLTypeDesc }>();
   private readonly _looseUniformName = new Map<VarSymbol, string>();
   private readonly _looseUniformByName = new Map<string, { wgslName: string; type: WGSLTypeDesc }>();
   private readonly _samplerGlobalPair = new Map<VarSymbol, { tex: string; samp: string; samplerType: string }>();
@@ -191,6 +214,11 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
     this._fnInfoByName.clear();
     this._uboMemberToBlock.clear();
     this._uboMemberByName.clear();
+    this._ssboMemberToBlock.clear();
+    this._ssboMemberByName.clear();
+    this._storageTexBySym.clear();
+    this._storageTexByName.clear();
+    this._sharedVarBySym.clear();
     this._looseUniformName.clear();
     this._looseUniformByName.clear();
     this._samplerGlobalPair.clear();
@@ -261,6 +289,11 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
     this._fnInfoByName.clear();
     this._uboMemberToBlock.clear();
     this._uboMemberByName.clear();
+    this._ssboMemberToBlock.clear();
+    this._ssboMemberByName.clear();
+    this._storageTexBySym.clear();
+    this._storageTexByName.clear();
+    this._sharedVarBySym.clear();
     this._looseUniformName.clear();
     this._looseUniformByName.clear();
     this._samplerGlobalPair.clear();
@@ -454,6 +487,154 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
     }
   }
 
+  /** Generate raw WGSL compute stage code directly from the single ShaderLab IR (zero secondary AST). */
+  generateCompute(
+    ir: ShaderClueIR,
+    coreInfo: ShaderCoreInfo,
+    workgroupSize: readonly [number, number, number]
+  ): IComputeProgramSource {
+    if (!coreInfo.computeEntry) {
+      throw new Error("ComputeShader IR is missing compute entry point.");
+    }
+    this.context.reset();
+    this.context.names.reset();
+    this._globalNames.clear();
+    this._vertexOutputNames = undefined;
+    this._typeMacroAliases.clear();
+    this._identMacroAliases.clear();
+    this._structNameMap.clear();
+    this._structDeclMap.clear();
+    this._fnInfoByAst.clear();
+    this._fnInfoByName.clear();
+    this._uboMemberToBlock.clear();
+    this._uboMemberByName.clear();
+    this._ssboMemberToBlock.clear();
+    this._ssboMemberByName.clear();
+    this._storageTexBySym.clear();
+    this._storageTexByName.clear();
+    this._sharedVarBySym.clear();
+    this._looseUniformName.clear();
+    this._looseUniformByName.clear();
+    this._samplerGlobalPair.clear();
+    this._samplerGlobalByName.clear();
+    this.reset();
+
+    const node = ir.program;
+    const shaderData = node.shaderData;
+    const context = this.context;
+    context._passSymbolTable = shaderData.symbolTable;
+    for (const name of ir.source.match(/[A-Za-z_][A-Za-z0-9_]*/g) ?? []) {
+      context.names.reserve(name);
+    }
+    shaderData.symbolTable.forEach((symbol) => this._globalNames.add(symbol.ident));
+
+    const outerGlobalMacroDeclarations = coreInfo.outerGlobalMacroDeclarations;
+    this._typeMacroAliases.clear();
+    this._identMacroAliases.clear();
+    const recordMacroAlias = (macroName: string, target: string) => {
+      if (
+        /^(?:void|bool|int|uint|float|[iub]?vec[234]|mat[234](?:x[234])?|[iu]?sampler(?:2D(?:Array)?|Cube|3D)(?:Shadow)?|[iu]?image2D|atomic_(?:uint|int))$/.test(
+          target
+        )
+      ) {
+        this._typeMacroAliases.set(macroName, target);
+      } else {
+        this._identMacroAliases.set(macroName, target);
+      }
+    };
+    for (const m of ir.source.matchAll(/^[ \t]*#[ \t]*define[ \t]+([A-Za-z_]\w*)[ \t]+([A-Za-z_]\w*)[ \t]*$/gm)) {
+      recordMacroAlias(m[1], m[2]);
+    }
+    const scanMacroAliases = (cur: TreeNode | BaseToken) => {
+      if (cur instanceof BaseToken) {
+        const m = /^\s*#\s*define\s+([A-Za-z_]\w*)\s+([A-Za-z_]\w*)\s*$/.exec(cur.lexeme);
+        if (m) recordMacroAlias(m[1], m[2]);
+        return;
+      }
+      if (cur instanceof ASTNode.MacroDefine && !cur.isFunction && cur.valueExpression) {
+        const bare = ParserUtils.unwrapBareIdentifier(cur.valueExpression, { allowParens: false });
+        const tok = bare?.children[0];
+        if (tok instanceof BaseToken && /^[A-Za-z_]\w*$/.test(tok.lexeme)) {
+          recordMacroAlias(cur.macroName, tok.lexeme);
+        }
+        return;
+      }
+      for (const ch of cur.children) scanMacroAliases(ch);
+    };
+    for (const decl of outerGlobalMacroDeclarations) scanMacroAliases(decl);
+
+    this._preScanPassSymbols(shaderData, coreInfo);
+
+    shaderData.symbolTable.forEach((symbol) => {
+      if (
+        symbol instanceof VarSymbol &&
+        symbol.isUniform &&
+        symbol.astNode instanceof ASTNode.VariableDeclaration &&
+        !symbol.astNode.storageBlock &&
+        !symbol.astNode.isShared
+      ) {
+        for (const struct of symbol.astNode.type.typeSpecifier.structDeclarations) this._uniformStructs.add(struct);
+      }
+    });
+    for (const struct of this._uniformStructs) {
+      for (const member of struct.propList) {
+        for (const nested of member.typeInfo.structDeclarations) this._uniformStructs.add(nested);
+      }
+    }
+
+    this._sourceIR = ir;
+    this._outerMacroDeclarations = outerGlobalMacroDeclarations;
+    try {
+      coreInfo.deferredDeclarationOwnership.forEach((owner, symbol) =>
+        this._declarationOwners.set(symbol.astNode!, owner)
+      );
+      if (this._declarationOwners.size) {
+        let nextId = 0;
+        let nextGroup = 0;
+        for (const owner of this._declarationOwners.values()) {
+          nextId = Math.max(nextId, owner.id);
+          nextGroup = Math.max(nextGroup, owner.group);
+        }
+        shaderData.symbolTable.forEach((symbol) => {
+          if (symbol.astNode && !this._declarationOwners.has(symbol.astNode)) {
+            this._declarationOwners.set(symbol.astNode, {
+              id: ++nextId,
+              group: ++nextGroup,
+              sourceScope: symbol.sourceScope
+            });
+          }
+        });
+        context.onReferenceGlobal = (symbols) => {
+          const from = this.currentDeclarationOwner?.id ?? 0;
+          for (const symbol of symbols) this._referenceDeclaration(from, symbol.astNode!);
+        };
+      }
+
+      const compute = this._computeMain(coreInfo.computeEntry, shaderData, outerGlobalMacroDeclarations);
+      return {
+        compute,
+        workgroupSize: [workgroupSize[0], workgroupSize[1], workgroupSize[2]],
+        uniformBlocks:
+          this._uniformBlocks &&
+          Array.from(this._uniformBlocks, (layout) => ({ ...layout, bindingName: this._uniformBlockName(layout) }))
+      };
+    } finally {
+      this._sourceIR = undefined;
+      this._uniformBlocks = undefined;
+      this._uniformStructs.clear();
+      this._outerMacroDeclarations = [];
+      this._globalInputs.clear();
+      this._declarationOwners.clear();
+      context.onReferenceGlobal = undefined;
+      context.onReferenceStructProps = undefined;
+      this._fragmentVaryingProps.clear();
+      this._globalNames.clear();
+      this._vertexOutputNames = undefined;
+      context.reset();
+      context.names.reset();
+    }
+  }
+
   private _preScanPassSymbols(data: ShaderData, coreInfo: ShaderCoreInfo): void {
     // 1. Structs
     data.symbolTable.forEach((sym) => {
@@ -483,12 +664,50 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
       }
     }
 
-    // 3. Global variables (loose uniforms & combined samplers)
+    // 2b. Storage block members (`storage Name { ... };` / `readonly storage Name { ... };`)
+    if (data.storageBlocks) {
+      for (const block of data.storageBlocks) {
+        const blockVar = this._storageBlockName(block);
+        for (const memberDecl of block.members) {
+          const sym = memberDecl.declarator.symbol;
+          const t = this._typeFromSymbolType(memberDecl.declarator.typeInfo);
+          const entry = {
+            blockVar,
+            field: this._safeFieldName(memberDecl.declarator.identifier.lexeme),
+            type: t
+          };
+          this._ssboMemberToBlock.set(sym, entry);
+          this._ssboMemberByName.set(memberDecl.declarator.identifier.lexeme, entry);
+        }
+      }
+    }
+
+    // 3. Global variables (workgroup shared, storage textures, loose uniforms & combined samplers)
     data.symbolTable.forEach((sym) => {
       if (!(sym instanceof VarSymbol) || !sym.isGlobalVariable) return;
-      if (this._uboMemberToBlock.has(sym)) return;
+      if (this._uboMemberToBlock.has(sym) || this._ssboMemberToBlock.has(sym)) return;
       if (this.context.getStructVarRole([sym])) return;
       const t = this._typeFromSymbolType(sym.dataType);
+      const declNode = sym.astNode instanceof ASTNode.VariableDeclaration ? sym.astNode : undefined;
+      if (declNode?.isShared) {
+        const wgslName = this._safeWGSLIdent(sym.ident, "shared");
+        this._sharedVarBySym.set(sym, { wgslName, type: t });
+        return;
+      }
+      if (isImageType(t.base)) {
+        const wgslName = `gs_stex_${sym.ident}`;
+        const format = normalizeStorageFormat(declNode?.storageFormat ?? "rgba8unorm");
+        const access =
+          declNode?.storageAccess === "read-only"
+            ? "read"
+            : declNode?.storageAccess === "read-write"
+              ? "read_write"
+              : "write";
+        const entry = { wgslName, base: t.base, format, access };
+        this._storageTexBySym.set(sym, entry);
+        this._storageTexByName.set(sym.ident, entry);
+        return;
+      }
       if (sym.isUniform) {
         if (isSamplerType(t.base)) {
           const safe = sym.ident;
@@ -529,7 +748,11 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
         sigKeys.add(key);
       }
       const needsMangle = sigKeys.size > 1;
-      const entryNames = new Set([coreInfo.vertexEntry.name, coreInfo.fragmentEntry.name]);
+      const entryNames = new Set(
+        [coreInfo.vertexEntry?.name, coreInfo.fragmentEntry?.name, coreInfo.computeEntry?.name].filter(
+          (n): n is string => !!n
+        )
+      );
       const infos: WGSLFnInfo[] = [];
 
       for (const fn of list) {
@@ -726,6 +949,30 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
     return globalCode;
   }
 
+  private _computeMain(
+    entryInfo: ShaderEntryPointInfo,
+    data: ShaderData,
+    outerGlobalMacroDeclarations: readonly ASTNode.GlobalDeclaration[]
+  ): string {
+    const context = this.context;
+    context.stage = EShaderStage.COMPUTE;
+    context.stageEntry = entryInfo.name;
+    this._preRegisterGlobalMacroRefs(outerGlobalMacroDeclarations);
+
+    const globalCodeArray = this._globalCodeArray;
+    context.referenceGlobal(entryInfo.name, ESymbolType.FN);
+
+    this._getGlobalSymbol(globalCodeArray);
+    this._getGlobalMacroDeclarations(outerGlobalMacroDeclarations, globalCodeArray);
+    this._emitOtherGlobals(data, globalCodeArray);
+    this._emitDeclarationReferences(globalCodeArray);
+
+    const globalCode = this._assembleStage(globalCodeArray);
+    context.reset(false);
+    this.reset();
+    return globalCode;
+  }
+
   private _assembleStage(out: ICodeSegment[]): string {
     const sorted = out
       .sort((a, b) => a.index - b.index)
@@ -752,6 +999,27 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
       }
       if (this._usedBuiltins.has("point_size")) {
         lines.push("var<private> gs_gl_PointSize: f32 = 1.0;");
+      }
+    } else if (this.context.stage === EShaderStage.COMPUTE) {
+      if (this._usedBuiltins.has("global_invocation_id")) {
+        lines.push("/*@gs_builtin global_invocation_id*/");
+        lines.push("var<private> gs_gl_GlobalInvocationID: vec3<u32>;");
+      }
+      if (this._usedBuiltins.has("local_invocation_id")) {
+        lines.push("/*@gs_builtin local_invocation_id*/");
+        lines.push("var<private> gs_gl_LocalInvocationID: vec3<u32>;");
+      }
+      if (this._usedBuiltins.has("workgroup_id")) {
+        lines.push("/*@gs_builtin workgroup_id*/");
+        lines.push("var<private> gs_gl_WorkGroupID: vec3<u32>;");
+      }
+      if (this._usedBuiltins.has("num_workgroups")) {
+        lines.push("/*@gs_builtin num_workgroups*/");
+        lines.push("var<private> gs_gl_NumWorkGroups: vec3<u32>;");
+      }
+      if (this._usedBuiltins.has("local_invocation_index")) {
+        lines.push("/*@gs_builtin local_invocation_index*/");
+        lines.push("var<private> gs_gl_LocalInvocationIndex: u32;");
       }
     } else {
       if (this._usedBuiltins.has("frag_coord")) {
@@ -781,6 +1049,15 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
           if (text) out.push({ text, index: block.location.start.index });
         }
       }
+    }
+    if (data.storageBlocks) {
+      for (const block of data.storageBlocks) {
+        if (block.parent?.parent instanceof ASTNode.GLShaderProgram) {
+          const text = this._storageBlockCode(block);
+          if (text) out.push({ text, index: block.location.start.index });
+        }
+      }
+      this._flushPendingStructs(out);
     }
     for (const { name, fallback } of this._inputHelperGroups.values()) {
       out.push({
@@ -1080,6 +1357,62 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
     return "";
   }
 
+  private _storageBlockName(block: ASTNode.StorageBlock): string {
+    return this.context.names.allocate(block, `gs_ssbo_${block.name}`);
+  }
+
+  private _storageBlockCode(block: ASTNode.StorageBlock): string {
+    const referenced = block.members.filter((member) =>
+      this.context._referencedGlobalSymbols.has(member.declarator.symbol)
+    );
+    if (!referenced.length) return "";
+    const bindingName = this._storageBlockName(block);
+    const blockType = `${bindingName}_Block`;
+    const access = block.readonly ? "read" : "read_write";
+    const fields = block.members.map((member) => {
+      const fName = this._safeFieldName(member.declarator.identifier.lexeme);
+      const t = this._typeFromSymbolType(member.declarator.typeInfo);
+      return `  ${fName}: ${this._wgslType(t)},`;
+    });
+    const text =
+      `/*@gs_ssbo name=${block.name} binding=${bindingName} type=${blockType} access=${access}*/\n` +
+      `struct ${blockType} {\n${fields.join("\n")}\n}\n` +
+      `var<storage, ${access}> ${bindingName}: ${blockType};`;
+    if (this._declarationOwners.size) {
+      const owners = referenced.map((member) => this._declarationOwners.get(member)!);
+      return (
+        owners.map((owner) => ShaderInstructionEncoder.declaration("", owner)).join("") +
+        ShaderInstructionEncoder.sharedDeclaration(text, owners)
+      );
+    }
+    return text;
+  }
+
+  private _flushPendingStructs(out: ICodeSegment[]): void {
+    for (const sm of this.context._referencedGlobalSymbols) {
+      if (!(sm.astNode instanceof ASTNode.StructSpecifier)) continue;
+      if (this._structCodeSegments.has(sm.astNode) || sm.isInMacroBranch) continue;
+      this._currentDeclaration = sm.astNode;
+      const codeGenResult = sm.astNode.codeGen(this);
+      this._currentDeclaration = undefined;
+      if (!codeGenResult) continue;
+      const segment = {
+        text: this._declaration(codeGenResult, sm.astNode),
+        index: sm.astNode.location.start.index
+      };
+      out.push(segment);
+      this._structCodeSegments.set(sm.astNode, segment);
+    }
+  }
+
+  visitStorageBlock(): string {
+    return "";
+  }
+
+  visitStorageTextureDeclaration(): string {
+    return "";
+  }
+
   visitPrecisionSpecifier(): string {
     return "";
   }
@@ -1093,6 +1426,27 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
     if (ioRole) {
       const wgslName = this._safeWGSLIdent(identifier.lexeme, "var");
       return `var<private> ${wgslName}: ${this._wgslType(t)};`;
+    }
+
+    // Workgroup shared memory (`shared T name[N];`)
+    if (node.isShared) {
+      const wgslName = this._sharedVarBySym.get(symbol)?.wgslName ?? this._safeWGSLIdent(identifier.lexeme, "shared");
+      return `var<workgroup> ${wgslName}: ${this._wgslType(t)};`;
+    }
+
+    // Storage texture (`layout(rgba8unorm) writeonly image2D name;`)
+    if (isImageType(t.base)) {
+      const info = this._storageTexBySym.get(symbol) ?? {
+        wgslName: `gs_stex_${identifier.lexeme}`,
+        base: t.base,
+        format: normalizeStorageFormat(node.storageFormat ?? "rgba8unorm"),
+        access:
+          node.storageAccess === "read-only" ? "read" : node.storageAccess === "read-write" ? "read_write" : "write"
+      };
+      return (
+        `/*@gs_stex name=${identifier.lexeme} var=${info.wgslName} format=${info.format} access=${info.access}*/\n` +
+        `var ${info.wgslName}: texture_storage_2d<${info.format}, ${info.access}>;`
+      );
     }
 
     // Combined sampler uniform
@@ -1953,38 +2307,55 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
     // Builtin variables via `ShaderBuiltinSemantic`
     const child = node.children[0];
     const rawName = child instanceof BaseToken ? child.lexeme : "";
-    switch (node.builtinSemantic) {
-      case ShaderBuiltinSemantic.VertexPosition:
-        return { code: "gs_gl_Position", type: WT_VEC4 };
-      case ShaderBuiltinSemantic.VertexID:
-        this._usedBuiltins.add("vertex_index");
-        return { code: "i32(gs_gl_VertexIndex)", type: WT_INT };
-      case ShaderBuiltinSemantic.InstanceID:
-        this._usedBuiltins.add("instance_index");
-        return { code: "i32(gs_gl_InstanceIndex)", type: WT_INT };
-      case ShaderBuiltinSemantic.PointSize:
-        this._usedBuiltins.add("point_size");
-        return { code: "gs_gl_PointSize", type: WT_FLOAT };
-      case ShaderBuiltinSemantic.FragCoord:
-        this._usedBuiltins.add("frag_coord");
-        return { code: "gs_gl_FragCoord", type: WT_VEC4 };
-      case ShaderBuiltinSemantic.FrontFacing:
-        this._usedBuiltins.add("front_facing");
-        return { code: "gs_gl_FrontFacing", type: WT_BOOL };
-      case ShaderBuiltinSemantic.PointCoord:
-        this._usedBuiltins.add("point_coord");
-        return { code: "gs_gl_PointCoord", type: WT_VEC2 };
-      case ShaderBuiltinSemantic.FragmentDepth:
-        this._usedBuiltins.add("frag_depth");
-        return { code: "gs_gl_FragDepth", type: WT_FLOAT };
-      case ShaderBuiltinSemantic.FragmentOutput0: {
-        const outName = this._registerFragColorVariable();
-        return { code: outName, type: WT_VEC4 };
-      }
-      case ShaderBuiltinSemantic.BuiltinLimit: {
-        const val = GLSL_BUILTIN_INT_LIMITS[rawName];
-        if (val !== undefined) return { code: `${val}i`, type: WT_INT };
-        break;
+    if (node.builtinSemantic !== undefined) {
+      switch (node.builtinSemantic) {
+        case ShaderBuiltinSemantic.VertexPosition:
+          return { code: "gs_gl_Position", type: WT_VEC4 };
+        case ShaderBuiltinSemantic.VertexID:
+          this._usedBuiltins.add("vertex_index");
+          return { code: "i32(gs_gl_VertexIndex)", type: WT_INT };
+        case ShaderBuiltinSemantic.InstanceID:
+          this._usedBuiltins.add("instance_index");
+          return { code: "i32(gs_gl_InstanceIndex)", type: WT_INT };
+        case ShaderBuiltinSemantic.PointSize:
+          this._usedBuiltins.add("point_size");
+          return { code: "gs_gl_PointSize", type: WT_FLOAT };
+        case ShaderBuiltinSemantic.FragCoord:
+          this._usedBuiltins.add("frag_coord");
+          return { code: "gs_gl_FragCoord", type: WT_VEC4 };
+        case ShaderBuiltinSemantic.FrontFacing:
+          this._usedBuiltins.add("front_facing");
+          return { code: "gs_gl_FrontFacing", type: WT_BOOL };
+        case ShaderBuiltinSemantic.PointCoord:
+          this._usedBuiltins.add("point_coord");
+          return { code: "gs_gl_PointCoord", type: WT_VEC2 };
+        case ShaderBuiltinSemantic.FragmentDepth:
+          this._usedBuiltins.add("frag_depth");
+          return { code: "gs_gl_FragDepth", type: WT_FLOAT };
+        case ShaderBuiltinSemantic.FragmentOutput0: {
+          const outName = this._registerFragColorVariable();
+          return { code: outName, type: WT_VEC4 };
+        }
+        case ShaderBuiltinSemantic.BuiltinLimit: {
+          const val = GLSL_BUILTIN_INT_LIMITS[rawName];
+          if (val !== undefined) return { code: `${val}i`, type: WT_INT };
+          break;
+        }
+        case ShaderBuiltinSemantic.GlobalInvocationID:
+          this._usedBuiltins.add("global_invocation_id");
+          return { code: "gs_gl_GlobalInvocationID", type: WT_UVEC3 };
+        case ShaderBuiltinSemantic.LocalInvocationID:
+          this._usedBuiltins.add("local_invocation_id");
+          return { code: "gs_gl_LocalInvocationID", type: WT_UVEC3 };
+        case ShaderBuiltinSemantic.WorkGroupID:
+          this._usedBuiltins.add("workgroup_id");
+          return { code: "gs_gl_WorkGroupID", type: WT_UVEC3 };
+        case ShaderBuiltinSemantic.NumWorkGroups:
+          this._usedBuiltins.add("num_workgroups");
+          return { code: "gs_gl_NumWorkGroups", type: WT_UVEC3 };
+        case ShaderBuiltinSemantic.LocalInvocationIndex:
+          this._usedBuiltins.add("local_invocation_index");
+          return { code: "gs_gl_LocalInvocationIndex", type: WT_UINT };
       }
     }
 
@@ -2008,6 +2379,21 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
       const ubo = this._uboMemberToBlock.get(sym);
       if (ubo) {
         return { code: `${ubo.blockVar}.${ubo.field}`, type: ubo.type };
+      }
+      // 2b. Storage block member (SSBO)
+      const ssbo = this._ssboMemberToBlock.get(sym);
+      if (ssbo) {
+        return { code: `${ssbo.blockVar}.${ssbo.field}`, type: ssbo.type };
+      }
+      // 2c. Storage texture (`image2D`)
+      const stex = this._storageTexBySym.get(sym);
+      if (stex) {
+        return { code: stex.wgslName, type: { base: stex.base } };
+      }
+      // 2d. Workgroup shared variable (`shared`)
+      const shared = this._sharedVarBySym.get(sym);
+      if (shared) {
+        return { code: shared.wgslName, type: shared.type };
       }
       // 3. Global combined sampler uniform
       const samp = this._samplerGlobalPair.get(sym);
@@ -2046,11 +2432,23 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
       if (aliasLoose) return { code: rawName, type: aliasLoose.type };
       const aliasUbo = this._uboMemberByName.get(aliased);
       if (aliasUbo) return { code: rawName, type: aliasUbo.type };
+      const aliasSsbo = this._ssboMemberByName.get(aliased);
+      if (aliasSsbo) return { code: rawName, type: aliasSsbo.type };
     }
     const uboByName = this._uboMemberByName.get(rawName);
     if (uboByName) {
       this.context.referenceGlobal(rawName, ESymbolType.VAR);
       return { code: `${uboByName.blockVar}.${uboByName.field}`, type: uboByName.type };
+    }
+    const ssboByName = this._ssboMemberByName.get(rawName);
+    if (ssboByName) {
+      this.context.referenceGlobal(rawName, ESymbolType.VAR);
+      return { code: `${ssboByName.blockVar}.${ssboByName.field}`, type: ssboByName.type };
+    }
+    const stexByName = this._storageTexByName.get(rawName);
+    if (stexByName) {
+      this.context.referenceGlobal(rawName, ESymbolType.VAR);
+      return { code: stexByName.wgslName, type: { base: stexByName.base } };
     }
     const sampByName = this._samplerGlobalByName.get(rawName);
     if (sampByName) {
@@ -2100,6 +2498,8 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
         const method = (call.children[0] as ASTNode.FunctionIdentifier).lexeme;
         if (method === "length") {
           const objType = this._inferType(postExpr);
+          if (objType.arraySize === "")
+            return { code: `i32(arrayLength(&${this._emitLValue(postExpr)}))`, type: WT_INT };
           if (objType.arraySize) return { code: `i32(${objType.arraySize})`, type: WT_INT };
           const vn = vectorSize(objType);
           if (vn > 0) return { code: `${vn}i`, type: WT_INT };
@@ -2441,6 +2841,17 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
     // 2. Texture builtins
     if (TEXTURE_BUILTINS.has(callee)) {
       return this._emitTextureBuiltin(callee, argNodes);
+    }
+
+    // 2b. Compute barriers, storage textures, and atomics
+    if (BARRIER_BUILTINS.has(callee)) {
+      return this._emitBarrierBuiltin(callee);
+    }
+    if (IMAGE_BUILTINS.has(callee)) {
+      return this._emitImageBuiltin(callee, argNodes);
+    }
+    if (ATOMIC_BUILTINS.has(callee)) {
+      return this._emitAtomicBuiltin(callee, argNodes);
     }
 
     // 3. Struct constructor
@@ -2858,7 +3269,7 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
     const is3D = samplerType.includes("3D");
     const isInt = samplerType.startsWith("i");
     const isUint = samplerType.startsWith("u");
-    const isVertex = this.context.stage === EShaderStage.VERTEX;
+    const isVertex = this.context.stage === EShaderStage.VERTEX || this.context.stage === EShaderStage.COMPUTE;
     const sampleRet: WGSLTypeDesc = isShadow
       ? WT_FLOAT
       : isInt
@@ -2992,6 +3403,67 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
     return { code: `textureSample(${texCode}, ${sampCode}, ${mid}${off})`, type: sampleRet };
   }
 
+  private _emitBarrierBuiltin(callee: string): EmittedExpr {
+    switch (callee) {
+      case "storageBarrier":
+      case "memoryBarrierBuffer":
+      case "memoryBarrier":
+        return { code: "storageBarrier()", type: WT_VOID };
+      case "textureBarrier":
+      case "memoryBarrierImage":
+        return { code: "textureBarrier()", type: WT_VOID };
+      default:
+        return { code: "workgroupBarrier()", type: WT_VOID };
+    }
+  }
+
+  private _emitImageBuiltin(callee: string, argNodes: TreeNode[]): EmittedExpr {
+    const img = this._emitNode(argNodes[0]);
+    if (callee === "imageSize") {
+      return { code: `vec2<i32>(textureDimensions(${img.code}))`, type: WT_IVEC2 };
+    }
+    const coord = this._emitNode(argNodes[1]);
+    if (callee === "imageStore") {
+      const val = this._emitNode(argNodes[2]);
+      return { code: `textureStore(${img.code}, ${coord.code}, ${val.code})`, type: WT_VOID };
+    }
+    const retType: WGSLTypeDesc =
+      img.type.base === "iimage2D" ? { base: "ivec4" } : img.type.base === "uimage2D" ? { base: "uvec4" } : WT_VEC4;
+    return { code: `textureLoad(${img.code}, ${coord.code})`, type: retType };
+  }
+
+  private _emitAtomicBuiltin(callee: string, argNodes: TreeNode[]): EmittedExpr {
+    const targetNode = argNodes[0];
+    const ptr = `&${this._emitLValue(targetNode)}`;
+    const targetType = this._inferType(targetNode);
+    const scalarType = targetType.base === "atomic_int" || targetType.base === "int" ? WT_INT : WT_UINT;
+    if (callee === "atomicLoad") {
+      return { code: `atomicLoad(${ptr})`, type: scalarType };
+    }
+    if (callee === "atomicStore") {
+      const val = this._emitNode(argNodes[1]);
+      return { code: `atomicStore(${ptr}, ${this._coerceExpr(val, scalarType)})`, type: WT_VOID };
+    }
+    if (callee === "atomicCompSwap") {
+      const cmp = this._emitNode(argNodes[1]);
+      const val = this._emitNode(argNodes[2]);
+      return {
+        code: `atomicCompareExchangeWeak(${ptr}, ${this._coerceExpr(cmp, scalarType)}, ${this._coerceExpr(val, scalarType)}).old_value`,
+        type: scalarType
+      };
+    }
+    if (callee === "atomicCompareExchangeWeak") {
+      const cmp = this._emitNode(argNodes[1]);
+      const val = this._emitNode(argNodes[2]);
+      return {
+        code: `atomicCompareExchangeWeak(${ptr}, ${this._coerceExpr(cmp, scalarType)}, ${this._coerceExpr(val, scalarType)})`,
+        type: WT_UNKNOWN
+      };
+    }
+    const val = this._emitNode(argNodes[1]);
+    return { code: `${callee}(${ptr}, ${this._coerceExpr(val, scalarType)})`, type: scalarType };
+  }
+
   // ---------------------------------------------------------------------------
   // Initializer, Coercion, Type Inference & Helpers
   // ---------------------------------------------------------------------------
@@ -3104,6 +3576,14 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
         n.builtinSemantic === ShaderBuiltinSemantic.BuiltinLimit
       )
         return WT_INT;
+      if (
+        n.builtinSemantic === ShaderBuiltinSemantic.GlobalInvocationID ||
+        n.builtinSemantic === ShaderBuiltinSemantic.LocalInvocationID ||
+        n.builtinSemantic === ShaderBuiltinSemantic.WorkGroupID ||
+        n.builtinSemantic === ShaderBuiltinSemantic.NumWorkGroups
+      )
+        return WT_UVEC3;
+      if (n.builtinSemantic === ShaderBuiltinSemantic.LocalInvocationIndex) return WT_UINT;
       return WT_UNKNOWN;
     }
     if (n instanceof ASTNode.PostfixExpression) {
@@ -3374,7 +3854,8 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
   private _getGlobalSymbol(out: ICodeSegment[]): void {
     const context = this.context;
     for (const sm of context._referencedGlobalSymbols) {
-      if (sm.astNode instanceof ASTNode.VariableDeclaration && sm.astNode.uniformBlock) continue;
+      if (sm.astNode instanceof ASTNode.VariableDeclaration && (sm.astNode.uniformBlock || sm.astNode.storageBlock))
+        continue;
       this._currentDeclaration = sm.astNode;
       const codeGenResult = sm.astNode!.codeGen(this);
       this._currentDeclaration = undefined;
@@ -3468,6 +3949,10 @@ export class WGSLVisitor extends CodeGenVisitor implements ShaderBackend, IPoolE
         }
       } else if (child instanceof ASTNode.UniformBlock) {
         const text = this._uniformBlockCode(child);
+        if (text) out.push({ text, index: child.location.start.index });
+        continue;
+      } else if (child instanceof ASTNode.StorageBlock) {
+        const text = this._storageBlockCode(child);
         if (text) out.push({ text, index: child.location.start.index });
         continue;
       } else if (child instanceof ASTNode.VariableDeclarationList) {

@@ -34,6 +34,24 @@ export abstract class WebGPUTexture implements IPlatformTexture {
   static arrayFormat(format: GPUTextureFormat): GPUTextureFormat {
     return format === "r8unorm" || format === "rg8unorm" ? "rgba8unorm" : format;
   }
+  private static readonly _STORAGE_FORMATS = new Set<GPUTextureFormat>([
+    "rgba8unorm",
+    "rgba8snorm",
+    "rgba8uint",
+    "rgba8sint",
+    "rgba16uint",
+    "rgba16sint",
+    "rgba16float",
+    "r32uint",
+    "r32sint",
+    "r32float",
+    "rg32uint",
+    "rg32sint",
+    "rg32float",
+    "rgba32uint",
+    "rgba32sint",
+    "rgba32float"
+  ]);
   /** @internal */
   readonly _format: GPUTextureFormat;
   /** @internal */
@@ -54,6 +72,7 @@ export abstract class WebGPUTexture implements IPlatformTexture {
   private _mipSamplers?: Map<number, GPUSampler>;
   private _view: GPUTextureView;
   private _depthView?: GPUTextureView;
+  private _storageView?: GPUTextureView;
 
   get wrapModeU(): TextureWrapMode {
     return this._wrapModeU;
@@ -108,6 +127,15 @@ export abstract class WebGPUTexture implements IPlatformTexture {
   /** @internal */
   get view(): GPUTextureView {
     return (this._view ??= this._gpuTexture.createView({ dimension: this._viewDimension }));
+  }
+
+  /** @internal Single-mip 2D view for WebGPU storage texture bindings (`image2D`). */
+  storageView(): GPUTextureView {
+    return (this._storageView ??= this._gpuTexture.createView({
+      dimension: "2d",
+      baseMipLevel: 0,
+      mipLevelCount: 1
+    }));
   }
 
   private _rangeView?: GPUTextureView;
@@ -219,12 +247,16 @@ export abstract class WebGPUTexture implements IPlatformTexture {
         GPUTextureUsage.COPY_SRC |
         (device.supportsRenderTargetColorFormat(texture.format) || /^(depth|stencil)/.test(this._format)
           ? GPUTextureUsage.RENDER_ATTACHMENT
+          : 0) |
+        (dimension === "2d" && viewDimension === "2d" && WebGPUTexture._STORAGE_FORMATS.has(this._format)
+          ? GPUTextureUsage.STORAGE_BINDING
           : 0)
     });
   }
 
   destroy(): void {
     this._rangeView = undefined;
+    this._storageView = undefined;
     this._mipViews?.clear();
     this._invalidatePixels();
     this._device._retireTexture(this._gpuTexture);

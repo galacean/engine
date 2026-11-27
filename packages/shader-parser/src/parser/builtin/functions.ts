@@ -808,3 +808,43 @@ BuiltinFunction._create(
 BuiltinFunction._createWithScope("dFdx", GenericType.GenType, EShaderStage.FRAGMENT, GenericType.GenType);
 BuiltinFunction._createWithScope("dFdy", GenericType.GenType, EShaderStage.FRAGMENT, GenericType.GenType);
 BuiltinFunction._createWithScope("fwidth", GenericType.GenType, EShaderStage.FRAGMENT, GenericType.GenType);
+
+// Compute barriers (WebGPU-only)
+BuiltinFunction._createWithScope("barrier", Keyword.VOID, EShaderStage.COMPUTE);
+BuiltinFunction._createWithScope("workgroupBarrier", Keyword.VOID, EShaderStage.COMPUTE);
+BuiltinFunction._createWithScope("storageBarrier", Keyword.VOID, EShaderStage.COMPUTE);
+BuiltinFunction._createWithScope("textureBarrier", Keyword.VOID, EShaderStage.COMPUTE);
+BuiltinFunction._createWithScope("memoryBarrier", Keyword.VOID, EShaderStage.COMPUTE);
+BuiltinFunction._createWithScope("memoryBarrierShared", Keyword.VOID, EShaderStage.COMPUTE);
+BuiltinFunction._createWithScope("memoryBarrierBuffer", Keyword.VOID, EShaderStage.COMPUTE);
+BuiltinFunction._createWithScope("memoryBarrierImage", Keyword.VOID, EShaderStage.COMPUTE);
+
+// Storage textures (WebGPU-only)
+BuiltinFunction._create("imageStore", Keyword.VOID, Keyword.IMAGE2D, Keyword.IVEC2, Keyword.VEC4);
+BuiltinFunction._create("imageStore", Keyword.VOID, Keyword.I_IMAGE2D, Keyword.IVEC2, Keyword.IVEC4);
+BuiltinFunction._create("imageStore", Keyword.VOID, Keyword.U_IMAGE2D, Keyword.IVEC2, Keyword.UVEC4);
+BuiltinFunction._create("imageLoad", Keyword.VEC4, Keyword.IMAGE2D, Keyword.IVEC2);
+BuiltinFunction._create("imageLoad", Keyword.IVEC4, Keyword.I_IMAGE2D, Keyword.IVEC2);
+BuiltinFunction._create("imageLoad", Keyword.UVEC4, Keyword.U_IMAGE2D, Keyword.IVEC2);
+BuiltinFunction._create("imageSize", Keyword.IVEC2, Keyword.IMAGE2D);
+BuiltinFunction._create("imageSize", Keyword.IVEC2, Keyword.I_IMAGE2D);
+BuiltinFunction._create("imageSize", Keyword.IVEC2, Keyword.U_IMAGE2D);
+
+// Atomic operations (WebGPU-only)
+for (const [atomicTy, scalarTy] of [
+  [Keyword.ATOMIC_UINT, Keyword.UINT],
+  [Keyword.ATOMIC_INT, Keyword.INT]
+] as const) {
+  BuiltinFunction._create("atomicLoad", scalarTy, atomicTy);
+  BuiltinFunction._create("atomicStore", Keyword.VOID, atomicTy, scalarTy);
+  BuiltinFunction._create("atomicAdd", scalarTy, atomicTy, scalarTy);
+  BuiltinFunction._create("atomicSub", scalarTy, atomicTy, scalarTy);
+  BuiltinFunction._create("atomicMin", scalarTy, atomicTy, scalarTy);
+  BuiltinFunction._create("atomicMax", scalarTy, atomicTy, scalarTy);
+  BuiltinFunction._create("atomicAnd", scalarTy, atomicTy, scalarTy);
+  BuiltinFunction._create("atomicOr", scalarTy, atomicTy, scalarTy);
+  BuiltinFunction._create("atomicXor", scalarTy, atomicTy, scalarTy);
+  BuiltinFunction._create("atomicExchange", scalarTy, atomicTy, scalarTy);
+  BuiltinFunction._create("atomicCompSwap", scalarTy, atomicTy, scalarTy, scalarTy);
+  BuiltinFunction._create("atomicCompareExchangeWeak", scalarTy, atomicTy, scalarTy, scalarTy);
+}

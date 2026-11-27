@@ -10,6 +10,7 @@ import {
   StencilOperation
 } from "@galacean/engine-core";
 import type {
+  IComputeKernelSource,
   IRenderStates,
   IShaderPassSource,
   IShaderSource,
@@ -111,7 +112,18 @@ class ShaderSourceParserSession {
     const lexer = this._lexer;
     lexer.setSource(sourceCode);
 
-    const shaderSource = this._parseShader(lexer);
+    const shaderSource = this._parseTopLevel(lexer);
+
+    if (shaderSource.kind === "compute" && shaderSource.computeKernels) {
+      const shaderPendingContents = shaderSource.pendingContents;
+      for (let i = 0, n = shaderSource.computeKernels.length; i < n; i++) {
+        const kernel = shaderSource.computeKernels[i];
+        const composed = this._composePassContents([shaderPendingContents, kernel.pendingContents]);
+        kernel.contents = composed.contents;
+        kernel.contentScopeStarts = composed.scopeStarts;
+      }
+      return { shaderSource, errors: Object.freeze(this._errors.slice()) };
+    }
 
     const shaderPendingContents = shaderSource.pendingContents;
     const shaderRenderStates = shaderSource.renderStates;
@@ -162,6 +174,197 @@ class ShaderSourceParserSession {
       }
     }
     return { contents: parts.join("\n"), scopeStarts: Object.freeze(scopeStarts) };
+  }
+
+  private _parseTopLevel(lexer: SourceLexer): IShaderSource {
+    lexer.skipCommentsAndSpace();
+    if (
+      lexer.source.startsWith("ComputeShader", lexer.currentIndex) &&
+      !BaseLexer.isAlpha(lexer.source.charCodeAt(lexer.currentIndex + "ComputeShader".length))
+    ) {
+      return this._parseComputeShader(lexer);
+    }
+    return this._parseShader(lexer);
+  }
+
+  private _parseComputeShader(lexer: SourceLexer): IShaderSource {
+    const startLoc = new ShaderRange();
+    startLoc.set(lexer.getShaderPosition(0), lexer.getShaderPosition("ComputeShader".length));
+    lexer.scanLexeme("ComputeShader");
+    const name = lexer.scanPairedChar('"', '"', false, false);
+    const shaderSource = ShaderSourceFactory.createComputeShaderSource(name);
+    this._shaderSource = shaderSource;
+    lexer.scanLexeme("{");
+
+    let braceLevel = 1;
+    lexer.skipCommentsAndSpace();
+    let start = lexer.getShaderPosition(0);
+
+    const { pendingContents } = shaderSource;
+    const inlineKernel = ShaderSourceFactory.createComputeKernelSource("Default");
+    let hasExplicitKernels = false;
+
+    while (true) {
+      const token = lexer.scanToken()!;
+      switch (token.type) {
+        case ETokenType.EOF:
+          this._addPendingContents(start, 0, pendingContents);
+          this._reportUnexpectedEnd(token, "ComputeShader");
+          this._popScope();
+          return shaderSource;
+        case Keyword.GSKernel: {
+          this._addPendingContents(start, token.lexeme.length, pendingContents);
+          hasExplicitKernels = true;
+          const kernel = this._parseComputeKernelBlock(this._retainRange(token.location));
+          shaderSource.computeKernels!.push(kernel);
+          start = lexer.getShaderPosition(0);
+          break;
+        }
+        case Keyword.GSComputeKernel: {
+          this._addPendingContents(start, token.lexeme.length, pendingContents);
+          lexer.scanLexeme("=");
+          const entry = lexer.scanToken()!;
+          if (inlineKernel.entry) {
+            this._createCompileError(
+              "Reassignment of ComputeKernel entry — the first binding is kept.",
+              entry.location,
+              "DuplicateEntryAssignment"
+            );
+          } else {
+            inlineKernel.entry = entry.lexeme;
+            inlineKernel.entryLocation = this._retainRange(entry.location);
+          }
+          lexer.scanLexeme(";");
+          start = lexer.getShaderPosition(0);
+          break;
+        }
+        case Keyword.GSWorkgroupSize: {
+          this._addPendingContents(start, token.lexeme.length, pendingContents);
+          lexer.scanLexeme("=");
+          inlineKernel.workgroupSize = lexer.scanWorkgroupSize();
+          lexer.scanLexeme(";");
+          start = lexer.getShaderPosition(0);
+          break;
+        }
+        case Keyword.GSTags:
+          this._addPendingContents(start, token.lexeme.length, pendingContents);
+          this._parseTags(shaderSource.tags!);
+          start = lexer.getShaderPosition(0);
+          break;
+        case Keyword.GSEditorProperties:
+        case Keyword.GSEditorMacros:
+        case Keyword.GSEditor:
+          this._addPendingContents(start, token.lexeme.length, pendingContents);
+          lexer.scanPairedChar("{", "}", true, false);
+          start = lexer.getShaderPosition(0);
+          break;
+        case Keyword.GSSubShader:
+        case Keyword.GSPass:
+        case Keyword.GSVertexShader:
+        case Keyword.GSFragmentShader:
+        case Keyword.GSBlendState:
+        case Keyword.GSDepthState:
+        case Keyword.GSRasterState:
+        case Keyword.GSStencilState:
+          this._createCompileError(
+            `Raster directive "${token.lexeme}" is not allowed inside ComputeShader.`,
+            token.location,
+            "InvalidComputeDirective"
+          );
+          lexer.hasPendingContent = true;
+          break;
+        case Keyword.LeftBrace:
+          ++braceLevel;
+          break;
+        case Keyword.RightBrace:
+          if (--braceLevel === 0) {
+            this._addPendingContents(start, token.lexeme.length, pendingContents);
+            if (!hasExplicitKernels) {
+              if (!inlineKernel.entry) {
+                this._createCompileError(
+                  "ComputeShader must bind ComputeKernel or declare at least one Kernel block.",
+                  startLoc,
+                  "MissingEntry"
+                );
+              }
+              shaderSource.computeKernels!.push(inlineKernel);
+            }
+            this._popScope();
+            return shaderSource;
+          }
+          break;
+        default:
+          lexer.hasPendingContent = true;
+      }
+    }
+  }
+
+  private _parseComputeKernelBlock(kernelLocation: ShaderRange): IComputeKernelSource {
+    this._pushScope();
+    const lexer = this._lexer;
+    const name = lexer.scanPairedChar('"', '"', false, false);
+    const kernel = ShaderSourceFactory.createComputeKernelSource(name);
+    lexer.scanLexeme("{");
+    let braceLevel = 1;
+    lexer.skipCommentsAndSpace();
+    let start = lexer.getShaderPosition(0);
+
+    while (true) {
+      const token = lexer.scanToken()!;
+      switch (token.type) {
+        case ETokenType.EOF:
+          this._addPendingContents(start, 0, kernel.pendingContents);
+          this._reportUnexpectedEnd(token, "Kernel");
+          this._popScope();
+          return kernel;
+        case Keyword.GSComputeKernel: {
+          this._addPendingContents(start, token.lexeme.length, kernel.pendingContents);
+          lexer.scanLexeme("=");
+          const entry = lexer.scanToken()!;
+          if (kernel.entry) {
+            this._createCompileError(
+              "Reassignment of ComputeKernel entry — the first binding is kept.",
+              entry.location,
+              "DuplicateEntryAssignment"
+            );
+          } else {
+            kernel.entry = entry.lexeme;
+            kernel.entryLocation = this._retainRange(entry.location);
+          }
+          lexer.scanLexeme(";");
+          start = lexer.getShaderPosition(0);
+          break;
+        }
+        case Keyword.GSWorkgroupSize: {
+          this._addPendingContents(start, token.lexeme.length, kernel.pendingContents);
+          lexer.scanLexeme("=");
+          kernel.workgroupSize = lexer.scanWorkgroupSize();
+          lexer.scanLexeme(";");
+          start = lexer.getShaderPosition(0);
+          break;
+        }
+        case Keyword.GSTags:
+          this._addPendingContents(start, token.lexeme.length, kernel.pendingContents);
+          this._parseTags(kernel.tags!);
+          start = lexer.getShaderPosition(0);
+          break;
+        case Keyword.LeftBrace:
+          ++braceLevel;
+          break;
+        case Keyword.RightBrace:
+          if (--braceLevel === 0) {
+            this._addPendingContents(start, token.lexeme.length, kernel.pendingContents);
+            if (!kernel.entry) {
+              this._createCompileError("Kernel must bind a ComputeKernel entry.", kernelLocation, "MissingEntry");
+            }
+            this._popScope();
+            return kernel;
+          }
+          break;
+        default:
+          lexer.hasPendingContent = true;
+      }
+    }
   }
 
   private _parseShader(lexer: SourceLexer): IShaderSource {

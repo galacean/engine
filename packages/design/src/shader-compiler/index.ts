@@ -29,6 +29,7 @@ export type {
   IShaderUniformBlock,
   IShaderUniformBlockMember
 } from "./IShaderProgramSource";
+export type { IComputeKernelSource } from "./shaderSource/IComputeKernelSource";
 export type { IRenderStates } from "./shaderSource/IRenderStates";
 export type { IShaderPassSource } from "./shaderSource/IShaderPassSource";
 export type { IShaderPosition } from "./shaderSource/IShaderPosition";

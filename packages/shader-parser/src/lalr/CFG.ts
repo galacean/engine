@@ -20,6 +20,8 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.precision_specifier],
       [NoneTerminal.variable_declaration_statement],
       [NoneTerminal.uniform_block],
+      [NoneTerminal.storage_block],
+      [NoneTerminal.storage_texture_declaration],
       [NoneTerminal.struct_specifier],
       [NoneTerminal.function_definition],
       [NoneTerminal.global_macro_if_statement],
@@ -47,6 +49,44 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     [NoneTerminal.variable_declaration, ETokenType.SEMICOLON],
     [NoneTerminal.uniform_block_members, NoneTerminal.variable_declaration, ETokenType.SEMICOLON]
   ]),
+
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.storage_block,
+    [ETokenType.ID, Keyword.MACRO_CALL].flatMap((label) => [
+      [
+        Keyword.STORAGE,
+        label,
+        ETokenType.LEFT_BRACE,
+        NoneTerminal.uniform_block_members,
+        ETokenType.RIGHT_BRACE,
+        ETokenType.SEMICOLON
+      ],
+      [
+        Keyword.READONLY,
+        Keyword.STORAGE,
+        label,
+        ETokenType.LEFT_BRACE,
+        NoneTerminal.uniform_block_members,
+        ETokenType.RIGHT_BRACE,
+        ETokenType.SEMICOLON
+      ]
+    ]),
+    ASTNode.StorageBlock
+  ),
+
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.storage_texture_declaration,
+    [
+      [
+        Keyword.LAYOUT,
+        ETokenType.LEFT_PAREN,
+        ETokenType.ID,
+        ETokenType.RIGHT_PAREN,
+        NoneTerminal.variable_declaration_statement
+      ]
+    ],
+    ASTNode.StorageTextureDeclaration
+  ),
 
   // Expression-style `#define` — lexer emits either:
   //   `MACRO_DEFINE ID <value tokens> MACRO_DEFINE_END`                 (object macro)
@@ -229,7 +269,12 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [Keyword.U_SAMPLER2D],
       [Keyword.U_SAMPLER3D],
       [Keyword.U_SAMPLER_CUBE],
-      [Keyword.U_SAMPLER2D_ARRAY]
+      [Keyword.U_SAMPLER2D_ARRAY],
+      [Keyword.IMAGE2D],
+      [Keyword.I_IMAGE2D],
+      [Keyword.U_IMAGE2D],
+      [Keyword.ATOMIC_UINT],
+      [Keyword.ATOMIC_INT]
     ],
     ASTNode.ExtBuiltinTypeSpecifierNonArray
   ),
@@ -285,7 +330,17 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
     NoneTerminal.storage_qualifier,
-    [[Keyword.CONST], [Keyword.IN], [Keyword.INOUT], [Keyword.OUT], [Keyword.CENTROID]],
+    [
+      [Keyword.CONST],
+      [Keyword.IN],
+      [Keyword.INOUT],
+      [Keyword.OUT],
+      [Keyword.CENTROID],
+      [Keyword.SHARED],
+      [Keyword.READONLY],
+      [Keyword.WRITEONLY],
+      [Keyword.READWRITE]
+    ],
     ASTNode.StorageQualifier
   ),
 

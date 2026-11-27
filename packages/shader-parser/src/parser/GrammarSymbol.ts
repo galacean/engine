@@ -11,6 +11,8 @@ export enum NoneTerminal {
   global_declaration,
   uniform_block,
   uniform_block_members,
+  storage_block,
+  storage_texture_declaration,
   variable_declaration,
   variable_declaration_list,
   variable_declaration_statement,

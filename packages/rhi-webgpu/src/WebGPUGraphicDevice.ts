@@ -7,6 +7,7 @@ import {
   GLCapabilityType,
   IHardwareRenderer,
   IPlatformBuffer,
+  IPlatformComputeProgram,
   IPlatformRenderTarget,
   IPlatformShaderProgram,
   IPlatformShaderSource,
@@ -33,10 +34,11 @@ import { WebGPUDrawBundles, type RenderDrawCommands } from "./WebGPUDrawBundles"
 import { WebGPUDeferredPass, type WebGPURenderCommands } from "./WebGPUDeferredPass";
 import { WebGPUAttachmentOps } from "./WebGPUAttachmentOps";
 import { WebGPUFeedbackKernel } from "./WebGPUFeedbackKernel";
-import type { IWebGPUShaderTexture } from "@galacean/engine-design";
+import type { IWebGPUComputeProgram, IWebGPUShaderTexture } from "@galacean/engine-design";
 import { Color, Vector4 } from "@galacean/engine-math";
 import { WebGPUBuffer } from "./WebGPUBuffer";
 import { WebGPUCapability } from "./WebGPUCapability";
+import { WebGPUComputeProgram } from "./WebGPUComputeProgram";
 import { WebGPUMipmapGenerator } from "./WebGPUMipmapGenerator";
 import { WebGPUPrimitive } from "./WebGPUPrimitive";
 import { WebGPURenderTarget } from "./WebGPURenderTarget";
@@ -1282,6 +1284,10 @@ export class WebGPUGraphicDevice implements IHardwareRenderer {
     this._endComputePass();
   }
 
+  createPlatformComputeProgram(engine: Engine, program: IWebGPUComputeProgram): IPlatformComputeProgram {
+    return new WebGPUComputeProgram(this, engine, program);
+  }
+
   _drawCommands(pass: WebGPURenderCommands): RenderDrawCommands {
     if (this._bundles.beginDraw()) this._resetDrawBindings();
     return this._bundles.enabled ? this._bundles : pass;
@@ -1530,7 +1536,7 @@ export class WebGPUGraphicDevice implements IHardwareRenderer {
     this._renderPass = undefined;
   }
 
-  private _endComputePass(): void {
+  _endComputePass(): void {
     if (this._computePass) {
       this._computePass.end();
       this._computePass = undefined;

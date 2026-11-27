@@ -45,6 +45,26 @@ export interface IWebGPUShaderTexture {
   samplerType?: "filtering" | "non-filtering" | "comparison";
 }
 
+export interface IWebGPUShaderStorageBuffer {
+  /** ShaderLab `storage <Name> { ... }` block identifier used to bind via `ShaderData.setBuffer(name, buffer)`. */
+  name: string;
+  group: number;
+  binding: number;
+  visibility: number;
+  access: "read" | "read_write";
+}
+
+export interface IWebGPUShaderStorageTexture {
+  /** ShaderLab storage texture uniform name bound via `ShaderData.setTexture(name, texture)`. */
+  name: string;
+  group: number;
+  binding: number;
+  visibility: number;
+  format: string;
+  access: "read-only" | "write-only" | "read-write";
+  viewDimension: "2d" | "2d-array" | "3d";
+}
+
 export interface IWebGPUShaderReflection {
   /** Resolve actual texture sampler descriptors when the independent sampler count exceeds the device limit. */
   requiresSamplerKeys?: boolean;
@@ -52,9 +72,47 @@ export interface IWebGPUShaderReflection {
   requiresTextureKeys?: boolean;
   uniformBlocks: IWebGPUShaderUniformBlock[];
   textures: IWebGPUShaderTexture[];
+  storageBuffers?: IWebGPUShaderStorageBuffer[];
+  storageTextures?: IWebGPUShaderStorageTexture[];
   vertexInputs: IWebGPUShaderAttribute[];
   vertexOutputs: IWebGPUShaderAttribute[];
   fragmentOutputs: number[];
+}
+
+export interface IWebGPUComputeReflection {
+  uniformBlocks: IWebGPUShaderUniformBlock[];
+  storageBuffers: IWebGPUShaderStorageBuffer[];
+  textures: IWebGPUShaderTexture[];
+  storageTextures: IWebGPUShaderStorageTexture[];
+  workgroupSize: readonly [number, number, number];
+}
+
+/** Device-consumable compute shader program for one macro variant. */
+export interface IWebGPUComputeProgram {
+  compute: string;
+  entryPoint: string;
+  reflection: IWebGPUComputeReflection;
+}
+
+/** Pre-macro-selection compute kernel output from the single-AST WGSL compiler. */
+export interface IComputeProgramSource {
+  /** Unselected WGSL compute text for inspection. */
+  compute: string;
+  /** Workgroup dimensions `[x, y, z]`. */
+  workgroupSize: readonly [number, number, number];
+  /** Explicit uniform blocks declared in the compute kernel. */
+  uniformBlocks?: IShaderUniformBlock[];
+  /** Single-AST WGSL compute instructions for zero-parser runtime macro specialization. */
+  wgslComputeInstructions?: ShaderInstruction[];
+  /** Precompiled WGSL for the default (no-macro) variant when linkable without runtime macros. */
+  wgsl?: IWebGPUComputeProgram;
+}
+
+export interface IWebGPUComputeOptions {
+  uniformBlocks?: readonly IShaderUniformBlock[];
+  workgroupSize?: readonly [number, number, number];
+  resolveConstant?: (name: string) => number | undefined;
+  maxUniformBlockBytes?: number;
 }
 
 /** Device-consumable program. Both modules and the layout describe exactly one variant. */
@@ -93,6 +151,14 @@ export interface IWebGPUShaderOptions {
 export interface IWebGPUShaderCompiler {
   /** Generate raw WGSL stage strings + metadata directly from the single ShaderLab IR (zero secondary AST). */
   generateWGSL?(ir: unknown, coreInfo: unknown): IShaderProgramSource | undefined;
+  /** Generate raw WGSL compute stage string + metadata directly from the single ShaderLab IR. */
+  generateWGSLCompute?(
+    ir: unknown,
+    coreInfo: unknown,
+    workgroupSize: readonly [number, number, number]
+  ): IComputeProgramSource | undefined;
+  /** Link a macro-evaluated single-AST WGSL compute stage into a runnable WebGPU compute program. */
+  compileWebGPUComputeVariant?(computeSource: string, options?: IWebGPUComputeOptions): IWebGPUComputeProgram;
   /** Reconstruct declaration sites for an already selected historical instancing variant. */
   recoverLegacyInstancing?(
     vertex: string,

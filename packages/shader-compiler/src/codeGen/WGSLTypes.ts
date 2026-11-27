@@ -53,6 +53,8 @@ export const WGSL_RESERVED = new Set(
     "textureLoad textureNumLayers textureNumLevels textureNumSamples textureSample textureSampleBias " +
     "textureSampleCompare textureSampleCompareLevel textureSampleGrad textureSampleLevel " +
     "textureSampleBaseClampToEdge textureStore select bitcast dpdx dpdy dpdxCoarse dpdxFine dpdyCoarse dpdyFine fwidth " +
+    "workgroupBarrier storageBarrier textureBarrier atomicLoad atomicStore atomicAdd atomicSub atomicMin atomicMax " +
+    "atomicAnd atomicOr atomicXor atomicExchange atomicCompareExchangeWeak " +
     "main"
   ).split(/\s+/)
 );
@@ -100,6 +102,65 @@ export const TEXTURE_BUILTINS = new Set([
   "textureSize"
 ]);
 
+export const IMAGE_BUILTINS = new Set(["imageStore", "imageLoad", "imageSize"]);
+
+export const ATOMIC_BUILTINS = new Set([
+  "atomicLoad",
+  "atomicStore",
+  "atomicAdd",
+  "atomicSub",
+  "atomicMin",
+  "atomicMax",
+  "atomicAnd",
+  "atomicOr",
+  "atomicXor",
+  "atomicExchange",
+  "atomicCompSwap",
+  "atomicCompareExchangeWeak"
+]);
+
+export const BARRIER_BUILTINS = new Set([
+  "barrier",
+  "workgroupBarrier",
+  "storageBarrier",
+  "textureBarrier",
+  "memoryBarrier",
+  "memoryBarrierShared",
+  "memoryBarrierBuffer",
+  "memoryBarrierImage"
+]);
+
+const STORAGE_FORMAT_ALIASES: Record<string, string> = {
+  rgba8: "rgba8unorm",
+  rgba8_snorm: "rgba8snorm",
+  rgba8ui: "rgba8uint",
+  rgba8i: "rgba8sint",
+  rgba16f: "rgba16float",
+  rgba16ui: "rgba16uint",
+  rgba16i: "rgba16sint",
+  rgba32f: "rgba32float",
+  rgba32ui: "rgba32uint",
+  rgba32i: "rgba32sint",
+  r32f: "r32float",
+  r32ui: "r32uint",
+  r32i: "r32sint",
+  rg32f: "rg32float",
+  rg32ui: "rg32uint",
+  rg32i: "rg32sint"
+};
+
+export function normalizeStorageFormat(format: string): string {
+  return STORAGE_FORMAT_ALIASES[format] ?? format;
+}
+
+export function isImageType(base: string): boolean {
+  return base === "image2D" || base === "iimage2D" || base === "uimage2D";
+}
+
+export function isAtomicType(base: string): boolean {
+  return base === "atomic_uint" || base === "atomic_int";
+}
+
 /** Maps `shader-parser`'s `Keyword` enum to canonical GLSL type spelling. */
 const KEYWORD_TO_GLSL: Partial<Record<Keyword, string>> = {
   [Keyword.VOID]: "void",
@@ -143,7 +204,12 @@ const KEYWORD_TO_GLSL: Partial<Record<Keyword, string>> = {
   [Keyword.U_SAMPLER2D]: "usampler2D",
   [Keyword.U_SAMPLER3D]: "usampler3D",
   [Keyword.U_SAMPLER_CUBE]: "usamplerCube",
-  [Keyword.U_SAMPLER2D_ARRAY]: "usampler2DArray"
+  [Keyword.U_SAMPLER2D_ARRAY]: "usampler2DArray",
+  [Keyword.IMAGE2D]: "image2D",
+  [Keyword.I_IMAGE2D]: "iimage2D",
+  [Keyword.U_IMAGE2D]: "uimage2D",
+  [Keyword.ATOMIC_UINT]: "atomic_uint",
+  [Keyword.ATOMIC_INT]: "atomic_int"
 };
 
 export function galaceanTypeToBase(t: GalaceanDataType | undefined): string {
@@ -299,6 +365,10 @@ export function glslBaseToWGSL(base: string, structNameMap?: ReadonlyMap<string,
       return "mat4x2<f32>";
     case "mat4x3":
       return "mat4x3<f32>";
+    case "atomic_uint":
+      return "atomic<u32>";
+    case "atomic_int":
+      return "atomic<i32>";
     default:
       return structNameMap?.get(base) ?? base;
   }

@@ -30,6 +30,8 @@ export interface ICodeGenVisitor {
 
   // Optional multi-backend AST hooks (backends like WGSLVisitor override these; GLES falls back to defaultCodeGen).
   visitUniformBlock?(node: ASTNode.UniformBlock): string;
+  visitStorageBlock?(node: ASTNode.StorageBlock): string;
+  visitStorageTextureDeclaration?(node: ASTNode.StorageTextureDeclaration): string;
   visitPrecisionSpecifier?(node: ASTNode.PrecisionSpecifier): string;
   visitParameterDeclaration?(node: ASTNode.ParameterDeclaration): string;
   visitInitDeclaratorList?(node: ASTNode.InitDeclaratorList): string;

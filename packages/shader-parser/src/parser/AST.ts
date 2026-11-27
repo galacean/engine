@@ -11,6 +11,7 @@ import { NoneTerminal } from "./GrammarSymbol";
 import SemanticAnalyzer from "./SemanticAnalyzer";
 import { ShaderData } from "./ShaderInfo";
 import { ShaderBuiltinSemantic } from "../ir/ShaderBuiltinSemantic";
+import { ShaderCapability } from "../ir/ShaderCapability";
 import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo, VarSymbol } from "./symbolTable";
 import { IParamInfo, NodeChild, type ParamDirection, StructProp, SymbolType, type MacroExpansionSyntax } from "./types";
 
@@ -509,10 +510,25 @@ namespace ASTNodes {
     type: GalaceanDataType;
     /** Whether the declaration is `const`-qualified — drives the const-initializer / array-size checks. */
     isConst: boolean;
+    /** Whether the declaration is `shared` workgroup memory (compute-only). */
+    isShared: boolean;
+    /** Storage access qualifier for storage textures/buffers. */
+    storageAccess?: "read-only" | "write-only" | "read-write";
 
     override semanticAnalyze(_: SemanticAnalyzer): void {
       const children = this.children;
-      this.isConst = children.length === 2 && ParserUtils.hasQualifier(children[0] as TreeNode, Keyword.CONST);
+      const qual = children.length === 2 ? (children[0] as TreeNode) : undefined;
+      this.isConst = !!qual && ParserUtils.hasQualifier(qual, Keyword.CONST);
+      this.isShared = !!qual && ParserUtils.hasQualifier(qual, Keyword.SHARED);
+      this.storageAccess = qual
+        ? ParserUtils.hasQualifier(qual, Keyword.READONLY)
+          ? "read-only"
+          : ParserUtils.hasQualifier(qual, Keyword.WRITEONLY)
+            ? "write-only"
+            : ParserUtils.hasQualifier(qual, Keyword.READWRITE)
+              ? "read-write"
+              : undefined
+        : undefined;
       this.typeSpecifier = (children.length === 1 ? children[0] : children[1]) as TypeSpecifier;
       this.type = this.typeSpecifier.type;
     }
@@ -1863,6 +1879,9 @@ namespace ASTNodes {
       }
       const firstChild = children[0];
       const { type, lexeme } = this._typeSpecifier;
+      if (type === Keyword.ATOMIC_UINT || type === Keyword.ATOMIC_INT) {
+        sa.shaderData.requiredCapabilities |= ShaderCapability.Atomic;
+      }
       const isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
       if (firstChild instanceof LayoutQualifier) {
         const declarator = children[2] as StructDeclarator;
@@ -2025,18 +2044,89 @@ namespace ASTNodes {
     }
   }
 
+  @ASTNodeDecorator(NoneTerminal.storage_block)
+  export class StorageBlock extends TreeNode {
+    name: string;
+    readonly = false;
+    members: VariableDeclaration[] = [];
+
+    override init(): void {
+      this.readonly = false;
+      this.members.length = 0;
+    }
+
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      const hasReadonly = this.children[0] instanceof BaseToken && this.children[0].type === Keyword.READONLY;
+      this.readonly = hasReadonly;
+      const offset = hasReadonly ? 1 : 0;
+      this.name = (this.children[offset + 1] as BaseToken).lexeme;
+      this.members.length = 0;
+      let list = this.children[offset + 3] as TreeNode;
+      for (; list.children.length === 3; list = list.children[0] as TreeNode) {
+        this.members.push(list.children[1] as VariableDeclaration);
+      }
+      this.members.push(list.children[0] as VariableDeclaration);
+      this.members.reverse();
+      for (const member of this.members) member.storageBlock = this;
+      (sa.shaderData.storageBlocks ??= []).push(this);
+      sa.shaderData.requiredCapabilities |= ShaderCapability.StorageBuffer;
+    }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return visitor.visitStorageBlock ? visitor.cache(this, visitor.visitStorageBlock(this)) : super.codeGen(visitor);
+    }
+  }
+
+  @ASTNodeDecorator(NoneTerminal.storage_texture_declaration)
+  export class StorageTextureDeclaration extends TreeNode {
+    format: string;
+    declaration: VariableDeclaration;
+
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      this.format = (this.children[2] as BaseToken).lexeme;
+      const stmt = this.children[4] as TreeNode;
+      const list = stmt.children[0] as TreeNode;
+      let declNode: TreeNode = list;
+      while (declNode && !(declNode instanceof VariableDeclaration)) {
+        declNode = declNode.children[0] as TreeNode;
+      }
+      if (declNode instanceof VariableDeclaration) {
+        declNode.storageFormat = this.format;
+        this.declaration = declNode;
+      }
+      sa.shaderData.requiredCapabilities |= ShaderCapability.StorageTexture;
+    }
+
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return visitor.visitStorageTextureDeclaration
+        ? visitor.cache(this, visitor.visitStorageTextureDeclaration(this))
+        : super.codeGen(visitor);
+    }
+  }
+
   @ASTNodeDecorator(NoneTerminal.variable_declaration)
   export class VariableDeclaration extends TreeNode {
     type: FullySpecifiedType;
     isStatic: boolean;
+    /** Whether this global is workgroup-shared memory (`shared`). */
+    isShared: boolean;
+    /** Storage texture access qualifier (`read-only` / `write-only` / `read-write`). */
+    storageAccess?: "read-only" | "write-only" | "read-write";
+    /** Storage texture format from `layout(<format>)` (e.g. `rgba8unorm`). */
+    storageFormat?: string;
     /** Canonical information for this shader-global declarator. */
     declarator: VariableDeclaratorInfo;
     uniformBlock?: UniformBlock;
+    storageBlock?: StorageBlock;
 
     override init(): void {
       this.isStatic = false;
+      this.isShared = false;
+      this.storageAccess = undefined;
+      this.storageFormat = undefined;
       this.declarator = undefined;
       this.uniformBlock = undefined;
+      this.storageBlock = undefined;
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
@@ -2044,9 +2134,20 @@ namespace ASTNodes {
       const type = children[0] as FullySpecifiedType;
       const ident = children[1] as BaseToken;
       this.type = type;
+      this.isShared = type.isShared;
+      this.storageAccess = type.storageAccess;
+      if (type.isShared) {
+        sa.shaderData.requiredCapabilities |= ShaderCapability.Compute;
+      }
+      if (type.type === Keyword.ATOMIC_UINT || type.type === Keyword.ATOMIC_INT) {
+        sa.shaderData.requiredCapabilities |= ShaderCapability.Atomic;
+      }
+      if (type.type === Keyword.IMAGE2D || type.type === Keyword.I_IMAGE2D || type.type === Keyword.U_IMAGE2D) {
+        sa.shaderData.requiredCapabilities |= ShaderCapability.StorageTexture;
+      }
       // A global variable without an initializer is Galacean's implicit uniform (bound at runtime
       // by the material system). With an initializer, `this.isStatic` becomes true — it's a
-      // compile-time value, not a uniform. `const`-qualified is a separate read-only path.
+      // compile-time value, not a uniform. `const`-qualified and `shared` are separate paths.
       const hasInitializer = children.length === 4 || children.length === 5;
       // Grammar `fully_specified_type ID [array_specifier] ['=' initializer]` — recover array-ness
       // from either the declarator suffix (`float arr[3]`) or the type specifier (`float[3] arr`).
@@ -2067,7 +2168,14 @@ namespace ASTNodes {
         type.typeSpecifier.structDeclarations
       );
       const sm = sa.assignSourceScope(
-        new VarSymbol(ident.lexeme, typeInfo, true, this, type.isConst, !hasInitializer && !type.isConst),
+        new VarSymbol(
+          ident.lexeme,
+          typeInfo,
+          true,
+          this,
+          type.isConst,
+          !hasInitializer && !type.isConst && !type.isShared
+        ),
         ident.location
       );
       this.declarator = {

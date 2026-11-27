@@ -12,6 +12,8 @@ import type { IPlatformBuffer } from "./IPlatformBuffer";
 import type { IPlatformPrimitive } from "./IPlatformPrimitive";
 import type { IPlatformRenderTarget } from "./IPlatformRenderTarget";
 import type { IPlatformShaderProgram, IPlatformShaderSource } from "./IPlatformShaderProgram";
+import type { IPlatformComputeProgram } from "./IPlatformComputeProgram";
+import type { IWebGPUComputeProgram } from "@galacean/engine-design";
 import type { IPlatformTexture } from "./IPlatformTexture";
 import type { IPlatformTexture2D } from "./IPlatformTexture2D";
 import type { IPlatformTexture2DArray } from "./IPlatformTexture2DArray";
@@ -71,6 +73,7 @@ export interface IHardwareRenderer {
   supportsGenerateMipmaps(format: TextureFormat, isSRGBColorSpace: boolean): boolean;
   createPlatformPrimitive(primitive: Primitive): IPlatformPrimitive;
   createPlatformShaderProgram(engine: Engine, source: IPlatformShaderSource): IPlatformShaderProgram;
+  createPlatformComputeProgram?(engine: Engine, program: IWebGPUComputeProgram): IPlatformComputeProgram;
   applyRenderState(
     state: RenderState,
     lastState: RenderState,

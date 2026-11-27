@@ -138,6 +138,11 @@ export class Shader implements IReferable {
     }
 
     const parsedSource = shaderCompiler._parseShaderSource(shaderSource);
+    if (parsedSource.kind === "compute") {
+      throw new Error(
+        `ComputeShader "${parsedSource.name}" cannot be created with Shader.create(); use ComputeShader.create() instead.`
+      );
+    }
     const subShaderList = parsedSource.subShaders.map((subShaderSource) => {
       const passList = subShaderSource.passes.map((passSource) => {
         if (passSource.isUsePass) {

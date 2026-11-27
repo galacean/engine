@@ -4,10 +4,15 @@ import {
   type IShaderInstanceLayout,
   type IShaderUniformBlock,
   type IShaderUniformBlockMember,
+  type IWebGPUComputeOptions,
+  type IWebGPUComputeProgram,
+  type IWebGPUComputeReflection,
   type IWebGPUShaderAttribute,
   type IWebGPUShaderOptions,
   type IWebGPUShaderProgram,
   type IWebGPUShaderReflection,
+  type IWebGPUShaderStorageBuffer,
+  type IWebGPUShaderStorageTexture,
   type IWebGPUShaderTexture,
   type IWebGPUShaderUniformBlock,
   type ShaderConstant
@@ -39,6 +44,25 @@ interface StageUBO {
   binding: string;
   type: string;
   byteLength: number;
+  markerStart: number;
+  markerEnd: number;
+}
+
+interface StageSSBO {
+  name: string;
+  binding: string;
+  type: string;
+  access: "read" | "read_write";
+  markerStart: number;
+  markerEnd: number;
+}
+
+interface StageStorageTexture {
+  name: string;
+  varName: string;
+  format: string;
+  wgslAccess: "read" | "write" | "read_write";
+  access: "read-only" | "write-only" | "read-write";
   markerStart: number;
   markerEnd: number;
 }
@@ -86,6 +110,8 @@ interface ParsedStage {
   outputs: StageIO[];
   mrts: StageMRT[];
   ubos: StageUBO[];
+  ssbos: StageSSBO[];
+  storageTextures: StageStorageTexture[];
   uniforms: StageUniform[];
   samplers: StageSampler[];
   structs: Map<string, StageStruct>;
@@ -197,6 +223,8 @@ function parseStage(source: string, resolveConstant?: (name: string) => number |
   const outputs: StageIO[] = [];
   const mrts: StageMRT[] = [];
   const ubos: StageUBO[] = [];
+  const ssbos: StageSSBO[] = [];
+  const storageTextures: StageStorageTexture[] = [];
   const uniforms: StageUniform[] = [];
   const samplers: StageSampler[] = [];
   const structs = new Map<string, StageStruct>();
@@ -269,6 +297,34 @@ function parseStage(source: string, resolveConstant?: (name: string) => number |
         markerEnd: end
       };
       if (!ubos.some((x) => x.binding === item.binding)) ubos.push(item);
+    } else if (kind === "gs_ssbo") {
+      const a = parseAttrs(body);
+      const access: "read" | "read_write" = a.access === "read" ? "read" : "read_write";
+      const item: StageSSBO = {
+        name: a.name,
+        binding: a.binding,
+        type: a.type,
+        access,
+        markerStart: start,
+        markerEnd: end
+      };
+      if (!ssbos.some((x) => x.name === item.name)) ssbos.push(item);
+    } else if (kind === "gs_stex") {
+      const a = parseAttrs(body);
+      const wgslAccess: "read" | "write" | "read_write" =
+        a.access === "read" ? "read" : a.access === "read_write" ? "read_write" : "write";
+      const access: "read-only" | "write-only" | "read-write" =
+        wgslAccess === "read" ? "read-only" : wgslAccess === "read_write" ? "read-write" : "write-only";
+      const item: StageStorageTexture = {
+        name: a.name,
+        varName: a.var,
+        format: a.format || "rgba8unorm",
+        wgslAccess,
+        access,
+        markerStart: start,
+        markerEnd: end
+      };
+      if (!storageTextures.some((x) => x.name === item.name)) storageTextures.push(item);
     } else if (kind === "gs_uniform") {
       const a = parseAttrs(body);
       const item: StageUniform = {
@@ -352,7 +408,21 @@ function parseStage(source: string, resolveConstant?: (name: string) => number |
     if (s.arrayExpr) s.arrayLength = resolveArrayLength(s.arrayExpr, constants, resolveConstant);
   }
 
-  return { source, builtins, inputs, outputs, mrts, ubos, uniforms, samplers, structs, constants, entryBody };
+  return {
+    source,
+    builtins,
+    inputs,
+    outputs,
+    mrts,
+    ubos,
+    ssbos,
+    storageTextures,
+    uniforms,
+    samplers,
+    structs,
+    constants,
+    entryBody
+  };
 }
 
 /** Verify macro-pruned WGSL structs still contain every member accessed via typed parameters or private variables. */
@@ -1211,6 +1281,90 @@ export class WGSLProgramLinker {
     }
 
     // -------------------------------------------------------------------------
+    // 4b. Storage Buffers & Storage Textures (WebGPU-only in raster passes)
+    // -------------------------------------------------------------------------
+    const ssboBindings = new Map<string, IWebGPUShaderStorageBuffer>();
+    for (let s = 0; s < 2; s++) {
+      const bit = 1 << s;
+      for (const ssbo of stages[s].ssbos) {
+        const existing = ssboBindings.get(ssbo.name);
+        if (existing) {
+          existing.visibility |= bit;
+          if (ssbo.access === "read_write") existing.access = "read_write";
+          continue;
+        }
+        const group = ssbo.name.startsWith("scene_")
+          ? 0
+          : ssbo.name.startsWith("camera_")
+            ? 1
+            : ssbo.name.startsWith("renderer_")
+              ? 3
+              : 2;
+        const binding = groupBinding[group]++;
+        const reflected: IWebGPUShaderStorageBuffer = {
+          name: ssbo.name,
+          group,
+          binding,
+          visibility: bit,
+          access: ssbo.access
+        };
+        ssboBindings.set(ssbo.name, reflected);
+        (reflection.storageBuffers ??= []).push(reflected);
+      }
+    }
+    for (let s = 0; s < 2; s++) {
+      for (const ssbo of stages[s].ssbos) {
+        const reflected = ssboBindings.get(ssbo.name)!;
+        stageReplacements[s].push([
+          new RegExp(`\\bvar<storage,\\s*(?:read|read_write)>\\s+${ssbo.binding}\\s*:\\s*${ssbo.type}\\s*;`),
+          `@group(${reflected.group}) @binding(${reflected.binding}) var<storage, ${reflected.access}> ${ssbo.binding}: ${ssbo.type};`
+        ]);
+      }
+    }
+
+    const stexBindings = new Map<string, IWebGPUShaderStorageTexture>();
+    for (let s = 0; s < 2; s++) {
+      const bit = 1 << s;
+      for (const stex of stages[s].storageTextures) {
+        const existing = stexBindings.get(stex.name);
+        if (existing) {
+          existing.visibility |= bit;
+          continue;
+        }
+        const group = stex.name.startsWith("scene_")
+          ? 0
+          : stex.name.startsWith("camera_")
+            ? 1
+            : stex.name.startsWith("renderer_")
+              ? 3
+              : 2;
+        const binding = groupBinding[group]++;
+        const reflected: IWebGPUShaderStorageTexture = {
+          name: stex.name,
+          group,
+          binding,
+          visibility: bit,
+          format: stex.format,
+          access: stex.access,
+          viewDimension: "2d"
+        };
+        stexBindings.set(stex.name, reflected);
+        (reflection.storageTextures ??= []).push(reflected);
+      }
+    }
+    for (let s = 0; s < 2; s++) {
+      for (const stex of stages[s].storageTextures) {
+        const reflected = stexBindings.get(stex.name)!;
+        stageReplacements[s].push([
+          new RegExp(
+            `\\bvar\\s+${stex.varName}\\s*:\\s*texture_storage_2d<${stex.format},\\s*${stex.wgslAccess}>\\s*;`
+          ),
+          `@group(${reflected.group}) @binding(${reflected.binding}) var ${stex.varName}: texture_storage_2d<${stex.format}, ${stex.wgslAccess}>;`
+        ]);
+      }
+    }
+
+    // -------------------------------------------------------------------------
     // 5. Stage IO Locations & Entry Point Synthesis
     // -------------------------------------------------------------------------
     const varyingLocations = new Map<string, number>();
@@ -1441,6 +1595,343 @@ export class WGSLProgramLinker {
       fragmentEntryPoint: "main",
       reflection,
       instanceLayout
+    };
+  }
+
+  /**
+   * Link a single-AST WGSL compute stage into a runnable `IWebGPUComputeProgram`.
+   * All resources (UBOs, Auto UBOs, storage buffers, sampled textures, storage textures)
+   * are placed sequentially into `@group(0)` with `GPUShaderStage.COMPUTE` (4) visibility.
+   */
+  linkCompute(computeWGSL: string, options: IWebGPUComputeOptions = {}): IWebGPUComputeProgram {
+    const COMPUTE_VISIBILITY = 4; // GPUShaderStage.COMPUTE
+    const stage = parseStage(computeWGSL, options.resolveConstant);
+    const workgroupSize: readonly [number, number, number] = options.workgroupSize ?? [1, 1, 1];
+    const reflection: IWebGPUComputeReflection = {
+      uniformBlocks: [],
+      storageBuffers: [],
+      textures: [],
+      storageTextures: [],
+      workgroupSize
+    };
+
+    let nextBinding = 0;
+    const prologue: string[] = [];
+    const extraDecls: string[] = [];
+    const replacements: Array<[RegExp, string]> = [];
+    const removedPrivateVars = new Set<string>();
+    const removedSamplerVars = new Set<string>();
+
+    // 1. Explicit Uniform Blocks
+    let autoBlockCount = 0;
+    for (const ubo of stage.ubos) {
+      const optBlock = options.uniformBlocks?.find(
+        (b) => (b.bindingName ?? b.name) === ubo.binding || b.name === ubo.name
+      );
+      if (!optBlock) {
+        throw new Error(`Missing std140 reflection for compute uniform block '${ubo.binding}'.`);
+      }
+      const binding = nextBinding++;
+      const reflected: IWebGPUShaderUniformBlock = {
+        name: optBlock.name,
+        group: 0,
+        binding,
+        bindingName: ubo.binding,
+        visibility: COMPUTE_VISIBILITY,
+        physicalBinding: autoBlockCount++,
+        byteLength: optBlock.byteLength,
+        members: optBlock.members
+      };
+      reflection.uniformBlocks.push(reflected);
+      if (isNaturalStd140Block(reflected.members)) {
+        replacements.push([
+          new RegExp(`\\bvar<uniform>\\s+${ubo.binding}\\s*:\\s*${ubo.type}\\s*;`),
+          `@group(0) @binding(${binding}) var<uniform> ${ubo.binding}: ${ubo.type};`
+        ]);
+      } else {
+        const wordCount = Math.max(1, Math.ceil(reflected.byteLength / 16));
+        const rawVar = `${ubo.binding}_raw`;
+        const rawType = `${ubo.type}_Raw`;
+        replacements.push([
+          new RegExp(`\\bvar<uniform>\\s+${ubo.binding}\\s*:\\s*${ubo.type}\\s*;`),
+          `struct ${rawType} { words: array<vec4<u32>, ${wordCount}> }\n` +
+            `@group(0) @binding(${binding}) var<uniform> ${rawVar}: ${rawType};\n` +
+            `var<private> ${ubo.binding}: ${ubo.type};`
+        ]);
+        prologue.push(
+          ...emitUnpackStatements(
+            rawVar,
+            reflected.members,
+            (memberName) => `${ubo.binding}.${safeFieldName(memberName)}`,
+            `gs_ui_${ubo.binding}`
+          )
+        );
+      }
+    }
+
+    // 2. Loose Uniforms -> std140 Auto UBOs in @group(0)
+    const maxBlockBytes = options.maxUniformBlockBytes ?? 65536;
+    interface ComputeAutoItem {
+      name: string;
+      varName: string;
+      glslType: string;
+      arrayLength: number;
+      shape: Std140Shape;
+      isNatural: boolean;
+    }
+    const autoItems: ComputeAutoItem[] = [];
+    for (const u of stage.uniforms) {
+      const shape = reflectStd140(u.name, u.glslType, u.arrayLength, stage.structs);
+      if (!shape || !shape.members.length) continue;
+      const isNatural =
+        !stage.structs.has(u.glslType) && shape.members.length === 1 && isNaturalStd140Member(shape.members[0]);
+      autoItems.push({
+        name: u.name,
+        varName: u.varName,
+        glslType: u.glslType,
+        arrayLength: u.arrayLength,
+        shape,
+        isNatural
+      });
+    }
+
+    interface ComputeAutoPage {
+      natural: boolean;
+      byteLength: number;
+      members: IShaderUniformBlockMember[];
+      items: ComputeAutoItem[];
+    }
+    const autoPages: ComputeAutoPage[] = [];
+    const openPage = new Map<string, ComputeAutoPage>();
+    for (const item of autoItems) {
+      const key = item.isNatural ? "D" : "U";
+      let page = openPage.get(key);
+      let offset = page ? roundUp(page.byteLength, item.shape.alignment) : 0;
+      if (!page || roundUp(offset + item.shape.size, 16) > maxBlockBytes) {
+        page = { natural: item.isNatural, byteLength: 0, members: [], items: [] };
+        autoPages.push(page);
+        openPage.set(key, page);
+        offset = 0;
+      }
+      for (const m of item.shape.members) {
+        page.members.push({ ...m, offset: offset + m.offset });
+      }
+      page.byteLength = offset + item.shape.size;
+      page.items.push(item);
+    }
+
+    let autoOrdinal = 0;
+    for (const page of autoPages) {
+      page.byteLength = Math.max(16, roundUp(page.byteLength, 16));
+      const bindingName = `gs_Auto_${autoOrdinal++}`;
+      const binding = nextBinding++;
+      reflection.uniformBlocks.push({
+        name: "Auto",
+        group: 0,
+        binding,
+        bindingName,
+        visibility: COMPUTE_VISIBILITY,
+        physicalBinding: autoBlockCount++,
+        byteLength: page.byteLength,
+        members: page.members
+      });
+      if (page.natural) {
+        const fields = page.items.map((item) => {
+          const wgslT = glslTypeToWGSL(
+            item.arrayLength ? { base: item.glslType, arraySize: String(item.arrayLength) } : { base: item.glslType }
+          );
+          return `  ${safeFieldName(item.name)}: ${wgslT},`;
+        });
+        extraDecls.push(
+          `struct ${bindingName}_Block {\n${fields.join("\n")}\n}\n` +
+            `@group(0) @binding(${binding}) var<uniform> ${bindingName}: ${bindingName}_Block;`
+        );
+        for (const item of page.items) {
+          removedPrivateVars.add(item.varName);
+          replacements.push([new RegExp(`\\b${item.varName}\\b`, "g"), `${bindingName}.${safeFieldName(item.name)}`]);
+        }
+      } else {
+        const wordCount = Math.max(1, Math.ceil(page.byteLength / 16));
+        const rawVar = `${bindingName}_raw`;
+        extraDecls.push(
+          `struct ${bindingName}_Raw { words: array<vec4<u32>, ${wordCount}> }\n` +
+            `@group(0) @binding(${binding}) var<uniform> ${rawVar}: ${bindingName}_Raw;`
+        );
+        const varByRoot = new Map(page.items.map((item) => [item.name, item.varName]));
+        prologue.push(
+          ...emitUnpackStatements(
+            rawVar,
+            page.members,
+            (memberName) => {
+              const match = /^([A-Za-z_]\w*)(.*)$/.exec(memberName)!;
+              const rootVar = varByRoot.get(match[1])!;
+              const suffix = match[2].replace(/\.([A-Za-z_]\w*)/g, (_, f: string) => `.${safeFieldName(f)}`);
+              return `${rootVar}${suffix}`;
+            },
+            `gs_au_${autoOrdinal}`
+          )
+        );
+      }
+    }
+
+    // 3. Storage Buffers (SSBO)
+    for (const ssbo of stage.ssbos) {
+      const binding = nextBinding++;
+      reflection.storageBuffers.push({
+        name: ssbo.name,
+        group: 0,
+        binding,
+        visibility: COMPUTE_VISIBILITY,
+        access: ssbo.access
+      });
+      replacements.push([
+        new RegExp(`\\bvar<storage,\\s*(?:read|read_write)>\\s+${ssbo.binding}\\s*:\\s*${ssbo.type}\\s*;`),
+        `@group(0) @binding(${binding}) var<storage, ${ssbo.access}> ${ssbo.binding}: ${ssbo.type};`
+      ]);
+    }
+
+    // 4. Sampled Textures & Samplers
+    for (const samp of stage.samplers) {
+      const texType = samplerToWGSLTexType(samp.samplerType);
+      const sampType = samplerToWGSLSampType(samp.samplerType);
+      if (!samp.arrayLength) {
+        const texBinding = nextBinding;
+        nextBinding += 2;
+        reflection.textures.push(
+          makeTextureReflection(samp.name, samp.samplerType, 0, texBinding, COMPUTE_VISIBILITY, {})
+        );
+        replacements.push([
+          new RegExp(`\\bvar\\s+${samp.texVar}\\s*:\\s*${texType.replace(/[<>*]/g, "\\$&")}\\s*;`),
+          `@group(0) @binding(${texBinding}) var ${samp.texVar}: ${texType};`
+        ]);
+        replacements.push([
+          new RegExp(`\\bvar\\s+${samp.sampVar}\\s*:\\s*${sampType}\\s*;`),
+          `@group(0) @binding(${texBinding + 1}) var ${samp.sampVar}: ${sampType};`
+        ]);
+      } else {
+        removedSamplerVars.add(samp.texVar);
+        removedSamplerVars.add(samp.sampVar);
+        const re = new RegExp(`\\b${samp.texVar}_([A-Za-z0-9_]+)\\b`, "g");
+        const seenIndices = new Set<number>();
+        for (let m = re.exec(stage.source); m; m = re.exec(stage.source)) {
+          const rawIdx = m[1];
+          const resolvedIdx = /^\d+$/.test(rawIdx)
+            ? Number(rawIdx)
+            : resolveArrayLength(rawIdx, stage.constants, options.resolveConstant);
+          if (rawIdx !== String(resolvedIdx)) {
+            replacements.push([new RegExp(`\\b${samp.texVar}_${rawIdx}\\b`, "g"), `${samp.texVar}_${resolvedIdx}`]);
+            replacements.push([new RegExp(`\\b${samp.sampVar}_${rawIdx}\\b`, "g"), `${samp.sampVar}_${resolvedIdx}`]);
+          }
+          seenIndices.add(resolvedIdx);
+        }
+        for (const idx of seenIndices) {
+          const texBinding = nextBinding;
+          nextBinding += 2;
+          reflection.textures.push(
+            makeTextureReflection(samp.name, samp.samplerType, 0, texBinding, COMPUTE_VISIBILITY, {}, idx)
+          );
+          extraDecls.push(
+            `@group(0) @binding(${texBinding}) var ${samp.texVar}_${idx}: ${texType};\n` +
+              `@group(0) @binding(${texBinding + 1}) var ${samp.sampVar}_${idx}: ${sampType};`
+          );
+        }
+      }
+    }
+
+    // 5. Storage Textures (`image2D` / `iimage2D` / `uimage2D`)
+    for (const stex of stage.storageTextures) {
+      const binding = nextBinding++;
+      reflection.storageTextures.push({
+        name: stex.name,
+        group: 0,
+        binding,
+        visibility: COMPUTE_VISIBILITY,
+        format: stex.format,
+        access: stex.access,
+        viewDimension: "2d"
+      });
+      replacements.push([
+        new RegExp(`\\bvar\\s+${stex.varName}\\s*:\\s*texture_storage_2d<${stex.format},\\s*${stex.wgslAccess}>\\s*;`),
+        `@group(0) @binding(${binding}) var ${stex.varName}: texture_storage_2d<${stex.format}, ${stex.wgslAccess}>;`
+      ]);
+    }
+
+    // 6. Compute Entry Point Synthesis
+    const inParams: string[] = [];
+    const inInit: string[] = [];
+    if (
+      stage.builtins.has("global_invocation_id") &&
+      countIdentOccurrences(stage.source, "gs_gl_GlobalInvocationID") > 1
+    ) {
+      inParams.push("@builtin(global_invocation_id) gs_in_global_invocation_id: vec3<u32>");
+      inInit.push("  gs_gl_GlobalInvocationID = gs_in_global_invocation_id;");
+    }
+    if (
+      stage.builtins.has("local_invocation_id") &&
+      countIdentOccurrences(stage.source, "gs_gl_LocalInvocationID") > 1
+    ) {
+      inParams.push("@builtin(local_invocation_id) gs_in_local_invocation_id: vec3<u32>");
+      inInit.push("  gs_gl_LocalInvocationID = gs_in_local_invocation_id;");
+    }
+    if (stage.builtins.has("workgroup_id") && countIdentOccurrences(stage.source, "gs_gl_WorkGroupID") > 1) {
+      inParams.push("@builtin(workgroup_id) gs_in_workgroup_id: vec3<u32>");
+      inInit.push("  gs_gl_WorkGroupID = gs_in_workgroup_id;");
+    }
+    if (stage.builtins.has("num_workgroups") && countIdentOccurrences(stage.source, "gs_gl_NumWorkGroups") > 1) {
+      inParams.push("@builtin(num_workgroups) gs_in_num_workgroups: vec3<u32>");
+      inInit.push("  gs_gl_NumWorkGroups = gs_in_num_workgroups;");
+    }
+    if (
+      stage.builtins.has("local_invocation_index") &&
+      countIdentOccurrences(stage.source, "gs_gl_LocalInvocationIndex") > 1
+    ) {
+      inParams.push("@builtin(local_invocation_index) gs_in_local_invocation_index: u32");
+      inInit.push("  gs_gl_LocalInvocationIndex = gs_in_local_invocation_index;");
+    }
+
+    const [wx, wy, wz] = workgroupSize;
+    const entryCode =
+      `@compute @workgroup_size(${wx}, ${wy}, ${wz}) fn main(${inParams.join(", ")}) {\n` +
+      [...inInit, ...prologue, stage.entryBody].filter(Boolean).join("\n") +
+      "\n}";
+
+    // 7. Assemble Final WGSL Module
+    let src = stage.source;
+    for (const v of removedPrivateVars) {
+      src = src.replace(new RegExp(`^[ \\t]*var<private>\\s+${v}\\s*:[^;]+;[ \\t]*\\n?`, "gm"), "");
+    }
+    for (const v of removedSamplerVars) {
+      src = src.replace(new RegExp(`^[ \\t]*var\\s+${v}\\s*:[^;]+;[ \\t]*\\n?`, "gm"), "");
+    }
+    for (const [pattern, replacement] of replacements) {
+      src = src.replace(pattern, replacement);
+    }
+    if (/\/\*@gs_entry_begin\*\/[\s\S]*?\/\*@gs_entry_end\*\//.test(src)) {
+      src = src.replace(/\/\*@gs_entry_begin\*\/[\s\S]*?\/\*@gs_entry_end\*\//, entryCode);
+    } else {
+      src = `${src}\n${entryCode}`;
+    }
+    src = src.replace(/\/\*@gs_\w+[^]*?\*\/\n?/g, "");
+    const extra = extraDecls.join("\n");
+    const assembled = `${extra ? `${extra}\n` : ""}${src}`;
+    validateStageStructFields(assembled);
+
+    const cleaned = removeUnusedSamplers(assembled);
+    for (const tex of reflection.textures) {
+      const key = `${tex.group}:${tex.samplerBinding}`;
+      if (cleaned.bindings.has(key)) {
+        tex.samplerVisibility = COMPUTE_VISIBILITY;
+      } else {
+        delete tex.samplerBinding;
+        delete tex.samplerType;
+        if (tex.sampleType === "float") tex.sampleType = "unfilterable-float";
+      }
+    }
+
+    return {
+      compute: cleaned.source,
+      entryPoint: "main",
+      reflection
     };
   }
 }
