@@ -423,6 +423,26 @@ describe("renderer warmup scope", () => {
         shaderData: { _macroCollection: new ShaderMacroCollection() }
       }
     ]);
+    const foliageRenderer = renderer(true, false, [
+      {
+        destroyed: false,
+        shader: {
+          name: "Terrain/Vegetation",
+          destroyed: false,
+          subShaders: [{ passes: [{ getTagValue: () => "Forward" }] }]
+        },
+        shaderData: { _macroCollection: new ShaderMacroCollection() }
+      },
+      {
+        destroyed: false,
+        shader: {
+          name: "Terrain/Grass",
+          destroyed: false,
+          subShaders: [{ passes: [{ getTagValue: () => "Forward" }] }]
+        },
+        shaderData: { _macroCollection: new ShaderMacroCollection() }
+      }
+    ]);
     const variants = collectSeedWorldRendererVariants(
       { _macroCollection: new ShaderMacroCollection() } as any,
       { shaderData: { _macroCollection: new ShaderMacroCollection() }, background: { mode: 0 } } as any,
@@ -431,7 +451,7 @@ describe("renderer warmup scope", () => {
         {
           getComponentsIncludeChildren(_type: unknown, output: object[]) {
             output.length = 0;
-            output.push(litRenderer, waterRenderer);
+            output.push(litRenderer, waterRenderer, foliageRenderer);
           }
         }
       ] as any,
@@ -452,9 +472,15 @@ describe("renderer warmup scope", () => {
     const waterWithLights = variants.filter(
       (v) => v.shader === "Water/Lake.v1" && v.macros.some((m) => m.n === "SCENE_POINT_LIGHT_COUNT")
     );
+    const foliageWithLights = variants.filter(
+      (v) =>
+        (v.shader === "Terrain/Vegetation" || v.shader === "Terrain/Grass") &&
+        v.macros.some((m) => m.n === "SCENE_POINT_LIGHT_COUNT")
+    );
     expect(terrainForwardWithLights.length).toBeGreaterThan(0);
     expect(terrainShadowWithLights).toHaveLength(0);
     expect(waterWithLights).toHaveLength(0);
+    expect(foliageWithLights).toHaveLength(0);
   });
 
   it.each([

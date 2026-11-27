@@ -818,7 +818,9 @@ function collectSeedWorldRendererVariantsInternal(
     (camera.shaderData as unknown as RuntimeShaderData)._macroCollection,
     cameraMacros
   );
-  const surfaceReliefOptions = camera.shaderData.getVector4("camera_SurfaceReliefOptions");
+  const surfaceReliefOptions = (
+    camera.shaderData as { getVector4?: (name: string) => { x: number } | undefined } | undefined
+  )?.getVector4?.("camera_SurfaceReliefOptions");
   const surfaceReliefExpected =
     options.includeSurfaceRelief ?? (surfaceReliefOptions ? surfaceReliefOptions.x > 0.5 : true);
   if (surfaceReliefExpected) {
@@ -2423,7 +2425,12 @@ function resolveDepthMode(
 
 function shaderConsumesPointLights(shaderName: string): boolean {
   if (shaderName === "PBR" || shaderName === "BlinnPhong") return true;
-  if (shaderName.startsWith("Terrain/") || shaderName.startsWith("Farming/")) return true;
+  if (
+    (shaderName.startsWith("Terrain/") && shaderName !== "Terrain/Vegetation" && shaderName !== "Terrain/Grass") ||
+    shaderName.startsWith("Farming/")
+  ) {
+    return true;
+  }
   if (
     shaderName.startsWith("Masonry/") &&
     shaderName !== "Masonry/GlobalProxyShadowOnly" &&
