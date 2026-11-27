@@ -749,21 +749,17 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     gl.activeTexture(gl.TEXTURE0);
 
     const debugRenderInfo = gl.getExtension("WEBGL_debug_renderer_info");
-    let vendor = "";
     if (debugRenderInfo != null) {
       this._renderer = gl.getParameter(debugRenderInfo.UNMASKED_RENDERER_WEBGL);
-      vendor = gl.getParameter(debugRenderInfo.UNMASKED_VENDOR_WEBGL) || "";
     }
     const rendererStr = this._renderer || gl.getParameter(gl.RENDERER) || "";
-    const vendorStr = vendor || gl.getParameter(gl.VENDOR) || "";
-    this._supportsInvalidateFramebuffer =
-      typeof gl.invalidateFramebuffer === "function" &&
-      !(rendererStr.includes("Intel") && rendererStr.includes("Mesa"));
+    const { platform } = SystemInfo;
+    this._supportsInvalidateFramebuffer = !(rendererStr.includes("Intel") && rendererStr.includes("Mesa"));
     this._preferClearForLoadDontCare =
       !this._supportsInvalidateFramebuffer ||
-      rendererStr.includes("Apple") ||
-      rendererStr.includes("Metal") ||
-      vendorStr.includes("Apple");
+      platform === Platform.IPhone ||
+      platform === Platform.IPad ||
+      platform === Platform.Mac;
     this.maxUniformBlockSize = gl.getParameter(gl.MAX_UNIFORM_BLOCK_SIZE);
   }
 
