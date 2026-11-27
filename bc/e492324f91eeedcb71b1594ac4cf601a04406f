@@ -1,0 +1,28 @@
+.agents/skills/seed-world-local-debug/SKILL.md
+  h_ddbf152d31b140 16,25-26
+.agents/skills/seed-world-local-debug/references/prepare.md
+  h_ddbf152d31b140 11,13,23,93-94
+.agents/skills/seed-world-local-debug/references/start.md
+  h_ddbf152d31b140 80,93
+.agents/skills/seed-world-local-debug/scripts/preview.py
+  h_ddbf152d31b140 78,81,91
+packages/ai-chat/src/ai-chat/asap-chat.ts
+  h_ddbf152d31b140 193-195,415
+packages/ai-chat/tests/model-retry-transport.spec.ts
+  h_ddbf152d31b140 315-421
+world/demos/seed-world/dev/scene-visual-intent/SceneVisualIntentTransport.ts
+  h_ddbf152d31b140 2-7,27-29
+world/tests/seed-world/SceneVisualIntentTransport.spec.ts
+  h_ddbf152d31b140 2,35-49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "bce492324f91eeedcb71b1594ac4cf601a04406f",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}
