@@ -1,0 +1,35 @@
+packages/ai-chat/src/ai-chat/ai-chat.ts
+  s_8194e95e35d740::t_11f161b8465554 1,301
+packages/ai-chat/src/ai-chat/model-recovery.ts
+  s_8194e95e35d740::t_5a083751acc16a 95-96,98
+packages/modify/src/rendering/LiquidGlassPostProcessPass.ts
+  s_8194e95e35d740::t_ac3aa0ebc2b026 172-173,187,239-253,263,298,329-333
+world/demos/seed-world/assistant/SeedWorldTaskPresentation.ts
+  s_8194e95e35d740::t_9b19679cd2d7ee 1,16
+world/demos/seed-world/assistant/shaders/SeedWorldWorkingText.shader
+  s_8194e95e35d740::t_eb1d901bd0884a 69
+world/tests/seed-world-browser/vitest.config.mjs
+  s_8194e95e35d740::t_0ef4fd8e226ce8 10
+world/tests/seed-world/AIChatPhotoInput.spec.ts
+  s_8194e95e35d740::t_1bf80363f5a2ef 234,252
+world/tests/seed-world/SeedWorldTaskPresentation.spec.ts
+  s_8194e95e35d740::t_ccda68b1482726 36,69-70,77
+world/tests/seed-world/SeedWorldVoiceHudController.spec.ts
+  s_8194e95e35d740::t_713af7d2ae0ad5 142,149,318,323-325,341,352-353,355,369-370,686,827
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ca4ccd6f219463f9b6700e29b6ee9656471c91ce",
+  "prompts": {},
+  "sessions": {
+    "s_8194e95e35d740": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a210f4-352f-72f0-ae11-dfbf8d7333db",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "hhhhkrx <guanzi.zy@antgroup.com>"
+    }
+  }
+}

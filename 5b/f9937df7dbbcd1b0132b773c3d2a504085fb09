@@ -1,0 +1,24 @@
+packages/core/src/RenderPipeline/Blitter.ts
+  h_171a11afaf879a 69-71,73
+packages/modify/src/native/core/src/RenderPipeline/Blitter.ts
+  h_171a11afaf879a 117-119,121
+packages/modify/src/native/core/src/postProcess/PostProcessUberPass.ts
+  h_171a11afaf879a 762-766
+packages/modify/tests/ScreenSpaceReflection.spec.ts
+  h_171a11afaf879a 580-649
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_171a11afaf879a 809-816,822-825,1651,1766-1770,1845
+world/tests/seed-world/SeedWorldRendererWarmup.spec.ts
+  h_171a11afaf879a 2330-2475
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5bf9937df7dbbcd1b0132b773c3d2a504085fb09",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

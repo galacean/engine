@@ -1,0 +1,18 @@
+world/demos/seed-world/SeedWorldDemo.ts
+  h_ddbf152d31b140 1076-1079
+world/tests/seed-world-browser/SeedWorldPerfRegressions.test.ts
+  h_ddbf152d31b140 86-95,99
+packages/runtime-editor/tests/runtime-project.spec.ts
+  h_ddbf152d31b140 236,257-259,343-388
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7f98acb93502a80b3fb902cd8f76b1e1ef4fa926",
+  "prompts": {},
+  "humans": {
+    "h_ddbf152d31b140": {
+      "author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

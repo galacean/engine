@@ -1,0 +1,30 @@
+packages/core/src/animation/internal/animationCurveOwner/AnimationCurveOwner.ts
+  s_2180d985f4e67c::t_2ea0ae4447c7eb 70-71
+packages/core/src/animation/AnimationClipCurveBinding.ts
+  s_2180d985f4e67c::t_2ea0ae4447c7eb 31
+tests/src/core/Animator.test.ts
+  s_2180d985f4e67c::t_2ea0ae4447c7eb 1688,1691,1700-1703,1705,1713,1735,1797-1800,1807
+packages/core/src/animation/internal/animationCurveOwner/assembler/IAnimationCurveOwnerAssembler.ts
+  s_2180d985f4e67c::t_2ea0ae4447c7eb 8
+packages/core/src/animation/AnimationProperty.ts
+  s_2180d985f4e67c::t_2ea0ae4447c7eb 1-20
+packages/core/src/animation/internal/animationCurveOwner/assembler/UniversalAnimationCurveOwnerAssembler.ts
+  s_2180d985f4e67c::t_2ea0ae4447c7eb 1,26-28
+  s_2180d985f4e67c::t_dc9a3e0347bb4b 29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7bb0804ebe3ab96890d613cbc45146b9735620e5",
+  "prompts": {},
+  "sessions": {
+    "s_2180d985f4e67c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a2130e-b48c-7362-85fc-be69f9dfd87b",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+tests/src/loader/AnimationClipDecoder.test.ts
+  s_71d829bec7869b::t_1e22129319b020 85,93-98,103-104,125-129,134,136,145,148-150,152-155,157,159-161,163,166,173,180,186-187,189-190,192-197,200,215,217-225,252-261,269
+  s_78fd17455f4436::t_d2bf385ab9165d 270-272
+packages/loader/src/resource-deserialize/resources/animationClip/AnimationClipDecoder.ts
+  s_71d829bec7869b::t_962147b4db738a 44-45,62,72,76,80,84,88,92,96,100,150,154,156,158-160,162-164,166-168
+packages/loader/src/resource-deserialize/index.ts
+  s_78fd17455f4436::t_662abaee36e334 13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7331e2a6d4be2fd6fab48f505b7611b4253294d7",
+  "prompts": {},
+  "sessions": {
+    "s_71d829bec7869b": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a212d6-cdf5-7f11-ba28-f30304403c44",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    },
+    "s_78fd17455f4436": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a215eb-313e-7ee0-97c6-22c3d0b4783c",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}

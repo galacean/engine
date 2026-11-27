@@ -1,0 +1,26 @@
+packages/core/src/shader/ComputeShader.ts
+  h_171a11afaf879a 3,81-83,103-104,188-194,209-213
+packages/core/src/shader/ShaderData.ts
+  h_171a11afaf879a 562-567,755,857
+packages/rhi-webgpu/src/WebGPUComputeProgram.ts
+  h_171a11afaf879a 62,66,81
+packages/shader-compiler/src/codeGen/WGSLVisitor.ts
+  h_171a11afaf879a 1831-1835,2254-2281,2292,3477-3478,3481-3496,3688,3690
+packages/shader-parser/src/lexer/Lexer.ts
+  h_171a11afaf879a 1145-1158,1167-1168,1177-1178,1182-1183,1187,1189,1195-1197,1202-1204,1207-1224,1226,1228,1230-1243,1247-1248,1255
+tests/src/rhi-webgpu/ComputeShader.test.ts
+  h_171a11afaf879a 7,14,300-304,956-1149,1162-1163,1173-1193
+tests/src/shader-compiler/ShaderLabWGSLConformance.test.ts
+  h_171a11afaf879a 243-333,921-969
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "f85e9409c1bd0c6681e24107fee9ce970cfd34f1",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

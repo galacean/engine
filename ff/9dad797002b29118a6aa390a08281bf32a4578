@@ -1,0 +1,28 @@
+packages/core/src/shader/state/DepthState.ts
+  s_2f6fe904c002e3::t_6e4148a01c8b46 88
+  s_2f6fe904c002e3::t_e387dedf9fc652 89-91
+packages/core/src/material/PBRMaterial.ts
+  s_2f6fe904c002e3::t_7166ffc2678e38 812
+packages/rhi-webgl/src/GLRenderTarget.ts
+  s_2f6fe904c002e3::t_3ec950892c83a4 94-107,110-125
+  s_2f6fe904c002e3::t_34836b990b6049 93
+packages/core/src/shader/state/StencilState.ts
+  s_2f6fe904c002e3::t_6e4148a01c8b46 176
+  s_2f6fe904c002e3::t_df8bdea9024e4d 177
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ff9dad797002b29118a6aa390a08281bf32a4578",
+  "prompts": {},
+  "sessions": {
+    "s_2f6fe904c002e3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a216ba-e901-7c62-b178-dfd0f67d14d8",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}

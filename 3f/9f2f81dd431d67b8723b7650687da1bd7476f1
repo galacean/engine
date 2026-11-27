@@ -1,0 +1,28 @@
+world/tests/seed-world/SeedWorldFlashApps.spec.ts
+  s_0f777c1d9c2fdd::t_331f5e4998c6a0 59-64,105-106,134-142
+world/tests/seed-world/editor/seed-world-edit.spec.ts
+  s_0f777c1d9c2fdd::t_331f5e4998c6a0 2-3,8-33
+  s_0f777c1d9c2fdd::t_61ad63031d2c00 34
+world/demos/seed-world/SeedWorldProjectFormats.ts
+  s_0f777c1d9c2fdd::t_8637d4c11b8fb8 1,9,17-102,152
+world/demos/seed-world/agent-adapter/SeedWorldAgentApplication.ts
+  s_0f777c1d9c2fdd::t_fafbdf4441c90d 76,209
+world/scripts/publish-seed-world-flash-apps.mjs
+  s_0f777c1d9c2fdd::t_90972e33b1ef14 636,643-648
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3f9f2f81dd431d67b8723b7650687da1bd7476f1",
+  "prompts": {},
+  "sessions": {
+    "s_0f777c1d9c2fdd": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21602-e042-7613-91c0-4ebb1a28dbd5",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "cptbtptpbcptdtptp <njktsmshh@gmail.com>"
+    }
+  }
+}

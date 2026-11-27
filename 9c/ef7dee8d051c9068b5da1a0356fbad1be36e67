@@ -1,0 +1,21 @@
+world/tests/seed-world-browser/GrassDrawOrder.test.ts
+  s_dcadea7fd99279::t_3ef421c17b4569 21,69,72,76-84
+world/demos/seed-world/src/SeedWorldGrassDrawOrder.ts
+  s_dcadea7fd99279::t_09b95b5b41a745 65,71-77,79
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9cef7dee8d051c9068b5da1a0356fbad1be36e67",
+  "prompts": {},
+  "sessions": {
+    "s_dcadea7fd99279": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a21356-8848-70c2-980b-85c8418ffb42",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "阿霑 <zhanyingwei.zyw@antgroup.com>"
+    }
+  }
+}

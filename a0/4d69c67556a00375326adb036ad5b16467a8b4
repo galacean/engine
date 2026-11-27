@@ -1,0 +1,14 @@
+packages/rhi-webgpu/src/WebGPUPrimitive.ts
+  h_171a11afaf879a 255-256
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "a04d69c67556a00375326adb036ad5b16467a8b4",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

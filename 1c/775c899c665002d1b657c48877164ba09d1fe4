@@ -1,0 +1,19 @@
+.agents/skills/seed-world-flash-publish/SKILL.md
+  s_a61a893a3e253a::t_5730af2c6bfc9e 78-80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1c775c899c665002d1b657c48877164ba09d1fe4",
+  "prompts": {},
+  "sessions": {
+    "s_a61a893a3e253a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a20875-19df-7c71-be76-42bd2313456c",
+        "model": "gpt-6.2-astra"
+      },
+      "human_author": "詹应威 <njktsmshh@163.com>"
+    }
+  }
+}

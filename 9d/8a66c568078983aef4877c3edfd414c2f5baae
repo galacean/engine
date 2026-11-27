@@ -1,0 +1,49 @@
+packages/physics-physx/src/PhysXPhysicsScene.ts
+  s_3754ebc6b108f2::t_394712122b848d 99,449-458,486,491,493
+tests/src/core/physics/Collider.test.ts
+  s_3754ebc6b108f2::t_9c486d754c01bd 278-280,288-289,292-294,1330-1333,1338-1339,1583,1592-1593,1618,1627-1628
+  s_3754ebc6b108f2::t_c77547d4192865 650-651,660-687
+packages/core/src/physics/PhysicsScene.ts
+  s_3754ebc6b108f2::t_394712122b848d 26,69,94-105,107-112,114-115,201-206,256,429-447,449,456,464,468-472,827,833,973-974,985,1024,1028-1029,1038-1054,1071-1073
+  s_3754ebc6b108f2::t_e446c3e0c0277f 23,66-68,87-93,106
+  s_3754ebc6b108f2::t_c57bafb483b518 981-984
+  s_3754ebc6b108f2::t_b55e76f76e2dbc 71
+tests/src/core/physics/PhysicsScene.test.ts
+  s_3754ebc6b108f2::t_5d412598c6e256 193-198,219-254,735-779,787,3046,3084-3093
+  s_3754ebc6b108f2::t_394712122b848d 1208
+  s_3754ebc6b108f2::t_9c486d754c01bd 780-786
+  s_3754ebc6b108f2::t_d04bad43e251bb 788
+packages/physics-physx/src/PhysXPhysics.ts
+  s_3754ebc6b108f2::t_394712122b848d 87
+packages/design/src/physics/IPhysicsScene.ts
+  s_3754ebc6b108f2::t_394712122b848d 213-214,216,226-227
+packages/physics-physx/README.md
+  s_3754ebc6b108f2::t_5d412598c6e256 31
+tests/src/core/physics/MeshCollider.test.ts
+  s_3754ebc6b108f2::t_9c486d754c01bd 26,62,66,205,214-215,1423-1438,1441-1448
+  s_3754ebc6b108f2::t_9d882d17627903 376-380,383-385,389-391,395-397,403-404
+packages/core/src/Script.ts
+  s_3754ebc6b108f2::t_5d412598c6e256 209
+  s_3754ebc6b108f2::t_394712122b848d 32,234,240,249,268-271
+eslint.config.mjs
+  s_3754ebc6b108f2::t_394712122b848d 25
+packages/core/src/physics/CharacterController.ts
+  s_3754ebc6b108f2::t_5d412598c6e256 12,268-269
+  s_3754ebc6b108f2::t_c6243755b8f7fc 270-271
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "9d8a66c568078983aef4877c3edfd414c2f5baae",
+  "prompts": {},
+  "sessions": {
+    "s_3754ebc6b108f2": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a218cd-a576-7eb3-aadd-5c308d16914c",
+        "model": "gpt-6.2-sol"
+      },
+      "human_author": "luzhuang <wz84888@antgroup.com>"
+    }
+  }
+}
