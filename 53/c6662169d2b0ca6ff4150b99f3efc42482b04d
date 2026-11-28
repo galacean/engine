@@ -1,0 +1,22 @@
+packages/water/src/water/runtime/heightfield/HeightfieldWaterSpatialFieldProvider.ts
+  h_171a11afaf879a 241
+packages/water/src/water/runtime/ocean/OceanWaterSurfaceProvider.ts
+  h_171a11afaf879a 123,125-128,191
+packages/water/tests/OceanExclusions.test.ts
+  h_171a11afaf879a 14-15,226-268
+packages/world-planning/src/spatial/runtime/PlanningWaterRuntime.ts
+  h_171a11afaf879a 655-657,659,687-694
+world/tests/seed-world/AnimalPathfindingPerfInvariants.spec.ts
+  h_171a11afaf879a 20-26,719-814
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "53c6662169d2b0ca6ff4150b99f3efc42482b04d",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
