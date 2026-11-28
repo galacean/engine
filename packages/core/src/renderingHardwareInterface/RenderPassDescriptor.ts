@@ -8,6 +8,7 @@ import { RenderPassStoreAction } from "./RenderPassStoreAction";
  * @remarks
  * Holds target binding, viewport, and independent color / depth / stencil load & store actions
  * so callers can reuse a single instance across render passes with zero per-frame allocations.
+ * @internal
  */
 export class RenderPassDescriptor {
   /** Target framebuffer to render into, or `null` for the default canvas backbuffer. */
