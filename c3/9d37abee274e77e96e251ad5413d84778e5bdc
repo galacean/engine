@@ -1,0 +1,20 @@
+packages/core/src/Engine.ts
+  h_c385727b10f40c 97
+packages/core/src/RenderPipeline/Blitter.ts
+  h_c385727b10f40c 113-126,129-130,134-139,143-144
+packages/core/src/RenderPipeline/RenderContext.ts
+  h_c385727b10f40c 27,42-45,75,87,126
+tests/src/core/RenderPipeline/Blitter.test.ts
+  h_c385727b10f40c 1268-1310
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c39d37abee274e77e96e251ad5413d84778e5bdc",
+  "prompts": {},
+  "humans": {
+    "h_c385727b10f40c": {
+      "author": "shensi.zxd <shensi.zxd@antgroup.com>"
+    }
+  }
+}
