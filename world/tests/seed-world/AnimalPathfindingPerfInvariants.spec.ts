@@ -17,6 +17,13 @@ import { AnimalBlendClock } from "@galacean/engine-animals/gameplay/animal/Anima
 import { AnimalMotionPlayback } from "@galacean/engine-animals/gameplay/animal/AnimalMotionPlayback";
 import { GroundAnimalRecovery } from "@galacean/engine-animals/gameplay/animal/GroundAnimalRecovery";
 import { PlanningWaterRuntime } from "@galacean/engine-world-planning/spatial/runtime/PlanningWaterRuntime";
+import { OceanWaterCompiledResource } from "@galacean/engine-water/water/runtime/ocean/OceanWaterCompiledResource";
+import { OceanWaterSurfaceProvider } from "@galacean/engine-water/water/runtime/ocean/OceanWaterSurfaceProvider";
+import {
+  OceanNearshoreOutsidePolicy,
+  OceanNearshoreSchemaVersion
+} from "@galacean/engine-water/water/authoring/ocean/OceanNearshoreTypes";
+import { Vector3 } from "@galacean/engine-math";
 
 vi.mock("@galacean/engine-world-planning/semantic-study/PlanningWhiteboxes", () => ({ planningWhiteboxes: () => [] }));
 
@@ -708,5 +715,101 @@ describe("animal pathfinding performance invariants", () => {
     expect(res.done).toBe(true);
     expect(Boolean(res.value)).toBe(true);
     expect(steps).toBeLessThan(40);
+  });
+
+  it("never classifies interior ocean tiles as definitely dry or admits terrestrial spawns on seabed", () => {
+    // 64m × 64m world (2m grid): central island [16..48, 16..48] at y=+2, surrounding seabed at y=-4, ocean waterLevel=0.
+    const width = 33;
+    const height = 33;
+    const cell = 2;
+    const bedHeights = new Float32Array(width * height);
+    const mask = new Uint8Array(width * height);
+    for (let z = 0; z < height; z++) {
+      for (let x = 0; x < width; x++) {
+        const wx = x * cell;
+        const wz = z * cell;
+        const isLand = wx >= 16 && wx <= 48 && wz >= 16 && wz <= 48;
+        bedHeights[z * width + x] = isLand ? 0 : -4;
+        mask[z * width + x] = isLand ? 0 : 1;
+      }
+    }
+    const compiled = OceanWaterCompiledResource.compile({
+      schemaVersion: 2,
+      id: "planning-ocean",
+      config: {
+        waterLevel: 0,
+        nearshoreDescriptor: {
+          schemaVersion: OceanNearshoreSchemaVersion.V1,
+          id: "planning-ocean:nearshore",
+          waterLevel: 0,
+          grid: { originXZ: [0, 0], cellSizeXZ: [cell, cell], width, height },
+          bedHeights,
+          budget: {
+            maxWidth: width,
+            maxHeight: height,
+            maxTexelCount: width * height,
+            maxAtlasByteLength: width * height * 4
+          },
+          wetSource: { kind: "mask", mask, minimumDepth: 0 },
+          outsidePolicy: {
+            negativeX: OceanNearshoreOutsidePolicy.DeepOcean,
+            positiveX: OceanNearshoreOutsidePolicy.DeepOcean,
+            negativeZ: OceanNearshoreOutsidePolicy.DeepOcean,
+            positiveZ: OceanNearshoreOutsidePolicy.DeepOcean
+          }
+        }
+      }
+    });
+    try {
+      const ocean = new OceanWaterSurfaceProvider(
+        "planning-ocean",
+        compiled.data.config.nearshoreDescriptor,
+        compiled.nearshoreResource.atlas,
+        { minX: -64, minZ: -64, maxX: 128, maxZ: 128 },
+        () => 0
+      );
+      const pos = new Vector3();
+      const nav = new PlanningNavigationSurface(
+        {
+          spawn: { x: 32, z: 32 },
+          parameters: { width: 64, depth: 64 },
+          waters: [],
+          bridges: [],
+          roadApproaches: []
+        } as any,
+        (x, z) => (x >= 16 && x <= 48 && z >= 16 && z <= 48 ? 2 : -4),
+        {
+          staticNavigationWater: true,
+          navigationWaterRevision: 1,
+          hasWaterInBounds: (minX, minZ, maxX, maxZ) =>
+            ocean.maximumSurfaceHeightInBounds({ minX, minZ, maxX, maxZ }) !== null,
+          sampleSurface: (x, z, out) => {
+            pos.set(x, 0, z);
+            return ocean.sampleSurface(pos, out);
+          }
+        },
+        undefined,
+        true
+      );
+      const habitat = new PlanningAnimalHabitat(
+        { spawn: { x: 32, z: 32 }, parameters: { width: 64, depth: 64 }, waters: [] } as any,
+        nav,
+        { distribution: { minX: 0, minZ: 0, maxX: 64, maxZ: 64 }, spawnRadius: 64, roamRadius: 64 }
+      );
+
+      // Interior ocean tile inside [0, 64] must NOT be marked dry; inland island tile remains fast-path dry.
+      expect(nav.isBoundsDefinitelyDry(4, 4, 8, 8)).toBe(false);
+      expect(nav.sampleContactIsWater(6, 6)).toBe(true);
+      expect(nav.isBoundsDefinitelyDry(28, 28, 36, 36)).toBe(true);
+      expect(nav.sampleContactIsWater(32, 32)).toBe(false);
+
+      // Terrestrial animal cannot spawn in ocean or walk from island into ocean.
+      expect(habitat.samplePosition({ x: 6, z: 6 }, 0.8, [], 1.5, "ground")).toBeUndefined();
+      expect(habitat.samplePosition({ x: 32, z: 32 }, 0.8, [], 1.5, "ground")).toEqual({ x: 32, y: 2, z: 32 });
+      expect(habitat.canTraverse({ x: 32, z: 32 }, { x: 6, z: 6 }, 0.8, 1.5, "ground")).toBe(false);
+      expect(habitat.canTraverse({ x: 28, z: 32 }, { x: 36, z: 32 }, 0.8, 1.5, "ground")).toBe(true);
+    } finally {
+      compiled.dispose();
+    }
   });
 });

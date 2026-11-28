@@ -11,6 +11,8 @@ import {
   OceanWaterCompiledResource,
   type OceanWaterBodyDescriptorV1
 } from "../src/water/runtime/ocean/OceanWaterCompiledResource";
+import { OceanWaterSurfaceProvider } from "../src/water/runtime/ocean/OceanWaterSurfaceProvider";
+import { createWaterSpatialFieldSample } from "../src/water/runtime/spatial/WaterSpatialFieldProvider";
 
 vi.mock(import("../src/water/compiler/shared/numericIdentity"), { spy: true });
 
@@ -220,4 +222,47 @@ it.each([false, true])("hashes normalized transfer data with immutable inputs on
   expect(payload.config.connections![0]).not.toHaveProperty("callerMetadata");
   expect(transfer.sourceHash).toBe(computeOceanWaterSourceHash(payload));
   expect(transfer.sourceHash).not.toBe(rawHash);
+});
+
+it("keeps OceanWaterSurfaceProvider.maximumSurfaceHeightInBounds strictly conservative against sampleSpatialField inside the nearshore grid", () => {
+  const compiled = OceanWaterCompiledResource.compile(
+    (compileWaterShape({ ...shape, boundaryConnected: true }, terrain, "ocean").source as any)
+      .descriptor as OceanWaterBodyDescriptorV1
+  );
+  try {
+    const provider = new OceanWaterSurfaceProvider(
+      "planning-ocean",
+      compiled.data.config.nearshoreDescriptor,
+      compiled.nearshoreResource.atlas,
+      { minX: -8, minZ: -8, maxX: 16, maxZ: 16 },
+      () => compiled.data.config.waterLevel
+    );
+    const sample = createWaterSpatialFieldSample();
+
+    // Wet seabed strictly inside the [0, 8] nearshore grid must NOT return null from maximumSurfaceHeightInBounds.
+    expect(provider.sampleSpatialField(0.5, 0.5, sample)).toBe(true);
+    expect(sample.wet).toBe(true);
+    expect(provider.maximumSurfaceHeightInBounds({ minX: 0.2, minZ: 0.2, maxX: 0.8, maxZ: 0.8 })).toBe(0);
+
+    // Dry island interior strictly away from the shoreline returns null.
+    expect(provider.sampleSpatialField(3.0, 3.0, sample)).toBe(true);
+    expect(sample.wet).toBe(false);
+    expect(provider.maximumSurfaceHeightInBounds({ minX: 2.8, minZ: 2.8, maxX: 3.2, maxZ: 3.2 })).toBeNull();
+
+    // Exhaustive invariant: every point where sampleSpatialField is wet must produce a non-null enclosing bounds height.
+    let wetCount = 0;
+    for (let z = 0.25; z <= 7.75; z += 0.5) {
+      for (let x = 0.25; x <= 7.75; x += 0.5) {
+        if (provider.sampleSpatialField(x, z, sample) && sample.wet) {
+          wetCount++;
+          expect(
+            provider.maximumSurfaceHeightInBounds({ minX: x - 0.1, minZ: z - 0.1, maxX: x + 0.1, maxZ: z + 0.1 })
+          ).toBe(0);
+        }
+      }
+    }
+    expect(wetCount).toBeGreaterThan(0);
+  } finally {
+    compiled.dispose();
+  }
 });

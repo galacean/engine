@@ -120,12 +120,12 @@ export class OceanWaterSurfaceProvider implements WaterSurfaceProvider, WaterSpa
         i10 = z0 * grid.width + x1,
         i01 = z1 * grid.width + x0,
         i11 = z1 * grid.width + x1;
-      const pixels = this.atlas.pixels;
+      const pixels = this.atlas.pixels.borrowTypedArray();
       const shoreCode = bilinear(
-        pixels.at(i00 * 4 + 3)!,
-        pixels.at(i10 * 4 + 3)!,
-        pixels.at(i01 * 4 + 3)!,
-        pixels.at(i11 * 4 + 3)!,
+        pixels[i00 * 4 + 3],
+        pixels[i10 * 4 + 3],
+        pixels[i01 * 4 + 3],
+        pixels[i11 * 4 + 3],
         tx,
         tz
       );
@@ -188,7 +188,7 @@ export class OceanWaterSurfaceProvider implements WaterSurfaceProvider, WaterSpa
     }
     zs[zCount++] = maxZ;
 
-    const pixels = this.atlas.pixels;
+    const pixels = this.atlas.pixels.borrowTypedArray();
     const bedHeights = this.descriptor.bedHeights;
     const minimumDepth = this.descriptor.wetSource.minimumDepth ?? 0;
     for (let iz = 0; iz < zCount - 1; iz++)

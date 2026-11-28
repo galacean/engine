@@ -652,9 +652,11 @@ export class PlanningWaterRuntime {
    * water body proves zero wet surface inside [minX, maxX] × [minZ, maxZ].
    */
   hasWaterInBounds(minX: number, minZ: number, maxX: number, maxZ: number): boolean {
-    if (this.destroyed || !this.system.runtimeState.effectiveEnabled) return false;
+    if (this.destroyed) return false;
+    const runtimeState = this.system.runtimeState;
+    if (!runtimeState.effectiveEnabled) return runtimeState.requestedEnabled === true;
     const activeHost = this.system.activeRuntimeHost;
-    if (!activeHost) return false;
+    if (!activeHost) return true;
     const navRev = this.navigationWaterRevision;
     const sysRev = this.system.revision;
     if (
@@ -682,7 +684,14 @@ export class PlanningWaterRuntime {
         const b = field.metadata.bounds;
         fields.push({
           handle,
-          field,
+          field: field as {
+            maximumSurfaceHeightInBounds(bounds: {
+              minX: number;
+              minZ: number;
+              maxX: number;
+              maxZ: number;
+            }): number | null;
+          },
           minX: b.minX,
           minZ: b.minZ,
           maxX: b.maxX,

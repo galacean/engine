@@ -238,7 +238,7 @@ export class HeightfieldWaterSpatialFieldProvider implements WaterSpatialFieldPr
     this._active = false;
   }
 
-  private readonly _expandedBounds: WaterBoundsXZ = { minX: 0, maxX: 0, minZ: 0, maxZ: 0 };
+  private readonly _expandedBounds = { minX: 0, maxX: 0, minZ: 0, maxZ: 0 };
 
   maximumSurfaceHeightInBounds(bounds: WaterBoundsXZ): number | null {
     assertWaterQueryBounds(bounds);
