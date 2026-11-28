@@ -110,25 +110,38 @@ export class Blitter {
 
     const compileMacros = Shader._compileMacros;
 
-    ShaderMacroCollection.unionCollection(
-      camera._globalShaderMacro,
-      blitMaterial.shaderData._macroCollection,
-      compileMacros
-    );
-
-    ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
+    if (camera) {
+      ShaderMacroCollection.unionCollection(
+        camera._globalShaderMacro,
+        blitMaterial.shaderData._macroCollection,
+        compileMacros
+      );
+      ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
+    } else {
+      ShaderMacroCollection.unionCollection(
+        blitMaterial.shaderData._macroCollection,
+        engine._macroCollection,
+        compileMacros
+      );
+    }
 
     const program = pass._getShaderProgram(engine, compileMacros);
+    const sceneShaderData = camera?.scene?.shaderData;
+    const cameraShaderData = camera?.shaderData;
 
     program.bind();
     program.regroupUniformBlocks();
-    program.uploadAll(program.sceneUniformBlock, camera.scene!.shaderData);
-    program.uploadAll(program.cameraUniformBlock, camera.shaderData);
+    if (sceneShaderData) {
+      program.uploadAll(program.sceneUniformBlock, sceneShaderData);
+    }
+    if (cameraShaderData) {
+      program.uploadAll(program.cameraUniformBlock, cameraShaderData);
+    }
     program.uploadAll(program.rendererUniformBlock, rendererShaderData);
     program.uploadAll(program.materialUniformBlock, blitMaterial.shaderData);
     program.uploadMultiGroupUniforms(
-      camera.scene!.shaderData,
-      camera.shaderData,
+      sceneShaderData,
+      cameraShaderData,
       rendererShaderData,
       blitMaterial.shaderData,
       undefined

@@ -94,7 +94,7 @@ export class Engine extends EventDispatcher {
   /** @internal */
   _textDefaultFont: Font | null;
   /** @internal */
-  _renderContext: RenderContext = new RenderContext();
+  _renderContext: RenderContext = new RenderContext(this);
 
   /** @internal */
   _depthTexture2D: Texture2D;

@@ -24,6 +24,7 @@ export class RenderContext {
   private static _flipYProjectionMatrix = new Matrix();
   private static _flipYViewProjectionMatrix = new Matrix();
 
+  private _engine: Engine;
   private _projectionParams: Vector4 = new Vector4();
 
   camera: Camera;
@@ -37,6 +38,10 @@ export class RenderContext {
   viewMatrix: Matrix;
   projectionMatrix: Matrix;
   viewProjectionMatrix: Matrix;
+
+  constructor(engine: Engine) {
+    this._engine = engine;
+  }
 
   applyVirtualCamera(virtualCamera: VirtualCamera, flipProjection: boolean | null): void {
     this.virtualCamera = virtualCamera;
@@ -67,7 +72,7 @@ export class RenderContext {
   }
 
   setRenderTarget(destination: RenderTarget | null, viewport: Vector4, mipLevel?: number, faceIndex?: TextureCubeFace) {
-    const engine = this.camera.engine;
+    const engine = this._engine;
     const rhi = engine._hardwareRenderer;
     rhi.activeRenderTarget(destination, viewport, this.flipProjection, mipLevel, faceIndex);
 
@@ -79,7 +84,7 @@ export class RenderContext {
   }
 
   beginRenderPass(descriptor: RenderPassDescriptor): void {
-    const engine = this.camera.engine;
+    const engine = this._engine;
     const rhi = engine._hardwareRenderer;
     this.flipProjection = descriptor.isFlipProjection;
 
@@ -118,7 +123,7 @@ export class RenderContext {
   }
 
   endRenderPass(): void {
-    this.camera.engine._hardwareRenderer.endRenderPass();
+    this._engine._hardwareRenderer.endRenderPass();
   }
 
   garbageCollection(): void {

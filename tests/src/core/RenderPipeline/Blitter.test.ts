@@ -1265,4 +1265,47 @@ describe("Blitter & RHI TBDR Load/Store Actions", () => {
       srcTex.destroy();
     }
   });
+
+  it("Blitter.blitTexture and RenderContext render passes work when context.camera is null", () => {
+    // @ts-ignore
+    const context = engine._renderContext;
+    const srcTex = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8_UNorm, false, false);
+    const dstTex = new Texture2D(engine, 16, 16, TextureFormat.R8G8B8A8_UNorm, false, false);
+    const dstRT = new RenderTarget(engine, 16, 16, dstTex, TextureFormat.Depth24Stencil8, 1);
+
+    try {
+      const srcPixels = new Uint8Array(16 * 16 * 4);
+      for (let i = 0; i < srcPixels.length; i += 4) {
+        srcPixels[i] = 123;
+        srcPixels[i + 1] = 210;
+        srcPixels[i + 2] = 45;
+        srcPixels[i + 3] = 255;
+      }
+      srcTex.setPixelBuffer(srcPixels);
+
+      // Simulate post-GC / outside-camera-render state where RenderContext.camera has been cleared
+      context.garbageCollection();
+      expect(context.camera).toBeNull();
+
+      while (gl.getError() !== gl.NO_ERROR) {}
+      Blitter.blitTexture(engine, srcTex, dstRT, 0, undefined, null, 0, undefined, RenderPassLoadAction.DontCare);
+      expect(gl.getError()).toBe(gl.NO_ERROR);
+
+      const outPixels = new Uint8Array(16 * 16 * 4);
+      dstTex.getPixelBuffer(outPixels);
+      expect(Array.from(outPixels.slice(0, 4))).toEqual([123, 210, 45, 255]);
+
+      // Direct RenderContext.beginRenderPass / endRenderPass also succeeds with null camera
+      const desc = new RenderPassDescriptor().reset(dstRT);
+      desc.depthLoadAction = RenderPassLoadAction.Clear;
+      desc.depthStoreAction = RenderPassStoreAction.Discard;
+      context.beginRenderPass(desc);
+      context.endRenderPass();
+      expect(gl.getError()).toBe(gl.NO_ERROR);
+    } finally {
+      dstRT.destroy();
+      dstTex.destroy();
+      srcTex.destroy();
+    }
+  });
 });
