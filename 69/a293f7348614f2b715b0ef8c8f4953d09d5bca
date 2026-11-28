@@ -1,0 +1,56 @@
+packages/building/src/building/runtime/BuildingDistanceView.ts
+  h_171a11afaf879a 1074-1077,1465-1469
+packages/building/src/building/runtime/BuildingFarProxy.ts
+  h_171a11afaf879a 1154-1155
+packages/building/src/building/runtime/ConstructionSceneLighting.glsl
+  h_171a11afaf879a 58,72-76,164,178,215-216,218,220-225,257-261,305-307
+packages/building/src/building/runtime/EngineResidentScene.ts
+  h_171a11afaf879a 257-259,268,272,1409-1410,1415-1416
+packages/building/src/building/runtime/MasonryDistanceSurface.shader
+  h_171a11afaf879a 60-62,67-78,96-98,136-138,202-207,212-214,229-233,240-242
+packages/building/src/building/runtime/MasonryFarProxy.shader
+  h_171a11afaf879a 48-50,64-66,76-78,106-108,180-184,204-208
+packages/terrain/src/data/seed-world/public/Shader/Grass.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Terrain.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc
+  h_171a11afaf879a 1
+packages/terrain/src/shaders/Vegetation.shader
+  h_171a11afaf879a 20-22,97-99,110,295-297,356-364,390-391
+packages/terrain/src/shaders/grass/GrassForwardPass.glsl
+  h_171a11afaf879a 102,115,117,469-473,523-527,584-588,771-775
+packages/terrain/src/shaders/shared/FoliageLighting.glsl
+  h_171a11afaf879a 1-255
+packages/terrain/src/shaders/shared/SurfaceRelief.glsl
+  h_171a11afaf879a 4,81-97
+packages/terrain/src/shaders/terrain/TerrainForwardPass.glsl
+  h_171a11afaf879a 9,168-184,186,194-197,199,208-227,229,236-253,348
+packages/terrain/src/shaders/vegetation/VegetationEvaluation.glsl
+  h_171a11afaf879a 270
+packages/terrain/src/shaders/vegetation/VegetationTranslucency.glsl
+  h_171a11afaf879a 26-27,78,126-128
+packages/terrain/src/terrain/project/TerrainPostProcessRuntime.ts
+  h_171a11afaf879a 256
+packages/world-planning/src/runtime/SeedWorldForwardGrass.ts
+  h_171a11afaf879a 783-784
+packages/world-planning/src/runtime/SeedWorldPopulationRuntime.ts
+  h_171a11afaf879a 620-621
+packages/world-planning/src/runtime/SeedWorldSurfaceReliefRuntime.ts
+  h_171a11afaf879a 39,273,294-295
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_171a11afaf879a 186-187,275,821-828
+world/tests/seed-world/TerrainFarShader.spec.ts
+  h_171a11afaf879a 21,40-69,193,496-499,503-504,523,525-530,534-535,673-676,679-691
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "69a293f7348614f2b715b0ef8c8f4953d09d5bca",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}

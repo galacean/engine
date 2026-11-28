@@ -1,0 +1,90 @@
+packages/building/src/building/runtime/EngineShaderSource.ts
+  h_171a11afaf879a 1,24,162
+packages/core/src/Engine.ts
+  h_171a11afaf879a 35,650
+packages/core/src/RenderPipeline/BasicRenderPipeline.ts
+  h_171a11afaf879a 24-29,412,748
+packages/core/src/RenderPipeline/Blitter.ts
+  h_171a11afaf879a 4,73,119
+packages/core/src/RenderPipeline/RenderContext.ts
+  h_171a11afaf879a 7,134,137
+packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts
+  h_171a11afaf879a 18-23,778,2346
+packages/core/src/postProcess/PostProcessUberPass.ts
+  h_171a11afaf879a 21,774
+packages/core/src/renderingHardwareInterface/IHardwareRenderer.ts
+  h_171a11afaf879a 1,32
+packages/core/src/renderingHardwareInterface/RHIBackend.ts
+  h_171a11afaf879a 1-9
+packages/core/src/renderingHardwareInterface/index.ts
+  h_171a11afaf879a 1
+packages/core/src/shader/Shader.ts
+  h_171a11afaf879a 5,98-99
+packages/core/src/shader/ShaderPass.ts
+  h_171a11afaf879a 22,247,408,411,423,649,668,724
+packages/core/src/shadow/CascadedShadowCasterPass.ts
+  h_171a11afaf879a 10,512
+packages/loader/src/ShaderLoader.ts
+  h_171a11afaf879a 7,73
+packages/rhi-null/src/NullGraphicDevice.ts
+  h_171a11afaf879a 1,15
+packages/rhi-webgl/src/WebGLGraphicDevice.ts
+  h_171a11afaf879a 25,96
+packages/rhi-webgpu/src/WebGPUGraphicDevice.ts
+  h_171a11afaf879a 19,107,333-343
+packages/rhi-webgpu/src/WebGPUMipmapGenerator.ts
+  h_171a11afaf879a 13,122-165,169
+packages/terrain/src/terrain/clipmap/TerrainClipmapMaterial.ts
+  h_171a11afaf879a 15,181
+packages/terrain/src/terrain/performance/WebGPUDrawCounters.ts
+  h_171a11afaf879a 1,23
+packages/world-planning/src/integrations/terrain/lighting/TerrainLightingRuntime.ts
+  h_171a11afaf879a 20,739
+packages/world-planning/src/integrations/terrain/performance/TerrainPerformancePanel.ts
+  h_171a11afaf879a 1,370
+packages/world-planning/src/runtime/SeedWorldTerrainRuntime.ts
+  h_171a11afaf879a 36,571
+packages/world-planning/src/semantic-study/PlanningTerrainDepth.ts
+  h_171a11afaf879a 7,73
+packages/world-planning/src/semantic-study/WorldPlanning3DView.ts
+  h_171a11afaf879a 10,194
+packages/world-planning/src/world/SeedWorldPicker.ts
+  h_171a11afaf879a 17,414
+packages/world-planning/src/world/SeedWorldShaderWarmup.ts
+  h_171a11afaf879a 20,37,39,439-442,585-587,600-601,610-611,623-625,648,652,654,658,664-678,680,684,688,691,786-810,812,1389
+packages/xr-webxr/src/WebXRDevice.ts
+  h_171a11afaf879a 1,55,59,92
+packages/xr-webxr/src/WebXRProjection.ts
+  h_171a11afaf879a 1-2,16
+packages/xr-webxr/src/WebXRSession.ts
+  h_171a11afaf879a 1,136,154,162,218
+tests/src/xr/WebGPUProjection.test.ts
+  h_171a11afaf879a 7,19,41
+world/demos/seed-world/SeedWorldDemo.ts
+  h_171a11afaf879a 141,848,853,874,3396,3414-3417,3419,3672-3702,4257-4281,4286
+world/demos/seed-world/assistant/SeedWorldVoiceOrbCache.ts
+  h_171a11afaf879a 6,339
+world/demos/seed-world/src/SeedWorldPerfTour.ts
+  h_171a11afaf879a 2,903
+world/demos/seed-world/src/SeedWorldRenderHud.ts
+  h_171a11afaf879a 1,8,85
+world/demos/seed-world/src/SeedWorldStartupShaderWarmup.ts
+  h_171a11afaf879a 86-90,247
+world/tests/seed-world/SeedWorldPerfCapture.spec.ts
+  h_171a11afaf879a 8,197
+world/tests/seed-world/SeedWorldRendererWarmup.spec.ts
+  h_171a11afaf879a 6,2582,2591
+world/tests/seed-world/TerrainPreparedUpdate.spec.ts
+  h_171a11afaf879a 2,101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "77bec7064dcfd57c7857f8c33ddca515b129d2d0",
+  "prompts": {},
+  "humans": {
+    "h_171a11afaf879a": {
+      "author": "shensi.zxd <shensi.zxd@alibaba-inc.com>"
+    }
+  }
+}
