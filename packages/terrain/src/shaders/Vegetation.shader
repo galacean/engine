@@ -419,7 +419,7 @@ Shader "Terrain/Vegetation" {
         WriteEnabled = true;
       }
       RasterState = {
-        CullMode = CullMode.Off;
+        CullMode = CullMode.Back;
       }
       RenderQueueType = AlphaTest;
 
