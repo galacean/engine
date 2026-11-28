@@ -18,7 +18,7 @@ const grass = JSON.parse(
 const grassForward = grass.subShaders[0].passes.find((pass) => pass.name === "Forward");
 
 describe("Terrain near/far production shader variants", () => {
-  it.each(["Terrain", "Surface", "Vegetation", "Billboard"])("ships the engine point and spot falloff in %s", (name) => {
+  it.each(["Terrain", "Surface", "Billboard"])("ships the engine point and spot falloff in %s", (name) => {
     const asset = JSON.parse(
       fs.readFileSync(
         new URL(`../../../packages/terrain/src/data/seed-world/public/Shader/${name}.shaderc`, import.meta.url),
@@ -35,6 +35,36 @@ describe("Terrain near/far production shader variants", () => {
     expect(source).toContain("getDistanceAttenuation(distanceSq,pointLight.distance)");
     expect(source).toContain("getDistanceAttenuation(distanceSq,spotLight.distance)");
     expect(source).toContain("if(cutoffDistance>0.0)");
+  });
+
+  it("uses diffuse-only FoliageLighting in Vegetation without PBR/PointLight/SpotLight/SSR and hoists cloud shadow to vertex", () => {
+    const asset = JSON.parse(
+      fs.readFileSync(
+        new URL("../../../packages/terrain/src/data/seed-world/public/Shader/Vegetation.shaderc", import.meta.url),
+        "utf8"
+      )
+    );
+    const pass = asset.subShaders[0].passes.find((entry) => entry.name === "Forward");
+    const macros = new Map([
+      ["GRAPHICS_API_WEBGL2", ""],
+      ["SCENE_DIRECT_LIGHT_COUNT", "1"],
+      ["SCENE_POINT_LIGHT_COUNT", "2"],
+      ["SCENE_SPOT_LIGHT_COUNT", "1"],
+      ["SCENE_USE_SH", ""],
+      ["SCENE_USE_REALTIME_SH", ""],
+      ["SCENE_USE_SPECULAR_ENV", ""],
+      ["SCENE_VOLUMETRIC_CLOUD_SHADOW", ""],
+      ["MATERIAL_ENABLE_TRANSLUCENCY", ""]
+    ]);
+    const vertSrc = ShaderMacroProcessor.evaluate(pass.vertexShaderInstructions, macros);
+    const fragSrc = ShaderMacroProcessor.evaluate(pass.fragmentShaderInstructions, macros);
+    expect(vertSrc).toContain("sampleVolumetricCloudShadow");
+    expect(fragSrc).toContain("getGlobalDiffuseIrradianceDual");
+    expect(fragSrc).not.toContain("scene_PointLightColor");
+    expect(fragSrc).not.toContain("scene_SpotLightColor");
+    expect(fragSrc).not.toContain("scene_EnvSpecularSampler");
+    expect(fragSrc).not.toContain("sampleProbeVolume");
+    expect(fragSrc).not.toContain("material_Smoothness");
   });
 
   it("keeps per-pixel baked slopes on distant sand without sampling the micro normal", () => {
@@ -160,6 +190,7 @@ describe("Terrain near/far production shader variants", () => {
         macros.set("MATERIAL_TERRAIN_LAYER_DIFFUSE_TEXTURES", "");
       }
       macros.set("MATERIAL_TERRAIN_DETAIL_TRANSITION", "");
+      macros.set("CAMERA_SURFACE_RELIEF", "");
       const near = ShaderMacroProcessor.evaluate(forward.fragmentShaderInstructions, macros);
       macros.delete("MATERIAL_TERRAIN_DETAIL_TRANSITION");
       macros.set("MATERIAL_TERRAIN_FAR", "");
@@ -462,15 +493,15 @@ describe("Terrain near/far production shader variants", () => {
       ["SCENE_PROBE_VOLUME_PER_VERTEX", ""]
     ]);
     const pointLightFs = ShaderMacroProcessor.evaluate(grassForward.fragmentShaderInstructions, pointLightMacros);
-    expect(pointLightFs).toContain("getPointLight");
-    expect(pointLightFs).toContain("getSpotLight");
-    expect(pointLightFs).toContain("sampleProbeVolume");
+    expect(pointLightFs).not.toContain("getPointLight");
+    expect(pointLightFs).not.toContain("getSpotLight");
+    expect(pointLightFs).not.toContain("sampleProbeVolume");
+    expect(pointLightFs).not.toContain("scene_EnvSpecularSampler");
     const matteGrass = pointLightFs
       .slice(pointLightFs.indexOf("vec3 evaluateMatteGrassLighting"), pointLightFs.indexOf("void GrassFragment"))
       .replace(/\s+/g, "");
-    expect(matteGrass).toContain("getDistanceAttenuation(distanceSq,pointLight.distance)");
-    expect(matteGrass).toContain("getDistanceAttenuation(distanceSq,spotLight.distance)");
-    expect(matteGrass).toContain("dot(pointLight.color,pointLight.color)>0.0");
+    expect(matteGrass).toContain("evaluateTerrainProjectFoliageDirectDiffuse");
+    expect(matteGrass).toContain("evaluateTerrainProjectFoliageEnvironmentDiffuse");
   });
 
   it("retains volumetric cloud shadow attenuation on dry grass when directional shadows are disabled (P1-6)", () => {
@@ -489,14 +520,19 @@ describe("Terrain near/far production shader variants", () => {
       ["RENDERER_TERRAIN_GRASS_SHADING", ""]
     ]);
     const vs = ShaderMacroProcessor.evaluate(grassForward.vertexShaderInstructions, macros);
-    const fs = ShaderMacroProcessor.evaluate(grassForward.fragmentShaderInstructions, macros);
+    const fragSrc = ShaderMacroProcessor.evaluate(grassForward.fragmentShaderInstructions, macros);
     const vsBody = vs.slice(vs.indexOf("Varyings GrassVertex"));
-    const matteFn = fs.slice(fs.indexOf("vec3 evaluateMatteGrassLighting"), fs.indexOf("void GrassFragment"));
-    const fsBody = fs.slice(fs.indexOf("void GrassFragment"));
+    const directFn = fragSrc.slice(
+      fragSrc.indexOf("vec3 evaluateTerrainProjectFoliageDirectDiffuse"),
+      fragSrc.indexOf("vec3 evaluateTerrainProjectFoliageEnvironmentDiffuse")
+    );
+    const matteFn = fragSrc.slice(fragSrc.indexOf("vec3 evaluateMatteGrassLighting"), fragSrc.indexOf("void GrassFragment"));
+    const fsBody = fragSrc.slice(fragSrc.indexOf("void GrassFragment"));
 
     expect(vsBody).not.toContain("sampleVolumetricCloudShadow");
     expect(fsBody).toMatch(/shadowAttenuation\s*\*=\s*sampleVolumetricCloudShadow\s*\(\s*input_\s*\.\s*positionWS\s*\)/);
-    expect(matteFn).toMatch(/directionalLight\s*\.\s*color\s*\*=\s*shadowAttenuation/);
+    expect(matteFn).toContain("evaluateTerrainProjectFoliageDirectDiffuse");
+    expect(directFn).toMatch(/directShadowAttenuation/);
   });
 
   it("keeps active vertex samplers <= 16 across the full GrassVertex macro matrix and omits unused metadata on single-map (P1-5)", () => {
@@ -634,9 +670,24 @@ describe("Terrain near/far production shader variants", () => {
       if (expectsDeferredProbe) {
         expect(reachableFns.has("sampleProbeVolume"), `${label} should defer sampleProbeVolume off VS`).toBe(false);
       }
-      // ProbeVolume must still be sampled in fragment when deferred off VS.
-      expect(fs, `${label} fs should still evaluate probe volume`).toContain("sampleProbeVolume");
+      // FoliageLighting omits ProbeVolume, specular IBL, and point/spot lights from Grass.
+      expect(fs, `${label} fs must omit probe volume`).not.toContain("sampleProbeVolume");
+      expect(fs, `${label} fs must omit specular IBL`).not.toContain("scene_EnvSpecularSampler");
+      expect(fs, `${label} fs must omit LOD debug uniform by default`).not.toContain("renderer_GrassLodDebugColor");
     }
+
+    // SurfaceRelief samplers must only appear when CAMERA_SURFACE_RELIEF is enabled.
+    const reliefOffFs = ShaderMacroProcessor.evaluate(forward.fragmentShaderInstructions, new Map([
+      ["GRAPHICS_API_WEBGL2", ""],
+      ["MATERIAL_TERRAIN_LAYERS", ""],
+      ["MATERIAL_TERRAIN_SINGLE_REGION", ""],
+      ["MATERIAL_TERRAIN_SINGLE_ALPHAMAP", ""],
+      ["MATERIAL_TERRAIN_UNTEXTURED_SINGLE_MAP", ""],
+      ["MATERIAL_TERRAIN_DETAIL_TRANSITION", ""]
+    ]));
+    expect(reliefOffFs).not.toContain("camera_SurfaceReliefBakedNormal");
+    expect(reliefOffFs).not.toContain("camera_SurfaceReliefMaskTexture");
+    expect(reliefOffFs).not.toContain("camera_SurfaceReliefHeightTexture");
 
     // Single-map variants must omit unused AlphamapMetadata and LayerMetadata sampler declarations.
     const singleMapVs = ShaderMacroProcessor.evaluate(

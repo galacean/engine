@@ -57,9 +57,6 @@ struct Attributes {
   // and per-vertex ALU/texture overhead on sub-pixel grass blades).
   #define TERRAIN_PROJECT_GRASS_MATTE_LIGHTING
 #endif
-#if defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX) && !defined(TERRAIN_PROJECT_GRASS_TERRAIN_SURFACE)
-  #define TERRAIN_PROJECT_GRASS_VERTEX_PROBE_VOLUME
-#endif
 struct Varyings {
   #ifdef RENDERER_WORLD_PICK
     float worldPickId;
@@ -97,17 +94,12 @@ struct Varyings {
   #if SCENE_FOG_MODE != 0
     vec3 positionVS;
   #endif
-  #if defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX)
-    vec3 probeIrradiance;
-    float probeWeight;
-  #endif
   #if defined(NEED_CALCULATE_SHADOWS) && (SCENE_SHADOW_CASCADED_COUNT == 1)
     vec3 shadowCoord;
   #endif
 };
 
-#include "shared/Shadow.glsl"
-#include "shared/Lighting.glsl"
+#include "shared/FoliageLighting.glsl"
 #include "shared/TerrainSurfaceData.glsl"
 #ifndef MATERIAL_GRASS_SHARED_COLOR_FIELD
   #define GRASS_COLOR_FIELD_RENDERER_SOURCE
@@ -120,7 +112,9 @@ struct Varyings {
 vec4 material_GrassGroundColor;
 vec4 material_GrassSurfaceSnowResponse;
 vec4 renderer_GrassRoadColor;
+#ifdef RENDERER_GRASS_LOD_DEBUG
 vec4 renderer_GrassLodDebugColor;
+#endif
 #include "shared/GrassGroundFusion.glsl"
 #ifdef TERRAIN_PROJECT_GRASS_TERRAIN_SURFACE
   #ifndef TERRAIN_PROJECT_GROUND_MATERIAL_BINDING
@@ -234,10 +228,6 @@ Varyings grassCulledVaryings() {
   #if SCENE_FOG_MODE != 0
     output.positionVS = vec3(0.0);
   #endif
-  #if defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX)
-    output.probeIrradiance = vec3(0.0);
-    output.probeWeight = 0.0;
-  #endif
   #if defined(NEED_CALCULATE_SHADOWS) && (SCENE_SHADOW_CASCADED_COUNT == 1)
     output.shadowCoord = vec3(0.0);
   #endif
@@ -307,22 +297,6 @@ Varyings GrassVertex(Attributes attributes) {
     output.positionCS = camera_VPMat * worldPosition;
     #if SCENE_FOG_MODE != 0
       output.positionVS = (camera_ViewMat * worldPosition).xyz;
-    #endif
-    #ifdef TERRAIN_PROJECT_GRASS_VERTEX_PROBE_VOLUME
-      vec3 probeIrradiance;
-      bool hasProbe = sampleProbeVolume(
-        output.positionWS,
-        vTerrainNormalWS,
-        normalize(camera_Position - output.positionWS),
-        probeIrradiance
-      );
-      output.probeIrradiance = probeIrradiance;
-      output.probeWeight = hasProbe ? 1.0 : 0.0;
-    #elif defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX)
-      // Defer probe volume sampling to fragment when terrain surface samplers are active in VS
-      // so active vertex samplers stay <= 16 (WebGL2 minimum) across all macro combinations.
-      output.probeIrradiance = vec3(0.0);
-      output.probeWeight = 0.0;
     #endif
     #if defined(NEED_CALCULATE_SHADOWS) && (SCENE_SHADOW_CASCADED_COUNT == 1)
       output.shadowCoord = getShadowCoord(output.positionWS);
@@ -463,22 +437,6 @@ Varyings GrassVertex(Attributes attributes) {
   #if SCENE_FOG_MODE != 0
     output.positionVS = (camera_ViewMat * worldPosition).xyz;
   #endif
-  #ifdef TERRAIN_PROJECT_GRASS_VERTEX_PROBE_VOLUME
-    vec3 probeIrradiance;
-    bool hasProbe = sampleProbeVolume(
-      output.positionWS,
-      output.terrainNormalWS,
-      normalize(camera_Position - output.positionWS),
-      probeIrradiance
-    );
-    output.probeIrradiance = probeIrradiance;
-    output.probeWeight = hasProbe ? 1.0 : 0.0;
-  #elif defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX)
-    // Defer probe volume sampling to fragment when terrain surface samplers are active in VS
-    // so active vertex samplers stay <= 16 (WebGL2 minimum) across all macro combinations.
-    output.probeIrradiance = vec3(0.0);
-    output.probeWeight = 0.0;
-  #endif
   #if defined(NEED_CALCULATE_SHADOWS) && (SCENE_SHADOW_CASCADED_COUNT == 1)
     output.shadowCoord = getShadowCoord(output.positionWS);
   #endif
@@ -508,94 +466,11 @@ vec3 evaluateMatteGrassLighting(
   vec3 normalWS,
   float shadowAttenuation
 ) {
-  // Dry grass blades have fixed metallic=0.0, roughness=1.0, IOR=1.5 (F0=0.04), AO=1.0.
-  // Diffuse albedo is albedo * (1.0 - F0) = albedo * 0.96. Direct GGX specular at roughness=1.0
-  // is ~0.01 * dotNL * lightColor, and envBRDFApprox(0.04, 1.0, 1.0, dotNV) * energyCompensation
-  // is strictly constant (~0.01646), matching full PBR within <0.3% with 0 cubemap/SSR/GGX cost.
-  vec3 diffuseAlbedo = albedo * 0.96;
-  vec3 directResponse = diffuseAlbedo + vec3(0.01);
-  vec3 totalRadiance = vec3(0.0);
-
-  #ifdef SCENE_DIRECT_LIGHT_COUNT
-    for (int i = 0; i < SCENE_DIRECT_LIGHT_COUNT; i++) {
-      if (!isRendererCulledByLight(renderer_Layer.xy, scene_DirectLightCullingMask[i])) {
-        DirectLight directionalLight = getDirectLight(i);
-        if (i == 0) {
-          directionalLight.color *= shadowAttenuation;
-        }
-        float dotNL = saturate(dot(normalWS, -directionalLight.direction));
-        totalRadiance += dotNL * directionalLight.color * directResponse;
-      }
-    }
-  #endif
-
-  #ifdef SCENE_POINT_LIGHT_COUNT
-    for (int i = 0; i < SCENE_POINT_LIGHT_COUNT; i++) {
-      if (!isRendererCulledByLight(renderer_Layer.xy, scene_PointLightCullingMask[i])) {
-        PointLight pointLight = getPointLight(i);
-        if (dot(pointLight.color, pointLight.color) > 0.0) {
-          vec3 lVector = pointLight.position - input.positionWS;
-          float distanceSq = dot(lVector, lVector);
-          float attenuation = getDistanceAttenuation(distanceSq, pointLight.distance);
-          if (attenuation > 0.0) {
-            vec3 direction = lVector * inversesqrt(max(distanceSq, 1e-12));
-            float dotNL = saturate(dot(normalWS, direction));
-            totalRadiance += (dotNL * attenuation) * pointLight.color * directResponse;
-          }
-        }
-      }
-    }
-  #endif
-
-  #ifdef SCENE_SPOT_LIGHT_COUNT
-    for (int i = 0; i < SCENE_SPOT_LIGHT_COUNT; i++) {
-      if (!isRendererCulledByLight(renderer_Layer.xy, scene_SpotLightCullingMask[i])) {
-        SpotLight spotLight = getSpotLight(i);
-        vec3 lVector = spotLight.position - input.positionWS;
-        float distanceSq = dot(lVector, lVector);
-        float attenuation = getDistanceAttenuation(distanceSq, spotLight.distance);
-        if (attenuation > 0.0) {
-          vec3 direction = lVector * inversesqrt(max(distanceSq, 1e-12));
-          float spotEffect = smoothstep(spotLight.penumbraCos, spotLight.angleCos, dot(direction, -spotLight.direction));
-          float dotNL = saturate(dot(normalWS, direction));
-          totalRadiance += (dotNL * spotEffect * attenuation) * spotLight.color * directResponse;
-        }
-      }
-    }
-  #endif
-
-  #if defined(SCENE_USE_PROBE_VOLUME) || defined(SCENE_USE_SH)
-    vec3 globalIrradiance = getGlobalDiffuseIrradiance(normalWS);
-  #else
-    vec3 globalIrradiance = scene_EnvMapLight.diffuse * PI;
-  #endif
-  vec3 diffuseIrradiance = globalIrradiance * scene_EnvMapLight.diffuseIntensity;
-
-  #if defined(SCENE_USE_PROBE_VOLUME) && !defined(MATERIAL_DISABLE_PROBE_VOLUME)
-    vec3 probeIrradiance;
-    bool hasProbe;
-    #if defined(TERRAIN_PROJECT_GRASS_VERTEX_PROBE_VOLUME) && defined(RENDERER_HAS_NORMAL)
-      probeIrradiance = input.probeIrradiance;
-      hasProbe = input.probeWeight > 0.999 && dot(probeIrradiance, vec3(1.0)) > 1e-5;
-      if (!hasProbe) {
-        vec3 viewDir = normalize(camera_Position - input.positionWS);
-        hasProbe = sampleProbeVolume(input.positionWS, normalWS, viewDir, probeIrradiance);
-      }
-    #else
-      vec3 viewDir = normalize(camera_Position - input.positionWS);
-      hasProbe = sampleProbeVolume(input.positionWS, normalWS, viewDir, probeIrradiance);
-    #endif
-    if (hasProbe) {
-      diffuseIrradiance = probeIrradiance;
-    }
-  #endif
-
-  totalRadiance += diffuseIrradiance * (diffuseAlbedo * RECIPROCAL_PI);
-  #ifdef SCENE_USE_SPECULAR_ENV
-    totalRadiance += globalIrradiance * (0.01646 * RECIPROCAL_PI * scene_EnvMapLight.specularIntensity);
-  #endif
-
-  return max(totalRadiance, vec3(0.0));
+  // Diffuse-only foliage lighting: directional sun/moon Lambert + simplified SH diffuse irradiance.
+  // Excludes PointLight/SpotLight loops, specular IBL, sheen, clearcoat, SSR, and probe volume.
+  vec3 directDiffuse = evaluateTerrainProjectFoliageDirectDiffuse(albedo, normalWS, shadowAttenuation);
+  vec3 envDiffuse = evaluateTerrainProjectFoliageEnvironmentDiffuse(albedo, normalWS, 1.0);
+  return max(directDiffuse + envDiffuse, vec3(0.0));
 }
 #endif
 
@@ -645,9 +520,11 @@ void GrassFragment(Varyings input) {
     #if SCENE_FOG_MODE != 0
       color = fog(vec4(color, 1.0), input.positionVS).rgb;
     #endif
-    if (renderer_GrassLodDebugColor.a > 0.0) {
-      color = mix(color, renderer_GrassLodDebugColor.rgb, renderer_GrassLodDebugColor.a);
-    }
+    #ifdef RENDERER_GRASS_LOD_DEBUG
+      if (renderer_GrassLodDebugColor.a > 0.0) {
+        color = mix(color, renderer_GrassLodDebugColor.rgb, renderer_GrassLodDebugColor.a);
+      }
+    #endif
     gl_FragColor = vec4(color, farmGroundWeight);
   #elif defined(TERRAIN_PROJECT_GRASS_PACKED_VARYINGS)
     vec3 surfaceColor = input.rootGroundBase.rgb;
@@ -704,9 +581,11 @@ void GrassFragment(Varyings input) {
     #if SCENE_FOG_MODE != 0
       color = fog(vec4(color, 1.0), input.positionVS).rgb;
     #endif
-    if (renderer_GrassLodDebugColor.a > 0.0) {
-      color = mix(color, renderer_GrassLodDebugColor.rgb, renderer_GrassLodDebugColor.a);
-    }
+    #ifdef RENDERER_GRASS_LOD_DEBUG
+      if (renderer_GrassLodDebugColor.a > 0.0) {
+        color = mix(color, renderer_GrassLodDebugColor.rgb, renderer_GrassLodDebugColor.a);
+      }
+    #endif
     gl_FragColor = vec4(color, 1.0);
   #else
   vec3 surfaceWeights = max(input.surfaceWeights, vec3(0.0));
@@ -889,9 +768,11 @@ void GrassFragment(Varyings input) {
   #if SCENE_FOG_MODE != 0
     color = fog(vec4(color, 1.0), input.positionVS).rgb;
   #endif
-  if (renderer_GrassLodDebugColor.a > 0.0) {
-    color = mix(color, renderer_GrassLodDebugColor.rgb, renderer_GrassLodDebugColor.a);
-  }
+  #ifdef RENDERER_GRASS_LOD_DEBUG
+    if (renderer_GrassLodDebugColor.a > 0.0) {
+      color = mix(color, renderer_GrassLodDebugColor.rgb, renderer_GrassLodDebugColor.a);
+    }
+  #endif
   gl_FragColor = vec4(color, 1.0);
   #endif
 }

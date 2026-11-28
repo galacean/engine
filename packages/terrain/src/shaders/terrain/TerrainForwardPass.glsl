@@ -6,7 +6,7 @@ float renderer_WorldPickBase;
 
 #define TERRAIN_PROJECT_FORWARD_PASS
 #define OIL_PAINT_BRUSH_PLANAR_ANTI_TILE
-#if !defined(RENDERER_WORLD_PICK) && !defined(MATERIAL_TERRAIN_FAR)
+#if !defined(RENDERER_WORLD_PICK) && defined(SCENE_VOLUMETRIC_CLOUD_SHADOW)
   #define TERRAIN_PROJECT_VERTEX_CLOUD_SHADOW
 #endif
 #if SCENE_FOG_MODE != 0 && defined(SCENE_FOG_DIRECTIONAL_SKY) && !defined(RENDERER_WORLD_PICK) && !defined(MATERIAL_TERRAIN_FAR)
@@ -165,14 +165,25 @@ void TerrainFragment(Varyings varyings) {
     int regionIndex;
     int alphamapOffset;
     int alphamapCount;
-    if (terrainProjectResolveLayerGroups(
-      varyings.positionWS.xz,
-      regionIndex,
-      alphamapOffset,
-      alphamapCount
+    #ifdef MATERIAL_TERRAIN_SINGLE_ALPHAMAP
+      bool hasSurface = false;
+      float groupWeight = 1.0;
+      #ifdef TERRAIN_PROJECT_SAND_GLINTS
+        float sandWeight = 0.0;
+        float snowResponse = 1.0;
+      #endif
+      SurfaceData surfaceData;
+      #ifdef TERRAIN_PROJECT_WATER_LAYER
+        TerrainProjectWaterFilm waterFilm;
+      #endif
+      TerrainProjectSandMicroDetail microDetail;
+      if (terrainProjectResolveLayerGroups(
+        varyings.positionWS.xz,
+        regionIndex,
+        alphamapOffset,
+        alphamapCount
       )) {
-      TerrainProjectSandMicroDetail microDetail = terrainProjectSandMicroDetail(varyings);
-      #ifdef MATERIAL_TERRAIN_SINGLE_ALPHAMAP
+        microDetail = terrainProjectSandMicroDetail(varyings);
         TerrainProjectLayerBlend layerBlend;
         if (terrainProjectEvaluateLayerGroup(
           varyings.positionWS,
@@ -180,11 +191,12 @@ void TerrainFragment(Varyings varyings) {
           alphamapOffset,
           layerBlend
         ) && layerBlend.weight > 0.0) {
-          float groupWeight = layerBlend.weight;
-          #ifdef TERRAIN_PROJECT_WATER_LAYER
-            TerrainProjectWaterFilm waterFilm;
+          groupWeight = layerBlend.weight;
+          #ifdef TERRAIN_PROJECT_SAND_GLINTS
+            sandWeight = layerBlend.sandWeight;
+            snowResponse = layerBlend.snowResponse;
           #endif
-          SurfaceData surfaceData = evaluateTerrainLayerSurface(
+          surfaceData = evaluateTerrainLayerSurface(
             varyings,
             geometryNormal,
             layerBlend,
@@ -193,32 +205,52 @@ void TerrainFragment(Varyings varyings) {
               , waterFilm
             #endif
           );
-          TerrainProjectLightingResult lighting = terrainProjectCreateLightingResult();
-          terrainProjectAccumulateLighting(
-            lighting,
-            evaluateTerrainProjectLightingWithShadow(varyings, surfaceData, shadowAttenuation),
-            groupWeight
-          );
-          #ifdef TERRAIN_PROJECT_SAND_GLINTS
-            float exposedSand = layerBlend.sandWeight * groupWeight;
+          hasSurface = true;
+        }
+      } else {
+        surfaceData = evaluateTerrainFallbackSurface(varyings, geometryNormal
+          #ifdef TERRAIN_PROJECT_WATER_LAYER
+            , waterFilm
+          #endif
+        );
+        hasSurface = true;
+      }
+      if (hasSurface) {
+        TerrainProjectLightingResult lighting = terrainProjectCreateLightingResult();
+        terrainProjectAccumulateLighting(
+          lighting,
+          evaluateTerrainProjectLightingWithShadow(varyings, surfaceData, shadowAttenuation),
+          groupWeight
+        );
+        #ifdef TERRAIN_PROJECT_SAND_GLINTS
+          if (sandWeight > 0.0) {
+            float exposedSand = sandWeight * groupWeight;
             #ifndef SCENE_SURFACE_CLIMATE_DRY
-              exposedSand *= 1.0 - clamp(scene_SurfaceClimate.z * layerBlend.snowResponse, 0.0, 1.0);
+              exposedSand *= 1.0 - clamp(scene_SurfaceClimate.z * snowResponse, 0.0, 1.0);
             #endif
             #ifdef TERRAIN_PROJECT_WATER_LAYER
               exposedSand *= 1.0 - waterFilm.coverage;
             #endif
             terrainProjectApplySandGrains(lighting, varyings.positionWS, surfaceData.viewDir, surfaceData.normal * exposedSand, microDetail,
               glintDx, glintDy, exposedSand, shadowAttenuation);
-          #endif
-          #ifdef TERRAIN_PROJECT_WATER_LAYER
-            waterFilm.coverage = clamp(waterFilm.coverage * groupWeight, 0.0, 1.0);
-            if (waterFilm.coverage > 1e-5) {
-              terrainProjectApplyWaterFilmLighting(varyings, surfaceData, waterFilm, ssrDepthSlope, lighting);
-            }
-          #endif
-          color = terrainProjectFinalLighting(lighting);
-        }
-      #else
+          }
+        #endif
+        #ifdef TERRAIN_PROJECT_WATER_LAYER
+          waterFilm.coverage = clamp(waterFilm.coverage * groupWeight, 0.0, 1.0);
+          if (waterFilm.coverage > 1e-5) {
+            terrainProjectApplyWaterFilmLighting(varyings, surfaceData, waterFilm, ssrDepthSlope, lighting);
+          }
+        #endif
+        color = terrainProjectFinalLighting(lighting);
+      }
+    #else
+    if (terrainProjectResolveLayerGroups(
+      varyings.positionWS.xz,
+      regionIndex,
+      alphamapOffset,
+      alphamapCount
+      )) {
+      TerrainProjectSandMicroDetail microDetail = terrainProjectSandMicroDetail(varyings);
         TerrainProjectLightingResult lighting = terrainProjectCreateLightingResult();
         #ifdef TERRAIN_PROJECT_SAND_GLINTS
           float sandCoverage = 0.0;
@@ -298,7 +330,6 @@ void TerrainFragment(Varyings varyings) {
           #endif
           color = terrainProjectFinalLighting(lighting);
         }
-      #endif
     } else {
       #ifdef TERRAIN_PROJECT_WATER_LAYER
         TerrainProjectWaterFilm waterFilm;
@@ -314,6 +345,7 @@ void TerrainFragment(Varyings varyings) {
       #endif
       color = terrainProjectFinalLighting(lighting);
     }
+    #endif
   #else
     #ifdef TERRAIN_PROJECT_WATER_LAYER
       TerrainProjectWaterFilm waterFilm;

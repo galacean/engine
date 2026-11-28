@@ -36,6 +36,7 @@ export interface SeedWorldSurfaceReliefTuning extends Partial<SeedWorldSurfaceRe
 }
 
 const bindingOwner = new WeakMap<ShaderData, SeedWorldSurfaceReliefRuntime>();
+const SURFACE_RELIEF_MACRO = "CAMERA_SURFACE_RELIEF";
 
 function createPackedMaskTexture(engine: Engine, resolution: number, pixels: Uint8Array): Texture2D {
   const texture = new Texture2D(engine, resolution, resolution, TextureFormat.R8G8B8_UNorm, false, false);
@@ -269,6 +270,7 @@ export class SeedWorldSurfaceReliefRuntime {
     this.disposed = true;
     for (const data of this.bindings)
       if (bindingOwner.get(data) === this) {
+        data.disableMacro?.(SURFACE_RELIEF_MACRO);
         data.setVector4("camera_SurfaceReliefOptions", new Vector4());
         data.setTexture("camera_SurfaceReliefHeightTexture", null!);
         data.setTexture("camera_SurfaceReliefMaskTexture", null!);
@@ -289,6 +291,8 @@ export class SeedWorldSurfaceReliefRuntime {
   }
 
   private bindTuning(data: ShaderData): void {
+    if (this.tuning.enabled) data.enableMacro?.(SURFACE_RELIEF_MACRO);
+    else data.disableMacro?.(SURFACE_RELIEF_MACRO);
     data.setVector4(
       "camera_SurfaceReliefOptions",
       new Vector4(Number(this.tuning.enabled), Number(this.tuning.roadEnabled), 0, 0)

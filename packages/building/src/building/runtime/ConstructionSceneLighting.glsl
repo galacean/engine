@@ -55,7 +55,7 @@ void masonrySurfaceShading(vec3 normalWS, vec3 viewDir, vec3 albedo, float rough
 }
 
 void masonryDirectRadiance(vec3 albedo, vec3 normalWS, vec3 positionWS,
-    vec3 viewDir, float roughness, bool glossy, inout vec3 radiance) {
+    vec3 viewDir, float roughness, bool glossy, float cloudShadow, inout vec3 radiance) {
     #ifdef SCENE_DIRECT_LIGHT_COUNT
       for (int i = 0; i < SCENE_DIRECT_LIGHT_COUNT; i++) {
         if (!isRendererCulledByLight(renderer_Layer.xy, scene_DirectLightCullingMask[i])) {
@@ -69,7 +69,11 @@ void masonryDirectRadiance(vec3 albedo, vec3 normalWS, vec3 positionWS,
                 atten = masonrySampleShadow(positionWS);
               #endif
               if (atten > 0.0) {
-                atten *= sampleVolumetricCloudShadow(positionWS);
+                #ifdef MASONRY_VERTEX_CLOUD_SHADOW
+                  atten *= cloudShadow;
+                #else
+                  atten *= sampleVolumetricCloudShadow(positionWS);
+                #endif
               }
             }
             if (atten > 0.0) {
@@ -157,7 +161,7 @@ void masonryDirectRadiance(vec3 albedo, vec3 normalWS, vec3 positionWS,
 
 // The material producer supplies LINEAR albedo and a world-space surface normal.
 // Use the scene's actual PBR/IBL/shadow implementation, including runtime macros.
-vec3 masonrySceneLight(Varyings lightingVaryings, vec3 albedo, vec3 normalWS, vec3 positionWS, float roughness) {
+vec3 masonrySceneLight(Varyings lightingVaryings, vec3 albedo, vec3 normalWS, vec3 positionWS, float roughness, float cloudShadow) {
     #ifdef SCENE_OIL_PAINT_STYLE
       applyOilPaintBrushSurface(positionWS, normalWS, 0.34, 0.0, albedo, normalWS, roughness);
     #endif
@@ -171,7 +175,7 @@ vec3 masonrySceneLight(Varyings lightingVaryings, vec3 albedo, vec3 normalWS, ve
       vec3 viewDir = glossy ? normalize(camera_Position - positionWS) : vec3(0.0);
     #endif
     vec3 radiance = vec3(0.0);
-    masonryDirectRadiance(albedo, n, positionWS, viewDir, roughness, glossy, radiance);
+    masonryDirectRadiance(albedo, n, positionWS, viewDir, roughness, glossy, cloudShadow, radiance);
     SurfaceData s;
     s.position = positionWS;
     s.normal = n;
@@ -208,11 +212,17 @@ Varyings initMasonryLightingVaryings(vec3 normalWS, vec3 positionWS) {
     #endif
     return lightingVaryings;
 }
-vec3 masonryResidentSceneLight(vec3 albedo,vec3 normalWS,vec3 positionWS,float roughness) {
+#ifdef MASONRY_VERTEX_CLOUD_SHADOW
+vec3 masonryResidentSceneLight(vec3 albedo, vec3 normalWS, vec3 positionWS, float roughness, float cloudShadow) {
     Varyings lightingVaryings = initMasonryLightingVaryings(normalWS, positionWS);
-    return masonrySceneLight(lightingVaryings,albedo,normalWS,positionWS,roughness);
+    return masonrySceneLight(lightingVaryings, albedo, normalWS, positionWS, roughness, cloudShadow);
 }
-vec3 masonryFarProxyLight(vec3 albedo, vec3 normalWS, vec3 positionWS) {
+#endif
+vec3 masonryResidentSceneLight(vec3 albedo, vec3 normalWS, vec3 positionWS, float roughness) {
+    Varyings lightingVaryings = initMasonryLightingVaryings(normalWS, positionWS);
+    return masonrySceneLight(lightingVaryings, albedo, normalWS, positionWS, roughness, 1.0);
+}
+vec3 masonryFarProxyLight(vec3 albedo, vec3 normalWS, vec3 positionWS, float cloudShadow) {
     #ifdef SCENE_OIL_PAINT_STYLE
       applyOilPaintBrushSurface(positionWS, normalWS, 0.34, albedo, normalWS);
     #endif
@@ -244,7 +254,11 @@ vec3 masonryFarProxyLight(vec3 albedo, vec3 normalWS, vec3 positionWS) {
                 atten = masonrySampleShadow(positionWS);
               #endif
               if (atten > 0.0) {
-                atten *= sampleVolumetricCloudShadow(positionWS);
+                #ifdef MASONRY_VERTEX_CLOUD_SHADOW
+                  atten *= cloudShadow;
+                #else
+                  atten *= sampleVolumetricCloudShadow(positionWS);
+                #endif
               }
             }
             diffuse += diffuseAlbedo * light.color * (ndotl * atten);
@@ -287,6 +301,9 @@ vec3 masonryFarProxyLight(vec3 albedo, vec3 normalWS, vec3 positionWS) {
     #endif
     evaluateDiffuseIBL(lightingVaryings, s, bsdf, diffuse);
     return diffuse;
+}
+vec3 masonryFarProxyLight(vec3 albedo, vec3 normalWS, vec3 positionWS) {
+    return masonryFarProxyLight(albedo, normalWS, positionWS, 1.0);
 }
 vec3 masonrySceneFog(vec3 color, vec3 positionWS) {
     #if SCENE_FOG_MODE != 0

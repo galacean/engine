@@ -4,7 +4,6 @@
 vec4 material_BaseColor;
 float material_Tiling;
 float material_AlphaCutoff;
-float material_Smoothness;
 float material_NormalScale;
 float material_LightingFlatness;
 vec4 material_SecondColor;
@@ -72,9 +71,6 @@ sampler2D renderer_ProceduralTreeLeafMask4;
 #endif
 #ifdef MATERIAL_HAS_NORMALTEXTURE
 sampler2D material_NormalTexture;
-#endif
-#ifdef MATERIAL_HAS_SMOOTHNESS_TEXTURE
-sampler2D material_SmoothnessTexture;
 #endif
 #ifdef MATERIAL_WIND_HERO_TREE_HIERARCHY
 sampler2D material_WindMechanicalTransforms;
