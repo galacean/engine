@@ -174,9 +174,6 @@ export class PostProcessManager {
     this._srcRenderTarget = srcRenderTarget;
     this._destRenderTarget = destRenderTarget;
 
-    // Should blit to resolve the MSAA
-    srcRenderTarget._blitRenderTarget();
-
     const activePasses = engine._getActivePostProcessPasses();
     this._remainActivePassCount = activePasses.length;
     this._initSwapRenderTarget(camera);

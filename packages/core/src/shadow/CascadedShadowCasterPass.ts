@@ -5,8 +5,8 @@ import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { ContextRendererUpdateFlag, RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderQueue } from "../RenderPipeline/RenderQueue";
 import { PipelineStage } from "../RenderPipeline/index";
-import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { DirectLight } from "../lighting";
+import { RenderPassLoadAction, RenderPassStoreAction } from "../renderingHardwareInterface";
 import { ShaderProperty } from "../shader";
 import { TextureFilterMode } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
@@ -122,9 +122,10 @@ export class CascadedShadowCasterPass extends PipelinePass {
     this._renderTarget = renderTarget;
     this._depthTexture = shadowTexture;
 
-    // @todo: shouldn't set viewport and scissor in activeRenderTarget
-    context.setRenderTarget(renderTarget, CascadedShadowCasterPass._viewport, 0);
-    rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
+    const passDescriptor = this._passDescriptor.reset(renderTarget, CascadedShadowCasterPass._viewport);
+    passDescriptor.depthLoadAction = RenderPassLoadAction.Clear;
+    passDescriptor.depthStoreAction = RenderPassStoreAction.Store;
+    context.beginRenderPass(passDescriptor);
 
     // prepare light and camera direction
     Matrix.rotationQuaternion(light.entity.transform.worldRotationQuaternion, lightWorld);
@@ -211,6 +212,8 @@ export class CascadedShadowCasterPass extends PipelinePass {
         rhi.setGlobalDepthBias(0, 0);
       }
     }
+
+    context.endRenderPass();
   }
 
   private _updateReceiversShaderData(light: DirectLight): void {

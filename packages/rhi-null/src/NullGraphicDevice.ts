@@ -78,6 +78,8 @@ export class NullGraphicDevice implements IHardwareRenderer {
     throw new Error("Transform feedback requires a graphics device.");
   }
   activeRenderTarget(): void {}
+  beginRenderPass(): void {}
+  endRenderPass(): void {}
   clearRenderTarget(): void {}
   drawPrimitive(): void {}
   blitInternalRTByBlitFrameBuffer(): void {}

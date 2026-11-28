@@ -120,6 +120,22 @@ const customPass = new CustomPass(engine);
 engine.addPostProcessPass(customPass);
 ```
 
+> 移动端性能优化提示：如果你的自定义后处理 Shader 会**全屏覆写**输出目标的所有像素（不开启混合且不使用 `discard`），可以给 `Blitter.blitTexture` 的最后一个参数传入 `RenderPassLoadAction.DontCare`（默认是 `RenderPassLoadAction.Load`），让移动端 TBDR GPU 跳过把旧渲染目标数据从显存加载到片上缓存的带宽开销：
+>
+> ```ts
+> Blitter.blitTexture(
+>   this.engine,
+>   srcTexture,
+>   dst,
+>   undefined,
+>   undefined,
+>   this._blitMaterial,
+>   0,
+>   undefined,
+>   RenderPassLoadAction.DontCare
+> );
+> ```
+
 Pass 的执行顺序默认在 Uber Pass 的后面执行，即 [`PostProcessPassEvent.AfterUber`](/apis/core/#PostProcessPassEvent-AfterUber)，我们也可以手动修改管线的执行顺序：
 
 ```ts filename="CustomPostProcessPass.ts"
