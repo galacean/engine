@@ -1,0 +1,30 @@
+{
+  "titan-wasteland": {
+    "homeRadius": 32,
+    "residents": [
+      "ostrich", "hippopotamus-01", "elephant-01", "porcupine", "bison-01", "rhinoceros-01",
+      "chameleon", "bull", "crocodile-01", "swan-01", "platypus"
+    ],
+    "residentSite": { "offsetX": 0, "offsetZ": -18, "radius": 26 },
+    "flock": {
+      "typeId": "flamingo-01", "speciesId": "flamingo", "min": 10, "max": 13,
+      "offsetX": 16, "offsetZ": -11, "radius": 5.5, "groundAtBirth": true
+    }
+  },
+  "oil-paint": {
+    "homeRadius": 18,
+    "residents": [
+      "deer-01",
+      "moose-01",
+      "bull",
+      "bear-01",
+      "squirrel",
+      "sheep-01"
+    ],
+    "residentSite": { "offsetX": 4, "offsetZ": -8, "radius": 26 },
+    "flock": {
+      "typeId": "swan-01", "speciesId": "swan", "min": 1, "max": 3,
+      "offsetX": 6, "offsetZ": -6, "radius": 9.5
+    }
+  }
+}

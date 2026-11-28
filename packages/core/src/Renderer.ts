@@ -11,9 +11,9 @@ import { ignoreClone } from "./clone/CloneDecorators";
 import type { ICloneHook } from "./clone/ICloneHook";
 import { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 import { Material } from "./material";
-import { ShaderMacro, ShaderProperty } from "./shader";
+import { ShaderMacro } from "./shader/ShaderMacro";
+import { ShaderProperty } from "./shader/ShaderProperty";
 import { ShaderData } from "./shader/ShaderData";
-import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 
 /**
@@ -43,9 +43,6 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
   /** @internal */
   @ignoreClone
   _rendererIndex: number = -1;
-  /** @internal */
-  @ignoreClone
-  _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
   @ignoreClone
   _renderFrameCount: number;
@@ -295,6 +292,10 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
    * @internal
    */
   override _onEnableInScene(): void {
+    // Treat a newly enabled renderer as visible until the first culling result.
+    const engine = this.engine;
+    const frameCount = engine.time.frameCount;
+    this._renderFrameCount = engine._frameInProcess ? frameCount - 1 : frameCount;
     const componentsManager = this.scene!._componentsManager;
     if (this._overrideUpdate) {
       componentsManager.addOnUpdateRenderers(this);
@@ -321,25 +322,29 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
       this._update(context);
     }
 
-    const virtualCamera = context.virtualCamera;
-    const cameraPosition = virtualCamera.position;
-    const boundsCenter = this.bounds.getCenter(Renderer._tempVector0);
-
-    if (virtualCamera.isOrthographic) {
-      Vector3.subtract(boundsCenter, cameraPosition, boundsCenter);
-      this._distanceForSort = Vector3.dot(boundsCenter, virtualCamera.forward);
-    } else {
-      this._distanceForSort = Vector3.distanceSquared(boundsCenter, cameraPosition);
-    }
-
+    this._distanceForSort = NaN;
     this._render(context);
+  }
 
-    // union camera global macro and renderer macro.
-    ShaderMacroCollection.unionCollection(
-      context.camera._globalShaderMacro,
-      this.shaderData._macroCollection,
-      this._globalShaderMacro
-    );
+  /**
+   * @internal
+   */
+  _updateDistanceForSort(context: RenderContext): number {
+    let distance = this._distanceForSort;
+    if (distance !== distance) {
+      const virtualCamera = context.virtualCamera;
+      const cameraPosition = virtualCamera.position;
+      const boundsCenter = this.bounds.getCenter(Renderer._tempVector0);
+
+      if (virtualCamera.isOrthographic) {
+        Vector3.subtract(boundsCenter, cameraPosition, boundsCenter);
+        distance = Vector3.dot(boundsCenter, virtualCamera.forward);
+      } else {
+        distance = Vector3.distanceSquared(boundsCenter, cameraPosition);
+      }
+      this._distanceForSort = distance;
+    }
+    return distance;
   }
 
   /**
@@ -375,7 +380,6 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
       material && this._addResourceReferCount(material, -1);
     }
 
-    this._globalShaderMacro = null!;
     this._bounds = null!;
     this._materials = null!;
     this._shaderData = null!;
@@ -432,6 +436,7 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
   protected _update(context: RenderContext): void {
     const { layer } = this.entity;
     this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
+    this.scene!.environmentLighting._updateRendererProbeData(this.shaderData, this.entity.transform.worldPosition);
   }
 
   /**

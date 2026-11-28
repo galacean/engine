@@ -9,6 +9,7 @@ import { ShaderPart } from "./ShaderPart";
 import { ShaderProgramMap } from "./ShaderProgramMap";
 import { ShaderProgram } from "./ShaderProgram";
 import { ShaderProperty } from "./ShaderProperty";
+import { ShaderTagKey } from "./ShaderTagKey";
 import { ShaderLanguage } from "./enums/ShaderLanguage";
 import { ShaderMacroProcessor } from "./ShaderMacroProcessor";
 import { RenderState } from "./state/RenderState";
@@ -24,8 +25,8 @@ const precisionStr = `
 export class ShaderPass extends ShaderPart {
   /** @internal */
   static _shaderPassCounter: number = 0;
-  private static _shaderMacroList: ShaderMacro[] = [];
-  private static _macroMap: Map<string, string> = new Map();
+  /** @internal */
+  static _shaderRootPath = "shaders://root/";
 
   /** @internal - Flat instruction array for vertex shader. */
   _vertexShaderInstructions: ShaderInstruction[];
@@ -41,8 +42,56 @@ export class ShaderPass extends ShaderPart {
   _renderStateDataMap: Record<number, ShaderProperty> = {};
   /** @internal */
   _shaderProgramMaps: ShaderProgramMap[] = [];
+  /** @internal */
+  _pipelineStage: string | undefined;
+  /** @internal Transform feedback output varyings (WebGL2 only). */
+  _feedbackVaryings?: string[];
 
   private readonly _vertexOutputNames?: Readonly<Record<string, string>>;
+
+  private static _variantObservers = new WeakMap<
+    Engine,
+    Set<(pass: ShaderPass, macros: readonly ShaderMacro[]) => void>
+  >();
+
+  /**
+   * Observe newly requested macro variants in this engine, including explicit warmup.
+   * Register before preparing resources. Cache hits and cache-only validation do not notify.
+   * The callback must only enqueue work: it runs inside program preparation.
+   * Returns an unsubscribe function; callers own their queued work and its cancellation.
+   */
+  static observeVariants(
+    engine: Engine,
+    callback: (pass: ShaderPass, macros: readonly ShaderMacro[]) => void
+  ): () => void {
+    let observers = this._variantObservers.get(engine);
+    if (!observers) this._variantObservers.set(engine, (observers = new Set()));
+    observers.add(callback);
+    return () => {
+      observers.delete(callback);
+    };
+  }
+
+  /** Prepare one pass, polling GPU completion when KHR_parallel_shader_compile is available.
+   * Without that extension the driver may complete synchronously.
+   * Source generation and GL submission still execute on the caller's thread.
+   * Cancellation stops waiting; the cached program remains owned by this pass/engine.
+   */
+  async compileVariantAsync(engine: Engine, macros: readonly ShaderMacro[], signal?: AbortSignal): Promise<boolean> {
+    signal?.throwIfAborted();
+    const collection = new ShaderMacroCollection();
+    for (const macro of macros) collection.enable(macro);
+    const program = this._getShaderProgram(engine, collection, true);
+    while (!program._pollReady()) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      signal?.throwIfAborted();
+    }
+    signal?.throwIfAborted();
+    return program.isValid;
+  }
+
+  private static _shaderMacroList: ShaderMacro[] = [];
+  private static _macroMap: Map<string, string> = new Map();
 
   /**
    * Create a shader pass from precompiled instructions.
@@ -76,22 +125,77 @@ export class ShaderPass extends ShaderPart {
   }
 
   /**
+   * @inheritdoc
+   */
+  override setTag<T extends number | string | boolean>(keyName: string, value: T): void;
+  override setTag<T extends number | string | boolean>(key: ShaderTagKey, value: T): void;
+  override setTag<T extends number | string | boolean>(keyOrKeyName: ShaderTagKey | string, value: T): void {
+    super.setTag(keyOrKeyName as ShaderTagKey, value);
+    if (typeof keyOrKeyName === "string" ? keyOrKeyName === "pipelineStage" : keyOrKeyName.name === "pipelineStage") {
+      this._pipelineStage = value as unknown as string;
+    }
+  }
+
+  /**
+   * @inheritdoc
+   */
+  override deleteTag(keyName: string): void;
+  override deleteTag(key: ShaderTagKey): void;
+  override deleteTag(keyOrKeyName: ShaderTagKey | string): void {
+    super.deleteTag(keyOrKeyName as ShaderTagKey);
+    if (typeof keyOrKeyName === "string" ? keyOrKeyName === "pipelineStage" : keyOrKeyName.name === "pipelineStage") {
+      this._pipelineStage = undefined;
+    }
+  }
+
+  /**
    * @internal
    */
   _getShaderProgram(
     engine: Engine,
     macroCollection: ShaderMacroCollection,
-    feedbackVaryings?: string[]
+    feedbackOrDefer: string[] | boolean = false,
+    cacheOnly = false,
+    deferCompletionOverride?: boolean
   ): ShaderProgram {
+    const deferCompletion = deferCompletionOverride ?? (typeof feedbackOrDefer === "boolean" ? feedbackOrDefer : false);
+    const requestedFeedback = Array.isArray(feedbackOrDefer) ? feedbackOrDefer : this._feedbackVaryings;
     const shaderProgramMap = engine._getShaderProgramMap(this._shaderPassId, this._shaderProgramMaps);
     let shaderProgram = shaderProgramMap.get(macroCollection);
     if (shaderProgram) {
+      if (Array.isArray(feedbackOrDefer)) {
+        const cachedFeedback = (shaderProgram as ShaderProgram & { _feedbackVaryings?: readonly string[] })
+          ._feedbackVaryings;
+        if (cachedFeedback) {
+          let mismatch = cachedFeedback.length !== feedbackOrDefer.length;
+          for (let index = 0; !mismatch && index < feedbackOrDefer.length; index++) {
+            mismatch = cachedFeedback[index] !== feedbackOrDefer[index];
+          }
+          if (mismatch) {
+            throw new Error("Transform feedback outputs cannot change after the pass ABI is configured");
+          }
+        }
+      }
+      if (!deferCompletion) shaderProgram._ensureReady();
       return shaderProgram;
     }
 
-    shaderProgram = this._compileShaderProgram(engine, macroCollection, feedbackVaryings);
+    shaderProgram = this._compileShaderProgram(engine, macroCollection, deferCompletion, cacheOnly, requestedFeedback);
+    if (requestedFeedback) {
+      (shaderProgram as ShaderProgram & { _feedbackVaryings?: readonly string[] })._feedbackVaryings =
+        requestedFeedback.slice();
+    }
 
     shaderProgramMap.cache(shaderProgram);
+    if (!cacheOnly) {
+      const observers = ShaderPass._variantObservers.get(engine);
+      if (observers?.size) {
+        const macros: ShaderMacro[] = [];
+        ShaderMacro._getMacrosElements(macroCollection, macros);
+        for (const observer of observers) observer(this, macros);
+      }
+    }
+    if (!deferCompletion) shaderProgram._ensureReady();
     return shaderProgram;
   }
 
@@ -114,22 +218,49 @@ export class ShaderPass extends ShaderPart {
   _compileShaderProgram(
     engine: Engine,
     macroCollection: ShaderMacroCollection,
-    feedbackVaryings?: string[]
+    deferCompletion = false,
+    cacheOnly = false,
+    requestedFeedback?: readonly string[]
   ): ShaderProgram {
     const names = this._vertexOutputNames;
-    if (names && feedbackVaryings?.length) {
-      feedbackVaryings = feedbackVaryings.map((name) =>
-        Object.prototype.hasOwnProperty.call(names, name) ? names[name] : name
-      );
-    }
+    const rawFeedback = requestedFeedback ?? this._feedbackVaryings;
+    const feedbackVaryings = names
+      ? rawFeedback?.map((name) => (Object.prototype.hasOwnProperty.call(names, name) ? names[name] : name))
+      : rawFeedback
+        ? [...rawFeedback]
+        : undefined;
     const isGPUInstance = macroCollection.isEnable(InstanceBuffer.gpuInstanceMacro);
     const { vertexSource, fragmentSource, instanceLayout } = this._compileShaderSource(
       engine,
       macroCollection,
       isGPUInstance
     );
-    const program = new ShaderProgram(engine, vertexSource, fragmentSource, feedbackVaryings);
+    // Macro identities remain the fast lookup path. Only a macro miss evaluates source;
+    // irrelevant macros must not allocate another GL program. Keep this cache scoped
+    // to this pass and Engine so feedback bindings and program lifetime never cross owners.
+    const map = engine._getShaderProgramMap(this._shaderPassId, this._shaderProgramMaps);
+    const sourceKey = JSON.stringify([
+      vertexSource,
+      fragmentSource,
+      feedbackVaryings ?? [],
+      instanceLayout && [
+        instanceLayout.instanceMaxCount,
+        instanceLayout.structSize,
+        instanceLayout.instanceFields.map((field) => [
+          field.property.name,
+          field.type,
+          field.offset,
+          field.offsetInElements,
+          field.useIntView
+        ])
+      ]
+    ]);
+    const cached = map.getBySource(sourceKey);
+    if (cached) return cached;
+    if (cacheOnly) throw new Error(`Shader pass '${this.name}' has a program missing from startup warmup`);
+    const program = new ShaderProgram(engine, vertexSource, fragmentSource, feedbackVaryings, deferCompletion);
     program._instanceLayout = instanceLayout;
+    map.cacheBySource(sourceKey, program);
     return program;
   }
 
@@ -158,6 +289,9 @@ export class ShaderPass extends ShaderPart {
 
     let vertexSource = ShaderMacroProcessor.evaluate(this._vertexShaderInstructions, macroMap);
     let fragmentSource = ShaderMacroProcessor.evaluate(this._fragmentShaderInstructions, macroMap);
+
+    vertexSource = ShaderFactory.injectRealtimeIBLUniformBlocks(vertexSource);
+    fragmentSource = ShaderFactory.injectRealtimeIBLUniformBlocks(fragmentSource);
 
     let instanceLayout: InstanceBufferLayout | null = null;
     if (isGPUInstance) {

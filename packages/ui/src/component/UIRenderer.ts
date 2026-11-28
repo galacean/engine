@@ -9,7 +9,6 @@ import {
   Ray,
   Renderer,
   RendererUpdateFlags,
-  ShaderMacroCollection,
   ShaderProperty,
   Vector3,
   Vector4,
@@ -140,13 +139,6 @@ export class UIRenderer extends Renderer implements IGraphics {
     }
 
     this._render(context);
-
-    // union camera global macro and renderer macro.
-    ShaderMacroCollection.unionCollection(
-      context.camera._globalShaderMacro,
-      this.shaderData._macroCollection,
-      this._globalShaderMacro
-    );
   }
 
   /**

@@ -1,0 +1,81 @@
+{
+  "name": "stone-34",
+  "shader": "Terrain/Surface",
+  "shaderRef": {
+    "url": "Shader/Surface.shaderc"
+  },
+  "shaderData": {
+    "material_BaseColor": {
+      "type": "Color",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0
+      }
+    },
+    "material_Tiling": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Smoothness": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_NormalScale": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_BaseTexture": {
+      "type": "Texture",
+      "value": {
+        "url": "Texture/d777cfc3af4ceefd.png"
+      }
+    },
+    "material_NormalTexture": {
+      "type": "Texture",
+      "value": {
+        "url": "Texture/e3d1cf8c8f14117b.png"
+      }
+    },
+    "material_Metallic": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_SmoothnessSource": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_OcclusionStrength": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_MetallicSmoothnessTexture": {
+      "type": "Texture",
+      "value": {
+        "url": "Texture/2ddde91ff2625b49.png"
+      }
+    },
+    "material_LodDitherTexture": {
+      "type": "Texture",
+      "value": {
+        "url": "Texture/140c55bd97c21b9b.png"
+      }
+    },
+    "material_LodDitherTextureInvSize": {
+      "type": "Float",
+      "value": 0.015625
+    }
+  },
+  "macros": [
+    {
+      "name": "MATERIAL_HAS_BASETEXTURE"
+    },
+    {
+      "name": "MATERIAL_HAS_METALLIC_SMOOTHNESS_TEXTURE"
+    },
+    {
+      "name": "MATERIAL_HAS_NORMALTEXTURE"
+    }
+  ]
+}

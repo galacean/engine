@@ -1,0 +1,29 @@
+{
+  "entryWidth": 1.8,
+  "publicWidth": 3.2,
+  "interVillageWidth": 3.6,
+  "minWidthRatio": 0.6,
+  "noiseAmplitude": 0.48,
+  "noiseWavelength": 9,
+  "sampleSpacing": 1.5,
+  "maxEntryLength": 18,
+  "entryClearance": 0.3,
+  "minimumWidth": 1.2,
+  "unitId": "road",
+  "junction": {
+    "cornerRadiusToReceivingWidth": 0.55,
+    "maxApproachFraction": 0.45,
+    "sampleSpacingM": 0.4
+  },
+  "curve": {
+    "offsetRatioMin": 0.1,
+    "offsetRatioMax": 0.32,
+    "maxOffsetM": 24,
+    "inflectionMinLengthM": 36,
+    "inflectionChance": 0.35,
+    "endpointBlendWidths": 2,
+    "headingHandleRatioMin": 0.2,
+    "headingHandleRatioMax": 0.4
+  },
+  "surfaceSampleSpacingM": 0.4
+}

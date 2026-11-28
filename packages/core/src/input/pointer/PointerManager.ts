@@ -75,12 +75,6 @@ export class PointerManager implements IInput {
       _engine: engine,
       _eventPool: eventPool
     } = this;
-    const { width, height } = this._canvas;
-    const { clientWidth, clientHeight } = htmlCanvas;
-    const { left, top } = htmlCanvas.getBoundingClientRect();
-    const widthDPR = width / clientWidth;
-    const heightDPR = height / clientHeight;
-
     // Clear the pointer event data pool
     eventPool.clear();
 
@@ -93,6 +87,21 @@ export class PointerManager implements IInput {
       } else {
         pointer._resetOnFrameBegin();
       }
+    }
+
+    // Only queued events need a fresh mapping from client to canvas coordinates.
+    let left = 0,
+      top = 0,
+      widthDPR = 1,
+      heightDPR = 1;
+    if (nativeEvents.length) {
+      const { width, height } = this._canvas;
+      const { clientWidth, clientHeight } = htmlCanvas;
+      const bounds = htmlCanvas.getBoundingClientRect();
+      left = bounds.left;
+      top = bounds.top;
+      widthDPR = width / clientWidth;
+      heightDPR = height / clientHeight;
     }
 
     // Generate the pointer received for this frame
@@ -116,10 +125,7 @@ export class PointerManager implements IInput {
           pointer = pointerPool[j];
           if (!pointer) {
             pointer = pointerPool[j] = new Pointer(j);
-            engine._physicsInitialized && pointer._addEmitters(PhysicsPointerEventEmitter, eventPool);
-            PointerManager._pointerEventEmitters.forEach((emitter) => {
-              pointer!._addEmitters(emitter, eventPool);
-            });
+            this._addPointerEmitters(pointer);
           }
           pointer._uniqueID = pointerId;
           pointer._events.push(evt);
@@ -199,6 +205,12 @@ export class PointerManager implements IInput {
   _destroy(): void {
     this._removeEventListener();
     this._pointerPool.length = 0;
+  }
+
+  private _addPointerEmitters(pointer: Pointer): void {
+    const eventPool = this._eventPool;
+    if (this._engine._physicsInitialized) pointer._addEmitters(PhysicsPointerEventEmitter, eventPool);
+    PointerManager._pointerEventEmitters.forEach((emitter) => pointer._addEmitters(emitter, eventPool));
   }
 
   private _onPointerEvent(evt: PointerEvent) {

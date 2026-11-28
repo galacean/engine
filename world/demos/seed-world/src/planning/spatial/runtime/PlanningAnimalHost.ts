@@ -1,0 +1,367 @@
+import {
+  mergeAnimalWorldChanges,
+  planningAnimalSnapshotId,
+  type PlanningAnimalWorldChange
+} from "@galacean/engine-world-planning/spatial/runtime/PlanningAnimalWorldChange";
+import { querySeedAnimalCatalog } from "./PlanningAnimalCatalog.ts";
+import type { PlanningAnimalSurfaceData } from "./PlanningAnimalSurface.ts";
+import type { Camera, Entity } from "@galacean/engine";
+import type { AnimalPopulationConfig } from "@galacean/engine-animals/gameplay/animal/AnimalPopulation";
+import type { AnimalWorldEvent } from "@galacean/engine-animals/gameplay/animal/AnimalTaskController";
+import type {
+  SeedWorldAnimalSpawn,
+  SeedWorldAnimalDelete,
+  SeedWorldAnimalUpdate,
+  SeedWorldAnimalCommand,
+  SeedWorldAnimalQuery,
+  SeedWorldAnimalReceipt,
+  SeedWorldAnimalService
+} from "../../../../agent-adapter/ports/SeedWorldAnimalService.ts";
+import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
+import type { PlanningAnimalDynamicObstacle, PlanningAnimalNavigation } from "./PlanningAnimalHabitat.ts";
+import type { PlanningAnimalPanelSnapshot } from "./PlanningAnimalPanel.ts";
+import type { PlanningAnimalRuntime, PlanningAnimalInteractions } from "./PlanningAnimalRuntime.ts";
+
+type Runtime = Pick<
+  PlanningAnimalRuntime,
+  | "spawn"
+  | "deleteAnimal"
+  | "updateAnimal"
+  | "synchronize"
+  | "update"
+  | "preparePresentation"
+  | "dispose"
+  | "query"
+  | "describe"
+  | "command"
+  | "receipt"
+  | "commandFromPanel"
+  | "notify"
+  | "position"
+  | "observationPosition"
+  | "inspect"
+  | "shoo"
+  | "setDynamicObstacles"
+  | "clearDynamicObstacles"
+> &
+  Partial<Pick<PlanningAnimalRuntime, "prepareShaderWarmup" | "setStartupDeferOffscreenCamera">>;
+type RuntimeModule = {
+  PlanningAnimalRuntime: new (
+    parent: Entity,
+    observer: () => Readonly<{ x: number; z: number; y?: number }>,
+    interactions?: PlanningAnimalInteractions
+  ) => Runtime;
+};
+type PopulationInput = {
+  plan: IslandPlan;
+  config: AnimalPopulationConfig;
+  navigation: PlanningAnimalNavigation;
+  preservePopulation: boolean;
+  change?: PlanningAnimalWorldChange;
+  surface?: PlanningAnimalSurfaceData;
+};
+
+/** Lightweight scene boundary: disabled animals import no runtime content, build no habitat and install no frame callback. */
+export class PlanningAnimalHost implements SeedWorldAnimalService {
+  /** Called by the scene only after its main publication is ready; absent while disabled. */
+  advance?: (seconds: number) => void;
+  private enabled = false;
+  private disposed = false;
+  private pending?: PopulationInput;
+  private startupDeferOffscreenCamera?: Camera;
+  private runtime?: Runtime;
+  private module?: RuntimeModule;
+  private loading = false;
+  private loadingTask?: Promise<void>;
+  private attempted = false;
+  private errors: string[] = [];
+  private readonly cleanups = new Set<Promise<void>>();
+  private readonly dynamicObstacles = new Map<string, readonly PlanningAnimalDynamicObstacle[]>();
+
+  constructor(
+    private readonly parent: Entity,
+    private readonly observer: () => Readonly<{ x: number; z: number; y?: number }>,
+    private readonly load: () => Promise<RuntimeModule> = () => import("./PlanningAnimalRuntime.ts"),
+    private readonly interactions: PlanningAnimalInteractions = {}
+  ) {}
+
+  /** Publication only records the latest demand. Model loading never participates in the world's publication promise. */
+  synchronize(
+    plan: IslandPlan,
+    config: AnimalPopulationConfig,
+    navigation: PlanningAnimalNavigation,
+    options: {
+      preservePopulation?: boolean;
+      surface?: PlanningAnimalSurfaceData;
+      change?: PlanningAnimalWorldChange;
+    } = {}
+  ): void {
+    if (this.disposed) return;
+    this.enabled = config.enabled;
+    this.errors = [];
+    this.attempted = false;
+    if (!config.enabled) {
+      this.pending = undefined;
+      this.advance = undefined;
+      this.release();
+      return;
+    }
+    // A queued full publication must still rebuild even if a content edit arrives before the next frame.
+    const preservePopulation = !!options.preservePopulation && (this.pending?.preservePopulation ?? true);
+    const change = this.pending
+      ? planningAnimalSnapshotId(this.pending.plan) === options.change?.previousSnapshot
+        ? mergeAnimalWorldChanges(this.pending.change, options.change)
+        : undefined
+      : options.change;
+    this.pending = {
+      change,
+      plan,
+      config: structuredClone(config),
+      navigation,
+      preservePopulation,
+      surface: options.surface
+    };
+    this.advance = (seconds) => this.update(seconds);
+  }
+
+  /** Forward streamed companion-stone (or other dynamic) obstacle updates to the animal habitat. */
+  setDynamicObstacles(groupKey: string, obstacles?: readonly PlanningAnimalDynamicObstacle[]): void {
+    if (this.disposed) return;
+    if (obstacles?.length) this.dynamicObstacles.set(groupKey, obstacles);
+    else this.dynamicObstacles.delete(groupKey);
+    this.runtime?.setDynamicObstacles(groupKey, obstacles);
+  }
+
+  /** Clear all dynamic obstacle groups (e.g. before binding a new world publication's vegetation runtime). */
+  clearDynamicObstacles(): void {
+    this.dynamicObstacles.clear();
+    this.runtime?.clearDynamicObstacles();
+  }
+
+  /** Pre-import the animal runtime chunk during startup raster/terrain work when animals are enabled. */
+  preloadModule(): void {
+    if (this.disposed || this.module || this.loading || this.attempted) return;
+    this.loading = true;
+    try {
+      this.loadingTask = this.load()
+        .then((module) => {
+          if (!this.disposed) this.module = module;
+        })
+        .catch(() => {
+          // Best-effort preload; synchronize/update surfaces any real load failure when enabled.
+        })
+        .finally(() => {
+          this.loading = false;
+        });
+    } catch {
+      this.loading = false;
+    }
+  }
+
+  /** During initial startup before reveal, defer downloading offscreen/wake-buffer animal GLBs. */
+  setStartupDeferOffscreenCamera(camera: Camera | undefined): void {
+    this.startupDeferOffscreenCamera = camera;
+    this.runtime?.setStartupDeferOffscreenCamera?.(camera);
+  }
+
+  /** Startup may join current local presentation demand without loading distant catalog alternatives. */
+  async preparePresentation(): Promise<void> {
+    this.update(0);
+    while (this.loading && this.loadingTask) {
+      await this.loadingTask;
+      this.update(0);
+    }
+    if (this.enabled && !this.disposed) await this.runtime?.preparePresentation();
+  }
+
+  /** Prepare shader warmup renderers and alternate toon materials for every species in the population. */
+  async prepareShaderWarmup(
+    signal?: AbortSignal
+  ): Promise<Awaited<ReturnType<PlanningAnimalRuntime["prepareShaderWarmup"]>>> {
+    if (!this.enabled || this.disposed || signal?.aborted) return undefined;
+    return this.runtime?.prepareShaderWarmup?.(signal);
+  }
+
+  private update(seconds: number): void {
+    if (!this.enabled || this.disposed) return;
+    if (!this.runtime) {
+      if (this.module) {
+        try {
+          this.runtime = new this.module.PlanningAnimalRuntime(this.parent, this.observer, this.interactions);
+          for (const [groupKey, obstacles] of this.dynamicObstacles) {
+            this.runtime.setDynamicObstacles(groupKey, obstacles);
+          }
+          this.runtime.setStartupDeferOffscreenCamera?.(this.startupDeferOffscreenCamera);
+        } catch (error) {
+          this.fail(error);
+          return;
+        }
+      } else {
+        if (!this.loading && !this.attempted) {
+          this.loading = this.attempted = true;
+          try {
+            this.loadingTask = this.load()
+              .then((module) => {
+                // Importing cannot be aborted; construction and resource loading remain guarded by current demand.
+                if (!this.disposed) this.module = module;
+              })
+              .catch((error) => {
+                if (this.enabled && !this.disposed) this.fail(error);
+              })
+              .finally(() => {
+                this.loading = false;
+              });
+          } catch (error) {
+            this.loading = false;
+            this.fail(error);
+          }
+        }
+        return;
+      }
+    }
+    try {
+      if (this.pending) {
+        const input = this.pending;
+        this.pending = undefined;
+        if (input.surface || input.preservePopulation || input.change)
+          this.runtime.synchronize(input.plan, input.config, input.navigation, {
+            ...(input.preservePopulation ? { preservePopulation: true } : {}),
+            ...(input.change ? { change: input.change } : {}),
+            ...(input.surface ? { surface: input.surface } : {})
+          });
+        else this.runtime.synchronize(input.plan, input.config, input.navigation);
+      }
+      this.runtime.update(seconds);
+    } catch (error) {
+      this.fail(error);
+    }
+  }
+
+  private fail(error: unknown): void {
+    this.errors = [String(error)];
+    this.advance = undefined;
+    this.release();
+  }
+
+  catalog = querySeedAnimalCatalog;
+
+  spawn(input: SeedWorldAnimalSpawn) {
+    return (
+      this.runtime?.spawn(input) ?? {
+        requestId: input.requestId,
+        status: "rejected" as const,
+        reason: this.unavailable()
+      }
+    );
+  }
+
+  deleteAnimal(input: SeedWorldAnimalDelete) {
+    return (
+      this.runtime?.deleteAnimal(input) ?? {
+        id: input.id,
+        requestId: input.requestId,
+        status: "rejected" as const,
+        reason: this.unavailable()
+      }
+    );
+  }
+
+  updateAnimal(input: SeedWorldAnimalUpdate) {
+    return (
+      this.runtime?.updateAnimal(input) ?? {
+        id: input.id,
+        requestId: input.requestId,
+        status: "rejected" as const,
+        reason: this.unavailable()
+      }
+    );
+  }
+
+  query(input: SeedWorldAnimalQuery) {
+    return (
+      this.runtime?.query(input) ?? { enabled: this.enabled, animals: [], matchedCount: 0, offset: input.offset ?? 0 }
+    );
+  }
+
+  describe(input: { id: string }) {
+    return (
+      this.runtime?.describe(input) ?? {
+        ...input,
+        available: false,
+        reason: this.unavailable(),
+        skills: [],
+        targets: []
+      }
+    );
+  }
+
+  command(input: SeedWorldAnimalCommand): SeedWorldAnimalReceipt {
+    return this.runtime?.command(input) ?? { ...input, status: "rejected", reason: this.unavailable() };
+  }
+
+  receipt(input: { id: string; requestId: string }): SeedWorldAnimalReceipt {
+    return this.runtime?.receipt(input) ?? { ...input, status: "not_found", reason: this.unavailable() };
+  }
+
+  commandFromPanel(id: string, skillId: "idle" | "startle" | "eat"): void {
+    this.runtime?.commandFromPanel(id, skillId);
+  }
+  /** Broadcast a real environmental event without importing or loading disabled animal content. */
+  notify(event: AnimalWorldEvent): number {
+    return this.enabled && !this.disposed ? (this.runtime?.notify(event) ?? 0) : 0;
+  }
+  /** Dispatch a range-limited physical player click without loading disabled animal resources. */
+  shoo(...args: Parameters<PlanningAnimalRuntime["shoo"]>): boolean {
+    return this.enabled && !this.disposed ? (this.runtime?.shoo(...args) ?? false) : false;
+  }
+  position(id: string) {
+    return this.runtime?.position(id);
+  }
+  observationPosition(id: string, eyeHeight: number) {
+    return this.runtime?.observationPosition(id, eyeHeight);
+  }
+
+  inspect(evidence = false): PlanningAnimalPanelSnapshot & Record<string, unknown> {
+    if (this.runtime) return this.runtime.inspect(evidence);
+    return {
+      seed: this.pending?.plan.parameters.seed ?? 0,
+      loading: this.enabled && !this.errors.length,
+      total: 0,
+      loaded: 0,
+      visible: 0,
+      sharedResources: 0,
+      origin: null,
+      range: null,
+      errors: this.errors.slice(),
+      animals: [],
+      ...(evidence ? { enabled: this.enabled, runtimeInitialized: false, pendingLoads: 0 } : {})
+    };
+  }
+
+  private unavailable(): string {
+    return this.enabled ? "not_ready" : "disabled";
+  }
+
+  private release(): void {
+    const runtime = this.runtime;
+    this.runtime = undefined;
+    if (!runtime) return;
+    const cleanup = runtime
+      .dispose()
+      .catch((error) => {
+        this.errors.push(String(error));
+      })
+      .finally(() => this.cleanups.delete(cleanup));
+    this.cleanups.add(cleanup);
+  }
+
+  async dispose(): Promise<void> {
+    this.disposed = true;
+    this.enabled = false;
+    this.pending = undefined;
+    this.advance = undefined;
+    this.release();
+    await Promise.allSettled([...this.cleanups]);
+    this.interactions.authoring?.dispose();
+  }
+}

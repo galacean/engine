@@ -1,0 +1,120 @@
+{
+  "pools": {
+    "shared": {
+      "mountains": [
+        {
+          "id": "rock-08",
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*NfUMR5lyCn4AAAAAQVAAAAgAehQnAQ/rock-08.glb",
+          "groundInset": 0.18,
+          "bounds": [
+            [-3.8399269580841064, -1.9354400634765625, -5.986719131469727],
+            [4.937952995300293, 2.1993422508239746, 6.1414475440979]
+          ]
+        },
+        {
+          "id": "rock-15",
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*8LaNQZg98XgAAAAASNAAAAgAehQnAQ/rock-15.glb",
+          "groundInset": 0.02,
+          "bounds": [
+            [-52.82521438598633, -44.20131301879883, -52.25286102294922],
+            [52.60249328613281, 47.58159637451172, 50.46711730957031]
+          ]
+        },
+        {
+          "id": "rock-18",
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*EBpeQrEE-6gAAAAARUAAAAgAehQnAQ/rock-18.glb",
+          "groundInset": 0.02,
+          "bounds": [
+            [-44.44581985473633, -24.425703048706055, -20.731903076171875],
+            [44.59731674194336, 20.46480941772461, 21.607402801513672]
+          ]
+        },
+        {
+          "id": "rock-22",
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*BevNR5I2q2YAAAAAQdAAAAgAehQnAQ/rock-22.glb",
+          "groundInset": 0.04,
+          "bounds": [
+            [-4.015584468841553, -2.2177815437316895, -6.328336238861084],
+            [3.86883544921875, 2.279958486557007, 6.464931011199951]
+          ]
+        },
+        {
+          "id": "rock-23",
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*0Ql4TZV1j68AAAAAQOAAAAgAehQnAQ/rock-23.glb",
+          "groundInset": 0.02,
+          "bounds": [
+            [-3.3540520668029785, -2.8254077434539795, -3.0246598720550537],
+            [3.3173418045043945, 2.82572865486145, 3.044948101043701]
+          ]
+        }
+      ],
+      "stones": [
+        {
+          "id": "rock-05",
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*cReBRqeKVyoAAAAAQaAAAAgAehQnAQ/rock-05.glb",
+          "groundInset": 0.07,
+          "bounds": [
+            [-3.5340752601623535, -2.6036617755889893, -3.1722874641418457],
+            [3.5492799282073975, 2.906719207763672, 3.44317889213562]
+          ]
+        },
+        {
+          "id": "rock-06",
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*IWDpQYj1jH0AAAAAQRAAAAgAehQnAQ/rock-06.glb",
+          "groundInset": 0.09,
+          "bounds": [
+            [-3.1696629524230957, -2.1589853763580322, -2.7078442573547363],
+            [3.1696617603302, 2.1589856147766113, 2.7078466415405273]
+          ]
+        },
+        {
+          "id": "rock-10",
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*vfMlTosSBrkAAAAAQlAAAAgAehQnAQ/rock-10.glb",
+          "groundInset": 0.07,
+          "bounds": [
+            [-4.264153957366943, -2.3163063526153564, -6.064599514007568],
+            [4.257078647613525, 2.280054807662964, 6.09315299987793]
+          ]
+        },
+        {
+          "id": "rock-17",
+          "hasDetachedPieces": true,
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*mXntSZBCXKMAAAAARMAAAAgAehQnAQ/rock-17.glb",
+          "groundInset": 0.1,
+          "bounds": [
+            [-5.950201988220215, -0.8451380729675293, -4.667793273925781],
+            [5.950201988220215, 0.8451383113861084, 4.667793273925781]
+          ]
+        },
+        {
+          "id": "rock-19",
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*L3XKRb-f_qMAAAAAQZAAAAgAehQnAQ/rock-19.glb",
+          "groundInset": 0.03,
+          "bounds": [
+            [-4.031805515289307, -3.1603755950927734, -3.9566972255706787],
+            [4.167762279510498, 2.954709768295288, 4.399459362030029]
+          ]
+        },
+        {
+          "id": "rock-20",
+          "hasDetachedPieces": true,
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*-AOFRq3twrAAAAAAQWAAAAgAehQnAQ/rock-20.glb",
+          "groundInset": 0.12,
+          "bounds": [
+            [-2.407109260559082, -1.9968723058700562, -2.5857391357421875],
+            [2.702761173248291, 0.9935974478721619, 1.9122142791748047]
+          ]
+        },
+        {
+          "id": "rock-29",
+          "mesh": "https://mdn.alipayobjects.com/rms/afts/file/A*IVSlTbF0KcEAAAAAQXAAAAgAehQnAQ/rock-29.glb",
+          "groundInset": 0.09,
+          "bounds": [
+            [-4.7068772315979, -3.6924638748168945, -4.4977946281433105],
+            [4.693703651428223, 3.695463180541992, 4.532844543457031]
+          ]
+        }
+      ]
+    }
+  }
+}

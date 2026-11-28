@@ -1,0 +1,312 @@
+import type { SurfaceTriangle } from "@galacean/engine-farming/farming/geometry/SurfaceTriangles";
+import type {
+  FarmingGroundProvider,
+  FarmingGroundView,
+  GroundBounds,
+  GroundSample,
+  GroundSurface,
+  FarmingGroundChange
+} from "@galacean/engine-farming/farming/api/index";
+import type { PlanPoint } from "../../semantic-study/IslandPlanModel";
+import { createPlanningRingQuery } from "../../semantic-study/WorldPlanningTerrain";
+import { preparePolygonOverlap, polygonBounds } from "../../semantic-study/WorldPlanningGeometry";
+
+export interface PlanningFarmingGroundOptions {
+  readonly revision: number;
+  readonly groundId: string;
+  readonly domains: readonly PlanPoint[][];
+  readonly allowedArea?: readonly PlanPoint[];
+  /** Raw terrain only: bridge navigation floors are never agricultural ground. */
+  readonly height: (x: number, z: number) => number | null;
+  readonly surface?: (x: number, z: number) => GroundSurface;
+  readonly underwater: (x: number, z: number, height: number) => boolean;
+  /** Published Water bounds certificates supersede probe-only wetness checks. */
+  readonly underwaterBounds?: (bounds: GroundBounds) => boolean;
+  readonly blocked: (bounds: GroundBounds) => boolean;
+  readonly sampleStepM?: number;
+  /** Published terrain may supply exact native-cell facts instead of finite-difference probes. */
+  readonly terrain?: {
+    surfaceTriangles?(bounds: GroundBounds): readonly SurfaceTriangle[];
+    sample(x: number, z: number): GroundSample | null;
+    sampleHeight?(x: number, z: number): number | null;
+    inspectBounds(bounds: GroundBounds): {
+      readonly covered: boolean;
+      readonly maximumSlopeDegrees: number;
+      readonly surfaces: readonly GroundSurface[];
+      readonly minimumHeight: number;
+      readonly maximumHeight: number;
+    };
+  };
+}
+export function farmingBoundsOutline(b: GroundBounds): PlanPoint[] {
+  return [
+    { x: b.minimumX, z: b.minimumZ },
+    { x: b.maximumX, z: b.minimumZ },
+    { x: b.maximumX, z: b.maximumZ },
+    { x: b.minimumX, z: b.maximumZ }
+  ];
+}
+
+/** The host reserves public roads and operation space for access. Terrain/water facts stay unchanged. */
+export function restrictPlanningFarmingCultivation(
+  view: FarmingGroundView,
+  reserved: readonly (readonly PlanPoint[])[]
+): FarmingGroundView {
+  const regions = reserved.map((points) => {
+    const outline = points.map((point) => ({ ...point }));
+    return { overlaps: preparePolygonOverlap(outline), bounds: polygonBounds(outline) };
+  });
+  return Object.freeze({
+    ...view,
+    inspectBounds: (id: string, bounds: GroundBounds) => {
+      const facts = view.inspectBounds(id, bounds);
+      return {
+        ...facts,
+        blocked:
+          facts.blocked ||
+          regions.some(
+            ({ overlaps, bounds: region }) =>
+              // Adjacent full cells may share an edge with the operation corridor, but not its area.
+              Math.min(bounds.maximumX, region.maxX) - Math.max(bounds.minimumX, region.minX) > 1e-7 &&
+              Math.min(bounds.maximumZ, region.maxZ) - Math.max(bounds.minimumZ, region.minZ) > 1e-7 &&
+              overlaps(farmingBoundsOutline(bounds))
+          )
+      };
+    }
+  });
+}
+
+/** Keep lazy runtime views complete: rendering and gameplay must use the same accepted revision. */
+export function lazyPlanningFarmingGroundView(revision: number, read: () => FarmingGroundView): FarmingGroundView {
+  return Object.freeze({
+    revision,
+    sample: (...args: Parameters<FarmingGroundView["sample"]>) => read().sample(...args),
+    inspectBounds: (...args: Parameters<FarmingGroundView["inspectBounds"]>) => read().inspectBounds(...args),
+    raycast: (...args: Parameters<FarmingGroundView["raycast"]>) => read().raycast(...args),
+    surfaceTriangles: (...args: Parameters<NonNullable<FarmingGroundView["surfaceTriangles"]>>) => {
+      const view = read();
+      if (!view.surfaceTriangles) throw new Error("Farming ground does not provide surface triangles");
+      return view.surfaceTriangles(...args);
+    }
+  });
+}
+
+/** Immutable agricultural view of host facts. No Engine or Water runtime ownership. */
+export function createPlanningFarmingGroundView(options: PlanningFarmingGroundOptions): FarmingGroundView {
+  const domains = options.domains.map((outline) => createPlanningRingQuery(outline.map((p) => ({ ...p }))));
+  const area = options.allowedArea && createPlanningRingQuery(options.allowedArea.map((p) => ({ ...p })));
+  const step = options.sampleStepM ?? 0.5;
+  if (!Number.isFinite(step) || step <= 0) throw new Error("Invalid farming ground sample step");
+  const scratchPoint = { x: 0, z: 0 };
+  const containsPoint = (groundId: string, x: number, z: number): boolean => {
+    if (groundId !== options.groundId) return false;
+    scratchPoint.x = x;
+    scratchPoint.z = z;
+    let inDomain = false;
+    for (let i = 0; i < domains.length; i++) {
+      if (domains[i].inside(scratchPoint)) {
+        inDomain = true;
+        break;
+      }
+    }
+    return inDomain && (!area || area.inside(scratchPoint));
+  };
+  const sampleHeightAt = (groundId: string, x: number, z: number): number | null => {
+    if (!containsPoint(groundId, x, z)) return null;
+    if (options.terrain) {
+      if (options.terrain.sampleHeight) return options.terrain.sampleHeight(x, z);
+      return options.terrain.sample(x, z)?.position[1] ?? null;
+    }
+    const y = options.height(x, z);
+    if (y === null || !Number.isFinite(y)) return null;
+    const delta = Math.min(0.25, step / 2);
+    const h0 = options.height(x - delta, z);
+    const h1 = options.height(x + delta, z);
+    const h2 = options.height(x, z - delta);
+    const h3 = options.height(x, z + delta);
+    if (
+      h0 === null ||
+      !Number.isFinite(h0) ||
+      h1 === null ||
+      !Number.isFinite(h1) ||
+      h2 === null ||
+      !Number.isFinite(h2) ||
+      h3 === null ||
+      !Number.isFinite(h3)
+    ) {
+      return null;
+    }
+    return y;
+  };
+  const sample = (groundId: string, x: number, z: number): GroundSample | null => {
+    if (!containsPoint(groundId, x, z)) return null;
+    if (options.terrain) return options.terrain.sample(x, z);
+    const y = options.height(x, z);
+    const delta = Math.min(0.25, step / 2);
+    const heights = [
+      options.height(x - delta, z),
+      options.height(x + delta, z),
+      options.height(x, z - delta),
+      options.height(x, z + delta)
+    ];
+    if (y === null || !Number.isFinite(y) || heights.some((h) => h === null || !Number.isFinite(h))) return null;
+    const dx = (heights[1]! - heights[0]!) / (delta * 2),
+      dz = (heights[3]! - heights[2]!) / (delta * 2);
+    const length = Math.hypot(dx, 1, dz);
+    return {
+      position: [x, y, z],
+      normal: [-dx / length, 1 / length, -dz / length],
+      surface: options.surface?.(x, z) ?? "soil"
+    };
+  };
+  const view: FarmingGroundView = {
+    revision: options.revision,
+    surfaceTriangles:
+      options.terrain?.surfaceTriangles &&
+      ((id, bounds) => (id === options.groundId ? options.terrain!.surfaceTriangles!(bounds) : [])),
+    sample,
+    inspectBounds(groundId, b) {
+      const outline = farmingBoundsOutline(b);
+      let covered =
+        groundId === options.groundId &&
+        domains.some((d) => d.containsPolygon(outline)) &&
+        (!area || area.containsPolygon(outline));
+      if (options.terrain) {
+        if (!covered) {
+          return {
+            covered: false,
+            maximumSlopeDegrees: 0,
+            surfaces: [],
+            underwater: false,
+            blocked: options.blocked(b)
+          };
+        }
+        const terrain = options.terrain.inspectBounds(b);
+        covered = terrain.covered;
+        let underwater = false;
+        if (covered) {
+          if (options.underwaterBounds) {
+            underwater = options.underwaterBounds(b);
+          } else {
+            const nx = Math.max(1, Math.ceil((b.maximumX - b.minimumX) / step)),
+              nz = Math.max(1, Math.ceil((b.maximumZ - b.minimumZ) / step));
+            for (let iz = 0; iz <= nz && !underwater; iz++)
+              for (let ix = 0; ix <= nx && !underwater; ix++) {
+                const x = b.minimumX + ((b.maximumX - b.minimumX) * ix) / nx,
+                  z = b.minimumZ + ((b.maximumZ - b.minimumZ) * iz) / nz;
+                const y = sampleHeightAt(groundId, x, z);
+                if (y !== null) underwater = options.underwater(x, z, y);
+              }
+          }
+        }
+        return {
+          covered,
+          maximumSlopeDegrees: Number.isFinite(terrain.maximumSlopeDegrees) ? terrain.maximumSlopeDegrees : 0,
+          surfaces: terrain.surfaces,
+          underwater,
+          blocked: options.blocked(b),
+          ...(Number.isFinite(terrain.minimumHeight) &&
+            Number.isFinite(terrain.maximumHeight) && {
+              minimumHeight: terrain.minimumHeight,
+              maximumHeight: terrain.maximumHeight
+            })
+        };
+      }
+      let maximumSlopeDegrees = 0,
+        underwater = false;
+      const surfaces = new Set<GroundSurface>();
+      const nx = Math.max(1, Math.ceil((b.maximumX - b.minimumX) / step)),
+        nz = Math.max(1, Math.ceil((b.maximumZ - b.minimumZ) / step));
+      for (let iz = 0; iz <= nz; iz++)
+        for (let ix = 0; ix <= nx; ix++) {
+          const x = b.minimumX + ((b.maximumX - b.minimumX) * ix) / nx,
+            z = b.minimumZ + ((b.maximumZ - b.minimumZ) * iz) / nz;
+          const s = sample(groundId, x, z);
+          if (!s) {
+            covered = false;
+            continue;
+          }
+          maximumSlopeDegrees = Math.max(
+            maximumSlopeDegrees,
+            (Math.acos(Math.min(1, Math.max(-1, s.normal[1]))) * 180) / Math.PI
+          );
+          surfaces.add(s.surface);
+          underwater ||= options.underwater(x, z, s.position[1]);
+        }
+      if (covered && options.underwaterBounds) underwater = options.underwaterBounds(b);
+      return {
+        covered,
+        maximumSlopeDegrees,
+        surfaces: [...surfaces],
+        underwater,
+        blocked: options.blocked(b)
+      };
+    },
+    raycast(ray, maximumDistance) {
+      const ox = ray.origin[0],
+        oy = ray.origin[1],
+        oz = ray.origin[2];
+      const dx = ray.direction[0],
+        dy = ray.direction[1],
+        dz = ray.direction[2];
+      const length = Math.hypot(dx, dy, dz);
+      if (!Number.isFinite(maximumDistance) || maximumDistance <= 0 || !Number.isFinite(length) || length === 0)
+        return null;
+      const ndx = dx / length,
+        ndy = dy / length,
+        ndz = dz / length;
+      let previousDistance = 0;
+      let previousAbove = false;
+      const samples = Math.max(1, Math.ceil(maximumDistance / step));
+      for (let i = 0; i <= samples; i++) {
+        const distance = (i * maximumDistance) / samples;
+        const px = ox + ndx * distance;
+        const py = oy + ndy * distance;
+        const pz = oz + ndz * distance;
+        const gy = sampleHeightAt(options.groundId, px, pz);
+        if (gy !== null && Number.isFinite(gy) && py <= gy && previousAbove) {
+          let low = previousDistance,
+            high = distance;
+          for (let j = 0; j < 16; j++) {
+            const middle = (low + high) / 2;
+            const mx = ox + ndx * middle;
+            const my = oy + ndy * middle;
+            const mz = oz + ndz * middle;
+            const mgy = sampleHeightAt(options.groundId, mx, mz);
+            if (mgy !== null && Number.isFinite(mgy) && my <= mgy) high = middle;
+            else low = middle;
+          }
+          const ground = sample(options.groundId, ox + ndx * high, oz + ndz * high);
+          return ground && { ...ground, groundId: options.groundId, distance: high };
+        }
+        previousAbove = Boolean(gy !== null && Number.isFinite(gy) && py > gy);
+        previousDistance = distance;
+      }
+      return null;
+    }
+  };
+  return Object.freeze(view);
+}
+
+/** Publication swaps one immutable view. Query-only water facts can skip geometry notifications. */
+export class PlanningFarmingGroundProvider implements FarmingGroundProvider {
+  private readonly listeners = new Set<(change: FarmingGroundChange) => void>();
+  constructor(private view: FarmingGroundView) {}
+  capture(): FarmingGroundView {
+    return this.view;
+  }
+  subscribe(listener: (change: FarmingGroundChange) => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+  publish(view: FarmingGroundView, notify = true): void {
+    if (view.revision < this.view.revision) throw new Error("Stale farming ground publication");
+    this.view = view;
+    // Water-only facts do not move rendered ground. Consumers capture the new revision on their next request.
+    if (!notify) return;
+    for (const listener of this.listeners) listener({ revision: view.revision });
+  }
+  dispose(): void {
+    this.listeners.clear();
+  }
+}

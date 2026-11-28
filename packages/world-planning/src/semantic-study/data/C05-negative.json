@@ -1,0 +1,14 @@
+{
+  "label": "抬高入旧湖末点，破坏接口水位",
+  "patches": [
+    {
+      "path": [
+        "recipe",
+        "riverNodes",
+        3,
+        "level"
+      ],
+      "value": 6
+    }
+  ]
+}

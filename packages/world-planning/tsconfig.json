@@ -1,0 +1,10 @@
+{
+  "extends": "../../world/tsconfig.json",
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ],
+  "exclude": [
+    "src/native"
+  ]
+}

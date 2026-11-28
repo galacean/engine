@@ -63,7 +63,7 @@ export class Animator extends Component implements ICloneHook<Animator> {
   private _tempAnimatorStateInfo: IAnimatorStateInfo = { layerIndex: -1, state: null };
 
   @ignoreClone
-  private _controlledRenderers = new Array<Renderer>();
+  private _controlledRenderers: Renderer[] | null = null;
 
   /**
    * All layers from the AnimatorController which belongs this Animator.
@@ -174,25 +174,12 @@ export class Animator extends Component implements ICloneHook<Animator> {
       deltaTime = 0;
     }
 
-    let animationUpdate: boolean;
-    if (this.cullingMode === AnimatorCullingMode.Complete) {
-      animationUpdate = false;
-      const controlledRenderers = this._controlledRenderers;
-      for (let i = 0, n = controlledRenderers.length; i < n; i++) {
-        if (!controlledRenderers[i].isCulled) {
-          animationUpdate = true;
-          break;
-        }
-      }
-    } else {
-      animationUpdate = true;
-    }
-
     const animatorController = this._animatorController;
     if (!animatorController) {
       return;
     }
 
+    const animationUpdate = !this._isPoseCulled();
     this._resetIfControllerUpdated();
 
     this._updateMark++;
@@ -202,6 +189,18 @@ export class Animator extends Component implements ICloneHook<Animator> {
       const layerData = this._getAnimatorLayerData(i);
       this._updateState(layerData, deltaTime, animationUpdate);
     }
+  }
+
+  /** Whether to advance animation state without writing the pose. @internal */
+  _isPoseCulled(): boolean {
+    if (this.cullingMode !== AnimatorCullingMode.Complete) return false;
+
+    // A manually updated Animator may never have been enabled.
+    const renderers = (this._controlledRenderers ??= this._entity.getComponentsIncludeChildren(Renderer, []));
+    for (let i = 0; i < renderers.length; i++) {
+      if (!renderers[i].isCulled) return false;
+    }
+    return renderers.length > 0;
   }
 
   /**
@@ -300,7 +299,7 @@ export class Animator extends Component implements ICloneHook<Animator> {
    */
   override _onEnable(): void {
     this._reset();
-    this._entity.getComponentsIncludeChildren(Renderer, this._controlledRenderers);
+    this._entity.getComponentsIncludeChildren(Renderer, (this._controlledRenderers ??= []));
   }
 
   /**

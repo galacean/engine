@@ -48,6 +48,19 @@ export class ParticleBounds {
   private _currentInheritedAxisReach: Vector3 | null = null;
   private _lastInitialCurveFactor = 0;
 
+  // Local transform-feedback particles keep their motion state on the GPU. Retain the wind states
+  // that live particles may still carry so CPU frustum culling never shrinks to only the current state.
+  private _localWindBoundsExpirationTimes?: number[];
+  private _localWindBoundsSpeeds?: number[];
+  private _localWindBoundsWrapReaches?: number[];
+  private _localWindBoundsHistoryStart = 0;
+  private _localWindBoundsMaxSpeed = 0;
+  private _localWindBoundsMaxWrapReach = 0;
+  private _localWindBoundsConfigurationVersion = 0;
+  private _localWindBoundsSampledConfigurationVersion = -1;
+  private _localWindBoundsCurrentSpeed = 0;
+  private _localWindBoundsCurrentWrapReach = 0;
+
   constructor(private readonly _generator: ParticleGenerator) {}
 
   update(out: BoundingBox): void {
@@ -77,6 +90,9 @@ export class ParticleBounds {
     }
 
     const maxLifetime = generator.main.startLifetime._getMax();
+    if (this._needsLocalWindBoundsTracking()) {
+      this._updateLocalWindBoundsHistory();
+    }
 
     if (generatorBoundsDirty) {
       const inheritVelocity = generator.inheritVelocity;
@@ -90,7 +106,14 @@ export class ParticleBounds {
     }
 
     if (transformBoundsDirty) {
-      this._calculateTransformedBounds(maxLifetime, this._generatorBounds, this._transformedBounds);
+      this._calculateTransformedBounds(
+        maxLifetime,
+        this._generatorBounds,
+        this._transformedBounds,
+        undefined,
+        undefined,
+        this._getHistoricalLocalWindBoundsReach(maxLifetime)
+      );
       renderer._clearDirtyFlag(ParticleBoundsUpdateFlags.TransformVolume);
     }
   }
@@ -327,6 +350,48 @@ export class ParticleBounds {
     this.resetEmissionRecords();
     this._sourceBoundsFrame = -1;
     this._trajectoryFrameDisplacement?.set(0, 0, 0);
+    this.clearLocalWindBoundsHistory();
+  }
+
+  onWindBoundsChanged(): void {
+    // A magnitude-only fingerprint cannot distinguish configurations such as
+    // (100, 0, 0) -> (0, 0, 100). Live transform-feedback particles still carry
+    // the previous vector, so every semantic wind configuration change starts a
+    // new bounds generation even when its scalar reach happens to be unchanged.
+    this._localWindBoundsConfigurationVersion++;
+    if (
+      this._generator.main.simulationSpace === ParticleSimulationSpace.Local &&
+      this._needsLocalWindBoundsTracking()
+    ) {
+      this._updateLocalWindBoundsHistory();
+    }
+    this._generator._renderer._onGeneratorParamsChanged();
+  }
+
+  updateLocalWindBoundsHistory(): void {
+    if (this._needsLocalWindBoundsTracking()) {
+      this._updateLocalWindBoundsHistory();
+    }
+  }
+
+  clearLocalWindBoundsHistory(): void {
+    const expirationTimes = this._localWindBoundsExpirationTimes;
+    const hadHistory =
+      this._localWindBoundsMaxSpeed > 0 ||
+      this._localWindBoundsMaxWrapReach > 0 ||
+      this._localWindBoundsHistoryStart < (expirationTimes?.length ?? 0);
+    this._localWindBoundsExpirationTimes = undefined;
+    this._localWindBoundsSpeeds = undefined;
+    this._localWindBoundsWrapReaches = undefined;
+    this._localWindBoundsHistoryStart = 0;
+    this._localWindBoundsMaxSpeed = 0;
+    this._localWindBoundsMaxWrapReach = 0;
+    this._localWindBoundsSampledConfigurationVersion = -1;
+    this._localWindBoundsCurrentSpeed = 0;
+    this._localWindBoundsCurrentWrapReach = 0;
+    if (hadHistory) {
+      this._generator._renderer._onGeneratorParamsChanged();
+    }
   }
 
   releaseEmissionRecords(): void {
@@ -726,7 +791,8 @@ export class ParticleBounds {
     origin: BoundingBox,
     out: BoundingBox,
     worldPositionOverride?: Vector3,
-    worldRotationOverride?: Quaternion
+    worldRotationOverride?: Quaternion,
+    localWindBoundsReach?: number
   ): void {
     const {
       _tempVector20: velMinMaxX,
@@ -805,6 +871,27 @@ export class ParticleBounds {
       }
     }
 
+    const { windOverLifetime } = generator;
+    const historicalWindReach = localWindBoundsReach ?? 0;
+    if (windOverLifetime.enabled || historicalWindReach > 0) {
+      const targetVelocity = windOverLifetime.targetVelocity;
+      const influence = windOverLifetime.influence;
+      const wrapSize = windOverLifetime.wrapSize;
+      // Any positive influence eventually reaches the full target; influence changes response time,
+      // not terminal velocity, so scaling the bound by influence would under-estimate long-lived particles.
+      // A wrapped axis is bounded by its periodic volume below instead of its unbounded velocity reach.
+      // Historical local feedback state rotates with its emitter. Expand it isotropically so later emitter
+      // rotations stay conservative, while retaining the current per-axis model for tight steady-state bounds.
+      const reachX =
+        (influence.x > 0 && wrapSize.x <= 0 ? Math.abs(targetVelocity.x) * maxLifetime : 0) + historicalWindReach;
+      const reachY =
+        (influence.y > 0 && wrapSize.y <= 0 ? Math.abs(targetVelocity.y) * maxLifetime : 0) + historicalWindReach;
+      const reachZ =
+        (influence.z > 0 && wrapSize.z <= 0 ? Math.abs(targetVelocity.z) * maxLifetime : 0) + historicalWindReach;
+      worldOffsetMin.set(worldOffsetMin.x - reachX, worldOffsetMin.y - reachY, worldOffsetMin.z - reachZ);
+      worldOffsetMax.set(worldOffsetMax.x + reachX, worldOffsetMax.y + reachY, worldOffsetMax.z + reachZ);
+    }
+
     const { noise } = generator;
     this._getNoiseBoundsExtents(maxLifetime, noiseBoundsExtents);
 
@@ -854,6 +941,167 @@ export class ParticleBounds {
 
     min.add(worldPosition);
     max.add(worldPosition);
+
+    if (windOverLifetime.enabled) {
+      const wrapCenter = windOverLifetime.wrapCenter;
+      const wrapSize = windOverLifetime.wrapSize;
+      const removableHistoricalWindReach = orbitalActive ? 0 : historicalWindReach;
+      // The feedback pass wraps particle centers after every supported motion source. Preserve the
+      // current-state padding around the periodic world volume. Historical pre-wrap bounds are unioned
+      // instead of being folded into that padding, otherwise a past state would inflate the steady volume.
+      if (wrapSize.x > 0) {
+        const historicalMin = min.x;
+        const historicalMax = max.x;
+        const currentMin = historicalMin + removableHistoricalWindReach;
+        const currentMax = historicalMax - removableHistoricalWindReach;
+        const padding = Math.max(Math.abs(currentMin - worldPosition.x), Math.abs(currentMax - worldPosition.x));
+        const halfSize = wrapSize.x * 0.5;
+        const wrappedMin = wrapCenter.x - halfSize - padding;
+        const wrappedMax = wrapCenter.x + halfSize + padding;
+        min.x = historicalWindReach > 0 ? Math.min(historicalMin, wrappedMin) : wrappedMin;
+        max.x = historicalWindReach > 0 ? Math.max(historicalMax, wrappedMax) : wrappedMax;
+      }
+      if (wrapSize.y > 0) {
+        const historicalMin = min.y;
+        const historicalMax = max.y;
+        const currentMin = historicalMin + removableHistoricalWindReach;
+        const currentMax = historicalMax - removableHistoricalWindReach;
+        const padding = Math.max(Math.abs(currentMin - worldPosition.y), Math.abs(currentMax - worldPosition.y));
+        const halfSize = wrapSize.y * 0.5;
+        const wrappedMin = wrapCenter.y - halfSize - padding;
+        const wrappedMax = wrapCenter.y + halfSize + padding;
+        min.y = historicalWindReach > 0 ? Math.min(historicalMin, wrappedMin) : wrappedMin;
+        max.y = historicalWindReach > 0 ? Math.max(historicalMax, wrappedMax) : wrappedMax;
+      }
+      if (wrapSize.z > 0) {
+        const historicalMin = min.z;
+        const historicalMax = max.z;
+        const currentMin = historicalMin + removableHistoricalWindReach;
+        const currentMax = historicalMax - removableHistoricalWindReach;
+        const padding = Math.max(Math.abs(currentMin - worldPosition.z), Math.abs(currentMax - worldPosition.z));
+        const halfSize = wrapSize.z * 0.5;
+        const wrappedMin = wrapCenter.z - halfSize - padding;
+        const wrappedMax = wrapCenter.z + halfSize + padding;
+        min.z = historicalWindReach > 0 ? Math.min(historicalMin, wrappedMin) : wrappedMin;
+        max.z = historicalWindReach > 0 ? Math.max(historicalMax, wrappedMax) : wrappedMax;
+      }
+    }
+  }
+
+  private _updateLocalWindBoundsHistory(): void {
+    const generator = this._generator;
+    const maxLifetime = generator.main.startLifetime._getMax();
+    const currentTime = generator._playTime;
+    const expirationTimes = (this._localWindBoundsExpirationTimes ??= []);
+    const speeds = (this._localWindBoundsSpeeds ??= []);
+    const wrapReaches = (this._localWindBoundsWrapReaches ??= []);
+    let start = this._localWindBoundsHistoryStart;
+    const previousMaxSpeed = this._localWindBoundsMaxSpeed;
+    const previousMaxWrapReach = this._localWindBoundsMaxWrapReach;
+    let removedMaximum = false;
+
+    while (start < expirationTimes.length && expirationTimes[start] <= currentTime) {
+      if (speeds[start] >= previousMaxSpeed || wrapReaches[start] >= previousMaxWrapReach) {
+        removedMaximum = true;
+      }
+      start++;
+    }
+
+    const currentSpeed = this._getCurrentLocalWindSpeed();
+    const currentWrapReach = this._getCurrentLocalWindWrapReach();
+    const currentConfigurationVersion = this._localWindBoundsConfigurationVersion;
+    if (this._localWindBoundsSampledConfigurationVersion < 0) {
+      this._localWindBoundsSampledConfigurationVersion = currentConfigurationVersion;
+    } else if (
+      currentConfigurationVersion !== this._localWindBoundsSampledConfigurationVersion ||
+      currentSpeed !== this._localWindBoundsCurrentSpeed ||
+      currentWrapReach !== this._localWindBoundsCurrentWrapReach
+    ) {
+      const hasLiveParticles = generator._firstActiveElement !== generator._firstFreeElement;
+      const previousSpeed = this._localWindBoundsCurrentSpeed;
+      const previousWrapReach = this._localWindBoundsCurrentWrapReach;
+      if (hasLiveParticles && (previousSpeed > 0 || previousWrapReach > 0)) {
+        expirationTimes.push(currentTime + maxLifetime);
+        speeds.push(previousSpeed);
+        wrapReaches.push(previousWrapReach);
+      }
+    }
+    this._localWindBoundsSampledConfigurationVersion = currentConfigurationVersion;
+    this._localWindBoundsCurrentSpeed = currentSpeed;
+    this._localWindBoundsCurrentWrapReach = currentWrapReach;
+
+    let nextMaxSpeed = previousMaxSpeed;
+    let nextMaxWrapReach = previousMaxWrapReach;
+    if (removedMaximum) {
+      nextMaxSpeed = 0;
+      nextMaxWrapReach = 0;
+      for (let index = start; index < expirationTimes.length; index++) {
+        nextMaxSpeed = Math.max(nextMaxSpeed, speeds[index]);
+        nextMaxWrapReach = Math.max(nextMaxWrapReach, wrapReaches[index]);
+      }
+    } else if (expirationTimes.length > start) {
+      const lastIndex = expirationTimes.length - 1;
+      nextMaxSpeed = Math.max(nextMaxSpeed, speeds[lastIndex]);
+      nextMaxWrapReach = Math.max(nextMaxWrapReach, wrapReaches[lastIndex]);
+    }
+    this._localWindBoundsHistoryStart = start;
+    this._localWindBoundsMaxSpeed = nextMaxSpeed;
+    this._localWindBoundsMaxWrapReach = nextMaxWrapReach;
+    if (nextMaxSpeed !== previousMaxSpeed || nextMaxWrapReach !== previousMaxWrapReach) {
+      generator._renderer._onGeneratorParamsChanged();
+    }
+
+    if (start > 64 && start * 2 >= expirationTimes.length) {
+      expirationTimes.splice(0, start);
+      speeds.splice(0, start);
+      wrapReaches.splice(0, start);
+      this._localWindBoundsHistoryStart = 0;
+    }
+    if (
+      !generator.windOverLifetime.enabled &&
+      this._localWindBoundsCurrentSpeed === 0 &&
+      this._localWindBoundsCurrentWrapReach === 0 &&
+      this._localWindBoundsHistoryStart >= expirationTimes.length
+    ) {
+      this.clearLocalWindBoundsHistory();
+    }
+  }
+
+  private _getCurrentLocalWindSpeed(): number {
+    const wind = this._generator.windOverLifetime;
+    if (!wind.enabled) return 0;
+
+    const target = wind.targetVelocity;
+    const influence = wind.influence;
+    return Math.hypot(influence.x > 0 ? target.x : 0, influence.y > 0 ? target.y : 0, influence.z > 0 ? target.z : 0);
+  }
+
+  private _getCurrentLocalWindWrapReach(): number {
+    const wind = this._generator.windOverLifetime;
+    if (!wind.enabled) return 0;
+
+    const worldPosition = this._generator._renderer.entity.transform.worldPosition;
+    const center = wind.wrapCenter;
+    const size = wind.wrapSize;
+    const x = size.x > 0 ? Math.abs(center.x - worldPosition.x) + size.x * 0.5 : 0;
+    const y = size.y > 0 ? Math.abs(center.y - worldPosition.y) + size.y * 0.5 : 0;
+    const z = size.z > 0 ? Math.abs(center.z - worldPosition.z) + size.z * 0.5 : 0;
+    return Math.hypot(x, y, z);
+  }
+
+  private _getHistoricalLocalWindBoundsReach(maxLifetime: number): number {
+    const expirationTimes = this._localWindBoundsExpirationTimes;
+    if (!expirationTimes || this._localWindBoundsHistoryStart >= expirationTimes.length) return 0;
+    return this._localWindBoundsMaxWrapReach + this._localWindBoundsMaxSpeed * maxLifetime;
+  }
+
+  private _needsLocalWindBoundsTracking(): boolean {
+    return (
+      this._generator.windOverLifetime.enabled ||
+      this._localWindBoundsCurrentSpeed > 0 ||
+      this._localWindBoundsCurrentWrapReach > 0 ||
+      this._localWindBoundsHistoryStart < (this._localWindBoundsExpirationTimes?.length ?? 0)
+    );
   }
 
   private _useOrbitalBounds(): boolean {
@@ -913,16 +1161,21 @@ export class ParticleBounds {
     const gravityEffectMinZ = z * minGravityEffect;
     const gravityEffectMaxZ = z * maxGravityEffect;
 
+    const wrapSize = this._generator.windOverLifetime.enabled ? this._generator.windOverLifetime.wrapSize : null;
+    const wrapX = wrapSize !== null && wrapSize.x > 0;
+    const wrapY = wrapSize !== null && wrapSize.y > 0;
+    const wrapZ = wrapSize !== null && wrapSize.z > 0;
+
     // `origin` and `out` may reference the same bounds
     out.min.set(
-      Math.min(gravityEffectMinX, gravityEffectMaxX) + originMin.x,
-      Math.min(gravityEffectMinY, gravityEffectMaxY) + originMin.y,
-      Math.min(gravityEffectMinZ, gravityEffectMaxZ) + originMin.z
+      (wrapX ? 0 : Math.min(gravityEffectMinX, gravityEffectMaxX)) + originMin.x,
+      (wrapY ? 0 : Math.min(gravityEffectMinY, gravityEffectMaxY)) + originMin.y,
+      (wrapZ ? 0 : Math.min(gravityEffectMinZ, gravityEffectMaxZ)) + originMin.z
     );
     out.max.set(
-      Math.max(gravityEffectMinX, gravityEffectMaxX) + originMax.x,
-      Math.max(gravityEffectMinY, gravityEffectMaxY) + originMax.y,
-      Math.max(gravityEffectMinZ, gravityEffectMaxZ) + originMax.z
+      (wrapX ? 0 : Math.max(gravityEffectMinX, gravityEffectMaxX)) + originMax.x,
+      (wrapY ? 0 : Math.max(gravityEffectMinY, gravityEffectMaxY)) + originMax.y,
+      (wrapZ ? 0 : Math.max(gravityEffectMinZ, gravityEffectMaxZ)) + originMax.z
     );
   }
 

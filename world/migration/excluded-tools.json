@@ -1,0 +1,11 @@
+{
+  "demos/water/scripts/verify-water-bundle-budget.mjs": "world/demos/water/scripts/verify-water-bundle-budget.mjs",
+  "demos/terrain/scripts/verify-seed-world-water-aot-production-build.mjs": "world/demos/integrated-world/scripts/verify-seed-world-water-aot-production-build.mjs",
+  "demos/terrain/scripts/generate-surface-normal-tile.mjs": "world/demos/integrated-world/scripts/generate-surface-normal-tile.mjs",
+  "demos/terrain/scripts/generate-seed-world-water-shader-aot.mjs": "world/demos/integrated-world/scripts/generate-seed-world-water-shader-aot.mjs",
+  "demos/terrain/scripts/generate-terrain-surface-shader.mjs": "world/demos/integrated-world/scripts/generate-terrain-surface-shader.mjs",
+  "demos/terrain/scripts/encode-seed-world-flower-texture.mjs": "world/demos/integrated-world/scripts/encode-seed-world-flower-texture.mjs",
+  "demos/terrain/scripts/encode-seed-world-runtime-textures.mjs": "world/demos/integrated-world/scripts/encode-seed-world-runtime-textures.mjs",
+  "demos/terrain/asset-assembly/offline/generate-tree-species-structure.mjs": "packages/vegetation/src/asset-assembly/offline/generate-tree-species-structure.mjs",
+  "demos/terrain/asset-assembly/offline/publish-plant-project.mjs": "packages/vegetation/src/asset-assembly/offline/publish-plant-project.mjs"
+}

@@ -29,7 +29,10 @@ export class PrefabParser extends HierarchyParser<PrefabResource, ParserContext>
 
   protected override _onEntityCreated(entity: Entity): void {
     // @ts-ignore
-    entity._markAsTemplate(this.context.resource);
+    const previousResource = entity._markAsTemplate(this.context.resource);
+    if (previousResource && previousResource !== this.context.resource) {
+      this.prefabResource._addDependenceAsset(previousResource);
+    }
   }
 
   protected override _getRootIndices(): number[] {

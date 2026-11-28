@@ -131,6 +131,26 @@ describe("CollisionUtil", () => {
     expect(flag2).to.eq(false);
   });
 
+  it("intersectsFrustumAndBox checks all six frustum planes", () => {
+    const ortho = new Matrix();
+    Matrix.ortho(-10, 10, -5, 5, 1, 20, ortho);
+    const orthoFrustum = new BoundingFrustum(ortho);
+
+    // Inside [-10,10] x [-5,5] x [-20,-1]
+    expect(CollisionUtil.intersectsFrustumAndBox(orthoFrustum, new BoundingBox(new Vector3(-1, -1, -10), new Vector3(1, 1, -5)))).to.eq(true);
+    // Straddling boundaries
+    expect(CollisionUtil.intersectsFrustumAndBox(orthoFrustum, new BoundingBox(new Vector3(-12, -1, -10), new Vector3(-9.5, 1, -5)))).to.eq(true);
+    expect(CollisionUtil.intersectsFrustumAndBox(orthoFrustum, new BoundingBox(new Vector3(-1, -1, -21), new Vector3(1, 1, -19.5)))).to.eq(true);
+
+    // Outside each of the 6 planes independently
+    expect(CollisionUtil.intersectsFrustumAndBox(orthoFrustum, new BoundingBox(new Vector3(-12, -1, -10), new Vector3(-10.5, 1, -5)))).to.eq(false); // left
+    expect(CollisionUtil.intersectsFrustumAndBox(orthoFrustum, new BoundingBox(new Vector3(10.5, -1, -10), new Vector3(12, 1, -5)))).to.eq(false); // right
+    expect(CollisionUtil.intersectsFrustumAndBox(orthoFrustum, new BoundingBox(new Vector3(-1, -7, -10), new Vector3(1, -5.5, -5)))).to.eq(false); // bottom
+    expect(CollisionUtil.intersectsFrustumAndBox(orthoFrustum, new BoundingBox(new Vector3(-1, 5.5, -10), new Vector3(1, 7, -5)))).to.eq(false); // top
+    expect(CollisionUtil.intersectsFrustumAndBox(orthoFrustum, new BoundingBox(new Vector3(-1, -1, -0.5), new Vector3(1, 1, 1)))).to.eq(false); // near
+    expect(CollisionUtil.intersectsFrustumAndBox(orthoFrustum, new BoundingBox(new Vector3(-1, -1, -22), new Vector3(1, 1, -20.5)))).to.eq(false); // far
+  });
+
   it("frustumContainsPoint", () => {
     const point1 = new Vector3(0, 0, -15);
     const point2 = new Vector3(0, 20, -15);

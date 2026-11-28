@@ -6,7 +6,15 @@ import {
   PrimitiveMesh,
   Entity,
   Camera,
-  ModelMesh
+  DirectLight,
+  Layer,
+  ModelMesh,
+  PipelineStage,
+  RenderQueue,
+  ShaderLanguage,
+  ShaderPass,
+  ShadowCascadesMode,
+  ShadowType
 } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
@@ -256,6 +264,192 @@ describe("MeshRenderer", async function () {
     // Test that set negative value works correctly.
     mr.priority = -1;
     expect(mr.priority).to.be.equal(-1);
+  });
+
+  it("batches and splits opaque MeshRenderers by _isFrontFaceInvert on WebGL2", () => {
+    const scene = engine.sceneManager.activeScene;
+    const testRoot = scene.createRootEntity("batch-ffi-root");
+    const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
+    const material = new UnlitMaterial(engine);
+
+    const camEntity = testRoot.createChild("batch-ffi-camera");
+    camEntity.transform.setPosition(0, 0, 10);
+    camEntity.transform.lookAt(new Vector3(0, 0, 0));
+    const camera = camEntity.addComponent(Camera);
+    camera.enabled = false;
+    camera.cullingMask = Layer.Layer10;
+
+    const parentA = testRoot.createChild("parent-a");
+    parentA.transform.setScale(-1, 2, 1);
+    const entityA = parentA.createChild("mesh-a");
+    entityA.layer = Layer.Layer10;
+    entityA.transform.setRotation(0, 0, 45);
+    const mrA = entityA.addComponent(MeshRenderer);
+    mrA.mesh = mesh;
+    mrA.setMaterial(material);
+
+    const parentB = testRoot.createChild("parent-b");
+    const entityB = parentB.createChild("mesh-b");
+    entityB.layer = Layer.Layer10;
+    const mrB = entityB.addComponent(MeshRenderer);
+    mrB.mesh = mesh;
+    mrB.setMaterial(material);
+
+    engine.pause();
+    try {
+      // Opposite front-face inversion (true vs false) must not batch
+      camera.render();
+      // @ts-ignore
+      const opaqueQueue = camera._renderPipeline._cullingResults.opaqueQueue;
+      expect(opaqueQueue.batchedElements.length).to.equal(2);
+      expect(opaqueQueue.batchedElements[0].instancedRenderers.length).to.equal(0);
+      expect(opaqueQueue.batchedElements[1].instancedRenderers.length).to.equal(0);
+
+      // Matching front-face inversion (both true) must batch into one instanced draw
+      parentB.transform.setScale(-1, 1, 1);
+      camera.render();
+      expect(opaqueQueue.batchedElements.length).to.equal(1);
+      expect(opaqueQueue.batchedElements[0].instancedRenderers.length).to.equal(2);
+
+      // Restoring parentA to positive scale flips mrA back to false and splits again
+      parentA.transform.setScale(1, 2, 1);
+      camera.render();
+      expect(opaqueQueue.batchedElements.length).to.equal(2);
+    } finally {
+      testRoot.destroy();
+      engine.resume();
+    }
+  });
+
+  it("skips eager distanceForSort for opaque elements while sorting transparent elements", () => {
+    const scene = engine.sceneManager.activeScene;
+    const testRoot = scene.createRootEntity("lazy-sort-root");
+    const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
+
+    const camEntity = testRoot.createChild("lazy-sort-camera");
+    camEntity.transform.setPosition(0, 0, 10);
+    camEntity.transform.lookAt(new Vector3(0, 0, 0));
+    const camera = camEntity.addComponent(Camera);
+    camera.enabled = false;
+    camera.cullingMask = Layer.Layer11;
+
+    const opaqueMat = new UnlitMaterial(engine);
+    const opaqueEntity = testRoot.createChild("opaque");
+    opaqueEntity.layer = Layer.Layer11;
+    const opaqueMr = opaqueEntity.addComponent(MeshRenderer);
+    opaqueMr.mesh = mesh;
+    opaqueMr.setMaterial(opaqueMat);
+
+    const transMatA = new UnlitMaterial(engine);
+    transMatA.isTransparent = true;
+    const transMatB = new UnlitMaterial(engine);
+    transMatB.isTransparent = true;
+
+    const nearEntity = testRoot.createChild("near");
+    nearEntity.layer = Layer.Layer11;
+    nearEntity.transform.setPosition(0, 0, 5); // closer to camera at z=10
+    const nearMr = nearEntity.addComponent(MeshRenderer);
+    nearMr.mesh = mesh;
+    nearMr.setMaterial(transMatA);
+
+    const farEntity = testRoot.createChild("far");
+    farEntity.layer = Layer.Layer11;
+    farEntity.transform.setPosition(0, 0, -5); // farther from camera at z=10
+    const farMr = farEntity.addComponent(MeshRenderer);
+    farMr.mesh = mesh;
+    farMr.setMaterial(transMatB);
+
+    engine.pause();
+    try {
+      camera.render();
+      // @ts-ignore
+      const culling = camera._renderPipeline._cullingResults;
+      expect(Number.isNaN(culling.opaqueQueue.batchedElements[0].distanceForSort)).to.be.true;
+      // Transparent queue sorts descending (farther object drawn first, nearer object drawn last)
+      expect(culling.transparentQueue.batchedElements.map((e) => e.component)).to.deep.equal([farMr, nearMr]);
+      expect(culling.transparentQueue.batchedElements[0].distanceForSort).to.be.greaterThan(
+        culling.transparentQueue.batchedElements[1].distanceForSort
+      );
+
+      // Orthographic camera also sorts transparent elements back-to-front lazily
+      camera.isOrthographic = true;
+      camera.render();
+      expect(culling.transparentQueue.batchedElements.map((e) => e.component)).to.deep.equal([farMr, nearMr]);
+    } finally {
+      testRoot.destroy();
+      engine.resume();
+    }
+  });
+
+  it("syncs ShaderPass _pipelineStage and isolates ShadowCaster passes during shadow rendering", () => {
+    const pass = new ShaderPass("Custom", [], [], ShaderLanguage.GLSLES100, { pipelineStage: PipelineStage.ShadowCaster });
+    expect(pass._pipelineStage).to.equal(PipelineStage.ShadowCaster);
+    pass.setTag("pipelineStage", PipelineStage.Forward);
+    expect(pass._pipelineStage).to.equal(PipelineStage.Forward);
+    pass.deleteTag("pipelineStage");
+    expect(pass._pipelineStage).to.be.undefined;
+
+    const scene = engine.sceneManager.activeScene;
+    const prevCastShadows = scene.castShadows;
+    const prevCascades = scene.shadowCascades;
+    const prevShadowDistance = scene.shadowDistance;
+    const testRoot = scene.createRootEntity("shadow-stage-root");
+    const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
+
+    const camEntity = testRoot.createChild("shadow-stage-camera");
+    camEntity.transform.setPosition(0, 0, 10);
+    camEntity.transform.lookAt(new Vector3(0, 0, 0));
+    const camera = camEntity.addComponent(Camera);
+    camera.enabled = false;
+    camera.cullingMask = Layer.Layer12;
+
+    const lightEntity = testRoot.createChild("shadow-stage-light");
+    lightEntity.transform.setRotation(-45, 0, 0);
+    const light = lightEntity.addComponent(DirectLight);
+    light.cullingMask = Layer.Layer12;
+    light.shadowType = ShadowType.Hard;
+
+    const transPbrMat = new PBRMaterial(engine);
+    transPbrMat.isTransparent = true;
+
+    const casterEntity = testRoot.createChild("transparent-pbr-caster");
+    casterEntity.layer = Layer.Layer12;
+    const casterMr = casterEntity.addComponent(MeshRenderer);
+    casterMr.mesh = mesh;
+    casterMr.setMaterial(transPbrMat);
+    casterMr.castShadows = true;
+
+    const origRender = RenderQueue.prototype.render;
+    let shadowTransparentLength = -1;
+    let shadowAlphaTestLength = -1;
+    RenderQueue.prototype.render = function (context, stage, ...rest) {
+      if (stage === PipelineStage.ShadowCaster) {
+        // @ts-ignore
+        shadowTransparentLength = context.camera._renderPipeline._cullingResults.transparentQueue.elements.length;
+        // @ts-ignore
+        shadowAlphaTestLength = context.camera._renderPipeline._cullingResults.alphaTestQueue.elements.length;
+      }
+      return origRender.call(this, context, stage, ...rest);
+    };
+
+    engine.pause();
+    try {
+      scene.castShadows = true;
+      scene.shadowCascades = ShadowCascadesMode.NoCascades;
+      scene.shadowDistance = 50;
+      // @ts-ignore
+      scene._updateRendering(0);
+      camera.render();
+      expect(shadowAlphaTestLength).to.equal(1);
+      expect(shadowTransparentLength).to.equal(0);
+    } finally {
+      RenderQueue.prototype.render = origRender;
+      scene.castShadows = prevCastShadows;
+      scene.shadowCascades = prevCascades;
+      scene.shadowDistance = prevShadowDistance;
+      testRoot.destroy();
+      engine.resume();
+    }
   });
 
   it("destroy", () => {

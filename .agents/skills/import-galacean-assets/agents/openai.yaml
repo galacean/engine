@@ -1,0 +1,4 @@
+interface:
+  display_name: "上传 Galacean 资产"
+  short_description: "检查本地素材并生成描述。用户确认后上传 CDN，更新召回目录。OSS 只读。"
+  default_prompt: "使用 $import-galacean-assets 检查我提供的资产，准备说明供我确认，再发布到召回资源库。"

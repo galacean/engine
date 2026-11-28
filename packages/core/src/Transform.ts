@@ -29,6 +29,7 @@ export class Transform extends Component implements ICloneHook<Transform> {
   @ignoreClone
   private _scale: Vector3 = new Vector3(1, 1, 1);
   private _localUniformScaling: boolean = true;
+  private _localFrontFaceInvert: boolean = false;
   @ignoreClone
   private _worldPosition: Vector3 = new Vector3();
   @ignoreClone
@@ -37,6 +38,8 @@ export class Transform extends Component implements ICloneHook<Transform> {
   private _worldRotationQuaternion: Quaternion = new Quaternion();
   @ignoreClone
   private _worldUniformScaling: boolean = true;
+  @ignoreClone
+  private _worldFrontFaceInvert: boolean = false;
   @ignoreClone
   private _lossyWorldScale: Vector3 = new Vector3(1, 1, 1);
   @ignoreClone
@@ -55,7 +58,7 @@ export class Transform extends Component implements ICloneHook<Transform> {
   @ignoreClone
   private _parentTransformCache: Transform | null = null;
   @ignoreClone
-  private _dirtyFlag: number = TransformModifyFlags.LqLmWmWpWeWqWsWus;
+  private _dirtyFlag: number = TransformModifyFlags.LqLmWmWpWeWqWsWus | TransformModifyFlags.IsWorldFrontFaceInvert;
 
   /**
    * Local position.
@@ -282,12 +285,17 @@ export class Transform extends Component implements ICloneHook<Transform> {
     // @ts-ignore
     scale._onValueChanged = this._onScaleChanged;
     const localUniformScaling = scale.x === scale.y && scale.y === scale.z;
+    const localFrontFaceInvert = ((scale.x < 0 ? 1 : 0) ^ (scale.y < 0 ? 1 : 0) ^ (scale.z < 0 ? 1 : 0)) !== 0;
+    let flags = TransformModifyFlags.WmWpWeWqWs;
     if (this._localUniformScaling !== localUniformScaling) {
       this._localUniformScaling = localUniformScaling;
-      this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
-    } else {
-      this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWs);
+      flags |= TransformModifyFlags.IsWorldUniformScaling;
     }
+    if (this._localFrontFaceInvert !== localFrontFaceInvert) {
+      this._localFrontFaceInvert = localFrontFaceInvert;
+      flags |= TransformModifyFlags.IsWorldFrontFaceInvert;
+    }
+    this._updateAllWorldFlag(flags);
   }
 
   /**
@@ -579,18 +587,21 @@ export class Transform extends Component implements ICloneHook<Transform> {
    */
   _parentChange(): void {
     this._isParentDirty = true;
-    this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
+    this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus | TransformModifyFlags.IsWorldFrontFaceInvert);
   }
 
   /**
    * @internal
    */
   _isFrontFaceInvert(): boolean {
-    const scale = this.lossyWorldScale;
-    let isInvert = scale.x < 0;
-    scale.y < 0 && (isInvert = !isInvert);
-    scale.z < 0 && (isInvert = !isInvert);
-    return isInvert;
+    if (this._dirtyFlag & TransformModifyFlags.IsWorldFrontFaceInvert) {
+      const parent = this._getParentTransform();
+      this._worldFrontFaceInvert = parent
+        ? this._localFrontFaceInvert !== parent._isFrontFaceInvert()
+        : this._localFrontFaceInvert;
+      this._dirtyFlag &= ~TransformModifyFlags.IsWorldFrontFaceInvert;
+    }
+    return this._worldFrontFaceInvert;
   }
 
   /**
@@ -619,11 +630,12 @@ export class Transform extends Component implements ICloneHook<Transform> {
     scale._onValueChanged = this._onScaleChanged;
 
     this._localUniformScaling = source._localUniformScaling;
+    this._localFrontFaceInvert = source._localFrontFaceInvert;
 
     const rotationDirtyBits = TransformModifyFlags.LocalEuler | TransformModifyFlags.LocalQuat;
     this._dirtyFlag = (this._dirtyFlag & ~rotationDirtyBits) | (source._dirtyFlag & rotationDirtyBits);
     this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
-    this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
+    this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus | TransformModifyFlags.IsWorldFrontFaceInvert);
   }
 
   /**
@@ -796,10 +808,11 @@ export class Transform extends Component implements ICloneHook<Transform> {
   }
 
   /**
+   * @internal
    * Update all world transform property dirty flag, the principle is the same as above.
    * @param flags - Dirty flag
    */
-  private _updateAllWorldFlag(flags: TransformModifyFlags): void {
+  _updateAllWorldFlag(flags: TransformModifyFlags): void {
     if (!this._isContainDirtyFlags(flags)) {
       this._worldAssociatedChange(flags);
       const children = this._entity._children;
@@ -891,12 +904,17 @@ export class Transform extends Component implements ICloneHook<Transform> {
     const { x, y, z } = this._scale;
     this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
     const localUniformScaling = x == y && y == z;
+    const localFrontFaceInvert = ((x < 0 ? 1 : 0) ^ (y < 0 ? 1 : 0) ^ (z < 0 ? 1 : 0)) !== 0;
+    let flags = TransformModifyFlags.WmWs;
     if (this._localUniformScaling !== localUniformScaling) {
       this._localUniformScaling = localUniformScaling;
-      this._updateWorldScaleFlag(TransformModifyFlags.WmWsWus);
-    } else {
-      this._updateWorldScaleFlag(TransformModifyFlags.WmWs);
+      flags |= TransformModifyFlags.IsWorldUniformScaling;
     }
+    if (this._localFrontFaceInvert !== localFrontFaceInvert) {
+      this._localFrontFaceInvert = localFrontFaceInvert;
+      flags |= TransformModifyFlags.IsWorldFrontFaceInvert;
+    }
+    this._updateWorldScaleFlag(flags);
   }
 
   private _getWorldUniformScaling(): boolean {
@@ -941,6 +959,9 @@ export enum TransformModifyFlags {
    *  of world scaling dirty flags in the case of non-uniform scaling.
    */
   IsWorldUniformScaling = 0x100,
+
+  /** @internal `>= 0x10000` avoids `UITransformModifyFlags` (`0x200`–`0x8000`). */
+  IsWorldFrontFaceInvert = 0x10000,
 
   /** WorldMatrix | WorldPosition */
   WmWp = 0x84,

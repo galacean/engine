@@ -1,0 +1,9 @@
+# Generated experiment output belongs outside the source tree.
+/V2_ACCEPTANCE/
+/V2_COMBINATIONS/
+**/evidence/
+**/screenshots/
+*.tar.gz
+/canyon-shape-study/coverage-result.json
+/canyon-shape-study/target-contours.svg
+/wayfinding-study/seed1-evidence.json

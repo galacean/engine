@@ -1,0 +1,163 @@
+{
+  "version": "2.0",
+  "refs": [
+    {
+      "url": "Models/6f030beac004c8e7.glb",
+      "key": "meshes[1][0]"
+    },
+    {
+      "url": "Material/Vegetation/bush.mat"
+    },
+    {
+      "url": "Models/6f030beac004c8e7.glb",
+      "key": "meshes[0][0]"
+    },
+    {
+      "url": "/Script/TerrainPrototypeMetadata.ts"
+    }
+  ],
+  "entities": [
+    {
+      "name": "shrub-bush-medium",
+      "children": [
+        1,
+        2
+      ],
+      "components": [
+        2
+      ]
+    },
+    {
+      "name": "shrub-bush-medium-lod0-Bush_Medium",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        0
+      ]
+    },
+    {
+      "name": "shrub-bush-medium-lod1-Bush_Medium_LOD0",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        1
+      ]
+    }
+  ],
+  "components": [
+    {
+      "type": "MeshRenderer",
+      "props": {
+        "mesh": {
+          "$ref": 0
+        },
+        "castShadows": true,
+        "receiveShadows": true,
+        "enableVertexColor": true
+      },
+      "calls": [
+        {
+          "method": "setMaterial",
+          "args": [
+            {
+              "$ref": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "MeshRenderer",
+      "props": {
+        "mesh": {
+          "$ref": 2
+        },
+        "castShadows": true,
+        "receiveShadows": true,
+        "enableVertexColor": true
+      },
+      "calls": [
+        {
+          "method": "setMaterial",
+          "args": [
+            {
+              "$ref": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Script",
+      "script": 3,
+      "props": {
+        "geometry": {
+          "kind": "lod-group",
+          "lodGroup": {
+            "fadeMode": "CrossFade",
+            "animateCrossFading": true,
+            "localReferencePoint": [
+              -0.027338982,
+              0.553563,
+              0.016942501
+            ],
+            "size": 2.3135643,
+            "lods": [
+              {
+                "screenRelativeTransitionHeight": 0.20482708513736725,
+                "fadeTransitionWidth": 0,
+                "renderers": [
+                  {
+                    "entityPath": [
+                      0
+                    ],
+                    "componentIndex": 0
+                  }
+                ]
+              },
+              {
+                "screenRelativeTransitionHeight": 0.031904276460409164,
+                "fadeTransitionWidth": 0,
+                "renderers": [
+                  {
+                    "entityPath": [
+                      1
+                    ],
+                    "componentIndex": 0
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "root": 0
+}

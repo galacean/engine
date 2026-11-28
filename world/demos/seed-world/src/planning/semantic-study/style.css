@@ -1,0 +1,13 @@
+:root { color-scheme: light; font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif; color: #40594f; background: #e8eddd; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+button, input { font: inherit; }
+button { cursor: pointer; color: #40594f; background: #f8f4e8; border: 1px solid #b9c7b0; border-radius: 5px; padding: 5px 10px; min-height: 31px; }
+button:hover { background: #e2e9d4; border-color: #819c79; }
+button:disabled { opacity: .4; cursor: default; }
+button:focus-visible, input:focus-visible, canvas:focus-visible { outline: 2px solid #819c79; outline-offset: 2px; }
+input { min-width: 0; color: #40594f; border: 1px solid #b9c7b0; border-radius: 4px; background: #f8f4e8; padding: 4px 6px; }
+[hidden] { display: none !important; }
+#planning-app { height: 100dvh; padding: 10px; }
+.planning-loading { padding: 24px; }
+@media(max-width: 640px) { #planning-app { height: auto; min-height: 100dvh; padding: 6px; } }

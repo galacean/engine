@@ -169,6 +169,46 @@ export class Texture2D extends Texture {
   }
 
   /**
+   * Read the complete RGBA8 mip-zero image without synchronously waiting for the GPU.
+   * Requires WebGL2. The caller must retain the texture until completion; abort or
+   * texture/device destruction rejects the request and releases temporary GPU resources.
+   * @param out - Destination with at least width * height * 4 bytes
+   * @param signal - Optional cancellation signal
+   */
+  getPixelBufferAsync(out: Uint8Array, signal?: AbortSignal): Promise<void> {
+    if (
+      this.destroyed ||
+      this.format !== TextureFormat.R8G8B8A8_UNorm ||
+      out.byteLength < this.width * this.height * 4
+    ) {
+      return Promise.reject(new Error("Async readback requires a live RGBA8 texture and a sufficient Uint8Array"));
+    }
+    return (this._platformTexture as IPlatformTexture2D).getPixelBufferAsync(out, signal);
+  }
+
+  /**
+   * Whether the active graphics backend supports restricting mipmap sampling range.
+   * @internal
+   */
+  _supportsMipLevelRange(): boolean {
+    return typeof (this._platformTexture as IPlatformTexture2D)?.setMipLevelRange === "function";
+  }
+
+  /**
+   * Restricts the platform texture's mipmap sampling range (`TEXTURE_BASE_LEVEL` / `TEXTURE_MAX_LEVEL`).
+   * Returns `true` when applied by the active graphics backend.
+   * @internal
+   */
+  _setMipLevelRange(baseLevel: number, maxLevel: number): boolean {
+    const platformTexture = this._platformTexture as IPlatformTexture2D;
+    if (typeof platformTexture?.setMipLevelRange === "function") {
+      platformTexture.setMipLevelRange(baseLevel, maxLevel);
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * @internal
    */
   override _rebuild(): void {

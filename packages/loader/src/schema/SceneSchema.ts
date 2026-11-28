@@ -1,3 +1,4 @@
+import type { ScreenSpaceReflectionSettingsData } from "@galacean/engine-core";
 import {
   BackgroundMode,
   BackgroundTextureFillMode,
@@ -11,6 +12,7 @@ import type { Vec3Tuple, Vec4Tuple } from "./CommonSchema";
 
 export interface SceneFile extends HierarchyFile {
   scene: {
+    screenSpaceReflection?: Partial<ScreenSpaceReflectionSettingsData>;
     name?: string;
     rootEntities: number[];
     background: {

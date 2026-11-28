@@ -1,0 +1,209 @@
+/** Derived display policy only; never persisted in the author's construction document. */
+export type MasonryLod = 0 | 1 | 2;
+export interface MasonryLodView {
+  view: ArrayLike<number>;
+  projection: ArrayLike<number>;
+  orthographic: boolean;
+  pixelHeight: number;
+  near: number;
+  far: number;
+}
+export interface MasonryLodBounds {
+  min: readonly number[];
+  max: readonly number[];
+}
+export const MASONRY_RESIDENCY = {
+  retainMs: 45_000,
+  // Scene-owned instance/storage/feedback bytes. Immutable textures/templates are shared separately.
+  cacheBytes: 128 * 1024 * 1024,
+  detailBytes: 256 * 1024 * 1024,
+  fullTriangleBudget: 2_000_000
+};
+
+const DEFAULT_MASONRY_RESIDENCY_BUDGET = Object.freeze({
+  retainMs: 10_000,
+  cacheBytes: 12 * 1024 * 1024,
+  detailBytes: 24 * 1024 * 1024,
+  fullTriangleBudget: MASONRY_RESIDENCY.fullTriangleBudget,
+  // Cap simultaneously active fine buildings so dense villages cannot flood LOD0/LOD1.
+  maxFullBuildings: 1,
+  maxDetailBuildings: 6
+});
+
+export function getMasonryResidencyBudget() {
+  return DEFAULT_MASONRY_RESIDENCY_BUDGET;
+}
+
+/**
+ * Resolve DPR-normalized viewport height for screen-space masonry LOD selection so high-DPR
+ * (2×/3×) mobile displays cap effective DPR scaling at 1.25× CSS pixels — avoiding both 2×–3×
+ * physical-pixel LOD0/LOD1 over-promotion and premature LOD2 proxy popping on nearby village
+ * streets. Preserves raw physical height on 1× desktop, sub-1× render scale, and headless mocks.
+ */
+const MAX_MASONRY_LOD_EFFECTIVE_DPR = 1.25;
+
+export function resolveMasonryLodPixelHeight(
+  canvas: { height: number; _webCanvas?: { clientHeight?: number } } | undefined,
+  viewportFraction: number,
+  fallbackPhysicalHeight?: number
+): number {
+  const physicalHeight =
+    fallbackPhysicalHeight !== undefined ? fallbackPhysicalHeight : (canvas?.height ?? 0) * viewportFraction;
+  const clientHeight = canvas?._webCanvas?.clientHeight;
+  if (typeof clientHeight === "number" && clientHeight > 0 && canvas && canvas.height > 0) {
+    const effectiveDpr = canvas.height / clientHeight;
+    if (effectiveDpr > MAX_MASONRY_LOD_EFFECTIVE_DPR) {
+      return physicalHeight / (effectiveDpr / MAX_MASONRY_LOD_EFFECTIVE_DPR);
+    }
+  }
+  return physicalHeight;
+}
+
+export interface MasonryLodTuning {
+  enterFullUnitPx: number;
+  leaveFullUnitPx: number;
+  enterDetailSizePx: number;
+  leaveDetailSizePx: number;
+  enterDetailUnitPx: number;
+  leaveDetailUnitPx: number;
+  colorizeLod: boolean;
+  lodCrossFade: boolean;
+}
+
+export const DEFAULT_MASONRY_LOD_TUNING: Readonly<MasonryLodTuning> = {
+  enterFullUnitPx: 20,
+  leaveFullUnitPx: 16,
+  enterDetailSizePx: 288,
+  leaveDetailSizePx: 216,
+  enterDetailUnitPx: 7.2,
+  leaveDetailUnitPx: 5.4,
+  colorizeLod: false,
+  lodCrossFade: true
+};
+
+const masonryLodTuning: MasonryLodTuning = { ...DEFAULT_MASONRY_LOD_TUNING };
+let masonryLodTuningVersion = 0;
+const masonryLodListeners = new Set<() => void>();
+
+export function getMasonryLodTuning(): Readonly<MasonryLodTuning> {
+  return masonryLodTuning;
+}
+
+export function setMasonryLodTuning(patch: Partial<MasonryLodTuning>): void {
+  let changed = false;
+  for (const key of Object.keys(patch) as (keyof MasonryLodTuning)[]) {
+    const value = patch[key];
+    if (value !== undefined && masonryLodTuning[key] !== value) {
+      (masonryLodTuning as unknown as Record<string, unknown>)[key] = value;
+      changed = true;
+    }
+  }
+  if (!changed) return;
+  masonryLodTuningVersion++;
+  for (const listener of masonryLodListeners) listener();
+}
+
+export function subscribeMasonryLodTuning(listener: () => void): () => void {
+  masonryLodListeners.add(listener);
+  return () => masonryLodListeners.delete(listener);
+}
+
+/** Cached group-level residency probe. Actual draw culling remains engine-owned. */
+export class MasonryLodProbe {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+  readonly rx: number;
+  readonly ry: number;
+  readonly rz: number;
+  readonly size: number;
+  distanceSquared = Infinity;
+  private enterDetail = 0;
+  private leaveDetail = 0;
+  private enterFull = 0;
+  private leaveFull = 0;
+  private projectionScale = 0;
+  private nearSquared = 0;
+  private orthographic = false;
+  private initialized = false;
+  private tuningVersion = -1;
+  eligible = false;
+  visible = false;
+  lod: MasonryLod = 2;
+  constructor(
+    bounds: MasonryLodBounds,
+    position: readonly number[],
+    private readonly unitSize = 0.3
+  ) {
+    this.x = (bounds.min[0] + bounds.max[0]) * 0.5 + position[0];
+    this.y = (bounds.min[1] + bounds.max[1]) * 0.5;
+    this.z = (bounds.min[2] + bounds.max[2]) * 0.5 + position[2];
+    this.rx = (bounds.max[0] - bounds.min[0]) * 0.5;
+    this.ry = (bounds.max[1] - bounds.min[1]) * 0.5;
+    this.rz = (bounds.max[2] - bounds.min[2]) * 0.5;
+    this.size = 2 * Math.max(this.rx, this.ry, this.rz);
+  }
+  /** flags: view=1, world position=2, projection/viewport/clips=4. */
+  update(camera: MasonryLodView, position: { x: number; y: number; z: number }, flags: number, previous: MasonryLod) {
+    if (!this.initialized) flags = 7;
+    const tuningDirty = this.tuningVersion !== masonryLodTuningVersion;
+    if (flags & 4 || tuningDirty) {
+      const scale = (this.projectionScale = Math.abs(camera.projection[5]) * camera.pixelHeight * 0.5);
+      const unit = this.unitSize * scale,
+        size = this.size * scale;
+      this.enterDetail =
+        Math.min(size / masonryLodTuning.enterDetailSizePx, unit / masonryLodTuning.enterDetailUnitPx) ** 2;
+      this.leaveDetail =
+        Math.min(size / masonryLodTuning.leaveDetailSizePx, unit / masonryLodTuning.leaveDetailUnitPx) ** 2;
+      this.enterFull = (unit / masonryLodTuning.enterFullUnitPx) ** 2;
+      this.leaveFull = (unit / masonryLodTuning.leaveFullUnitPx) ** 2;
+      this.nearSquared = camera.near ** 2;
+      this.orthographic = camera.orthographic;
+      this.tuningVersion = masonryLodTuningVersion;
+    }
+    if (flags & 2) {
+      const dx = this.x - position.x,
+        dy = this.y - position.y,
+        dz = this.z - position.z;
+      this.distanceSquared = dx * dx + dy * dy + dz * dz;
+    }
+    if (flags & 6 || previous !== this.lod || tuningDirty) {
+      const d = this.orthographic ? 1 : Math.max(this.nearSquared, this.distanceSquared);
+      this.lod =
+        d <= (previous < 2 ? this.leaveDetail : this.enterDetail)
+          ? d <= (previous === 0 ? this.leaveFull : this.enterFull)
+            ? 0
+            : 1
+          : 2;
+    }
+    this.initialized = true;
+    // A cached group coarse test is cheaper than submitting hundreds of hidden
+    // renderers to engine culling. Quality and transition state do not depend on it.
+    if (flags) {
+      const m = camera.view,
+        p = camera.projection;
+      const vx = m[0] * this.x + m[4] * this.y + m[8] * this.z + m[12];
+      const vy = m[1] * this.x + m[5] * this.y + m[9] * this.z + m[13];
+      const depth = -(m[2] * this.x + m[6] * this.y + m[10] * this.z + m[14]);
+      const ex = Math.abs(m[0]) * this.rx + Math.abs(m[4]) * this.ry + Math.abs(m[8]) * this.rz;
+      const ey = Math.abs(m[1]) * this.rx + Math.abs(m[5]) * this.ry + Math.abs(m[9]) * this.rz;
+      const ez = Math.abs(m[2]) * this.rx + Math.abs(m[6]) * this.ry + Math.abs(m[10]) * this.rz;
+      const extent = camera.orthographic ? 1 : Math.max(0, depth + ez);
+      const width = extent / Math.abs(p[0]),
+        height = extent / Math.abs(p[5]);
+      const depthVisible = depth + ez >= camera.near && depth - ez <= camera.far;
+      this.visible = depthVisible && Math.abs(vx) <= width + ex && Math.abs(vy) <= height + ey;
+      this.eligible =
+        this.lod < 2 &&
+        (this.distanceSquared < 3600 ||
+          (depthVisible && Math.abs(vx) <= width * 1.3 + ex && Math.abs(vy) <= height * 1.3 + ey));
+    }
+  }
+
+  /** Evaluated only when the demand set/quality changes or a new load is selected. */
+  priority() {
+    const scale =
+      this.projectionScale / (this.orthographic ? 1 : Math.sqrt(Math.max(this.nearSquared, this.distanceSquared)));
+    return Math.min(this.size * scale, 10000) * 100 + this.unitSize * scale;
+  }
+}

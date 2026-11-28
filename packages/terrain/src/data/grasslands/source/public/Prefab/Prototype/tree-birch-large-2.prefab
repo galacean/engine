@@ -1,0 +1,321 @@
+{
+  "version": "2.0",
+  "refs": [
+    {
+      "url": "Models/e5d9d5383c2f51e1.glb",
+      "key": "meshes[2][0]"
+    },
+    {
+      "url": "Material/Surface/birch-bark.mat"
+    },
+    {
+      "url": "Models/e5d9d5383c2f51e1.glb",
+      "key": "meshes[2][1]"
+    },
+    {
+      "url": "Material/Vegetation/birch-leaves.mat"
+    },
+    {
+      "url": "Models/e5d9d5383c2f51e1.glb",
+      "key": "meshes[0][0]"
+    },
+    {
+      "url": "Models/e5d9d5383c2f51e1.glb",
+      "key": "meshes[0][1]"
+    },
+    {
+      "url": "Models/e5d9d5383c2f51e1.glb",
+      "key": "meshes[1][0]"
+    },
+    {
+      "url": "Models/e5d9d5383c2f51e1.glb",
+      "key": "meshes[1][1]"
+    },
+    {
+      "url": "/Script/TerrainPrototypeMetadata.ts"
+    }
+  ],
+  "entities": [
+    {
+      "name": "tree-birch-large-2",
+      "children": [
+        1,
+        2,
+        3
+      ],
+      "components": [
+        6
+      ]
+    },
+    {
+      "name": "tree-birch-large-2-lod0-Birch_Large_2",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        0,
+        1
+      ]
+    },
+    {
+      "name": "tree-birch-large-2-lod1-Birch_Large_2_LOD0",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        2,
+        3
+      ]
+    },
+    {
+      "name": "tree-birch-large-2-lod2-Birch_Large_2_LOD1",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        4,
+        5
+      ]
+    }
+  ],
+  "components": [
+    {
+      "type": "MeshRenderer",
+      "props": {
+        "mesh": {
+          "$ref": 0
+        },
+        "castShadows": true,
+        "receiveShadows": true,
+        "enableVertexColor": true
+      },
+      "calls": [
+        {
+          "method": "setMaterial",
+          "args": [
+            {
+              "$ref": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "MeshRenderer",
+      "props": {
+        "mesh": {
+          "$ref": 2
+        },
+        "castShadows": true,
+        "receiveShadows": true,
+        "enableVertexColor": true
+      },
+      "calls": [
+        {
+          "method": "setMaterial",
+          "args": [
+            {
+              "$ref": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "MeshRenderer",
+      "props": {
+        "mesh": {
+          "$ref": 4
+        },
+        "castShadows": true,
+        "receiveShadows": true,
+        "enableVertexColor": true
+      },
+      "calls": [
+        {
+          "method": "setMaterial",
+          "args": [
+            {
+              "$ref": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "MeshRenderer",
+      "props": {
+        "mesh": {
+          "$ref": 5
+        },
+        "castShadows": true,
+        "receiveShadows": true,
+        "enableVertexColor": true
+      },
+      "calls": [
+        {
+          "method": "setMaterial",
+          "args": [
+            {
+              "$ref": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "MeshRenderer",
+      "props": {
+        "mesh": {
+          "$ref": 6
+        },
+        "castShadows": true,
+        "receiveShadows": true,
+        "enableVertexColor": true
+      },
+      "calls": [
+        {
+          "method": "setMaterial",
+          "args": [
+            {
+              "$ref": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "MeshRenderer",
+      "props": {
+        "mesh": {
+          "$ref": 7
+        },
+        "castShadows": true,
+        "receiveShadows": true,
+        "enableVertexColor": true
+      },
+      "calls": [
+        {
+          "method": "setMaterial",
+          "args": [
+            {
+              "$ref": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Script",
+      "script": 8,
+      "props": {
+        "geometry": {
+          "kind": "lod-group",
+          "lodGroup": {
+            "fadeMode": "CrossFade",
+            "animateCrossFading": true,
+            "localReferencePoint": [
+              -0.35694218,
+              9.436758,
+              0.21192026
+            ],
+            "size": 20.273434,
+            "lods": [
+              {
+                "screenRelativeTransitionHeight": 0.5951275825500488,
+                "fadeTransitionWidth": 0,
+                "renderers": [
+                  {
+                    "entityPath": [
+                      0
+                    ],
+                    "componentIndex": 0
+                  },
+                  {
+                    "entityPath": [
+                      0
+                    ],
+                    "componentIndex": 1
+                  }
+                ]
+              },
+              {
+                "screenRelativeTransitionHeight": 0.2976749837398529,
+                "fadeTransitionWidth": 0,
+                "renderers": [
+                  {
+                    "entityPath": [
+                      1
+                    ],
+                    "componentIndex": 0
+                  },
+                  {
+                    "entityPath": [
+                      1
+                    ],
+                    "componentIndex": 1
+                  }
+                ]
+              },
+              {
+                "screenRelativeTransitionHeight": 0.03807517886161804,
+                "fadeTransitionWidth": 0,
+                "renderers": [
+                  {
+                    "entityPath": [
+                      2
+                    ],
+                    "componentIndex": 0
+                  },
+                  {
+                    "entityPath": [
+                      2
+                    ],
+                    "componentIndex": 1
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "root": 0
+}

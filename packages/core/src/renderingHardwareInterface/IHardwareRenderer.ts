@@ -15,6 +15,7 @@ import type { IPlatformTexture2DArray } from "./IPlatformTexture2DArray";
 import type { IPlatformTextureCube } from "./IPlatformTextureCube";
 import type { IPlatformTransformFeedback } from "./IPlatformTransformFeedback";
 import type { IPlatformTransformFeedbackPrimitive } from "./IPlatformTransformFeedbackPrimitive";
+import type { RenderPassDescriptor } from "./RenderPassDescriptor";
 
 /** Graphics resource and command boundary used by the engine. */
 export interface IHardwareRenderer {
@@ -25,8 +26,11 @@ export interface IHardwareRenderer {
   readonly supportsRendering: boolean;
   readonly capability: {
     readonly maxTextureSize: number;
+    /** Number of simultaneous color outputs available on this backend. */
+    readonly maxDrawBuffers: number;
     readonly maxAntiAliasing: number;
     readonly maxVertexUniformVectors: number;
+    readonly maxFragmentTextureUnits: number;
   };
   /** @internal */
   readonly _options: {
@@ -66,6 +70,15 @@ export interface IHardwareRenderer {
     mipLevel?: number,
     faceIndex?: TextureCubeFace
   ): void;
+  /**
+   * Begin a render pass with the given target binding and attachment load/store actions.
+   * @param descriptor - Render pass descriptor
+   */
+  beginRenderPass(descriptor: RenderPassDescriptor): void;
+  /**
+   * End the active render pass, applying declared MSAA resolve and attachment discard actions.
+   */
+  endRenderPass(): void;
   clearRenderTarget(engine: Engine, flags: CameraClearFlags, color?: Color | null): void;
   drawPrimitive(primitive: Primitive, subPrimitive: SubPrimitive | null, program: IPlatformShaderProgram): void;
   blitInternalRTByBlitFrameBuffer(

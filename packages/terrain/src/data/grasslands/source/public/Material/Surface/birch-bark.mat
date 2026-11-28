@@ -1,0 +1,147 @@
+{
+  "name": "birch-bark",
+  "shader": "Terrain/Surface",
+  "shaderRef": {
+    "url": "Shader/Surface.shaderc"
+  },
+  "shaderData": {
+    "material_BaseColor": {
+      "type": "Color",
+      "value": {
+        "r": 0.6055236790678329,
+        "g": 0.6055236790678329,
+        "b": 0.6055236790678329,
+        "a": 1
+      }
+    },
+    "material_Tiling": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Smoothness": {
+      "type": "Float",
+      "value": 0.30000001192092896
+    },
+    "material_NormalScale": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_BaseTexture": {
+      "type": "Texture",
+      "value": {
+        "url": "Texture/4d38d602ec3ad9a6.png"
+      }
+    },
+    "material_NormalTexture": {
+      "type": "Texture",
+      "value": {
+        "url": "Texture/de856599baa49d24.png"
+      }
+    },
+    "material_Metallic": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_SmoothnessSource": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_OcclusionStrength": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_CoverageNormalTexture": {
+      "type": "Texture",
+      "value": {
+        "url": "Texture/e488e7b7f0fd2970.png"
+      }
+    },
+    "material_CoverageMaskTexture": {
+      "type": "Texture",
+      "value": {
+        "url": "Texture/4d38d602ec3ad9a6.png"
+      }
+    },
+    "material_CoverageColor": {
+      "type": "Color",
+      "value": {
+        "r": 0.019823895392188134,
+        "g": 0.019823895392188134,
+        "b": 0.019823895392188134,
+        "a": 0
+      }
+    },
+    "material_CoverageTiling": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_CoverageNormalScale": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_CoverageMetallic": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_CoverageSmoothness": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_CoverageSmoothnessSource": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_CoverageOverlayMethod": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_CoverageOffset": {
+      "type": "Float",
+      "value": 3.5399999618530273
+    },
+    "material_CoverageBalance": {
+      "type": "Float",
+      "value": 0.8299999833106995
+    },
+    "material_CoverageMaskContrast": {
+      "type": "Float",
+      "value": 0.3700000047683716
+    },
+    "material_CoverageNormalBlending": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_CoverageMaskTiling": {
+      "type": "Vector2",
+      "value": {
+        "x": 1,
+        "y": 1.75
+      }
+    },
+    "material_LodDitherTexture": {
+      "type": "Texture",
+      "value": {
+        "url": "Texture/140c55bd97c21b9b.png"
+      }
+    },
+    "material_LodDitherTextureInvSize": {
+      "type": "Float",
+      "value": 0.015625
+    }
+  },
+  "macros": [
+    {
+      "name": "MATERIAL_ENABLE_COVERAGE"
+    },
+    {
+      "name": "MATERIAL_HAS_BASETEXTURE"
+    },
+    {
+      "name": "MATERIAL_HAS_NORMALTEXTURE"
+    },
+    {
+      "name": "MATERIAL_SEASON_SPECIES",
+      "value": "TERRAIN_PROJECT_SEASON_SPECIES_TREE_BARK"
+    }
+  ]
+}

@@ -1,0 +1,205 @@
+{
+  "version": 1,
+  "encoding": {
+    "tool": "KTX-Software",
+    "version": "4.4.2",
+    "codec": "UASTC",
+    "quality": 4,
+    "zstd": 18,
+    "mipmaps": "full",
+    "transferFunction": "srgb",
+    "format": "R8G8B8A8_SRGB"
+  },
+  "plants": [
+    {
+      "id": "beetroot-farmlands",
+      "texture": "beetroot-farmlands.ktx2",
+      "source": "catalog/plants/beetroot-farmlands/procedural/atlas.png",
+      "sourceSha256": "cc11ed604d929396d5814092e0a7fc354b1cf8cc5361d83c7b968754c2ac02ab"
+    },
+    {
+      "id": "cabbage-farmlands",
+      "texture": "cabbage-farmlands.ktx2",
+      "source": "catalog/plants/cabbage-farmlands/procedural/atlas.png",
+      "sourceSha256": "32f37c76bd2ade3983b37385abc30b47510252a5a1370595a3d170880c8f9b74"
+    },
+    {
+      "id": "canola-farmlands",
+      "texture": "canola-farmlands.ktx2",
+      "source": "catalog/plants/canola-farmlands/procedural/atlas.png",
+      "sourceSha256": "35a38524adde7c33e7f43abc505199de2764d240d716c55b4f6eeb5e159b601f"
+    },
+    {
+      "id": "carrot-farmlands",
+      "texture": "beetroot-farmlands.ktx2",
+      "source": "catalog/plants/carrot-farmlands/procedural/atlas.png",
+      "sourceSha256": "cc11ed604d929396d5814092e0a7fc354b1cf8cc5361d83c7b968754c2ac02ab"
+    },
+    {
+      "id": "grapevine-farmlands",
+      "texture": "grapevine-farmlands.ktx2",
+      "source": "catalog/plants/grapevine-farmlands/procedural/atlas.png",
+      "sourceSha256": "0fdd81075e3d916856806ee03771f2f35d8b1d1c95858d4e71a43d1c5c03110c"
+    },
+    {
+      "id": "melon-farmlands",
+      "texture": "melon-farmlands.ktx2",
+      "source": "catalog/plants/melon-farmlands/procedural/atlas.png",
+      "sourceSha256": "e419a0be7a815db1d0432a37bb6df88ad0a5b6988e504c9d6688d59ddaeec3d3"
+    },
+    {
+      "id": "potato-farmlands",
+      "texture": "potato-farmlands.ktx2",
+      "source": "catalog/plants/potato-farmlands/procedural/atlas.png",
+      "sourceSha256": "1565a4d53266238d2bc9e94b719e9bf11be520ca5998f2e2aacf883acae9a288"
+    },
+    {
+      "id": "pumpkin-farmlands",
+      "texture": "pumpkin-farmlands.ktx2",
+      "source": "catalog/plants/pumpkin-farmlands/procedural/atlas.png",
+      "sourceSha256": "0106afc8ae27dae8707be4d7f671324c5e8483c5cf028ee3fc47217c2d6e23c8"
+    },
+    {
+      "id": "radish-farmlands",
+      "texture": "radish-farmlands.ktx2",
+      "source": "catalog/plants/radish-farmlands/procedural/atlas.png",
+      "sourceSha256": "28b8b3392050189982f25e705b55dfdcbbc6c8d1630449db2e3edd6436eb730b"
+    },
+    {
+      "id": "rice-quaternius",
+      "texture": "rice-quaternius.ktx2",
+      "source": "catalog/plants/rice-quaternius/procedural/atlas.png",
+      "sourceSha256": "c832693eb13003e4190518c3a13b9c76659dea86d63f95c128830d0c384224be"
+    },
+    {
+      "id": "sunflower-farmlands",
+      "texture": "sunflower-farmlands.ktx2",
+      "source": "catalog/plants/sunflower-farmlands/procedural/atlas.png",
+      "sourceSha256": "44024873159f1c8c9284ecdd79c79043302dea3c133f0f85a70c6df7e1f3cce9"
+    },
+    {
+      "id": "tomato-farmlands",
+      "texture": "tomato-farmlands.ktx2",
+      "source": "catalog/plants/tomato-farmlands/procedural/atlas.png",
+      "sourceSha256": "bf74cfe67f7504e7badd3ca3c620738d32ac5fc2943ca3510aa4ca8e9cc250b7"
+    },
+    {
+      "id": "watermelon-farmlands",
+      "texture": "watermelon-farmlands.ktx2",
+      "source": "catalog/plants/watermelon-farmlands/procedural/atlas.png",
+      "sourceSha256": "f056626cedad3211cb6ae8e6e841af67f5409f5108dff888331db4260ef87550"
+    },
+    {
+      "id": "wheat-farmlands",
+      "texture": "wheat-farmlands.ktx2",
+      "source": "catalog/plants/wheat-farmlands/procedural/atlas.png",
+      "sourceSha256": "6637c8090eb7a98dcbb8e16cdbf406527fa70e276a344d7aa78881875b083558"
+    }
+  ],
+  "textures": [
+    {
+      "name": "beetroot-farmlands",
+      "source": "catalog/plants/beetroot-farmlands/procedural/atlas.png",
+      "sourceSha256": "cc11ed604d929396d5814092e0a7fc354b1cf8cc5361d83c7b968754c2ac02ab",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "e887cd532211cc6a278c41718adc1d3f0f606faa22984bc839aa53bb30d6217a"
+    },
+    {
+      "name": "cabbage-farmlands",
+      "source": "catalog/plants/cabbage-farmlands/procedural/atlas.png",
+      "sourceSha256": "32f37c76bd2ade3983b37385abc30b47510252a5a1370595a3d170880c8f9b74",
+      "width": 512,
+      "height": 512,
+      "sha256": "10470aef7d1d71a4ee4a22d62b6e63f1b6c33ba3d1e49250d6b3c920d3a5f371"
+    },
+    {
+      "name": "canola-farmlands",
+      "source": "catalog/plants/canola-farmlands/procedural/atlas.png",
+      "sourceSha256": "35a38524adde7c33e7f43abc505199de2764d240d716c55b4f6eeb5e159b601f",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "13728f883e82c94cb03a504b7bbb92fb8cd3f25f4e7963550cd97aeb982af4db"
+    },
+    {
+      "name": "grapevine-farmlands",
+      "source": "catalog/plants/grapevine-farmlands/procedural/atlas.png",
+      "sourceSha256": "0fdd81075e3d916856806ee03771f2f35d8b1d1c95858d4e71a43d1c5c03110c",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "f80347659e737e7a314e0e4908846e8ade7eb2e8b327e7ddfce7544a9b8fe6b0"
+    },
+    {
+      "name": "melon-farmlands",
+      "source": "catalog/plants/melon-farmlands/procedural/atlas.png",
+      "sourceSha256": "e419a0be7a815db1d0432a37bb6df88ad0a5b6988e504c9d6688d59ddaeec3d3",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "675bf7aaaaace7d1034efa9437e0b0ff3c19974c8e27fad7cb37d14ef3e563be"
+    },
+    {
+      "name": "potato-farmlands",
+      "source": "catalog/plants/potato-farmlands/procedural/atlas.png",
+      "sourceSha256": "1565a4d53266238d2bc9e94b719e9bf11be520ca5998f2e2aacf883acae9a288",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "9f00d476b4586fc391f050f4d3fbc492f570bbb87b4515f44c7c425d21b50668"
+    },
+    {
+      "name": "pumpkin-farmlands",
+      "source": "catalog/plants/pumpkin-farmlands/procedural/atlas.png",
+      "sourceSha256": "0106afc8ae27dae8707be4d7f671324c5e8483c5cf028ee3fc47217c2d6e23c8",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "f89a15a42feb77cfafd73f5de620982c994c6a73cfb36ed2a9ce9e9e2030eb42"
+    },
+    {
+      "name": "radish-farmlands",
+      "source": "catalog/plants/radish-farmlands/procedural/atlas.png",
+      "sourceSha256": "28b8b3392050189982f25e705b55dfdcbbc6c8d1630449db2e3edd6436eb730b",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "91b93b170f25b1920a12230ae291245b68b8b2f3501ec5946ddf140d126c6551"
+    },
+    {
+      "name": "rice-quaternius",
+      "source": "catalog/plants/rice-quaternius/procedural/atlas.png",
+      "sourceSha256": "c832693eb13003e4190518c3a13b9c76659dea86d63f95c128830d0c384224be",
+      "width": 16,
+      "height": 8,
+      "sha256": "64f6de0e3a60d0eee09e57bb11933bd4941dd37168370787a26b3b7dcf9eb5af"
+    },
+    {
+      "name": "sunflower-farmlands",
+      "source": "catalog/plants/sunflower-farmlands/procedural/atlas.png",
+      "sourceSha256": "44024873159f1c8c9284ecdd79c79043302dea3c133f0f85a70c6df7e1f3cce9",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "224c0475ba6b209be6fac9ca0314e80b7c2d57b7e5cf6f8d5f57e5b06ba5176a"
+    },
+    {
+      "name": "tomato-farmlands",
+      "source": "catalog/plants/tomato-farmlands/procedural/atlas.png",
+      "sourceSha256": "bf74cfe67f7504e7badd3ca3c620738d32ac5fc2943ca3510aa4ca8e9cc250b7",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "4b6bfda125e7a7d3c50ac98aedcdedbb06468f320a82086f1964892df3ba1fb6"
+    },
+    {
+      "name": "watermelon-farmlands",
+      "source": "catalog/plants/watermelon-farmlands/procedural/atlas.png",
+      "sourceSha256": "f056626cedad3211cb6ae8e6e841af67f5409f5108dff888331db4260ef87550",
+      "width": 1024,
+      "height": 1024,
+      "sha256": "4d0e3d8e43ffe2b64b4cbfeb1cc95070b751c2e84e5aa3436f8f9450daa19296"
+    },
+    {
+      "name": "wheat-farmlands",
+      "source": "catalog/plants/wheat-farmlands/procedural/atlas.png",
+      "sourceSha256": "6637c8090eb7a98dcbb8e16cdbf406527fa70e276a344d7aa78881875b083558",
+      "width": 512,
+      "height": 512,
+      "sha256": "da421abb2954b60fe9bf5b0897bfc217dda75147a63bc7f8cfd7150b0f1451db"
+    }
+  ]
+}

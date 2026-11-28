@@ -25,7 +25,8 @@ const pkgs = fs
       location: location,
       pkgJson: require(path.resolve(location, "package.json"))
     };
-  });
+  })
+  .filter(({ pkgJson }) => !pkgJson.private);
 
 const shaderParserPkg = pkgs.find((item) => item.pkgJson.name === "@galacean/engine-shader-parser");
 
@@ -36,7 +37,8 @@ const mainFields = NODE_ENV === "development" ? ["debug", "module", "main"] : un
 const shaderCompilerPlugin = shaderCompiler({
   precompile: {
     input: path.join(__dirname, "packages/shader/src/Shaders"),
-    output: path.join(__dirname, "packages/shader/compiledShaders")
+    output: path.join(__dirname, "packages/shader/compiledShaders"),
+    includeLibrary: path.join(__dirname, "packages/shader/src/ShaderLibrary")
   }
 });
 

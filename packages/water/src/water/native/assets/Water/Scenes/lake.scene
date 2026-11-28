@@ -1,0 +1,30 @@
+{
+  "asset": {
+    "version": "2.0"
+  },
+  "scene": {
+    "rootEntities": [
+      "lake-instance"
+    ],
+    "background": {
+      "mode": 0,
+      "color": {
+        "r": 0.12,
+        "g": 0.17,
+        "b": 0.19,
+        "a": 1
+      }
+    }
+  },
+  "entities": [
+    {
+      "id": "lake-instance",
+      "instance": {
+        "asset": {
+          "$ref": "Water/Presets/lake.prefab"
+        }
+      }
+    }
+  ],
+  "components": []
+}

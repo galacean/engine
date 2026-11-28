@@ -1,0 +1,27 @@
+{
+  "unitId": "mountain",
+  "status": "data-only",
+  "label": "地貌组合",
+  "footprintM": {
+    "width": {
+      "min": 40,
+      "max": 120
+    },
+    "depth": {
+      "min": 60,
+      "max": 180
+    }
+  },
+  "heightM": {
+    "min": 12,
+    "max": 45
+  },
+  "yawPolicy": "align-corridor",
+  "components": [
+    "rock.peak",
+    "rock.wall",
+    "rock.shoulder",
+    "rock.terrace"
+  ],
+  "note": "Proposed local POI budget; existing landform experiment not migrated to this profile."
+}

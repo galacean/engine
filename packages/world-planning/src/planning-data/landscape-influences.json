@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "defaults": {
+    "densityMultiplier": 1
+  },
+  "bindings": [
+    {
+      "collection": "buildings",
+      "context": "building"
+    },
+    {
+      "collection": "routes",
+      "context": "road"
+    },
+    {
+      "collection": "rocks",
+      "context": "landform",
+      "ownerField": "groupId"
+    }
+  ]
+}

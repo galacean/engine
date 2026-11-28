@@ -24,7 +24,7 @@ bool isRendererCulledByLight(ivec2 rendererLayer, ivec2 lightCullingMask){
             DirectLight light;
             light.color = scene_DirectLightColor[index];
             light.direction = scene_DirectLightDirection[index];
-    
+
             return light;
         }
 
@@ -111,17 +111,26 @@ struct EnvMapLight {
     float mipMapLevel;
     float diffuseIntensity;
     float specularIntensity;
+    float mipMapLevel2;
+    float specularTextureBlend;
 };
 
 
 EnvMapLight scene_EnvMapLight;
 
 #ifdef SCENE_USE_SH
-    vec3 scene_EnvSH[9];
+    #ifdef SCENE_USE_REALTIME_SH
+        #include "ShaderLibrary/Lighting/RealtimeSphericalHarmonics.glsl"
+    #else
+        vec3 scene_EnvSH[9];
+    #endif
 #endif
 
 #ifdef SCENE_USE_SPECULAR_ENV
     samplerCube scene_EnvSpecularSampler;
+    #ifdef SCENE_USE_SPECULAR_ENV_BLEND
+        samplerCube scene_EnvSpecularSampler2;
+    #endif
 #endif
 
 

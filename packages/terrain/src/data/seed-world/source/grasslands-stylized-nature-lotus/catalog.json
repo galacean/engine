@@ -1,0 +1,315 @@
+{
+  "version": 1,
+  "sourcePackageSha256": "71f053eda37300beb05b56aaf76f24193be0cacb951f6718ab33cf013a75ff23",
+  "licenseEvidence": {
+    "package": "Grasslands - Stylized Nature",
+    "publisher": "Raygeas",
+    "source": "Unity Asset Store purchase",
+    "writtenAuthorization": true,
+    "authorizationScope": "Reuse of the purchased lotus meshes, textures, and translated material semantics in Seed World",
+    "evidenceLocation": "Private written authorization retained by the asset owner; not committed to this repository",
+    "assertedByAssetOwnerOn": "2026-08-28"
+  },
+  "sourceFiles": [
+    {
+      "path": "Assets/Raygeas/Grasslands - Stylized Nature/Assets/Models/Vegetation/Lotus.fbx",
+      "sha256": "277d54302fcf8fa4cd7311035cca898332b88a389d0f8ea53055ccee8c0dbaf8"
+    },
+    {
+      "path": "Assets/Raygeas/Grasslands - Stylized Nature/Assets/Models/Vegetation/Lotus_Group_1.fbx",
+      "sha256": "3d19f94f6a25db0d0487dd02347ceca1698b9771ce75553bec7df3c4b810b5d8"
+    },
+    {
+      "path": "Assets/Raygeas/Grasslands - Stylized Nature/Assets/Models/Vegetation/Lotus_Group_2.fbx",
+      "sha256": "426a0d9fd1f84eabe861c909b40129865567e998f3b59a7f7e9c67079bd9e394"
+    },
+    {
+      "path": "Assets/Raygeas/Grasslands - Stylized Nature/Assets/Prefabs/Vegetation/Lotus.prefab",
+      "sha256": "7bdb37a90d38090e21cd391adfbdce99165e7f51c43f4acf581b3bcf22c3c06a"
+    },
+    {
+      "path": "Assets/Raygeas/Grasslands - Stylized Nature/Assets/Prefabs/Vegetation/Lotus_Group_1.prefab",
+      "sha256": "f76e98ed7667a1b532d3d2cf243363d10d964847f83215e190349cd78d17a376"
+    },
+    {
+      "path": "Assets/Raygeas/Grasslands - Stylized Nature/Assets/Prefabs/Vegetation/Lotus_Group_2.prefab",
+      "sha256": "85ccaf3334a7e461a9d7d90d4585d44aeba7bc22cbd531f9e7445ee92fe57617"
+    },
+    {
+      "path": "Assets/Raygeas/Grasslands - Stylized Nature/Assets/Textures/Vegetation/Lotus_Albedo.png",
+      "sha256": "1dddcfdd97f8937838959c3bc46d46d10b924361d288d81b0f6d4626abd86aaf"
+    },
+    {
+      "path": "Assets/Raygeas/Grasslands - Stylized Nature/Assets/Textures/Vegetation/Lotus_Normal.png",
+      "sha256": "24780048f0ad5669b0134009756fa09e688c48904e754946bd1e836fa0e86ebb"
+    }
+  ],
+  "textures": {
+    "albedo": {
+      "fileName": "lotus-albedo.png",
+      "colorSpace": "sRGB",
+      "alphaMode": "MASK"
+    },
+    "normal": {
+      "fileName": "lotus-normal.png",
+      "colorSpace": "linear",
+      "normalEncoding": "Unity tangent-space"
+    }
+  },
+  "materials": {
+    "leaf": {
+      "unityMaterialGuid": "06faa6b01cd8cad40b2e5412a7e62792",
+      "alphaCutoff": 0.4,
+      "smoothness": 0.6,
+      "normalScale": 1,
+      "windForce": 0.07,
+      "windWavesScale": 0.15,
+      "mainColorSrgb": [
+        0.33599997,
+        0.546,
+        0.18899998
+      ],
+      "secondColorSrgb": [
+        0.8679245,
+        0.80137265,
+        0
+      ]
+    },
+    "flower": {
+      "unityMaterialGuid": "c9f8e665fb68adb419db423d55753d5c",
+      "alphaCutoff": 0.5,
+      "smoothness": 0.4,
+      "normalScale": 0.7,
+      "windForce": 0.07,
+      "windWavesScale": 0.15,
+      "mainColorSrgb": [
+        0.7921569,
+        0.2923059,
+        0.36250973
+      ],
+      "secondColorSrgb": [
+        1,
+        0.5896226,
+        0.6960168
+      ]
+    }
+  },
+  "variants": [
+    {
+      "id": "lotus",
+      "localReferencePoint": [
+        0.004652247,
+        -1.00489724,
+        0.0558189154
+      ],
+      "size": 2.05508018,
+      "lods": [
+        {
+          "fileName": "lotus-lod0.glb",
+          "sourceObjectName": "Lotus",
+          "castShadows": true,
+          "screenRelativeHeight": 0.349739939,
+          "vertices": 30,
+          "triangles": 42,
+          "primitiveCount": 1,
+          "materialSlots": [
+            "material-slot-0"
+          ],
+          "bounds": {
+            "minimum": [
+              -0.329995841,
+              -2.03243732,
+              -0.278828472
+            ],
+            "maximum": [
+              0.339299,
+              0.0226428378,
+              0.390466332
+            ]
+          },
+          "sha256": "ec8c084d2fbd2b27cad596c038bf09cd2705c29328f23809db38be87750fe106"
+        },
+        {
+          "fileName": "lotus-lod1.glb",
+          "sourceObjectName": "Lotus_LOD0",
+          "castShadows": true,
+          "screenRelativeHeight": 0.0881426733642406,
+          "vertices": 15,
+          "triangles": 14,
+          "primitiveCount": 1,
+          "materialSlots": [
+            "material-slot-0"
+          ],
+          "bounds": {
+            "minimum": [
+              -0.329994649,
+              -2.03243732,
+              -0.278828472
+            ],
+            "maximum": [
+              0.339300245,
+              0.0226428378,
+              0.390466362
+            ]
+          },
+          "sha256": "7c36ce9c54e2875a245c443793c23971bef052c5a870e2f095dcb92a533d6b6c"
+        }
+      ],
+      "sourcePrefabPath": "Assets/Raygeas/Grasslands - Stylized Nature/Assets/Prefabs/Vegetation/Lotus.prefab",
+      "placement": {
+        "axis": "glTF-y-up",
+        "pivot": "Unity Prefab root at canonical water surface",
+        "nodeTransform": "baked renderer-to-prefab-root"
+      }
+    },
+    {
+      "id": "lotus-group-1",
+      "localReferencePoint": [
+        0.168252587,
+        -1.271019,
+        -0.06176746
+      ],
+      "size": 3.526788,
+      "lods": [
+        {
+          "fileName": "lotus-group-1-lod0.glb",
+          "sourceObjectName": "Lotus_Group_1",
+          "castShadows": true,
+          "screenRelativeHeight": 0.400316119,
+          "vertices": 312,
+          "triangles": 438,
+          "primitiveCount": 1,
+          "materialSlots": [
+            "material-slot-0"
+          ],
+          "bounds": {
+            "minimum": [
+              -1.59514141,
+              -2.61443019,
+              -1.36709189
+            ],
+            "maximum": [
+              1.92919075,
+              0.0327687152,
+              1.243557
+            ]
+          },
+          "sha256": "9360574473c6a473a281e0e1ef2032cb3ec5e392c6cb17cecbf084277a38fec2"
+        },
+        {
+          "fileName": "lotus-group-1-lod1.glb",
+          "sourceObjectName": "Lotus_Group_1_LOD0",
+          "castShadows": true,
+          "screenRelativeHeight": 0.07563221273170065,
+          "vertices": 141,
+          "triangles": 130,
+          "primitiveCount": 1,
+          "materialSlots": [
+            "material-slot-0"
+          ],
+          "bounds": {
+            "minimum": [
+              -1.59268534,
+              -2.61416,
+              -1.366903
+            ],
+            "maximum": [
+              1.93164682,
+              0.07239226,
+              1.22934115
+            ]
+          },
+          "sha256": "b8bb3a8ab8df3471452a31aa75cc873c495c5e0710b5dd26b227456d1815c045"
+        }
+      ],
+      "sourcePrefabPath": "Assets/Raygeas/Grasslands - Stylized Nature/Assets/Prefabs/Vegetation/Lotus_Group_1.prefab",
+      "placement": {
+        "axis": "glTF-y-up",
+        "pivot": "Unity Prefab root at canonical water surface",
+        "nodeTransform": "baked renderer-to-prefab-root"
+      }
+    },
+    {
+      "id": "lotus-group-2",
+      "localReferencePoint": [
+        0.168252468,
+        -1.13723409,
+        -0.06176746
+      ],
+      "size": 3.52678776,
+      "lods": [
+        {
+          "fileName": "lotus-group-2-lod0.glb",
+          "sourceObjectName": "Lotus_Group_2",
+          "castShadows": true,
+          "screenRelativeHeight": 0.400316119,
+          "vertices": 2441,
+          "triangles": 2606,
+          "primitiveCount": 2,
+          "materialSlots": [
+            "material-slot-0",
+            "material-slot-1"
+          ],
+          "bounds": {
+            "minimum": [
+              -1.59514141,
+              -2.61443019,
+              -1.36709189
+            ],
+            "maximum": [
+              1.92919075,
+              0.339962065,
+              1.243557
+            ]
+          },
+          "sha256": "43a13eb0acd5e6cfac1373f6f1491fa6162dadf3702b24ad364b571c173790a4"
+        },
+        {
+          "fileName": "lotus-group-2-lod1.glb",
+          "sourceObjectName": "Lotus_Group_2_LOD0",
+          "castShadows": true,
+          "screenRelativeHeight": 0.07563220758488405,
+          "vertices": 489,
+          "triangles": 342,
+          "primitiveCount": 2,
+          "materialSlots": [
+            "material-slot-0",
+            "material-slot-1"
+          ],
+          "bounds": {
+            "minimum": [
+              -1.5926858186721802,
+              -2.6141600608825684,
+              -1.3669029474258423
+            ],
+            "maximum": [
+              1.9316463470458984,
+              0.33996206521987915,
+              1.2293411493301392
+            ]
+          },
+          "sha256": "31c792712209d8b70027918c73b308ca72c5ba871a64da357024c4dac6aba709",
+          "optimization": {
+            "tool": "Blender CLI",
+            "sourceVertices": 741,
+            "sourceTriangles": 538,
+            "methods": [
+              {
+                "method": "intact-petal-stride",
+                "flowerHeads": 4,
+                "sourcePetalsPerHead": 24,
+                "keptPetalsPerHead": 12
+              }
+            ]
+          }
+        }
+      ],
+      "sourcePrefabPath": "Assets/Raygeas/Grasslands - Stylized Nature/Assets/Prefabs/Vegetation/Lotus_Group_2.prefab",
+      "placement": {
+        "axis": "glTF-y-up",
+        "pivot": "Unity Prefab root at canonical water surface",
+        "nodeTransform": "baked renderer-to-prefab-root"
+      }
+    }
+  ]
+}

@@ -1,0 +1,347 @@
+import {
+  Color,
+  Buffer,
+  BufferBindFlag,
+  BufferMesh,
+  BufferUsage,
+  IndexFormat,
+  VertexElement,
+  VertexElementFormat,
+  CompareFunction,
+  Entity,
+  MeshRenderer,
+  MeshTopology,
+  PBRMaterial,
+  Vector4
+} from "@galacean/engine";
+import type { GroundBounds } from "@galacean/engine-farming/farming/api/index";
+import type { FarmingSoilWorkPresentation } from "@galacean/engine-farming/farming/presentation/soil/SoilWorkReveal";
+import { disposeSoilMesh } from "@galacean/engine-farming/farming/presentation/soil/disposeSoilMesh";
+import { DEFAULT_SOIL_VISUAL_CONFIG } from "@galacean/engine-farming/farming/presentation/soil/SoilVisualConfig";
+import { restoreResource } from "@galacean/engine-project/rendering/RestorableResources";
+import { SEED_WORLD_GRASS_SNOW_RESPONSE } from "@galacean/engine-terrain/world/SeedWorldSurfaceSnow";
+import { getPlanningFarmLandShader } from "./PlanningFarmLandShader.ts";
+import {
+  bakeFarmLandCoverage,
+  FARM_LAND_MARGIN_M,
+  FARM_LAND_MASK_SPACING_M,
+  FARM_LAND_CONTAINER_EDGE_M,
+  farmLandChunks,
+  type FarmLandChunk
+} from "./PlanningFarmLandCoverage.ts";
+import {
+  buildFarmLandGeometry,
+  captureFarmLandHeights,
+  farmLandActiveCellMask,
+  farmLandGrid,
+  sameFarmLandHeights,
+  FARM_LAND_HEIGHT_SAMPLE_COUNT,
+  type FarmLandGrid
+} from "./PlanningFarmLandGeometry.ts";
+import type { PlanningFarmingTerrain } from "./PlanningPublishedFarmingGround.ts";
+
+import { PlanningFarmGrassOverlay, type FarmGrassTile } from "./PlanningFarmGrassOverlay.ts";
+
+import { loadPlanningFarmDirtTexture } from "@galacean/engine-world-planning/spatial/farming/PlanningFarmDirtTexture";
+
+/** Planner-owned middle surface: terrain < flat dirt < worked beds. No colliders, farm state or per-frame work. */
+export class PlanningFarmLandLayer implements FarmingSoilWorkPresentation {
+  /** Texture-backed scene macros must settle before startup shader collection. */
+  readonly whenReady: Promise<void>;
+  private readonly margin = FARM_LAND_MARGIN_M;
+  readonly root: Entity;
+  private readonly material: PBRMaterial;
+  private readonly chunks = new Map<
+    string,
+    {
+      entity: Entity;
+      mesh: BufferMesh;
+      signature: string;
+      heights: Float64Array;
+      activeBounds?: readonly GroundBounds[];
+      maskLo: number;
+      maskHi: number;
+    }
+  >();
+  private readonly grassOverlay: PlanningFarmGrassOverlay;
+  private readonly grassTiles = new Map<string, FarmGrassTile>();
+  private grid: FarmLandGrid;
+  private readonly heightScratch = new Float64Array(FARM_LAND_HEIGHT_SAMPLE_COUNT);
+  private bounds: readonly GroundBounds[] = [];
+  private opaquePlots: readonly GroundBounds[] = [];
+  private grass: readonly GroundBounds[] = [];
+  private disposed = false;
+  private ready = false;
+  private error?: string;
+  private preview?: GroundBounds;
+
+  constructor(
+    parent: Entity,
+    private fields: PlanningFarmingTerrain
+  ) {
+    this.root = parent.createChild("Farm land transition");
+    this.grid = farmLandGrid(fields);
+    const material = (this.material = new PBRMaterial(parent.engine));
+    try {
+      material.name = "Farmlands flat dirt underlay";
+      material.shader = getPlanningFarmLandShader();
+      // Bias the nearly coplanar surface according to its screen-space depth slope.
+      // Keep the physical height and depth writes unchanged so worked beds remain above the land.
+      material.shaderData.setFloat("landDepthBias", -4);
+      material.shaderData.setFloat("landSlopeScaledDepthBias", -1);
+      material.shaderData.setVector4(
+        "material_GrassSurfaceSnowResponse",
+        new Vector4(SEED_WORLD_GRASS_SNOW_RESPONSE, 0, 0, 0)
+      );
+      material.isGCIgnored = true;
+      material.isTransparent = true;
+      material.metallic = 0;
+      material.baseColor = new Color(1, 1, 1, 1);
+      material.roughness = 1;
+      material.screenSpaceReflectionIntensity = 0;
+      material.screenSpaceReflectionBilateral = false;
+      material.shaderData.setFloat("material_WorldPickDepthCompare", CompareFunction.LessEqual);
+      this.grassOverlay = new PlanningFarmGrassOverlay(parent.scene!);
+    } catch (error) {
+      material.destroy(true);
+      this.root.destroy();
+      throw error;
+    }
+    this.whenReady = this.loadTextures();
+  }
+
+  get diagnostics() {
+    return { ready: this.ready, error: this.error, chunks: this.chunks.size };
+  }
+
+  refreshTerrain(fields: PlanningFarmingTerrain): void {
+    if (this.disposed || fields === this.fields) return;
+    const grid = farmLandGrid(fields);
+    if (grid.key !== this.grid.key) this.planChunks(this.bounds, grid, fields.sizeMetres);
+    this.fields = fields;
+    if (grid.key !== this.grid.key) {
+      this.clearChunks();
+      this.grassOverlay.update([], grid.size);
+      this.grid = grid;
+      this.setBounds(this.bounds, this.grass, this.opaquePlots);
+      return;
+    }
+    // Layout is unchanged: coverage and atlas remain untouched. A tiny per-chunk height snapshot
+    // detects local edits (including normal neighbours) without cloning or walking the whole world.
+    for (const chunk of this.chunks.values()) {
+      const position = chunk.entity.transform.worldPosition;
+      const domain = { x: position.x, z: position.z };
+      captureFarmLandHeights(fields, grid, domain, this.heightScratch);
+      if (sameFarmLandHeights(chunk.heights, this.heightScratch)) continue;
+      const heights = this.heightScratch.slice();
+      const mesh = this.createMesh(domain, heights, chunk.activeBounds);
+      const renderer = chunk.entity.getComponent(MeshRenderer)!;
+      renderer.mesh = mesh;
+      if (mesh.subMesh) renderer.enabled = mesh.subMesh.count > 0;
+      disposeSoilMesh(chunk.mesh);
+      chunk.mesh = mesh;
+      chunk.heights = heights;
+    }
+  }
+
+  setBounds(
+    bounds: readonly GroundBounds[],
+    grass: readonly GroundBounds[] = [],
+    opaquePlots: readonly GroundBounds[] = bounds
+  ): void {
+    if (this.disposed) return;
+    const displayed = this.preview ? [...bounds, this.preview] : bounds;
+    const next = this.planChunks(displayed, this.grid, this.fields.sizeMetres);
+    this.bounds = bounds;
+    this.opaquePlots = opaquePlots;
+    this.grass = grass;
+    const size = this.grid.size;
+    const retained = new Set(next.map((chunk) => chunk.key));
+    let changed = false;
+    for (const [key, chunk] of this.chunks)
+      if (!retained.has(key)) {
+        chunk.entity.destroy();
+        disposeSoilMesh(chunk.mesh);
+        this.chunks.delete(key);
+        this.grassTiles.delete(key);
+        changed = true;
+      }
+    for (const chunk of next) {
+      const previous = this.chunks.get(chunk.key);
+      const holes = grass.filter(
+        (b) =>
+          b.maximumX + FARM_LAND_CONTAINER_EDGE_M >= chunk.x &&
+          b.minimumX - FARM_LAND_CONTAINER_EDGE_M <= chunk.x + size &&
+          b.maximumZ + FARM_LAND_CONTAINER_EDGE_M >= chunk.z &&
+          b.minimumZ - FARM_LAND_CONTAINER_EDGE_M <= chunk.z + size
+      );
+      // Never include this.preview in opaquePlots: only committed opaque soil beds may cut out the dirt underlay.
+      const localOpaque = opaquePlots.filter(
+        (b) =>
+          b.maximumX + this.margin >= chunk.x &&
+          b.minimumX - this.margin <= chunk.x + size &&
+          b.maximumZ + this.margin >= chunk.z &&
+          b.minimumZ - this.margin <= chunk.z + size
+      );
+      const affected =
+        this.preview &&
+        this.preview.maximumX + this.margin >= chunk.x &&
+        this.preview.minimumX - this.margin <= chunk.x + size &&
+        this.preview.maximumZ + this.margin >= chunk.z &&
+        this.preview.minimumZ - this.margin <= chunk.z + size;
+      const before = affected
+        ? bounds.filter(
+            (b) =>
+              b.maximumX + this.margin >= chunk.x &&
+              b.minimumX - this.margin <= chunk.x + size &&
+              b.maximumZ + this.margin >= chunk.z &&
+              b.minimumZ - this.margin <= chunk.z + size
+          )
+        : undefined;
+      const signature = `${chunk.signature}/${JSON.stringify(holes)}/opaque:${JSON.stringify(localOpaque)}${before ? `/preview:${JSON.stringify(before)}` : ""}`;
+      const nextMask = farmLandActiveCellMask(this.grid, chunk, chunk.bounds, this.margin);
+      const maskChanged = !previous || previous.maskLo !== nextMask.maskLo || previous.maskHi !== nextMask.maskHi;
+      if (previous?.signature === signature && !maskChanged) continue;
+      const field = bakeFarmLandCoverage(chunk, size, holes, localOpaque);
+      this.grassTiles.set(chunk.key, {
+        x: chunk.x,
+        z: chunk.z,
+        ...field,
+        ...(before ? { beforePixels: bakeFarmLandCoverage({ ...chunk, bounds: before }, size, holes).pixels } : {})
+      });
+      changed = true;
+      const heights = previous?.heights ?? captureFarmLandHeights(this.fields, this.grid, chunk);
+      const mesh = !maskChanged && previous ? previous.mesh : this.createMesh(chunk, heights, chunk.bounds);
+      const entity = previous?.entity ?? this.root.createChild(`Farm land ${chunk.key}`);
+      const renderer = entity.getComponent(MeshRenderer) ?? entity.addComponent(MeshRenderer);
+      entity.transform.setWorldPosition(chunk.x, 0, chunk.z);
+      renderer.mesh = mesh;
+      if (mesh.subMesh) renderer.enabled = mesh.subMesh.count > 0;
+      renderer.castShadows = false;
+      renderer.receiveShadows = true;
+      // Both surfaces blend; submit the dirt underlay before the worked-bed layer regardless of camera distance.
+      renderer.priority = -1;
+      renderer.setMaterial(this.material);
+      if (previous && mesh !== previous.mesh) disposeSoilMesh(previous.mesh);
+      this.chunks.set(chunk.key, {
+        entity,
+        mesh,
+        signature,
+        heights,
+        activeBounds: chunk.bounds,
+        maskLo: nextMask.maskLo,
+        maskHi: nextMask.maskHi
+      });
+    }
+    if (changed) this.grassOverlay.update([...this.grassTiles.values()], size);
+  }
+
+  begin(bounds: GroundBounds): void {
+    if (this.disposed) return;
+    this.preview = bounds;
+    try {
+      this.setBounds(this.bounds, this.grass, this.opaquePlots);
+    } catch (error) {
+      this.preview = undefined;
+      throw error;
+    }
+    this.grassOverlay.beginReveal();
+  }
+
+  seek(progress: number): void {
+    if (this.preview) this.grassOverlay.seek(progress);
+  }
+
+  end(committed: boolean): void {
+    if (!this.preview || this.disposed) return;
+    const preview = this.preview;
+    const added =
+      committed &&
+      !this.bounds.some(
+        (b) =>
+          b.minimumX === preview.minimumX &&
+          b.maximumX === preview.maximumX &&
+          b.minimumZ === preview.minimumZ &&
+          b.maximumZ === preview.maximumZ
+      );
+    const bounds = added ? [...this.bounds, preview] : this.bounds;
+    const opaquePlots = added ? [...this.opaquePlots, preview] : this.opaquePlots;
+    this.preview = undefined;
+    this.setBounds(bounds, this.grass, opaquePlots);
+    this.grassOverlay.seek(1);
+  }
+
+  dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.grassOverlay.dispose();
+    this.clearChunks();
+    this.root.destroy();
+    this.material.destroy(true);
+    // ResourceManager owns cached KTX2 textures; only release this layer's material references.
+  }
+
+  private clearChunks(): void {
+    for (const chunk of this.chunks.values()) {
+      chunk.entity.destroy();
+      disposeSoilMesh(chunk.mesh);
+    }
+    this.chunks.clear();
+    this.grassTiles.clear();
+  }
+
+  private planChunks(bounds: readonly GroundBounds[], grid: FarmLandGrid, extent: number): FarmLandChunk[] {
+    const next = farmLandChunks(bounds, grid.size, grid.x, grid.z, FARM_LAND_MARGIN_M).filter(
+      (chunk) =>
+        chunk.x < grid.x + extent &&
+        chunk.z < grid.z + extent &&
+        chunk.x + grid.size > grid.x &&
+        chunk.z + grid.size > grid.z
+    );
+    this.grassOverlay.validateLayout(next, grid.size, Math.ceil(grid.size / FARM_LAND_MASK_SPACING_M) + 1);
+    return next;
+  }
+
+  private createMesh(
+    chunk: Pick<FarmLandChunk, "x" | "z">,
+    heights: Float64Array,
+    activeBounds?: readonly GroundBounds[]
+  ): BufferMesh {
+    const grid = this.grid,
+      domain = { x: chunk.x, z: chunk.z };
+    const offset = DEFAULT_SOIL_VISUAL_CONFIG.soil.edge.surfaceOffset / 2;
+    const activeSnapshot = activeBounds?.map((b) => ({ ...b }));
+    const activeMargin = this.margin;
+    const data = buildFarmLandGeometry(grid, domain, heights, offset, activeSnapshot, activeMargin);
+    const mesh = new BufferMesh(this.root.engine, `Farm land ${chunk.x},${chunk.z}`);
+    const vertices = new Buffer(this.root.engine, BufferBindFlag.VertexBuffer, data.vertices, BufferUsage.Static);
+    const indices = new Buffer(this.root.engine, BufferBindFlag.IndexBuffer, data.indices, BufferUsage.Static);
+    mesh.setVertexBufferBinding(vertices, 24);
+    mesh.setIndexBufferBinding(indices, IndexFormat.UInt16);
+    mesh.setVertexElements([
+      new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
+      new VertexElement("NORMAL", 12, VertexElementFormat.Vector3, 0)
+    ]);
+    mesh.addSubMesh(0, data.indices.length, MeshTopology.Triangles);
+    mesh.bounds.min.set(data.minimumX, data.minimumY, data.minimumZ);
+    mesh.bounds.max.set(data.maximumX, data.maximumY, data.maximumZ);
+    // Reuse the existing tiny height snapshot and bounds snapshot, not another retained copy of packed arrays.
+    restoreResource(mesh, () => {
+      const restored = buildFarmLandGeometry(grid, domain, heights, offset, activeSnapshot, activeMargin);
+      vertices.setData(restored.vertices);
+      indices.setData(restored.indices);
+    });
+    return mesh;
+  }
+
+  private async loadTextures(): Promise<void> {
+    try {
+      const texture = await loadPlanningFarmDirtTexture(this.root.engine);
+      if (this.disposed) return;
+      this.grassOverlay.setColor(texture);
+      this.ready = true;
+    } catch (error) {
+      if (!this.disposed) this.error = String(error);
+    }
+  }
+}

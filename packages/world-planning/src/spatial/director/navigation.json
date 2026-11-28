@@ -1,0 +1,11 @@
+{
+  "cellM": 2,
+  "edgeSampleM": 0.25,
+  "maxSlopeDegrees": 40,
+  "maxWadingDepthM": 0.3,
+  "maxExpandedNodes": 90000,
+  "maxGridCells": 1100000,
+  "roadCostMultiplier": 0.75,
+  "endpointSearchM": 80,
+  "cacheRoutes": 8
+}

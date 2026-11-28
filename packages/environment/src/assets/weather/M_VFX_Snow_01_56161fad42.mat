@@ -1,0 +1,70 @@
+{
+  "name": "M_VFX_Snow_01_56161fad42",
+  "shader": "S_VFX_TransparentAlpha_8541b131eb",
+  "macros": [{ "name": "MATERIAL_HAS_MATERIAL_OPACITY" }],
+  "renderState": {
+    "blendState": {
+      "targetBlendState": {
+        "enabled": true,
+        "colorBlendOperation": 0,
+        "alphaBlendOperation": 0,
+        "sourceColorBlendFactor": 1,
+        "sourceAlphaBlendFactor": 1,
+        "destinationColorBlendFactor": 7,
+        "destinationAlphaBlendFactor": 7,
+        "colorWriteMask": 15
+      },
+      "blendColor": { "r": 0, "g": 0, "b": 0, "a": 0 },
+      "alphaToCoverage": false
+    },
+    "depthState": { "enabled": true, "compareFunction": 3, "writeEnabled": false },
+    "stencilState": {
+      "enabled": false,
+      "referenceValue": 0,
+      "mask": 255,
+      "writeMask": 255,
+      "compareFunctionFront": 7,
+      "compareFunctionBack": 7,
+      "passOperationFront": 0,
+      "passOperationBack": 0,
+      "failOperationFront": 0,
+      "failOperationBack": 0,
+      "zFailOperationFront": 0,
+      "zFailOperationBack": 0
+    },
+    "rasterState": {
+      "cullMode": 0,
+      "depthBias": 0,
+      "slopeScaledDepthBias": 0,
+      "_cullFaceEnable": false,
+      "_frontFaceInvert": false
+    },
+    "renderQueueType": 2
+  },
+  "shaderData": {
+    "renderQueueType": { "type": "Integer", "value": 2 },
+    "rasterStateCullMode": { "type": "Integer", "value": 0 },
+    "depthWriteEnabled": { "type": "Boolean", "value": false },
+    "material_OpacityIntensity": { "type": "Float", "value": 1 },
+    "material_EmissiveColor": {
+      "type": "Color",
+      "value": { "r": 0.42326769591902547, "g": 0.7263291349322608, "b": 1, "a": 1 }
+    },
+    "material_EmissiveIntensity": { "type": "Float", "value": 1.5 },
+    "material_GeometryDepthFadeDistance": { "type": "Float", "value": 0.65 },
+    "material_CameraDepthFadeDistance": { "type": "Float", "value": 1.5 },
+    "material_CameraDepthFadeOffset": { "type": "Float", "value": 0.6 },
+    "material_StreakMaxPixels": { "type": "Float", "value": 12 },
+    "material_StreakStartSpeed": { "type": "Float", "value": 25 },
+    "material_StreakFullSpeed": { "type": "Float", "value": 260 },
+    "material_StreakExposureTime": { "type": "Float", "value": 0.00065 },
+    "material_StreakWidthScale": { "type": "Float", "value": 0.72 },
+    "material_StreakPopulation": { "type": "Float", "value": 0.9 },
+    "material_FlakeMinDiameterPixels": { "type": "Float", "value": 0.9 },
+    "material_FlakeMaxRadiusPixels": { "type": "Float", "value": 2.5 },
+    "material_ParticleMinPixels": { "type": "Float", "value": 0.05 },
+    "material_ParticleFadeRangePixels": { "type": "Float", "value": 0.3 },
+    "material_Opacity": { "type": "Texture", "value": { "url": "/Textures/T_VFX_Snowflake_01_O.ktx2" } }
+  },
+  "shaderRef": { "url": "/Shaders/S_VFX_TransparentAlpha_8541b131eb.shader" }
+}

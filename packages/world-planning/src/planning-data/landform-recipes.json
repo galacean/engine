@@ -1,0 +1,34 @@
+{
+  "recipes": [
+    {
+      "kind": "canyon",
+      "label": "峡谷",
+      "weight": 1
+    },
+    {
+      "kind": "cliff",
+      "label": "断崖",
+      "weight": 1
+    },
+    {
+      "kind": "plateau",
+      "label": "台地",
+      "weight": 1
+    }
+  ],
+  "canyonFit": {
+    "scales": [
+      1,
+      0.85,
+      0.7
+    ],
+    "yawOffsetsDegrees": [
+      0,
+      30,
+      -30,
+      60,
+      -60,
+      90
+    ]
+  }
+}

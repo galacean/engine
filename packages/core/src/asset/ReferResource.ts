@@ -57,6 +57,27 @@ export abstract class ReferResource extends EngineObject implements IReferable {
   }
 
   /**
+   * Synchronously destroy this resource without entering the frame-end deferred queue.
+   * @param force - Whether to bypass reference-count checks
+   * @returns Whether the release was successful
+   * @internal
+   */
+  override _destroyImmediate(force: boolean = false): boolean {
+    if (!this._pendingDestroy && !force) {
+      if (this._refCount !== 0) {
+        return false;
+      }
+
+      if (this._superResources?.size) {
+        return false;
+      }
+    }
+
+    super._destroyImmediate();
+    return true;
+  }
+
+  /**
    * @internal
    */
   _associationSuperResource(superResource: ReferResource): void {

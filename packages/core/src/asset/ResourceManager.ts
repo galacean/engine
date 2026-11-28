@@ -6,9 +6,11 @@ import { GraphicsResource } from "./GraphicsResource";
 import { Loader } from "./Loader";
 import { LoadItem } from "./LoadItem";
 import { ReferResource } from "./ReferResource";
+import { Texture } from "../texture/Texture";
 import { request, RequestConfig } from "./request";
 
 type LoadableResource = EngineObject | Shader;
+const samplerProperties = ["wrapModeU", "wrapModeV", "filterMode", "anisoLevel"] as const;
 
 /**
  * ResourceManager
@@ -111,6 +113,24 @@ export class ResourceManager {
   }
 
   /**
+   * Install an already loaded resource at a URL or registered virtual path.
+   * Used by editors which apply asset properties to an existing resource identity.
+   * Does not destroy displaced objects or take ownership of their references.
+   */
+  replaceCachedResource(url: string, resource: EngineObject): void {
+    if (resource.destroyed || resource.engine !== this.engine)
+      throw new Error("Resource must belong to this live Engine");
+    const path = this._getRemoteUrl(url);
+    if (this._loadingPromises[path] !== undefined)
+      throw new Error("Cannot replace a resource while its loader is running");
+    const displaced = this._assetUrlPool[path] as EngineObject | undefined;
+    if (displaced && this._assetPool[displaced.instanceId] === path) delete this._assetPool[displaced.instanceId];
+    const previousPath = this._assetPool[resource.instanceId];
+    if (previousPath && this._assetUrlPool[previousPath] === resource) delete this._assetUrlPool[previousPath];
+    this._addAsset(path, resource);
+  }
+
+  /**
    * Find the resource by type.
    * @param type - Resource type
    * @returns - Resource collection
@@ -194,11 +214,74 @@ export class ResourceManager {
     );
   }
 
+  private _downloadUrls?: ReadonlyMap<string, string>;
+  private _prefetchedTextAssets?: ReadonlyMap<string, string>;
+  private _prefetchedBinaryAssets?: ReadonlyMap<string, Uint8Array>;
+
+  /** Map resolved resource URLs to shared download URLs. The original URLs identify decoded resources. */
+  setDownloadUrls(urls: ReadonlyMap<string, string> | undefined): void {
+    this._downloadUrls = urls;
+  }
+
+  /**
+   * Registers an immutable read-only map of preloaded text assets keyed by resolved remote URL.
+   * Only serves `"text"` and `"json"` requests whose resolved remote URL matches an entry;
+   * dynamic/authored `blob:` URLs never match and continue to bypass this cache.
+   */
+  setPrefetchedTextAssets(assets: ReadonlyMap<string, string> | undefined): void {
+    this._prefetchedTextAssets = assets;
+  }
+
+  /**
+   * Registers an immutable read-only map of preloaded binary assets keyed by resolved remote URL.
+   * Serves `"arraybuffer"`, `"text"`, and `"json"` requests whose resolved remote URL matches an entry;
+   * `"arraybuffer"` returns an independent slice so callers/workers cannot mutate or detach the backing buffer.
+   */
+  setPrefetchedBinaryAssets(assets: ReadonlyMap<string, Uint8Array> | undefined): void {
+    this._prefetchedBinaryAssets = assets;
+  }
+
   /**
    * @internal
    */
   _requestByRemoteUrl<T>(url: string, config: RequestConfig): AssetPromise<T> {
-    return request(url, config);
+    if (config.signal?.aborted) {
+      const reason =
+        config.signal.reason !== undefined
+          ? config.signal.reason
+          : new DOMException("This operation was aborted", "AbortError");
+      return new AssetPromise<T>((_, reject) => reject(reason));
+    }
+    const preloaded = this._prefetchedTextAssets?.get(url);
+    if (preloaded !== undefined) {
+      if (config.type === "text") {
+        return AssetPromise.resolve(preloaded as unknown as T);
+      }
+      if (config.type === "json") {
+        try {
+          return AssetPromise.resolve(JSON.parse(preloaded) as T);
+        } catch {
+          // Fall back to network request when cached JSON cannot be parsed.
+        }
+      }
+    }
+    const preloadedBinary = this._prefetchedBinaryAssets?.get(url);
+    if (preloadedBinary !== undefined) {
+      if (config.type === "arraybuffer") {
+        return AssetPromise.resolve(preloadedBinary.slice().buffer as unknown as T);
+      }
+      if (config.type === "text") {
+        return AssetPromise.resolve(new TextDecoder().decode(preloadedBinary) as unknown as T);
+      }
+      if (config.type === "json") {
+        try {
+          return AssetPromise.resolve(JSON.parse(new TextDecoder().decode(preloadedBinary)) as T);
+        } catch {
+          // Fall back to network request when cached JSON cannot be parsed.
+        }
+      }
+    }
+    return request(this._downloadUrls?.get(url) ?? url, config);
   }
 
   /**
@@ -326,6 +409,9 @@ export class ResourceManager {
     this._contentRestorerPool = null!;
     this._loadingPromises = null!;
     this._virtualPathResourceMap = null!;
+    this._downloadUrls = undefined;
+    this._prefetchedTextAssets = undefined;
+    this._prefetchedBinaryAssets = undefined;
   }
 
   private _resolveLoadItemOptions(assetInfo: LoadItem, virtualResourceEntry?: VirtualResource): void {
@@ -411,7 +497,26 @@ export class ResourceManager {
 
   private _loadMainAsset<T>(loader: Loader<T>, item: LoadItem, remoteAssetBaseURL: string): AssetPromise<T> {
     const loadingPromises = this._loadingPromises;
-    const promise = loader.load(item, this);
+    const load = loader.load(item, this);
+    let promise = load;
+    const params = item.params;
+    if (params && samplerProperties.some((key) => params[key] !== undefined)) {
+      promise = new AssetPromise<T>((resolve, reject, setComplete, setDetail, onCancel) => {
+        onCancel(() => load.cancel());
+        load
+          .onProgress(setComplete, setDetail)
+          .then((resource) => {
+            // Apply authored sampler properties to decoded textures, including KTX2.
+            if (resource instanceof Texture) {
+              for (const key of samplerProperties) {
+                if (params[key] !== undefined) Reflect.set(resource, key, params[key]);
+              }
+            }
+            resolve(resource);
+          })
+          .catch(reject);
+      });
+    }
     loadingPromises[remoteAssetBaseURL] = promise;
 
     promise.then(
@@ -606,11 +711,21 @@ export class ResourceManager {
    * Register virtual asset paths and their load descriptors.
    * @remarks References inside runtime scenes and Prefabs can keep stable virtual paths while the backing URLs
    * are generated dynamically, such as object URLs created from a resource package.
+   * @returns Remove these registrations, preserving any later replacements. Loaded resources are not destroyed.
    */
-  registerVirtualResources(resources: readonly VirtualResource[]): void {
+  registerVirtualResources(resources: readonly VirtualResource[]): () => void {
     resources.forEach((resource) => {
       this._virtualPathResourceMap[resource.virtualPath] = resource;
     });
+    return () => {
+      const virtualPathMap = this._virtualPathResourceMap;
+      if (!virtualPathMap) return;
+      for (const resource of resources) {
+        if (virtualPathMap[resource.virtualPath] === resource) {
+          delete virtualPathMap[resource.virtualPath];
+        }
+      }
+    };
   }
 
   /**

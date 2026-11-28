@@ -1,0 +1,3533 @@
+{
+  "version": 1,
+  "animals": [
+    {
+      "id": "bull",
+      "name": "公牛 · Bull",
+      "family": "公牛",
+      "aliases": [
+        "公牛",
+        "Bull"
+      ],
+      "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*gJmMQbsoXcwAAAAATyAAAAgAehQnAQ/fdcabfb2e60a786bf8b4bbcaf91ffa005dc37f45f1f676bdc16b231277f81778.glb",
+      "scale": 10.0,
+      "yaw": 0,
+      "note": "GLB保留源FBX米制比例；微型模型按代表prefab倍率预览放大10倍，鸵鸟原尺寸，外观沿用代表比例。Idle/Walk/Move/Run为基础动作，Eat及已确认Rest经真实皮肤姿态离线审阅；草食/草地是演示玩法配置。所有动画Once，行走连续6段、奔跑4段；其他原名片段仅手动预览。速度为脚支撑相估计，待视觉滑步校准。",
+      "bounds": {
+        "min": [
+          -0.09341109694844858,
+          -0.0005550932030162873,
+          -0.10726535025513484
+        ],
+        "max": [
+          0.09341109003159125,
+          0.23670092814110683,
+          0.19998544421725445
+        ]
+      },
+      "animations": [
+        {
+          "id": "attack",
+          "clip": "Animal_TypeA@Attack",
+          "label": "Animal_TypeA@Attack",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.09341108290952477,
+              -0.0005550809952175648,
+              -0.10726535751325071
+            ],
+            "max": [
+              0.09341109070260678,
+              0.23670090444211264,
+              0.1999854170038885
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.625
+          ]
+        },
+        {
+          "id": "damage",
+          "clip": "Animal_TypeA@Damage",
+          "label": "Animal_TypeA@Damage",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.09341108353892526,
+              -0.0005550905398168061,
+              -0.10726536089404189
+            ],
+            "max": [
+              0.09341109007320511,
+              0.2367009203691133,
+              0.1999854604036256
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.625
+          ]
+        },
+        {
+          "id": "die",
+          "clip": "Animal_TypeA@Die",
+          "label": "Animal_TypeA@Die",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.09341109352526543,
+              -0.04636331743209541,
+              -0.19036384691867608
+            ],
+            "max": [
+              0.09341109006534305,
+              0.23959664154794424,
+              0.2005950215505624
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        },
+        {
+          "id": "eat",
+          "clip": "Animal_TypeA@Eat",
+          "label": "Animal_TypeA@Eat",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.09341108552956098,
+              -0.0034989362758281986,
+              -0.11134190721428015
+            ],
+            "max": [
+              0.09341108777901624,
+              0.19194850770369873,
+              0.18316853620011023
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        },
+        {
+          "id": "idle",
+          "clip": "Animal_TypeA@Idle",
+          "label": "Animal_TypeA@Idle",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.0934110846806931,
+              -0.0023038646678398976,
+              -0.1072653632161404
+            ],
+            "max": [
+              0.09341108894199444,
+              0.23223650979887878,
+              0.2006637857981957
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            1.25
+          ]
+        },
+        {
+          "id": "jump",
+          "clip": "Animal_TypeA@Jump",
+          "label": "Animal_TypeA@Jump",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.09341108665280903,
+              -0.003331453672410904,
+              -0.11022760419725683
+            ],
+            "max": [
+              0.09341108695932304,
+              0.21984028288829577,
+              0.1943803106535681
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.5
+          ]
+        },
+        {
+          "id": "rest",
+          "clip": "Animal_TypeA@Rest",
+          "label": "Animal_TypeA@Rest",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.1088764930414304,
+              -0.041337549562980774,
+              -0.10726537408974103
+            ],
+            "max": [
+              0.14034672399789674,
+              0.14451368149351718,
+              0.20045194271030453
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            2.0833332538604736
+          ]
+        },
+        {
+          "id": "run",
+          "clip": "Animal_TypeA@Run",
+          "label": "Animal_TypeA@Run",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.09341108467675723,
+              0.007671637037724837,
+              -0.10798401410048915
+            ],
+            "max": [
+              0.09341108893537434,
+              0.22620494116663747,
+              0.1939603054427293
+            ]
+          },
+          "speed": 0.22178515,
+          "range": [
+            0.0416666679084301,
+            0.5
+          ]
+        },
+        {
+          "id": "walk",
+          "clip": "Animal_TypeA@Walk",
+          "label": "Animal_TypeA@Walk",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.09341108445040763,
+              -0.002019946889237508,
+              -0.1072653615948189
+            ],
+            "max": [
+              0.09341109004209976,
+              0.23176258845644782,
+              0.20001170074806282
+            ]
+          },
+          "speed": 0.05645117,
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        }
+      ],
+      "initialAnimation": "idle",
+      "behaviorProfile": "registered:bull",
+      "appearances": [
+        {
+          "id": "bulla",
+          "label": "BullA",
+          "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*gJmMQbsoXcwAAAAATyAAAAgAehQnAQ/fdcabfb2e60a786bf8b4bbcaf91ffa005dc37f45f1f676bdc16b231277f81778.glb",
+          "source": "Assets/Suriyun/Cute Zoo 3/Prefab/BullA.prefab",
+          "bytes": 247332,
+          "triangles": 1393,
+          "vertices": 826,
+          "dimensions": [
+            0.1868,
+            0.2373,
+            0.3073
+          ]
+        },
+        {
+          "id": "bullb",
+          "label": "BullB",
+          "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*LwOGTJkv0asAAAAATyAAAAgAehQnAQ/bce9bad299923134b7f7c5ae08199818848cfbcbcb858420445f19eb73d8113a.glb",
+          "source": "Assets/Suriyun/Cute Zoo 3/Prefab/BullB.prefab",
+          "bytes": 247332,
+          "triangles": 1393,
+          "vertices": 826,
+          "dimensions": [
+            0.1868,
+            0.2373,
+            0.3073
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chameleon",
+      "name": "变色龙 · Chameleon",
+      "family": "变色龙",
+      "aliases": [
+        "变色龙",
+        "Chameleon"
+      ],
+      "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*1nIzS6uRarUAAAAAUkAAAAgAehQnAQ/f973f4e718181c238d89149c0d8172caf629547986fd6f8d42890febcb91b852.glb",
+      "scale": 10.0,
+      "yaw": 0,
+      "note": "GLB保留源FBX米制比例；微型模型按代表prefab倍率预览放大10倍，鸵鸟原尺寸，外观沿用代表比例。Idle/Walk/Move/Run为基础动作，Eat及已确认Rest经真实皮肤姿态离线审阅；草食/草地是演示玩法配置。所有动画Once，行走连续6段、奔跑4段；其他原名片段仅手动预览。速度为脚支撑相估计，待视觉滑步校准。",
+      "bounds": {
+        "min": [
+          -0.09297700276565726,
+          -3.7824480052945e-05,
+          -0.23726481238062375
+        ],
+        "max": [
+          0.092976963455896,
+          0.25076686533971304,
+          0.18513512064860155
+        ]
+      },
+      "animations": [
+        {
+          "id": "attack",
+          "clip": "Anim_Chameleon_Attack",
+          "label": "Anim_Chameleon_Attack",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.09297696725116444,
+              -3.784966942482511e-05,
+              -0.23827582727520696
+            ],
+            "max": [
+              0.09297699144579696,
+              0.2507668294940477,
+              0.18513504512584933
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.625
+          ]
+        },
+        {
+          "id": "damage",
+          "clip": "Anim_Chameleon_Damage",
+          "label": "Anim_Chameleon_Damage",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.09297696725116444,
+              -3.784966942482531e-05,
+              -0.23827582727520696
+            ],
+            "max": [
+              0.09297699144579696,
+              0.2507668294940477,
+              0.18513504512584933
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.625
+          ]
+        },
+        {
+          "id": "die",
+          "clip": "Anim_Chameleon_Die",
+          "label": "Anim_Chameleon_Die",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.09297699100853997,
+              -0.05924888188590376,
+              -0.23827582727520696
+            ],
+            "max": [
+              0.09297699144579696,
+              0.2507668294940477,
+              0.21727849404189817
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.8333333134651184
+          ]
+        },
+        {
+          "id": "eat",
+          "clip": "Anim_Chameleon_Eat",
+          "label": "Anim_Chameleon_Eat",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.09297697346704013,
+              -0.004763900657872408,
+              -0.24349329783128118
+            ],
+            "max": [
+              0.0929769963136421,
+              0.22055915679498517,
+              0.17332840922942494
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        },
+        {
+          "id": "idle",
+          "clip": "Anim_Chameleon_Idle",
+          "label": "Anim_Chameleon_Idle",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.0929769673334181,
+              -0.0022231925951999576,
+              -0.24818794259149354
+            ],
+            "max": [
+              0.09297700267624609,
+              0.2455496576548362,
+              0.186069079187903
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            1.25
+          ]
+        },
+        {
+          "id": "jump",
+          "clip": "Anim_Chameleon_Jump",
+          "label": "Anim_Chameleon_Jump",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.0929770019381303,
+              -0.004188978945952196,
+              -0.2634030123983385
+            ],
+            "max": [
+              0.09297697892627144,
+              0.23446977738176777,
+              0.18078602468845567
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.5
+          ]
+        },
+        {
+          "id": "rest",
+          "clip": "Anim_Chameleon_Rest",
+          "label": "Anim_Chameleon_Rest",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.11135716553557581,
+              -0.004737208518735212,
+              -0.2481725456644392
+            ],
+            "max": [
+              0.1472681546595078,
+              0.1802503083959094,
+              0.1857688426812897
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            2.0833332538604736
+          ]
+        },
+        {
+          "id": "run",
+          "clip": "Anim_Chameleon_Run",
+          "label": "Anim_Chameleon_Run",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.09297698824402807,
+              0.007576029451425734,
+              -0.2240596169876158
+            ],
+            "max": [
+              0.09297699262037569,
+              0.24497159007533456,
+              0.18098776737835026
+            ]
+          },
+          "speed": 0.22178492,
+          "range": [
+            0.0416666679084301,
+            0.5
+          ]
+        },
+        {
+          "id": "walk",
+          "clip": "Anim_Chameleon_Walk",
+          "label": "Anim_Chameleon_Walk",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.09297698647354544,
+              -0.0016865748240905841,
+              -0.2363615253229025
+            ],
+            "max": [
+              0.09297700244727933,
+              0.24573650632758026,
+              0.18516752586312996
+            ]
+          },
+          "speed": 0.05645084,
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        }
+      ],
+      "initialAnimation": "idle",
+      "behaviorProfile": "registered:chameleon",
+      "appearances": [
+        {
+          "id": "chameleona",
+          "label": "ChameleonA",
+          "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*1nIzS6uRarUAAAAAUkAAAAgAehQnAQ/f973f4e718181c238d89149c0d8172caf629547986fd6f8d42890febcb91b852.glb",
+          "source": "Assets/Suriyun/Cute Zoo 3/Prefab/ChameleonA.prefab",
+          "bytes": 298512,
+          "triangles": 880,
+          "vertices": 1097,
+          "dimensions": [
+            0.186,
+            0.2508,
+            0.4224
+          ]
+        },
+        {
+          "id": "chameleonb",
+          "label": "ChameleonB",
+          "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*M7DQRZuH_YYAAAAAUkAAAAgAehQnAQ/5ce789c9ed25565e6aef0f4b35fb46db91e182e72fa91353850f34175271818f.glb",
+          "source": "Assets/Suriyun/Cute Zoo 3/Prefab/ChameleonB.prefab",
+          "bytes": 298512,
+          "triangles": 880,
+          "vertices": 1097,
+          "dimensions": [
+            0.186,
+            0.2508,
+            0.4224
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fox",
+      "name": "狐狸 · Fox",
+      "family": "狐狸",
+      "aliases": [
+        "狐狸",
+        "Fox"
+      ],
+      "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*VhPVTZTlqYMAAAAAWpAAAAgAehQnAQ/6a7cd5a824384ec7c426a882018cb4b6b96c5417bb7ef1b262fd3b053b2d896b.glb",
+      "scale": 10.0,
+      "yaw": 0,
+      "note": "GLB保留源FBX米制比例；微型模型按代表prefab倍率预览放大10倍，鸵鸟原尺寸，外观沿用代表比例。Idle/Walk/Move/Run为基础动作，Eat及已确认Rest经真实皮肤姿态离线审阅；草食/草地是演示玩法配置。所有动画Once，行走连续6段、奔跑4段；其他原名片段仅手动预览。速度为脚支撑相估计，待视觉滑步校准。",
+      "bounds": {
+        "min": [
+          -0.06979471976533119,
+          -0.0004928901332465757,
+          -0.13200174758724056
+        ],
+        "max": [
+          0.06979469709933073,
+          0.21071710414808276,
+          0.12348752352260693
+        ]
+      },
+      "animations": [
+        {
+          "id": "attack",
+          "clip": "Animal_TypeA@Attack",
+          "label": "Animal_TypeA@Attack",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.0697947103645996,
+              -0.0004929313819474915,
+              -0.13200173823056438
+            ],
+            "max": [
+              0.06979472199798666,
+              0.21071711578012936,
+              0.12348746377546624
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.625
+          ]
+        },
+        {
+          "id": "damage",
+          "clip": "Animal_TypeA@Damage",
+          "label": "Animal_TypeA@Damage",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06979471206028247,
+              -0.0004928997686569191,
+              -0.13200172233390248
+            ],
+            "max": [
+              0.0697947203023039,
+              0.21071709818638595,
+              0.12348744938658265
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.625
+          ]
+        },
+        {
+          "id": "die",
+          "clip": "Animal_TypeA@Die",
+          "label": "Animal_TypeA@Die",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06979473793596798,
+              -0.031102214101129035,
+              -0.13200173240779947
+            ],
+            "max": [
+              0.06979472833682816,
+              0.21010489840876928,
+              0.1454421819894433
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        },
+        {
+          "id": "eat",
+          "clip": "Animal_TypeA@Eat",
+          "label": "Animal_TypeA@Eat",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06979471661678338,
+              -0.004833046910807045,
+              -0.10733969569801469
+            ],
+            "max": [
+              0.0697947157458039,
+              0.20405797491010663,
+              0.12143066935451935
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        },
+        {
+          "id": "idle",
+          "clip": "Animal_TypeA@Idle",
+          "label": "Animal_TypeA@Idle",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06979470349708862,
+              3.2327189217361476e-05,
+              -0.13200172138841967
+            ],
+            "max": [
+              0.06979473000615478,
+              0.20549994740622027,
+              0.12348745962868314
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            1.25
+          ]
+        },
+        {
+          "id": "jump",
+          "clip": "Animal_TypeA@Jump",
+          "label": "Animal_TypeA@Jump",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06979472278829127,
+              -0.002467751730197807,
+              -0.1508642578798656
+            ],
+            "max": [
+              0.0697947095742959,
+              0.19540005484826803,
+              0.1208875066724989
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.5
+          ]
+        },
+        {
+          "id": "rest",
+          "clip": "Animal_TypeA@Rest",
+          "label": "Animal_TypeA@Rest",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.10445498127043389,
+              -0.011984262824390579,
+              -0.13681862473690581
+            ],
+            "max": [
+              0.11337254030042529,
+              0.1288492368312532,
+              0.12355198577386038
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            2.0833332538604736
+          ]
+        },
+        {
+          "id": "run",
+          "clip": "Animal_TypeA@Run",
+          "label": "Animal_TypeA@Run",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06979470095265597,
+              0.0032856001015540387,
+              -0.14429921051791567
+            ],
+            "max": [
+              0.06979473140993059,
+              0.20688112723089888,
+              0.12301694083544248
+            ]
+          },
+          "speed": 0.30546456,
+          "range": [
+            0.0416666679084301,
+            0.5
+          ]
+        },
+        {
+          "id": "walk",
+          "clip": "Animal_TypeA@Walk",
+          "label": "Animal_TypeA@Walk",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.0697947170293223,
+              -8.778891689125873e-05,
+              -0.1320804431910199
+            ],
+            "max": [
+              0.06979472027119966,
+              0.20567207766074197,
+              0.12348745486155281
+            ]
+          },
+          "speed": 0.0716053,
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        }
+      ],
+      "initialAnimation": "idle",
+      "behaviorProfile": "registered:fox",
+      "appearances": [
+        {
+          "id": "fox",
+          "label": "Fox",
+          "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*VhPVTZTlqYMAAAAAWpAAAAgAehQnAQ/6a7cd5a824384ec7c426a882018cb4b6b96c5417bb7ef1b262fd3b053b2d896b.glb",
+          "source": "Assets/Suriyun/Cute Zoo 3/Prefab/Fox.prefab",
+          "bytes": 435316,
+          "triangles": 2812,
+          "vertices": 3569,
+          "dimensions": [
+            0.1396,
+            0.2112,
+            0.2555
+          ]
+        }
+      ]
+    },
+    {
+      "id": "koala",
+      "name": "考拉 · Koala",
+      "family": "考拉",
+      "aliases": [
+        "考拉",
+        "Koala"
+      ],
+      "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*J6wPQa2ooGsAAAAAUgAAAAgAehQnAQ/19c67999eab6160c9a230dc8abefbbf67148b4176cf0e5d6185355c6af26ee7f.glb",
+      "scale": 6.0,
+      "yaw": 0,
+      "note": "GLB保留源FBX米制比例；微型模型按代表prefab倍率预览放大10倍，鸵鸟原尺寸，外观沿用代表比例。Idle/Walk/Move/Run为基础动作，Eat及已确认Rest经真实皮肤姿态离线审阅；草食/草地是演示玩法配置。所有动画Once，行走连续6段、奔跑4段；其他原名片段仅手动预览。速度为脚支撑相估计，待视觉滑步校准。",
+      "bounds": {
+        "min": [
+          -0.13154611135319894,
+          -0.0005973064794955573,
+          -0.0758209597497459
+        ],
+        "max": [
+          0.13154608750676205,
+          0.24952331215845563,
+          0.1646461139230495
+        ]
+      },
+      "animations": [
+        {
+          "id": "attack",
+          "clip": "Animal_TypeA@Attack",
+          "label": "Animal_TypeA@Attack",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.13154610709542539,
+              -0.0005972818837167838,
+              -0.07582097000913343
+            ],
+            "max": [
+              0.13154612097436455,
+              0.2495233208327607,
+              0.16464605017578007
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.625
+          ]
+        },
+        {
+          "id": "damage",
+          "clip": "Animal_TypeA@Damage",
+          "label": "Animal_TypeA@Damage",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.13154611020740542,
+              -0.0005972972113795264,
+              -0.07582097791143988
+            ],
+            "max": [
+              0.13154611786238474,
+              0.24952330236923861,
+              0.16464603013129578
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.625
+          ]
+        },
+        {
+          "id": "die",
+          "clip": "Animal_TypeA@Die",
+          "label": "Animal_TypeA@Die",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.13154613398962753,
+              -0.06534243608234627,
+              -0.17734857800434498
+            ],
+            "max": [
+              0.13154612551336134,
+              0.2480290194013892,
+              0.1571473732053536
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        },
+        {
+          "id": "eat",
+          "clip": "Animal_TypeA@Eat",
+          "label": "Animal_TypeA@Eat",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.13154611456125828,
+              -0.004210523607101349,
+              -0.07849275804303422
+            ],
+            "max": [
+              0.1315461135085336,
+              0.2097656013951063,
+              0.17860033777295242
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        },
+        {
+          "id": "idle",
+          "clip": "Animal_TypeA@Idle",
+          "label": "Animal_TypeA@Idle",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.1315461014779698,
+              -0.0002574740590749374,
+              -0.07584176170500498
+            ],
+            "max": [
+              0.13154612791104156,
+              0.24430615412149517,
+              0.1646460394585474
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            1.25
+          ]
+        },
+        {
+          "id": "jump",
+          "clip": "Animal_TypeA@Jump",
+          "label": "Animal_TypeA@Jump",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.13154612094124546,
+              -0.001845230713827131,
+              -0.06961991248715423
+            ],
+            "max": [
+              0.1315461071285462,
+              0.23395566996254563,
+              0.16720452627586038
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.5
+          ]
+        },
+        {
+          "id": "rest",
+          "clip": "Animal_TypeA@Rest",
+          "label": "Animal_TypeA@Rest",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.1031763451587643,
+              -0.07098660858565198,
+              -0.07793459605536202
+            ],
+            "max": [
+              0.1540188318209657,
+              0.1907451135413026,
+              0.16549121286221385
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            2.0833332538604736
+          ]
+        },
+        {
+          "id": "run",
+          "clip": "Animal_TypeA@Run",
+          "label": "Animal_TypeA@Run",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.13154609766087666,
+              0.003936135731248319,
+              -0.07376415880223135
+            ],
+            "max": [
+              0.13154613040891389,
+              0.24517853536770715,
+              0.17060042798307742
+            ]
+          },
+          "speed": 0.30546456,
+          "range": [
+            0.0416666679084301,
+            0.5
+          ]
+        },
+        {
+          "id": "walk",
+          "clip": "Animal_TypeA@Walk",
+          "label": "Animal_TypeA@Walk",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.13154611558773002,
+              -0.0002750482725184684,
+              -0.07582098195116399
+            ],
+            "max": [
+              0.1315461178312805,
+              0.24447454314733807,
+              0.16464603047936816
+            ]
+          },
+          "speed": 0.0716053,
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        }
+      ],
+      "initialAnimation": "idle",
+      "behaviorProfile": "registered:koala",
+      "appearances": [
+        {
+          "id": "koala",
+          "label": "Koala",
+          "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*J6wPQa2ooGsAAAAAUgAAAAgAehQnAQ/19c67999eab6160c9a230dc8abefbbf67148b4176cf0e5d6185355c6af26ee7f.glb",
+          "source": "Assets/Suriyun/Cute Zoo 3/Prefab/Koala.prefab",
+          "bytes": 294736,
+          "triangles": 1660,
+          "vertices": 1005,
+          "dimensions": [
+            0.2631,
+            0.2501,
+            0.2405
+          ]
+        }
+      ]
+    },
+    {
+      "id": "leopard",
+      "name": "豹 · Leopard",
+      "family": "豹",
+      "aliases": [
+        "豹",
+        "Leopard"
+      ],
+      "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*689UQJO0vMIAAAAAVEAAAAgAehQnAQ/b841fb5fcc5f5ca3f215a0bfbb48fcabe192990670ac2355727864ffac3ae64b.glb",
+      "scale": 10.0,
+      "yaw": 0,
+      "note": "GLB保留源FBX米制比例；微型模型按代表prefab倍率预览放大10倍，鸵鸟原尺寸，外观沿用代表比例。Idle/Walk/Move/Run为基础动作，Eat及已确认Rest经真实皮肤姿态离线审阅；草食/草地是演示玩法配置。所有动画Once，行走连续6段、奔跑4段；其他原名片段仅手动预览。速度为脚支撑相估计，待视觉滑步校准。",
+      "bounds": {
+        "min": [
+          -0.0653707332597172,
+          -0.000491639614821445,
+          -0.09400215353910543
+        ],
+        "max": [
+          0.0652682727247869,
+          0.182632758892038,
+          0.11640732632137256
+        ]
+      },
+      "animations": [
+        {
+          "id": "attack",
+          "clip": "Animal_TypeA@Attack",
+          "label": "Animal_TypeA@Attack",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06537072278132729,
+              -0.0004916258483783307,
+              -0.09400215318551197
+            ],
+            "max": [
+              0.06526830548830022,
+              0.18263276723578792,
+              0.11640731065255237
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.625
+          ]
+        },
+        {
+          "id": "damage",
+          "clip": "Animal_TypeA@Damage",
+          "label": "Animal_TypeA@Damage",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06537072290282936,
+              -0.0004916190415226927,
+              -0.09400215932498432
+            ],
+            "max": [
+              0.06526830537587182,
+              0.18263279303164742,
+              0.1164073011862764
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.625
+          ]
+        },
+        {
+          "id": "die",
+          "clip": "Animal_TypeA@Die",
+          "label": "Animal_TypeA@Die",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06537076025525496,
+              -0.0022634413555732823,
+              -0.12031702036702749
+            ],
+            "max": [
+              0.06526830115537226,
+              0.18434160188707527,
+              0.1148554601737466
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        },
+        {
+          "id": "eat",
+          "clip": "Animal_TypeA@Eat",
+          "label": "Animal_TypeA@Eat",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06537072410030359,
+              -0.004831736624778844,
+              -0.08463229075843108
+            ],
+            "max": [
+              0.06526829638415324,
+              0.15873690595164805,
+              0.12194892222717141
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        },
+        {
+          "id": "idle",
+          "clip": "Animal_TypeA@Idle",
+          "label": "Animal_TypeA@Idle",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06537072483071336,
+              3.3547038065769066e-05,
+              -0.0940021532642516
+            ],
+            "max": [
+              0.06526830360768551,
+              0.17741561018543914,
+              0.11640729747812378
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            1.25
+          ]
+        },
+        {
+          "id": "jump",
+          "clip": "Animal_TypeA@Jump",
+          "label": "Animal_TypeA@Jump",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06537073518214333,
+              -0.002466492509496725,
+              -0.09708507792732482
+            ],
+            "max": [
+              0.06526829308771954,
+              0.1671597065620943,
+              0.11342050240578604
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.5
+          ]
+        },
+        {
+          "id": "rest",
+          "clip": "Animal_TypeA@Rest",
+          "label": "Animal_TypeA@Rest",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.10451665994059944,
+              -0.00850978205577383,
+              -0.09482296166224374
+            ],
+            "max": [
+              0.0822837625451992,
+              0.1217259473416113,
+              0.11640727053208953
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            2.0833332538604736
+          ]
+        },
+        {
+          "id": "run",
+          "clip": "Animal_TypeA@Run",
+          "label": "Animal_TypeA@Run",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.0653707201237915,
+              0.003287073204524848,
+              -0.10153714268630788
+            ],
+            "max": [
+              0.06526830035756569,
+              0.17925118301816878,
+              0.11549094141148908
+            ]
+          },
+          "speed": 0.30546474,
+          "range": [
+            0.0416666679084301,
+            0.5
+          ]
+        },
+        {
+          "id": "walk",
+          "clip": "Animal_TypeA@Walk",
+          "label": "Animal_TypeA@Walk",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06537072732899572,
+              -8.650654504744648e-05,
+              -0.09405316698324692
+            ],
+            "max": [
+              0.06526830534476608,
+              0.1776081570453343,
+              0.11640727505961962
+            ]
+          },
+          "speed": 0.07160538,
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        }
+      ],
+      "initialAnimation": "idle",
+      "behaviorProfile": "registered:leopard",
+      "appearances": [
+        {
+          "id": "leoparda",
+          "label": "LeopardA",
+          "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*689UQJO0vMIAAAAAVEAAAAgAehQnAQ/b841fb5fcc5f5ca3f215a0bfbb48fcabe192990670ac2355727864ffac3ae64b.glb",
+          "source": "Assets/Suriyun/Cute Zoo 3/Prefab/LeopardA.prefab",
+          "bytes": 331568,
+          "triangles": 2796,
+          "vertices": 1571,
+          "dimensions": [
+            0.1306,
+            0.1831,
+            0.2104
+          ]
+        },
+        {
+          "id": "leopardb",
+          "label": "LeopardB",
+          "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*x5tUR79GWDwAAAAAVEAAAAgAehQnAQ/18a2d1dd6991a5daac94e0be2c2efc76c98254e109b494439d476be9372cc85a.glb",
+          "source": "Assets/Suriyun/Cute Zoo 3/Prefab/LeopardB.prefab",
+          "bytes": 331568,
+          "triangles": 2796,
+          "vertices": 1571,
+          "dimensions": [
+            0.1306,
+            0.1831,
+            0.2104
+          ]
+        }
+      ]
+    },
+    {
+      "id": "meerkat",
+      "name": "狐獴 · Meerkat",
+      "family": "狐獴",
+      "aliases": [
+        "狐獴",
+        "Meerkat"
+      ],
+      "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*PhMiQKHo6nAAAAAAT2AAAAgAehQnAQ/598a105166b054184efda0c768adcc585ac1ec8bc97d4fc4425d9e4b2808ad79.glb",
+      "scale": 10.0,
+      "yaw": 0,
+      "note": "GLB保留源FBX米制比例；微型模型按代表prefab倍率预览放大10倍，鸵鸟原尺寸，外观沿用代表比例。Idle/Walk/Move/Run为基础动作，Eat及已确认Rest经真实皮肤姿态离线审阅；草食/草地是演示玩法配置。所有动画Once，行走连续6段、奔跑4段；其他原名片段仅手动预览。速度为脚支撑相估计，待视觉滑步校准。",
+      "bounds": {
+        "min": [
+          -0.022285186367360186,
+          -0.0004604978298306276,
+          -0.053115061386003505
+        ],
+        "max": [
+          0.02228518997804366,
+          0.08231810713110004,
+          0.04857043971315982
+        ]
+      },
+      "animations": [
+        {
+          "id": "attack",
+          "clip": "Anim_Meerkat_Attack",
+          "label": "Anim_Meerkat_Attack",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.0222851882173628,
+              -0.0004604917836862813,
+              -0.06203402298949741
+            ],
+            "max": [
+              0.022285201757374962,
+              0.08270794938199245,
+              0.05295292088375793
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.4166666567325592
+          ]
+        },
+        {
+          "id": "damage",
+          "clip": "Anim_Meerkat_Damage",
+          "label": "Anim_Meerkat_Damage",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.022285188291275817,
+              -0.0004604917836862813,
+              -0.053115071961698374
+            ],
+            "max": [
+              0.022285200733691984,
+              0.0823181180720612,
+              0.04857043227217589
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.4583333432674408
+          ]
+        },
+        {
+          "id": "die",
+          "clip": "Anim_Meerkat_Die",
+          "label": "Anim_Meerkat_Die",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.03763900554808311,
+              -0.00876631157710008,
+              -0.05311507196169837
+            ],
+            "max": [
+              0.027121316087310263,
+              0.0823181180720612,
+              0.07450616161249174
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            2.0833332538604736
+          ]
+        },
+        {
+          "id": "eat",
+          "clip": "Anim_Meerkat_Eat",
+          "label": "Anim_Meerkat_Eat",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.022285201158875563,
+              -0.00048710042174575623,
+              -0.04786705770823975
+            ],
+            "max": [
+              0.022285192538828644,
+              0.0766763147347818,
+              0.05449427255877118
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            1.25
+          ]
+        },
+        {
+          "id": "idle",
+          "clip": "Anim_Meerkat_Idle",
+          "label": "Anim_Meerkat_Idle",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.022285207187832137,
+              -0.0004669011718667814,
+              -0.04883869518144672
+            ],
+            "max": [
+              0.02228518715033872,
+              0.09992173212532224,
+              0.038019642768250934
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.8333333134651184
+          ]
+        },
+        {
+          "id": "jump",
+          "clip": "Anim_Meerkat_Jump",
+          "label": "Anim_Meerkat_Jump",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.022285197944909334,
+              -0.0024342399244826046,
+              -0.0521870168200812
+            ],
+            "max": [
+              0.022285196505314544,
+              0.05538448477300673,
+              0.07471643043100105
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.5833333134651184
+          ]
+        },
+        {
+          "id": "move",
+          "clip": "Anim_Meerkat_Move",
+          "label": "Anim_Meerkat_Move",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.022285200401705244,
+              -0.001290282732868915,
+              -0.05305365764006616
+            ],
+            "max": [
+              0.022285193940328057,
+              0.05637531674732282,
+              0.07183696637032419
+            ]
+          },
+          "speed": 0.02211441,
+          "range": [
+            0.0416666679084301,
+            0.8333333134651184
+          ]
+        },
+        {
+          "id": "rest",
+          "clip": "Anim_Meerkat_Rest",
+          "label": "Anim_Meerkat_Rest",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.019183849097534556,
+              -0.004557918508460874,
+              -0.019632619884776315
+            ],
+            "max": [
+              0.034223281927053525,
+              0.04668530945022914,
+              0.06396746390222696
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            1.25
+          ]
+        },
+        {
+          "id": "run",
+          "clip": "Anim_Meerkat_Run",
+          "label": "Anim_Meerkat_Run",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.022285200436326362,
+              -2.835927524802752e-05,
+              -0.050725132778361916
+            ],
+            "max": [
+              0.02228519390570694,
+              0.05857377447776799,
+              0.07183697020128721
+            ]
+          },
+          "speed": 0.03574603,
+          "range": [
+            0.0416666679084301,
+            0.4166666567325592
+          ]
+        }
+      ],
+      "initialAnimation": "idle",
+      "behaviorProfile": "registered:meerkat",
+      "appearances": [
+        {
+          "id": "meerkat",
+          "label": "Meerkat",
+          "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*PhMiQKHo6nAAAAAAT2AAAAgAehQnAQ/598a105166b054184efda0c768adcc585ac1ec8bc97d4fc4425d9e4b2808ad79.glb",
+          "source": "Assets/Suriyun/Cute Zoo 3/Prefab/Meerkat.prefab",
+          "bytes": 251916,
+          "triangles": 694,
+          "vertices": 463,
+          "dimensions": [
+            0.0446,
+            0.0828,
+            0.1017
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mule",
+      "name": "骡 · Mule",
+      "family": "骡",
+      "aliases": [
+        "骡",
+        "Mule"
+      ],
+      "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*-eIMS7E8ybQAAAAAWMAAAAgAehQnAQ/54cd224a502f50e2b96203b8ff44e42a8aa3ec631d5d9b3740b8369390420022.glb",
+      "scale": 14.0,
+      "yaw": 0,
+      "note": "GLB保留源FBX米制比例；微型模型按代表prefab倍率预览放大10倍，鸵鸟原尺寸，外观沿用代表比例。Idle/Walk/Move/Run为基础动作，Eat及已确认Rest经真实皮肤姿态离线审阅；草食/草地是演示玩法配置。所有动画Once，行走连续6段、奔跑4段；其他原名片段仅手动预览。速度为脚支撑相估计，待视觉滑步校准。",
+      "bounds": {
+        "min": [
+          -0.060140494158078976,
+          -0.0004004326107089239,
+          -0.0895959497438899
+        ],
+        "max": [
+          0.06014048818611415,
+          0.2083477922538789,
+          0.1394968100151568
+        ]
+      },
+      "animations": [
+        {
+          "id": "attack",
+          "clip": "Animal_TypeB@Attack",
+          "label": "Animal_TypeB@Attack",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06014049872034743,
+              -0.0019023938200472205,
+              -0.10084383416260685
+            ],
+            "max": [
+              0.06014046702602555,
+              0.2044837214976697,
+              0.13949679648350183
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.625
+          ]
+        },
+        {
+          "id": "damage",
+          "clip": "Animal_TypeB@Damage",
+          "label": "Animal_TypeB@Damage",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06014049876404424,
+              -0.00040044121768064795,
+              -0.10084382504249548
+            ],
+            "max": [
+              0.06014046698232874,
+              0.2083478086899169,
+              0.1394967926175348
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.4166666567325592
+          ]
+        },
+        {
+          "id": "die",
+          "clip": "Animal_TypeB@Die",
+          "label": "Animal_TypeB@Die",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06014053503769512,
+              -0.02591033751014572,
+              -0.19836999503224623
+            ],
+            "max": [
+              0.06014046698232874,
+              0.2083478086899169,
+              0.1394967926175348
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.8333333134651184
+          ]
+        },
+        {
+          "id": "eat",
+          "clip": "Animal_TypeB@Eat",
+          "label": "Animal_TypeB@Eat",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.060140490321943275,
+              -0.001901953353532847,
+              -0.09108522151654672
+            ],
+            "max": [
+              0.060140483104471676,
+              0.12999382661208195,
+              0.14894040764743402
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            1.25
+          ]
+        },
+        {
+          "id": "idle",
+          "clip": "Animal_TypeB@Idle",
+          "label": "Animal_TypeB@Idle",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.060140480632922544,
+              -0.001902689854158208,
+              -0.10484028999757714
+            ],
+            "max": [
+              0.06014047352132104,
+              0.20455180479872434,
+              0.13856622510718972
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            1.0416666269302368
+          ]
+        },
+        {
+          "id": "jump",
+          "clip": "Animal_TypeB@Jump",
+          "label": "Animal_TypeB@Jump",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.060167677446379485,
+              0.0038369919200749126,
+              -0.12264518922253459
+            ],
+            "max": [
+              0.060140486335446997,
+              0.24366578480968437,
+              0.12898287558429428
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.5
+          ]
+        },
+        {
+          "id": "rest",
+          "clip": "Animal_TypeB@Rest",
+          "label": "Animal_TypeB@Rest",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.03639591794847544,
+              -0.003063786810477565,
+              -0.10521167797617047
+            ],
+            "max": [
+              0.0891500572395919,
+              0.16988638590100702,
+              0.12308294492878659
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            1.875
+          ]
+        },
+        {
+          "id": "run",
+          "clip": "Animal_TypeB@Run",
+          "label": "Animal_TypeB@Run",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06014053468114934,
+              0.010962041630819975,
+              -0.11819267953232751
+            ],
+            "max": [
+              0.060140437740869905,
+              0.2163625172261242,
+              0.13779374429743765
+            ]
+          },
+          "speed": 0.50364505,
+          "range": [
+            0.0416666679084301,
+            0.5
+          ]
+        },
+        {
+          "id": "walk",
+          "clip": "Animal_TypeB@Walk",
+          "label": "Animal_TypeB@Walk",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06014049839923521,
+              -0.0008718913242164128,
+              -0.09755161112591254
+            ],
+            "max": [
+              0.06014048140090862,
+              0.201503063143525,
+              0.14127114755668463
+            ]
+          },
+          "speed": 0.0861383,
+          "range": [
+            0.0416666679084301,
+            1.2916666269302368
+          ]
+        }
+      ],
+      "initialAnimation": "idle",
+      "behaviorProfile": "registered:mule",
+      "appearances": [
+        {
+          "id": "mulea",
+          "label": "MuleA",
+          "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*-eIMS7E8ybQAAAAAWMAAAAgAehQnAQ/54cd224a502f50e2b96203b8ff44e42a8aa3ec631d5d9b3740b8369390420022.glb",
+          "source": "Assets/Suriyun/Cute Zoo 3/Prefab/MuleA.prefab",
+          "bytes": 405116,
+          "triangles": 1364,
+          "vertices": 1724,
+          "dimensions": [
+            0.1203,
+            0.2087,
+            0.2291
+          ]
+        },
+        {
+          "id": "muleb",
+          "label": "MuleB",
+          "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*uIJBSJ5bRc8AAAAAWMAAAAgAehQnAQ/db32457411b12c84ec5ca090c34ba4f1abfb2296814378085403a3acf0fb6177.glb",
+          "source": "Assets/Suriyun/Cute Zoo 3/Prefab/MuleB.prefab",
+          "bytes": 405116,
+          "triangles": 1364,
+          "vertices": 1724,
+          "dimensions": [
+            0.1203,
+            0.2087,
+            0.2291
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ostrich",
+      "name": "鸵鸟 · Ostrich",
+      "family": "鸵鸟",
+      "aliases": [
+        "鸵鸟",
+        "Ostrich"
+      ],
+      "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*Ur0mS4MWwfgAAAAAT4AAAAgAehQnAQ/23a31c81a0ef314cea333c47daf18355c461271ccf51680bcc4b6a2cf04a6f41.glb",
+      "scale": 1.0,
+      "yaw": 0,
+      "note": "GLB保留源FBX米制比例；微型模型按代表prefab倍率预览放大10倍，鸵鸟原尺寸，外观沿用代表比例。Idle/Walk/Move/Run为基础动作，Eat及已确认Rest经真实皮肤姿态离线审阅；草食/草地是演示玩法配置。所有动画Once，行走连续6段、奔跑4段；其他原名片段仅手动预览。速度为脚支撑相估计，待视觉滑步校准。 Rest为站立到蹲坐过渡。",
+      "bounds": {
+        "min": [
+          -0.20212821736932948,
+          -0.0011886353687040284,
+          -0.4340894200079921
+        ],
+        "max": [
+          0.20212821637327796,
+          1.2864913692005993,
+          0.27832907572834115
+        ]
+      },
+      "animations": [
+        {
+          "id": "attack",
+          "clip": "Animal_Ostrich@Attack",
+          "label": "Animal_Ostrich@Attack",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.19172655400921815,
+              -0.0011897099385379153,
+              -0.4334221409697836
+            ],
+            "max": [
+              0.21252989896578675,
+              1.2682161761400383,
+              0.27572619769691825
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.625
+          ]
+        },
+        {
+          "id": "damage",
+          "clip": "Animal_Ostrich@Damage",
+          "label": "Animal_Ostrich@Damage",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.19172655400921815,
+              -0.0011897099385379153,
+              -0.4334221409697836
+            ],
+            "max": [
+              0.21252989896578675,
+              1.2682161761400383,
+              0.27572619769691825
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.625
+          ]
+        },
+        {
+          "id": "die",
+          "clip": "Animal_Ostrich@Die",
+          "label": "Animal_Ostrich@Die",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.1917265851902583,
+              -0.18602777230467277,
+              -0.9014842315032486
+            ],
+            "max": [
+              0.21252991597587004,
+              1.2682161761400383,
+              0.27572619769691825
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.8333333134651184
+          ]
+        },
+        {
+          "id": "eat",
+          "clip": "Animal_Ostrich@Eat",
+          "label": "Animal_Ostrich@Eat",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.19655695785490457,
+              -0.001194645325088963,
+              -0.37172368130070554
+            ],
+            "max": [
+              0.21252990461587715,
+              0.8879344878128647,
+              0.675762085711397
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            1.25
+          ]
+        },
+        {
+          "id": "idle",
+          "clip": "Animal_Ostrich@Idle",
+          "label": "Animal_Ostrich@Idle",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.21297504208897672,
+              -0.001190496705941659,
+              -0.4339564030980728
+            ],
+            "max": [
+              0.21252989896578675,
+              1.2682161761400383,
+              0.27572619769691825
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            1.0
+          ]
+        },
+        {
+          "id": "jump",
+          "clip": "Animal_Ostrich@Jump",
+          "label": "Animal_Ostrich@Jump",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.19172655400921818,
+              -0.0011897099385379153,
+              -0.4334221409697836
+            ],
+            "max": [
+              0.21252989896578675,
+              1.2682161761400383,
+              0.27572619769691825
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.625
+          ]
+        },
+        {
+          "id": "rest",
+          "clip": "Animal_Ostrich@Rest",
+          "label": "Animal_Ostrich@Rest",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.19172655400921815,
+              -0.058239621203373615,
+              -0.4930470583484721
+            ],
+            "max": [
+              0.21252989896578675,
+              1.2682161761400383,
+              0.27572619769691825
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.8333333134651184
+          ]
+        },
+        {
+          "id": "run",
+          "clip": "Animal_Ostrich@Run",
+          "label": "Animal_Ostrich@Run",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.2220096998549454,
+              0.1353095279767017,
+              -0.5261464871504892
+            ],
+            "max": [
+              0.182246753120057,
+              1.167556901610606,
+              0.4930121629560561
+            ]
+          },
+          "speed": 4.99734793,
+          "range": [
+            0.0416666679084301,
+            0.5416666865348816
+          ]
+        },
+        {
+          "id": "walk",
+          "clip": "Animal_Ostrich@Walk",
+          "label": "Animal_Ostrich@Walk",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.2105782951147242,
+              -0.0011960051183188465,
+              -0.4417401155332946
+            ],
+            "max": [
+              0.20191308851508588,
+              1.2129862600963919,
+              0.38315521654674156
+            ]
+          },
+          "speed": 0.68263935,
+          "range": [
+            0.0416666679084301,
+            1.0
+          ]
+        }
+      ],
+      "initialAnimation": "idle",
+      "behaviorProfile": "registered:ostrich",
+      "appearances": [
+        {
+          "id": "ostrich",
+          "label": "Ostrich",
+          "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*Ur0mS4MWwfgAAAAAT4AAAAgAehQnAQ/23a31c81a0ef314cea333c47daf18355c461271ccf51680bcc4b6a2cf04a6f41.glb",
+          "source": "Assets/Suriyun/Cute Zoo 3/Prefab/Ostrich.prefab",
+          "bytes": 253908,
+          "triangles": 1868,
+          "vertices": 1184,
+          "dimensions": [
+            0.4043,
+            1.2877,
+            0.7124
+          ]
+        }
+      ]
+    },
+    {
+      "id": "platypus",
+      "name": "鸭嘴兽 · Platypus",
+      "family": "鸭嘴兽",
+      "aliases": [
+        "鸭嘴兽",
+        "Platypus"
+      ],
+      "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*0fHkR5fhb68AAAAATkAAAAgAehQnAQ/a8491b974ec44a6b67512e9f8b200e9ac71fd4ee286ae799ca2abbfe603dc5f8.glb",
+      "scale": 10.0,
+      "yaw": 0,
+      "note": "GLB保留源FBX米制比例；微型模型按代表prefab倍率预览放大10倍，鸵鸟原尺寸，外观沿用代表比例。Idle/Walk/Move/Run为基础动作，Eat及已确认Rest经真实皮肤姿态离线审阅；草食/草地是演示玩法配置。所有动画Once，行走连续6段、奔跑4段；其他原名片段仅手动预览。速度为脚支撑相估计，待视觉滑步校准。 本模型Rest姿态与Idle近似，未注册休息能力。",
+      "bounds": {
+        "min": [
+          -0.05594409823334152,
+          -0.0003937708803115157,
+          -0.11912165183893991
+        ],
+        "max": [
+          0.055944097014290206,
+          0.0766304347881345,
+          0.08745437841548498
+        ]
+      },
+      "animations": [
+        {
+          "id": "attack",
+          "clip": "Animal_Platypus@Attack",
+          "label": "Animal_Platypus@Attack",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.05594410621795023,
+              -0.00039375471336597904,
+              -0.11912166901796055
+            ],
+            "max": [
+              0.05594407562761682,
+              0.07663044468725785,
+              0.08745437138256718
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.8333333134651184
+          ]
+        },
+        {
+          "id": "damage",
+          "clip": "Animal_Platypus@Damage",
+          "label": "Animal_Platypus@Damage",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.05594410621795023,
+              -0.00039375471336597904,
+              -0.11912166901796055
+            ],
+            "max": [
+              0.05594407562761682,
+              0.07663044468725785,
+              0.08745437138256718
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.5
+          ]
+        },
+        {
+          "id": "die",
+          "clip": "Animal_Platypus@Die",
+          "label": "Animal_Platypus@Die",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.05594410621795023,
+              -0.010329808116008496,
+              -0.11912166901796055
+            ],
+            "max": [
+              0.05594407562761682,
+              0.08594364944681665,
+              0.08918045406764424
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.8333333134651184
+          ]
+        },
+        {
+          "id": "eat",
+          "clip": "Animal_Platypus@Eat",
+          "label": "Animal_Platypus@Eat",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.0557392730809505,
+              -0.0032604960258195387,
+              -0.1195692489734528
+            ],
+            "max": [
+              0.05573925397452054,
+              0.07411748293087222,
+              0.080369593369595
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            1.25
+          ]
+        },
+        {
+          "id": "idle",
+          "clip": "Animal_Platypus@Idle",
+          "label": "Animal_Platypus@Idle",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.056439687506969184,
+              -0.0015928670843557136,
+              -0.119538889089448
+            ],
+            "max": [
+              0.05643964908740726,
+              0.07716704135304386,
+              0.08767441284857179
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            1.0
+          ]
+        },
+        {
+          "id": "jump",
+          "clip": "Animal_Platypus@Jump",
+          "label": "Animal_Platypus@Jump",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.05594410621795023,
+              -0.00039375471336597904,
+              -0.11774680062152451
+            ],
+            "max": [
+              0.05594407562761682,
+              0.07663044468725785,
+              0.08954598256744793
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.5416666865348816
+          ]
+        },
+        {
+          "id": "rest",
+          "clip": "Animal_Platypus@Rest",
+          "label": "Animal_Platypus@Rest",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.056167731093866344,
+              -0.0003609102797060919,
+              -0.11912166873525253
+            ],
+            "max": [
+              0.056167702139247246,
+              0.07629558574268555,
+              0.0890570479898967
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            1.0
+          ]
+        },
+        {
+          "id": "run",
+          "clip": "Animal_Platypus@Run",
+          "label": "Animal_Platypus@Run",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.05588811259951301,
+              -0.002783025483490553,
+              -0.11803474226158249
+            ],
+            "max": [
+              0.05550343312274822,
+              0.07436087684976042,
+              0.08687148005593581
+            ]
+          },
+          "speed": 0.06491126,
+          "range": [
+            0.0416666679084301,
+            0.4583333432674408
+          ]
+        },
+        {
+          "id": "walk",
+          "clip": "Animal_Platypus@Walk",
+          "label": "Animal_Platypus@Walk",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.05839944035172432,
+              -0.0017935107519346813,
+              -0.11982167435945028
+            ],
+            "max": [
+              0.05832295853387697,
+              0.0743427294157071,
+              0.08800194341011218
+            ]
+          },
+          "speed": 0.03365517,
+          "range": [
+            0.0416666679084301,
+            1.0
+          ]
+        }
+      ],
+      "initialAnimation": "idle",
+      "behaviorProfile": "registered:platypus",
+      "appearances": [
+        {
+          "id": "platypusa",
+          "label": "PlatypusA",
+          "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*0fHkR5fhb68AAAAATkAAAAgAehQnAQ/a8491b974ec44a6b67512e9f8b200e9ac71fd4ee286ae799ca2abbfe603dc5f8.glb",
+          "source": "Assets/Suriyun/Cute Zoo 3/Prefab/PlatypusA.prefab",
+          "bytes": 233872,
+          "triangles": 860,
+          "vertices": 531,
+          "dimensions": [
+            0.1119,
+            0.077,
+            0.2066
+          ]
+        },
+        {
+          "id": "platypusb",
+          "label": "PlatypusB",
+          "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*pzHzTJUznGUAAAAATkAAAAgAehQnAQ/1fb412e4903da9f6a03faa8e63f473950677081976f5d1423e002a27350f9c87.glb",
+          "source": "Assets/Suriyun/Cute Zoo 3/Prefab/PlatypusB.prefab",
+          "bytes": 233872,
+          "triangles": 860,
+          "vertices": 531,
+          "dimensions": [
+            0.1119,
+            0.077,
+            0.2066
+          ]
+        }
+      ]
+    },
+    {
+      "id": "porcupine",
+      "name": "豪猪 · Porcupine",
+      "family": "豪猪",
+      "aliases": [
+        "豪猪",
+        "Porcupine"
+      ],
+      "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*54Z3RpPhhSQAAAAATZAAAAgAehQnAQ/d86d2566829921ffad54b21a8b72f26b4707115b6a41c996dcdb2b21400b478f.glb",
+      "scale": 10.0,
+      "yaw": 0,
+      "note": "GLB保留源FBX米制比例；微型模型按代表prefab倍率预览放大10倍，鸵鸟原尺寸，外观沿用代表比例。Idle/Walk/Move/Run为基础动作，Eat及已确认Rest经真实皮肤姿态离线审阅；草食/草地是演示玩法配置。所有动画Once，行走连续6段、奔跑4段；其他原名片段仅手动预览。速度为脚支撑相估计，待视觉滑步校准。",
+      "bounds": {
+        "min": [
+          -0.09384895272902048,
+          0.0005319029695024215,
+          -0.11411975721972943
+        ],
+        "max": [
+          0.09384894870802861,
+          0.18958266906431115,
+          0.15347787130875484
+        ]
+      },
+      "animations": [
+        {
+          "id": "attack",
+          "clip": "Animal_TypeA@Attack",
+          "label": "Animal_TypeA@Attack",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.09384894230040568,
+              0.0005319195884800605,
+              -0.11411976118760805
+            ],
+            "max": [
+              0.09384894882108093,
+              0.18958268258957786,
+              0.15347790746526424
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.625
+          ]
+        },
+        {
+          "id": "damage",
+          "clip": "Animal_TypeA@Damage",
+          "label": "Animal_TypeA@Damage",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.0938489407010713,
+              0.0005319056509331779,
+              -0.11411976593233526
+            ],
+            "max": [
+              0.0938489504204141,
+              0.18958268165300776,
+              0.15347788267034687
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.625
+          ]
+        },
+        {
+          "id": "die",
+          "clip": "Animal_TypeA@Die",
+          "label": "Animal_TypeA@Die",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.09384894845278273,
+              -0.03413719027853068,
+              -0.14536478387730992
+            ],
+            "max": [
+              0.09384894561150228,
+              0.1895827160914644,
+              0.1545488186353231
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        },
+        {
+          "id": "eat",
+          "clip": "Animal_TypeA@Eat",
+          "label": "Animal_TypeA@Eat",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.09384894408890605,
+              -0.0007445932819133971,
+              -0.11401607791718534
+            ],
+            "max": [
+              0.09384894689451691,
+              0.18319535057817773,
+              0.132754514569139
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        },
+        {
+          "id": "idle",
+          "clip": "Animal_TypeA@Idle",
+          "label": "Animal_TypeA@Idle",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.09384894407162671,
+              -9.062337082691388e-05,
+              -0.11411982369008365
+            ],
+            "max": [
+              0.09384894706020638,
+              0.1843654861347611,
+              0.1543461256015611
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            1.25
+          ]
+        },
+        {
+          "id": "jump",
+          "clip": "Animal_TypeA@Jump",
+          "label": "Animal_TypeA@Jump",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.09384894418280769,
+              -0.0005622762555693727,
+              -0.11382579377067852
+            ],
+            "max": [
+              0.09384894693867941,
+              0.17504914703193744,
+              0.14907242458762476
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.5
+          ]
+        },
+        {
+          "id": "rest",
+          "clip": "Animal_TypeA@Rest",
+          "label": "Animal_TypeA@Rest",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.11068648252125171,
+              -0.045222704363022885,
+              -0.11411990731961669
+            ],
+            "max": [
+              0.08559157336952233,
+              0.14263075210240642,
+              0.15409618632170008
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            2.0833332538604736
+          ]
+        },
+        {
+          "id": "run",
+          "clip": "Animal_TypeA@Run",
+          "label": "Animal_TypeA@Run",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.09384894407553594,
+              0.009324831863963802,
+              -0.11410514495922348
+            ],
+            "max": [
+              0.09384894704595066,
+              0.19083584344307802,
+              0.14832414666240964
+            ]
+          },
+          "speed": 0.22178515,
+          "range": [
+            0.0416666679084301,
+            0.5
+          ]
+        },
+        {
+          "id": "walk",
+          "clip": "Animal_TypeA@Walk",
+          "label": "Animal_TypeA@Walk",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.09384894073217614,
+              -0.0004586148680285542,
+              -0.11411976661436408
+            ],
+            "max": [
+              0.09384895352865247,
+              0.184438470798299,
+              0.1535192291928483
+            ]
+          },
+          "speed": 0.05645117,
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        }
+      ],
+      "initialAnimation": "idle",
+      "behaviorProfile": "registered:porcupine",
+      "appearances": [
+        {
+          "id": "porcupine",
+          "label": "Porcupine",
+          "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*54Z3RpPhhSQAAAAATZAAAAgAehQnAQ/d86d2566829921ffad54b21a8b72f26b4707115b6a41c996dcdb2b21400b478f.glb",
+          "source": "Assets/Suriyun/Cute Zoo 3/Prefab/Porcupine.prefab",
+          "bytes": 222624,
+          "triangles": 720,
+          "vertices": 433,
+          "dimensions": [
+            0.1877,
+            0.1891,
+            0.2676
+          ]
+        }
+      ]
+    },
+    {
+      "id": "raccoon",
+      "name": "浣熊 · Raccoon",
+      "family": "浣熊",
+      "aliases": [
+        "浣熊",
+        "Raccoon"
+      ],
+      "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*R0KnTrUIrlMAAAAAVEAAAAgAehQnAQ/5484c6ff4ca32cd37dcd6b0508f68d5eba995a0b4cfb69ba0c19cdaa26e0fedb.glb",
+      "scale": 10.0,
+      "yaw": 0,
+      "note": "GLB保留源FBX米制比例；微型模型按代表prefab倍率预览放大10倍，鸵鸟原尺寸，外观沿用代表比例。Idle/Walk/Move/Run为基础动作，Eat及已确认Rest经真实皮肤姿态离线审阅；草食/草地是演示玩法配置。所有动画Once，行走连续6段、奔跑4段；其他原名片段仅手动预览。速度为脚支撑相估计，待视觉滑步校准。",
+      "bounds": {
+        "min": [
+          -0.0651871365862084,
+          -0.0004929031134184985,
+          -0.11950643985516528
+        ],
+        "max": [
+          0.06518711741386785,
+          0.20419169871796172,
+          0.11849685643155441
+        ]
+      },
+      "animations": [
+        {
+          "id": "attack",
+          "clip": "Animal_TypeA@Attack",
+          "label": "Animal_TypeA@Attack",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06518713478596211,
+              -0.0004929443612544672,
+              -0.11950643178401904
+            ],
+            "max": [
+              0.06518713366877073,
+              0.20419165309803614,
+              0.11849679769667086
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.625
+          ]
+        },
+        {
+          "id": "damage",
+          "clip": "Animal_TypeA@Damage",
+          "label": "Animal_TypeA@Damage",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06518712475294984,
+              -0.000492912750048668,
+              -0.1195064163657129
+            ],
+            "max": [
+              0.06518714371192384,
+              0.2041916524986597,
+              0.11849678363567717
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.625
+          ]
+        },
+        {
+          "id": "die",
+          "clip": "Animal_TypeA@Die",
+          "label": "Animal_TypeA@Die",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06518714728352053,
+              -0.03401950530024811,
+              -0.120744683858627
+            ],
+            "max": [
+              0.06518713132379218,
+              0.20419168344181376,
+              0.14861522289655774
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        },
+        {
+          "id": "eat",
+          "clip": "Animal_TypeA@Eat",
+          "label": "Animal_TypeA@Eat",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06518713191151818,
+              -0.0048330598923101795,
+              -0.0984735004618199
+            ],
+            "max": [
+              0.06518713653115696,
+              0.20274395922516047,
+              0.12143130646717226
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        },
+        {
+          "id": "idle",
+          "clip": "Animal_TypeA@Idle",
+          "label": "Animal_TypeA@Idle",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06518711451666687,
+              3.2314772219108424e-05,
+              -0.11950641385469161
+            ],
+            "max": [
+              0.06518715426137951,
+              0.19897448888416655,
+              0.11849679416039074
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            1.25
+          ]
+        },
+        {
+          "id": "jump",
+          "clip": "Animal_TypeA@Jump",
+          "label": "Animal_TypeA@Jump",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06518713943250518,
+              -0.0024677647105777823,
+              -0.143988844511052
+            ],
+            "max": [
+              0.06518712901308736,
+              0.1745497792405434,
+              0.11597783154285536
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.5
+          ]
+        },
+        {
+          "id": "rest",
+          "clip": "Animal_TypeA@Rest",
+          "label": "Animal_TypeA@Rest",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.10445564341898365,
+              -0.011984161094797127,
+              -0.12755694939744888
+            ],
+            "max": [
+              0.09366001178459395,
+              0.12047487455552117,
+              0.11856325062561676
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            2.0833332538604736
+          ]
+        },
+        {
+          "id": "run",
+          "clip": "Animal_TypeA@Run",
+          "label": "Animal_TypeA@Run",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06518712171704842,
+              0.003285570534429789,
+              -0.13743139335981502
+            ],
+            "max": [
+              0.0651871467411059,
+              0.19312185304341528,
+              0.11815242631303545
+            ]
+          },
+          "speed": 0.30546456,
+          "range": [
+            0.0416666679084301,
+            0.5
+          ]
+        },
+        {
+          "id": "walk",
+          "clip": "Animal_TypeA@Walk",
+          "label": "Animal_TypeA@Walk",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06518712821453965,
+              -8.78018981148652e-05,
+              -0.1195925731977165
+            ],
+            "max": [
+              0.06518714367883152,
+              0.19897598549450887,
+              0.11849678965789803
+            ]
+          },
+          "speed": 0.0716053,
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        }
+      ],
+      "initialAnimation": "idle",
+      "behaviorProfile": "registered:raccoon",
+      "appearances": [
+        {
+          "id": "raccoon",
+          "label": "Raccoon",
+          "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*R0KnTrUIrlMAAAAAVEAAAAgAehQnAQ/5484c6ff4ca32cd37dcd6b0508f68d5eba995a0b4cfb69ba0c19cdaa26e0fedb.glb",
+          "source": "Assets/Suriyun/Cute Zoo 3/Prefab/Raccoon.prefab",
+          "bytes": 331804,
+          "triangles": 2796,
+          "vertices": 1579,
+          "dimensions": [
+            0.1304,
+            0.2047,
+            0.238
+          ]
+        }
+      ]
+    },
+    {
+      "id": "skunk",
+      "name": "臭鼬 · Skunk",
+      "family": "臭鼬",
+      "aliases": [
+        "臭鼬",
+        "Skunk"
+      ],
+      "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*EFjERLhPRz4AAAAAWVAAAAgAehQnAQ/21a519fd8878f5ff6d2e4acff5c40f5c297c5208670686a25c055b0d123dd301.glb",
+      "scale": 10.0,
+      "yaw": 0,
+      "note": "GLB保留源FBX米制比例；微型模型按代表prefab倍率预览放大10倍，鸵鸟原尺寸，外观沿用代表比例。Idle/Walk/Move/Run为基础动作，Eat及已确认Rest经真实皮肤姿态离线审阅；草食/草地是演示玩法配置。所有动画Once，行走连续6段、奔跑4段；其他原名片段仅手动预览。速度为脚支撑相估计，待视觉滑步校准。",
+      "bounds": {
+        "min": [
+          -0.058490003419716434,
+          -0.00044523294823387466,
+          -0.16725485883895025
+        ],
+        "max": [
+          0.0584900038427109,
+          0.2726467355486403,
+          0.11606120499055918
+        ]
+      },
+      "animations": [
+        {
+          "id": "attack",
+          "clip": "Animal_TypeA@Attack",
+          "label": "Animal_TypeA@Attack",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.05848998419923018,
+              -0.0004452354480979218,
+              -0.16725484855255096
+            ],
+            "max": [
+              0.05849000883774739,
+              0.2726467054525143,
+              0.1160612033666138
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.625
+          ]
+        },
+        {
+          "id": "damage",
+          "clip": "Animal_TypeA@Damage",
+          "label": "Animal_TypeA@Damage",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.05848999833516305,
+              -0.0004452159052229329,
+              -0.167254813431854
+            ],
+            "max": [
+              0.058489994073849826,
+              0.272646748617877,
+              0.11606119457103865
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.625
+          ]
+        },
+        {
+          "id": "die",
+          "clip": "Animal_TypeA@Die",
+          "label": "Animal_TypeA@Die",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.058490026214048994,
+              -0.0934905053668373,
+              -0.16725487080758766
+            ],
+            "max": [
+              0.058490027210152416,
+              0.2726467412958159,
+              0.21002445163123187
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        },
+        {
+          "id": "eat",
+          "clip": "Animal_TypeA@Eat",
+          "label": "Animal_TypeA@Eat",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.055259702197586504,
+              -0.00478534976037827,
+              -0.11424999344068344
+            ],
+            "max": [
+              0.09294016194549559,
+              0.27451797559289093,
+              0.12779275108515054
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        },
+        {
+          "id": "idle",
+          "clip": "Animal_TypeA@Idle",
+          "label": "Animal_TypeA@Idle",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.05848999052761605,
+              0.00018229561790457507,
+              -0.16725482922552012
+            ],
+            "max": [
+              0.05849000353120583,
+              0.2674295401954394,
+              0.11606119220474749
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            1.25
+          ]
+        },
+        {
+          "id": "jump",
+          "clip": "Animal_TypeA@Jump",
+          "label": "Animal_TypeA@Jump",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.05848999937374615,
+              -0.0024200810520806776,
+              -0.23526202737134597
+            ],
+            "max": [
+              0.0584900215534354,
+              0.20751934043008527,
+              0.11443723705573813
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.5
+          ]
+        },
+        {
+          "id": "rest",
+          "clip": "Animal_TypeA@Rest",
+          "label": "Animal_TypeA@Rest",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.10371012676603159,
+              -0.0352048825843301,
+              -0.18653925276626948
+            ],
+            "max": [
+              0.176889593047281,
+              0.14679630675666672,
+              0.1162570826707644
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            2.0833332538604736
+          ]
+        },
+        {
+          "id": "run",
+          "clip": "Animal_TypeA@Run",
+          "label": "Animal_TypeA@Run",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.058489992437816114,
+              0.0033330519804515763,
+              -0.2000271024218716
+            ],
+            "max": [
+              0.058490000885579756,
+              0.2583349146279861,
+              0.11697446173007893
+            ]
+          },
+          "speed": 0.30546399,
+          "range": [
+            0.0416666679084301,
+            0.5
+          ]
+        },
+        {
+          "id": "walk",
+          "clip": "Animal_TypeA@Walk",
+          "label": "Animal_TypeA@Walk",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.05849000195896447,
+              -4.015360748684157e-05,
+              -0.16744748710807544
+            ],
+            "max": [
+              0.05849001520154392,
+              0.2674310905175424,
+              0.11606116862728555
+            ]
+          },
+          "speed": 0.07160555,
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        }
+      ],
+      "initialAnimation": "idle",
+      "behaviorProfile": "registered:skunk",
+      "appearances": [
+        {
+          "id": "skunk",
+          "label": "Skunk",
+          "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*EFjERLhPRz4AAAAAWVAAAAgAehQnAQ/21a519fd8878f5ff6d2e4acff5c40f5c297c5208670686a25c055b0d123dd301.glb",
+          "source": "Assets/Suriyun/Cute Zoo 3/Prefab/Skunk.prefab",
+          "bytes": 414932,
+          "triangles": 2544,
+          "vertices": 3208,
+          "dimensions": [
+            0.117,
+            0.2731,
+            0.2833
+          ]
+        }
+      ]
+    },
+    {
+      "id": "squirrel",
+      "name": "松鼠 · Squirrel",
+      "family": "松鼠",
+      "aliases": [
+        "松鼠",
+        "Squirrel"
+      ],
+      "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*dBetRILj5zEAAAAAUYAAAAgAehQnAQ/9e77fc9615cfb0960efaf637b880a7119a2bce81cbda3f05009d1c0855e4f24a.glb",
+      "scale": 10.0,
+      "yaw": 0,
+      "note": "GLB保留源FBX米制比例；微型模型按代表prefab倍率预览放大10倍，鸵鸟原尺寸，外观沿用代表比例。Idle/Walk/Move/Run为基础动作，Eat及已确认Rest经真实皮肤姿态离线审阅；草食/草地是演示玩法配置。所有动画Once，行走连续6段、奔跑4段；其他原名片段仅手动预览。速度为脚支撑相估计，待视觉滑步校准。",
+      "bounds": {
+        "min": [
+          -0.04101943365954774,
+          -5.768199088417745e-08,
+          -0.09600253634617222
+        ],
+        "max": [
+          0.041019415624122445,
+          0.14784348513993334,
+          0.05654752797602492
+        ]
+      },
+      "animations": [
+        {
+          "id": "attack",
+          "clip": "Anim_Squirrel_Attack",
+          "label": "Anim_Squirrel_Attack",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.04101944367048834,
+              -5.902756073769844e-08,
+              -0.12418879147032401
+            ],
+            "max": [
+              0.04101944481685746,
+              0.12695910103223987,
+              0.06112851185182421
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.4166666567325592
+          ]
+        },
+        {
+          "id": "damage",
+          "clip": "Anim_Squirrel_Damage",
+          "label": "Anim_Squirrel_Damage",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.04101944185060397,
+              -5.902756074671271e-08,
+              -0.09600256026040972
+            ],
+            "max": [
+              0.04101944801521634,
+              0.1478434073025951,
+              0.056547527888590035
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.4583333432674408
+          ]
+        },
+        {
+          "id": "die",
+          "clip": "Anim_Squirrel_Die",
+          "label": "Anim_Squirrel_Die",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.0604276236496069,
+              -0.016606402597365864,
+              -0.162746659838945
+            ],
+            "max": [
+              0.05449677939188613,
+              0.14784340730259504,
+              0.08240156184562464
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            2.0833332538604736
+          ]
+        },
+        {
+          "id": "eat",
+          "clip": "Anim_Squirrel_Eat",
+          "label": "Anim_Squirrel_Eat",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.041019439542859686,
+              -0.0004912928231082245,
+              -0.08328256477640265
+            ],
+            "max": [
+              0.04101943646820978,
+              0.15363154108905652,
+              0.06263879980536446
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            1.25
+          ]
+        },
+        {
+          "id": "idle",
+          "clip": "Anim_Squirrel_Idle",
+          "label": "Anim_Squirrel_Idle",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.04101944185060397,
+              -5.902756073769844e-08,
+              -0.09600256026040972
+            ],
+            "max": [
+              0.04101944801521634,
+              0.14784340730259504,
+              0.056547527888590035
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.8333333134651184
+          ]
+        },
+        {
+          "id": "jump",
+          "clip": "Anim_Squirrel_Jump",
+          "label": "Anim_Squirrel_Jump",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.041019460484137,
+              -0.0032632151690206563,
+              -0.13649647332702966
+            ],
+            "max": [
+              0.041019404932191805,
+              0.15136383895104905,
+              0.08344484370945165
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.5833333134651184
+          ]
+        },
+        {
+          "id": "move",
+          "clip": "Anim_Squirrel_Move",
+          "label": "Anim_Squirrel_Move",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.041019452106169946,
+              -0.0025629743074619803,
+              -0.13408822389536246
+            ],
+            "max": [
+              0.041019423089954876,
+              0.13259992660629144,
+              0.07997769734801208
+            ]
+          },
+          "speed": 0.02311308,
+          "range": [
+            0.0416666679084301,
+            0.8333333134651184
+          ]
+        },
+        {
+          "id": "rest",
+          "clip": "Anim_Squirrel_Rest",
+          "label": "Anim_Squirrel_Rest",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.03126487798602634,
+              -0.011881604761590158,
+              -0.03663202582534743
+            ],
+            "max": [
+              0.11352996255344557,
+              0.07221902704037844,
+              0.07127858466603793
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            1.25
+          ]
+        },
+        {
+          "id": "run",
+          "clip": "Anim_Squirrel_Run",
+          "label": "Anim_Squirrel_Run",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.041019471383641926,
+              -0.0011060160562509213,
+              -0.12183560699973617
+            ],
+            "max": [
+              0.04101940381247756,
+              0.14888928965926104,
+              0.0799776968286864
+            ]
+          },
+          "speed": 0.03375041,
+          "range": [
+            0.0416666679084301,
+            0.4166666567325592
+          ]
+        }
+      ],
+      "initialAnimation": "idle",
+      "behaviorProfile": "registered:squirrel",
+      "appearances": [
+        {
+          "id": "squirrela",
+          "label": "SquirrelA",
+          "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*dBetRILj5zEAAAAAUYAAAAgAehQnAQ/9e77fc9615cfb0960efaf637b880a7119a2bce81cbda3f05009d1c0855e4f24a.glb",
+          "source": "Assets/Suriyun/Cute Zoo 3/Prefab/SquirrelA.prefab",
+          "bytes": 286640,
+          "triangles": 932,
+          "vertices": 603,
+          "dimensions": [
+            0.082,
+            0.1478,
+            0.1526
+          ]
+        },
+        {
+          "id": "squirrelb",
+          "label": "SquirrelB",
+          "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*tAo0TI651u4AAAAAUYAAAAgAehQnAQ/df7a0993153426f6338054351be1308ff1952f3fd250125868e25369cc1db931.glb",
+          "source": "Assets/Suriyun/Cute Zoo 3/Prefab/SquirrelB.prefab",
+          "bytes": 286640,
+          "triangles": 932,
+          "vertices": 603,
+          "dimensions": [
+            0.082,
+            0.1478,
+            0.1526
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wolf",
+      "name": "狼 · Wolf",
+      "family": "狼",
+      "aliases": [
+        "狼",
+        "Wolf"
+      ],
+      "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*8hmWSrdg3CQAAAAAVFAAAAgAehQnAQ/ed2a58a04b926c473ec153bd606f6d796dc9f17d27a90d10a25b51052bc46429.glb",
+      "scale": 14.0,
+      "yaw": 0,
+      "note": "GLB保留源FBX米制比例；微型模型按代表prefab倍率预览放大10倍，鸵鸟原尺寸，外观沿用代表比例。Idle/Walk/Move/Run为基础动作，Eat及已确认Rest经真实皮肤姿态离线审阅；草食/草地是演示玩法配置。所有动画Once，行走连续6段、奔跑4段；其他原名片段仅手动预览。速度为脚支撑相估计，待视觉滑步校准。",
+      "bounds": {
+        "min": [
+          -0.06979471962512548,
+          -0.0004928901332465757,
+          -0.1185225142999896
+        ],
+        "max": [
+          0.06979469723953644,
+          0.20651890806129586,
+          0.12348752352260693
+        ]
+      },
+      "animations": [
+        {
+          "id": "attack",
+          "clip": "Animal_TypeA@Attack",
+          "label": "Animal_TypeA@Attack",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06979471186643406,
+              -0.0004929313819474915,
+              -0.11852250716388095
+            ],
+            "max": [
+              0.0697947204961522,
+              0.20651886499134003,
+              0.12348746377546624
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.625
+          ]
+        },
+        {
+          "id": "damage",
+          "clip": "Animal_TypeA@Damage",
+          "label": "Animal_TypeA@Damage",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06979471124614244,
+              -0.0004928997686569191,
+              -0.11852248917010252
+            ],
+            "max": [
+              0.06979472111644393,
+              0.20651886463515826,
+              0.12348744938658265
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.625
+          ]
+        },
+        {
+          "id": "die",
+          "clip": "Animal_TypeA@Die",
+          "label": "Animal_TypeA@Die",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.0697947363344627,
+              -0.03528620691120954,
+              -0.12543906858831771
+            ],
+            "max": [
+              0.06979472503174919,
+              0.20651889289255473,
+              0.14570600649640666
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        },
+        {
+          "id": "eat",
+          "clip": "Animal_TypeA@Eat",
+          "label": "Animal_TypeA@Eat",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06979471631485525,
+              -0.004833046910807045,
+              -0.09681493263734205
+            ],
+            "max": [
+              0.06979471604773203,
+              0.20108993491243066,
+              0.12143066935451935
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        },
+        {
+          "id": "idle",
+          "clip": "Animal_TypeA@Idle",
+          "label": "Animal_TypeA@Idle",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06979470237766557,
+              3.2327189217361476e-05,
+              -0.11852248533165782
+            ],
+            "max": [
+              0.06979473096207194,
+              0.2013017008378687,
+              0.12348745962868314
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            1.25
+          ]
+        },
+        {
+          "id": "jump",
+          "clip": "Animal_TypeA@Jump",
+          "label": "Animal_TypeA@Jump",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06979472273061597,
+              -0.002467751730197807,
+              -0.14221302408244305
+            ],
+            "max": [
+              0.0697947096319712,
+              0.18041803564281814,
+              0.1208875066724989
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            0.5
+          ]
+        },
+        {
+          "id": "rest",
+          "clip": "Animal_TypeA@Rest",
+          "label": "Animal_TypeA@Rest",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.10445498127043389,
+              -0.015084258251249693,
+              -0.12941946188251838
+            ],
+            "max": [
+              0.09838839526927703,
+              0.1274171704020367,
+              0.12355198577386038
+            ]
+          },
+          "range": [
+            0.0416666679084301,
+            2.0833332538604736
+          ]
+        },
+        {
+          "id": "run",
+          "clip": "Animal_TypeA@Run",
+          "label": "Animal_TypeA@Run",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06979470175739491,
+              0.0032856001015540387,
+              -0.1350228461171429
+            ],
+            "max": [
+              0.06979473060519165,
+              0.19736731533281676,
+              0.12301694083544248
+            ]
+          },
+          "speed": 0.30546456,
+          "range": [
+            0.0416666679084301,
+            0.5
+          ]
+        },
+        {
+          "id": "walk",
+          "clip": "Animal_TypeA@Walk",
+          "label": "Animal_TypeA@Walk",
+          "loop": false,
+          "bounds": {
+            "min": [
+              -0.06979471590345306,
+              -8.778891689125873e-05,
+              -0.11862745166132442
+            ],
+            "max": [
+              0.06979472108533964,
+              0.20130319852003933,
+              0.12348745486155281
+            ]
+          },
+          "speed": 0.0716053,
+          "range": [
+            0.0416666679084301,
+            0.875
+          ]
+        }
+      ],
+      "initialAnimation": "idle",
+      "behaviorProfile": "registered:wolf",
+      "appearances": [
+        {
+          "id": "wolfa",
+          "label": "WolfA",
+          "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*8hmWSrdg3CQAAAAAVFAAAAgAehQnAQ/ed2a58a04b926c473ec153bd606f6d796dc9f17d27a90d10a25b51052bc46429.glb",
+          "source": "Assets/Suriyun/Cute Zoo 3/Prefab/WolfA.prefab",
+          "bytes": 333144,
+          "triangles": 2812,
+          "vertices": 1603,
+          "dimensions": [
+            0.1396,
+            0.207,
+            0.242
+          ]
+        },
+        {
+          "id": "wolfb",
+          "label": "WolfB",
+          "modelUrl": "https://mdn.alipayobjects.com/rms/afts/file/A*f9KlQrvGp-cAAAAAVFAAAAgAehQnAQ/72ec38bfaf6138a6461089278869f51d938d1f792b0373c4b4d015ad343e1619.glb",
+          "source": "Assets/Suriyun/Cute Zoo 3/Prefab/WolfB.prefab",
+          "bytes": 333144,
+          "triangles": 2812,
+          "vertices": 1603,
+          "dimensions": [
+            0.1396,
+            0.207,
+            0.242
+          ]
+        }
+      ]
+    }
+  ]
+}

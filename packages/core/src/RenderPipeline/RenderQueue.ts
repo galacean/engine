@@ -1,6 +1,7 @@
 import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
 import { BasicResources, RenderStateElementMap } from "../BasicResources";
 import { Utils } from "../Utils";
+import { SSRProgramResolver } from "../lighting/screenSpaceReflection/SSRProgramResolver";
 import { RenderQueueType, Shader } from "../shader";
 import { ConstantBufferBindingPoint } from "../shader/enums/ConstantBufferBindingPoint";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
@@ -8,6 +9,7 @@ import { BatcherManager } from "./BatcherManager";
 import { InstanceBuffer } from "./InstanceBuffer";
 import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
+import { PipelineStage } from "./enums/PipelineStage";
 import { RenderQueueMaskType } from "./enums/RenderQueueMaskType";
 
 /**
@@ -31,6 +33,7 @@ export class RenderQueue {
   readonly elements = new Array<RenderElement>();
   readonly batchedElements = new Array<RenderElement>();
   rendererUpdateFlag = ContextRendererUpdateFlag.None;
+  private _cameraEngineMacros = new ShaderMacroCollection();
 
   constructor(public renderQueueType: RenderQueueType) {}
 
@@ -47,10 +50,49 @@ export class RenderQueue {
     batcherManager.batch(this.elements, this.batchedElements);
   }
 
+  countElementsForStage(pipelineStageTagValue: string, filter?: (element: RenderElement) => boolean): number {
+    const batchedElements = this.batchedElements;
+    const length = batchedElements.length;
+    if (length === 0) {
+      return 0;
+    }
+
+    const renderQueueType = this.renderQueueType;
+    let count = 0;
+
+    for (let i = 0; i < length; i++) {
+      const element = batchedElements[i];
+      if (filter && !filter(element)) {
+        continue;
+      }
+
+      const shaderPasses = element.subShader.passes;
+      const materialData = element.material.shaderData;
+      for (let j = 0, m = shaderPasses.length; j < m; j++) {
+        const shaderPass = shaderPasses[j];
+        if (shaderPass._pipelineStage !== pipelineStageTagValue) {
+          continue;
+        }
+        const passQueueType = shaderPass._renderState._getRenderQueueByShaderData(
+          shaderPass._renderStateDataMap,
+          materialData
+        );
+        if (passQueueType === renderQueueType) {
+          count++;
+          break;
+        }
+      }
+    }
+
+    return count;
+  }
+
   render(
     context: RenderContext,
     pipelineStageTagValue: string,
-    maskType: RenderQueueMaskType = RenderQueueMaskType.No
+    maskType: RenderQueueMaskType = RenderQueueMaskType.No,
+    overrideRenderStates?: RenderStateElementMap | null,
+    filter?: (element: RenderElement) => boolean
   ): void {
     const batchedElements = this.batchedElements;
     const length = batchedElements.length;
@@ -58,17 +100,38 @@ export class RenderQueue {
       return;
     }
 
-    const { engine, instanceId: cameraId, shaderData: cameraData } = context.camera;
-    const scene = context.camera.scene!;
+    const camera = context.camera;
+    const { engine, instanceId: cameraId, shaderData: cameraData } = camera;
+    const scene = camera.scene!;
     const { instanceId: sceneId, shaderData: sceneData, _maskManager: maskManager } = scene;
     const renderCount = engine._renderCount;
     const rhi = engine._hardwareRenderer;
-    const pipelineStageKey = RenderContext.pipelineStageKey;
+    const realtimeSphericalHarmonicsBuffer = scene.ambientLight._realtimeSphericalHarmonicsBuffer;
+    if (realtimeSphericalHarmonicsBuffer) {
+      rhi.bindUniformBufferBase(
+        ConstantBufferBindingPoint.RealtimeIBLSphericalHarmonics,
+        realtimeSphericalHarmonicsBuffer._platformBuffer
+      );
+    }
     const renderQueueType = this.renderQueueType;
     const needMaskType = maskType !== RenderQueueMaskType.No;
+    const ssrState = context._ssrState;
+    const ssrForwardActive = pipelineStageTagValue === PipelineStage.Forward && ssrState.enabled;
+    const isSSRReceiverStage = pipelineStageTagValue === PipelineStage.SSRReceiver;
+    const cameraEngineMacros = this._cameraEngineMacros;
+    ShaderMacroCollection.unionCollection(
+      context.camera._globalShaderMacro,
+      engine._macroCollection,
+      cameraEngineMacros
+    );
+    const compileMacros = Shader._compileMacros;
 
     for (let i = 0; i < length; i++) {
       const curElement = batchedElements[i];
+      if (filter && !filter(curElement)) {
+        continue;
+      }
+
       const { component, material } = curElement;
       const isInstanced = curElement.instancedRenderers.length > 0;
 
@@ -89,6 +152,8 @@ export class RenderQueue {
 
       if (needMaskType) {
         customStates = BasicResources.getMaskTypeRenderStates(maskType);
+      } else if (overrideRenderStates) {
+        customStates = overrideRenderStates;
       } else {
         if (needMaskInteraction) {
           maskManager.drawMask(context, pipelineStageTagValue, component._maskLayer);
@@ -104,18 +169,13 @@ export class RenderQueue {
       const { shaderData: rendererData, instanceId: rendererId } = component;
       const { shaderData: materialData, instanceId: materialId } = material;
 
-      // Build compile macros
-      const compileMacros = Shader._compileMacros;
-      ShaderMacroCollection.unionCollection(component._globalShaderMacro, materialData._macroCollection, compileMacros);
-      ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
+      const allowSSRForElement = ssrForwardActive && material._canReceiveScreenSpaceReflection(ssrState.maxRoughness);
 
-      if (isInstanced) {
-        compileMacros.enable(InstanceBuffer.gpuInstanceMacro);
-      }
-
+      let macrosBuilt = false;
+      let frontFaceInvert: boolean | undefined;
       for (let j = 0, m = shaderPasses.length; j < m; j++) {
         const shaderPass = shaderPasses[j];
-        if (shaderPass.getTagValue(pipelineStageKey) !== pipelineStageTagValue) {
+        if (shaderPass._pipelineStage !== pipelineStageTagValue) {
           continue;
         }
 
@@ -127,7 +187,24 @@ export class RenderQueue {
           }
         }
 
-        const program = shaderPass._getShaderProgram(engine, compileMacros);
+        if (!macrosBuilt) {
+          ShaderMacroCollection.unionCollection(cameraEngineMacros, rendererData._macroCollection, compileMacros);
+          ShaderMacroCollection.unionCollection(compileMacros, materialData._macroCollection, compileMacros);
+          if (isInstanced) {
+            compileMacros.enable(InstanceBuffer.gpuInstanceMacro);
+          }
+          macrosBuilt = true;
+        }
+
+        let program;
+        if (allowSSRForElement) {
+          program = SSRProgramResolver.resolveForwardProgram(engine, shaderPass, material, ssrState, compileMacros);
+        } else {
+          if (isSSRReceiverStage) {
+            SSRProgramResolver.applyReceiverStageMacros(compileMacros, ssrState);
+          }
+          program = shaderPass._getShaderProgram(engine, compileMacros);
+        }
         if (!program.isValid) {
           continue;
         }
@@ -195,9 +272,12 @@ export class RenderQueue {
         program.uploadMultiGroupUniforms(sceneData, cameraData, rendererData, materialData, renderElementShaderData);
 
         // Apply render state
+        if (frontFaceInvert === undefined) {
+          frontFaceInvert = component._isFrontFaceInvert();
+        }
         renderState._applyStates(
           engine,
-          component._isFrontFaceInvert(),
+          frontFaceInvert,
           shaderPass._renderStateDataMap,
           material.shaderData,
           customStates,
@@ -213,10 +293,13 @@ export class RenderQueue {
           const instanceBuffer = engine._batcherManager.instanceBuffer;
 
           instanceBuffer.setLayout(layout);
-          rhi.bindUniformBufferBase(ConstantBufferBindingPoint.RendererInstance, instanceBuffer.buffer._platformBuffer);
           for (let start = 0; start < totalCount; start += maxCount) {
             const count = Math.min(maxCount, totalCount - start);
             instanceBuffer.upload(instancedRenderers, start, count);
+            rhi.bindUniformBufferBase(
+              ConstantBufferBindingPoint.RendererInstance,
+              instanceBuffer.buffer._platformBuffer
+            );
             primitive.instanceCount = count;
             rhi.drawPrimitive(primitive, subPrimitive, program);
           }
@@ -227,7 +310,9 @@ export class RenderQueue {
       }
     }
 
-    this.rendererUpdateFlag = ContextRendererUpdateFlag.None;
+    if (!filter) {
+      this.rendererUpdateFlag = ContextRendererUpdateFlag.None;
+    }
   }
 
   clear(): void {

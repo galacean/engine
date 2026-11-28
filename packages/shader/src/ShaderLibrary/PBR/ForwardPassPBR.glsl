@@ -23,6 +23,7 @@
 #include "ShaderLibrary/Skin/Skin.glsl"
 #include "ShaderLibrary/Skin/BlendShape.glsl"
 #include "ShaderLibrary/Shadow/Shadow.glsl"
+#include "ShaderLibrary/Lighting/VolumetricCloudShadow.glsl"
 #include "ShaderLibrary/PBR/VaryingsPBR.glsl"
 #include "ShaderLibrary/PBR/LightDirectPBR.glsl"
 #include "ShaderLibrary/PBR/LightIndirectPBR.glsl"
@@ -56,6 +57,17 @@ Varyings PBRVertex(Attributes attributes) {
   // normalWS、tangentWS、bitangentWS
   #ifdef RENDERER_HAS_NORMAL
     varyings.normalWS = vertexInputs.normalWS;
+    #if defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX)
+      vec3 probeIrradiance;
+      bool hasProbe = sampleProbeVolume(
+        vertexInputs.positionWS,
+        vertexInputs.normalWS,
+        normalize(camera_Position - vertexInputs.positionWS),
+        probeIrradiance
+      );
+      varyings.probeIrradiance = probeIrradiance;
+      varyings.probeWeight = hasProbe ? 1.0 : 0.0;
+    #endif
     #ifdef NEED_VERTEX_TANGENT
       varyings.tangentWS = vertexInputs.tangentWS;
       varyings.bitangentWS = vertexInputs.bitangentWS;
@@ -105,6 +117,7 @@ void PBRFragment(Varyings varyings) {
     #endif
     shadowAttenuation *= sampleShadowMap(varyings.positionWS, shadowCoord);
   #endif
+  shadowAttenuation *= sampleVolumetricCloudShadow(varyings.positionWS);
 
   // Evaluate direct lighting
   evaluateDirectRadiance(varyings, surfaceData, bsdfData, shadowAttenuation, totalDiffuseColor, totalSpecularColor);
@@ -112,7 +125,7 @@ void PBRFragment(Varyings varyings) {
   // IBL
   evaluateIBL(varyings, surfaceData, bsdfData, totalDiffuseColor, totalSpecularColor);
 
-  #ifdef MATERIAL_ENABLE_TRANSMISSION 
+  #ifdef MATERIAL_ENABLE_TRANSMISSION
       vec3 refractionTransmitted = evaluateTransmission(surfaceData, bsdfData);
       totalDiffuseColor = mix(totalDiffuseColor, refractionTransmitted, surfaceData.transmission);
   #endif
@@ -126,6 +139,10 @@ void PBRFragment(Varyings varyings) {
 
   #if SCENE_FOG_MODE != 0
       color = fog(color, varyings.positionVS);
+  #endif
+
+  #ifdef SCENE_PROBE_BAKE_CAPTURE
+      color.a = length(varyings.positionWS - camera_Position) + 1.0;
   #endif
 
   gl_FragColor = color;

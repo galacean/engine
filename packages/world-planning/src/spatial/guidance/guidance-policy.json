@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "landscapeScopeMarginM": 90,
+  "presentation": {
+    "timeHours": 10,
+    "postExposure": -1
+  },
+  "slope": {
+    "heightM": 8,
+    "lengthM": 320,
+    "leftWidthM": 100,
+    "rightWidthM": 155,
+    "bendM": 28
+  },
+  "cueHeightM": 24,
+  "opening": {
+    "fraction": 0.83,
+    "maxAmbientRemovals": 2,
+    "minimumProjectionSamples": 8
+  },
+  "shoulder": {
+    "widthM": 16,
+    "depthM": 10,
+    "heightsM": [
+      13,
+      21,
+      9
+    ],
+    "roadClearanceM": 9,
+    "fractions": [
+      0.36,
+      0.47,
+      0.57
+    ],
+    "candidateBudget": 3,
+    "placementCandidates": [
+      {
+        "side": 1,
+        "fractionOffset": 0,
+        "extraClearanceM": 0
+      },
+      {
+        "side": -1,
+        "fractionOffset": 0,
+        "extraClearanceM": 0
+      },
+      {
+        "side": 1,
+        "fractionOffset": 0.04,
+        "extraClearanceM": 8
+      }
+    ]
+  },
+  "observer": {
+    "eyeHeightM": 1.65,
+    "verticalFovDegrees": 45,
+    "aspect": 1.7777777777777777,
+    "columns": 96,
+    "rows": 54,
+    "terrainStepM": 2,
+    "nearM": 0.1
+  },
+  "sampleFractions": [
+    0.08,
+    0.25,
+    0.43,
+    0.63,
+    0.83
+  ],
+  "maxRoadSlopeDegrees": 18
+}

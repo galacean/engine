@@ -17,8 +17,10 @@ export class NullGraphicDevice implements IHardwareRenderer {
   readonly _options = {};
   readonly capability = {
     maxTextureSize: 0,
+    maxDrawBuffers: 0,
     maxAntiAliasing: 1,
-    maxVertexUniformVectors: 0
+    maxVertexUniformVectors: 0,
+    maxFragmentTextureUnits: 16
   };
   _currentBindShaderProgram = null;
   _enableGlobalDepthBias = false;
@@ -78,6 +80,8 @@ export class NullGraphicDevice implements IHardwareRenderer {
     throw new Error("Transform feedback requires a graphics device.");
   }
   activeRenderTarget(): void {}
+  beginRenderPass(): void {}
+  endRenderPass(): void {}
   clearRenderTarget(): void {}
   drawPrimitive(): void {}
   blitInternalRTByBlitFrameBuffer(): void {}

@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>100款动物 · 行为观察场</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main id="viewport">
+      <canvas id="canvas" aria-label="100款动物三维预览，点击角色可选择"></canvas>
+      <div id="habitat-labels" aria-label="测试栖息区域"></div>
+      <div id="labels" aria-label="场景角色标签" hidden></div>
+      <div id="river-label" class="river-label">河流 · 干燥河岸可达</div>
+      <header class="heading">
+        <span class="eyebrow">100 ANIMATED ANIMALS</span>
+        <h1>动物行为观察场</h1>
+        <p>点击动物选择 · 拖动旋转 · 滚轮缩放</p>
+      </header>
+      <div class="scene-toolbar">
+        <button id="view" type="button">查看全部</button><button id="pause" type="button">暂停播放</button>
+      </div>
+    </main>
+    <aside class="panel" aria-label="素材检查面板">
+      <div class="panel-heading"><span>素材预览</span><span id="live" class="live">准备中</span></div>
+      <p id="pack-count" class="note">自动加载100款模型 · 保留素材原始比例</p>
+      <label class="display-option" for="show-names">
+        <span>显示名字</span>
+        <input id="show-names" type="checkbox" role="switch" />
+      </label>
+      <label class="display-option" for="shadows"
+        ><span>实时阴影（额外开销）</span><input id="shadows" type="checkbox" role="switch"
+      /></label>
+      <label class="display-option" for="food-enabled"
+        ><span>测试食物可用</span><input id="food-enabled" type="checkbox" role="switch" checked
+      /></label>
+      <p id="food-activity" class="readout" aria-live="polite">自主进食：0 / 0</p>
+      <p id="animal-definition" class="note"></p>
+      <p id="semantic-state" class="note"></p>
+      <p id="performance" class="note">正在采样帧时间…</p>
+      <p id="traffic-status" class="note">正在初始化动态避让…</p>
+      <label for="asset">当前检查对象</label
+      ><select id="asset" disabled></select>
+      <div class="selected-heading">
+        <h2 id="active-name">正在准备…</h2>
+        <button id="focus" type="button" disabled>观察这只</button>
+      </div>
+      <section class="command-panel" aria-label="动物指令">
+        <label for="command-scope">指令对象</label>
+        <select id="command-scope">
+          <option value="selected">当前选中角色</option>
+          <option value="all">全部角色</option>
+        </select>
+        <div class="command-grid">
+          <button id="command-idle" disabled>闲置 · 自主闲逛</button>
+          <button id="command-river" disabled>去河边</button>
+          <button id="thunder" class="warning" disabled>打雷了 · 全体受惊</button>
+        </div>
+        <p id="command-result" class="note" role="status">闲置即自主闲逛；明确指令优先，打雷可连续重播。</p>
+        <p id="task-state" class="readout">无待完成任务</p>
+        <p id="reaction-state" class="note">无环境反应</p>
+      </section>
+      <p id="source-name" class="source-name"></p>
+      <dl class="metrics">
+        <div>
+          <dt>三角面 · LOD0</dt>
+          <dd id="triangles">—</dd>
+        </div>
+        <div>
+          <dt>顶点数</dt>
+          <dd id="vertices">—</dd>
+        </div>
+        <div>
+          <dt>骨骼关节</dt>
+          <dd id="bones">—</dd>
+        </div>
+        <div>
+          <dt>GLB 体积</dt>
+          <dd id="file-size">—</dd>
+        </div>
+        <div class="wide">
+          <dt>原尺寸 X × Y × Z</dt>
+          <dd id="dimensions">—</dd>
+        </div>
+        <div class="wide">
+          <dt>纹理</dt>
+          <dd id="textures">—</dd>
+        </div>
+        <div class="wide">
+          <dt>LOD</dt>
+          <dd id="lod">—</dd>
+        </div>
+      </dl>
+      <p id="scene-dimensions" class="readout"></p>
+      <div class="tempo">
+        <label for="animal-scale">模型比例</label
+        ><input id="animal-scale" type="range" min="0.25" max="2" step="0.05" value="1" /><output id="scale-value"
+          >1×</output
+        >
+      </div>
+      <div class="tempo">
+        <label for="move-speed">移动倍率</label
+        ><input id="move-speed" type="range" min="0.1" max="3" step="0.05" value="1" /><output id="move-speed-value"
+          >1×</output
+        >
+      </div>
+      <p id="move-meters" class="note"></p>
+      <div class="divider"></div>
+      <div class="active-row"><span>骨骼动画</span><strong id="animation-count">—</strong></div>
+      <label for="clip">选择动画</label
+      ><select id="clip" disabled>
+        <option>等待模型加载</option>
+      </select>
+      <p id="clip-source" class="source-name"></p>
+      <div class="timeline">
+        <input id="timeline" aria-label="动画时间" type="range" min="0" max="1" step="0.01" value="0" disabled /><output
+          id="clip-time"
+          >—</output
+        >
+      </div>
+      <p id="readout" class="readout">自主闲逛：移动与停留由注册权重选择</p>
+      <div class="actions"><button id="behavior" type="button" disabled>下达闲置指令</button></div>
+      <div class="tempo">
+        <label for="speed">播放速度</label
+        ><input id="speed" type="range" min="0.25" max="2" step="0.25" value="1" /><output id="speed-value">1×</output>
+      </div>
+      <p id="fallback" class="note"></p>
+      <details>
+        <summary>最近调度记录</summary>
+        <pre id="trace"></pre>
+      </details>
+      <details>
+        <summary>注册配置 · 动画与自主权重</summary>
+        <pre id="profile"></pre>
+      </details>
+      <details>
+        <summary>运行快照</summary>
+        <button id="capture-state" type="button">采集当前快照</button>
+        <pre id="runtime-snapshot"></pre>
+      </details>
+      <p id="asset-note" class="note"></p>
+      <p id="residency" class="note">GLB 0 · 实例 0 · 系统登记 0</p>
+      <a class="audit-link" href="./ASSET_AUDIT.md" target="_blank" rel="noopener">查看素材检查报告 ↗</a>
+    </aside>
+    <footer><span id="status" role="status" aria-live="polite">正在准备观察场…</span></footer>
+    <script type="module">
+      import audit from "./audit.json?url";
+      import animals from "./animals.json?url";
+      import registrations from "./registrations.json?url";
+      import auditReport from "./ASSET_AUDIT.md?url";
+      import { startAnimalPreview } from "./main.ts";
+      document.querySelector(".audit-link").href = auditReport;
+      startAnimalPreview({ audit, animals, registrations });
+    </script>
+  </body>
+</html>

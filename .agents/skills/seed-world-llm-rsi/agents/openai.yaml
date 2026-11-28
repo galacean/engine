@@ -1,0 +1,4 @@
+interface:
+  display_name: "Seed World 局内 LLM 评测与 RSI"
+  short_description: "执行 Seed World 局内 LLM 静态图谱审计、无头批量基准压测、Trace 归因复盘与 A/B 递归自改进"
+  default_prompt: "使用 $seed-world-llm-rsi 对当前 Seed World 局内 LLM 的 skill / knowledge / declare 与公共链路做静态审计和无头压测复盘。"

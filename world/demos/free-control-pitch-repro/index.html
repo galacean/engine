@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FreeControl 山谷 Pitch 最小复现</title>
+    <style>
+      :root {
+        color: #e9f0ff;
+        background: #0b1020;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at 18% 12%, rgba(75, 118, 255, 0.18), transparent 36%),
+          linear-gradient(160deg, #10182b 0%, #090d18 72%);
+      }
+
+      main {
+        width: min(1120px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 28px 0 40px;
+      }
+
+      header,
+      section {
+        border: 1px solid rgba(160, 184, 255, 0.18);
+        border-radius: 16px;
+        background: rgba(13, 20, 37, 0.88);
+        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.26);
+      }
+
+      header {
+        padding: 22px 24px;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(22px, 3vw, 32px);
+      }
+
+      h2 {
+        margin-bottom: 12px;
+        font-size: 17px;
+      }
+
+      .subtitle {
+        margin-top: 10px;
+        color: #aebbd7;
+        line-height: 1.6;
+      }
+
+      .badges,
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .badge {
+        padding: 7px 10px;
+        border-radius: 999px;
+        color: #cbd8ff;
+        background: rgba(77, 112, 220, 0.16);
+        border: 1px solid rgba(112, 145, 255, 0.2);
+        font-size: 13px;
+      }
+
+      button {
+        appearance: none;
+        border: 1px solid rgba(124, 156, 255, 0.45);
+        border-radius: 10px;
+        padding: 9px 15px;
+        color: #f4f7ff;
+        background: #355fe0;
+        font: inherit;
+        font-weight: 650;
+        cursor: pointer;
+      }
+
+      button.secondary {
+        color: #cbd8ff;
+        background: rgba(79, 105, 180, 0.14);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 16px;
+      }
+
+      section {
+        padding: 18px;
+      }
+
+      .wide {
+        grid-column: 1 / -1;
+      }
+
+      canvas.chart {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: 10px;
+        background: #080d18;
+      }
+
+      .metric {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px 16px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .metric span {
+        color: #aebbd7;
+      }
+
+      .metric strong {
+        color: #f3f6ff;
+        text-align: right;
+      }
+
+      .metric strong.warning {
+        color: #ffbd78;
+      }
+
+      .metric strong.good {
+        color: #70e5b0;
+      }
+
+      .note {
+        margin-top: 12px;
+        color: #8795b4;
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 10px;
+        color: #aebbd7;
+        font-size: 13px;
+      }
+
+      .legend i {
+        display: inline-block;
+        width: 18px;
+        height: 3px;
+        margin-right: 7px;
+        vertical-align: middle;
+        border-radius: 3px;
+      }
+
+      .input-surface {
+        position: fixed;
+        left: -1000px;
+        top: 0;
+        width: 200px;
+        height: 100px;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      @media (max-width: 760px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .wide {
+          grid-column: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>FreeControl 山谷 Pitch 最小复现</h1>
+        <p class="subtitle">
+          使用真实 FreeControl：先在下坡把视角精确调到与地势平行，然后保持固定朝向、停止 pitch 输入，以 30 m/s 穿过谷底并上山。
+        </p>
+        <div class="badges">
+          <span class="badge">对称余弦山谷</span>
+          <span class="badge">最大坡度约 22.7°</span>
+          <span class="badge">补偿上限 30°</span>
+          <span class="badge">固定 60 Hz</span>
+        </div>
+        <div class="controls">
+          <button id="restart" type="button">重新运行</button>
+          <button id="pause" class="secondary" type="button">暂停</button>
+        </div>
+      </header>
+
+      <div class="grid">
+        <section class="wide">
+          <h2>山谷剖面与当前位置</h2>
+          <canvas id="profile-chart" class="chart" width="1040" height="300"></canvas>
+        </section>
+
+        <section>
+          <h2>当前运行参数</h2>
+          <div id="current-metrics" class="metric"></div>
+          <p class="note">绿色车道直接实例化正式 TerrainNavigationRuntime；橙色车道保留旧的“当前法线 + 0.3 秒平滑”作为回归对照。</p>
+        </section>
+
+        <section>
+          <h2>上坡误差结论</h2>
+          <div id="result-metrics" class="metric"></div>
+          <p class="note">误差 = 实际相机 pitch − 当前地势 pitch。负值表示上山时相机抬得不够。</p>
+        </section>
+
+        <section class="wide">
+          <h2>Pitch 曲线</h2>
+          <div class="legend">
+            <span><i style="background:#8ea4d8"></i>当前地势</span>
+            <span><i style="background:#62ddb0"></i>正式 TerrainNavigationRuntime</span>
+            <span><i style="background:#ffad66"></i>旧方案：当前法线 + 0.3 秒平滑</span>
+          </div>
+          <canvas id="pitch-chart" class="chart" width="1040" height="340"></canvas>
+        </section>
+      </div>
+    </main>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

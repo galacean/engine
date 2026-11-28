@@ -65,6 +65,10 @@ export class RasterState extends DataObject {
     if (customStates) {
       const cullModeState = customStates[RenderStateElementKey.RasterStateCullMode];
       cullModeState !== undefined && (cullMode = <CullMode>cullModeState);
+      const depthBiasState = customStates[RenderStateElementKey.RasterStateDepthBias];
+      if (depthBiasState !== undefined) depthBias = <number>depthBiasState;
+      const slopeScaledDepthBiasState = customStates[RenderStateElementKey.RasterStateSlopeScaledDepthBias];
+      if (slopeScaledDepthBiasState !== undefined) slopeScaledDepthBias = <number>slopeScaledDepthBiasState;
     }
 
     const cullFaceEnable = cullMode !== CullMode.Off;

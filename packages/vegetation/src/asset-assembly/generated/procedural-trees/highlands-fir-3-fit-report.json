@@ -1,0 +1,1551 @@
+{
+  "source": "/Users/zzzz/unity/terrain11/Assets/HIGHLANDS - Stylized Environment/Meshes/Forest/Fir_3.fbx",
+  "status": "candidate-unaccepted",
+  "controls": 7,
+  "sharedSurfaceCount": 14,
+  "foliageParts": 76,
+  "lods": [
+    {
+      "lod": 0,
+      "parts": {
+        "stem": {
+          "maxRelativeDistance": 8.668941050577982e-07,
+          "rmsRelativeDistance": 1.4800606310360454e-07,
+          "sourceTriangles": 192,
+          "generatedTriangles": 192
+        },
+        "foliage-0": {
+          "maxRelativeDistance": 0.014814406259048528,
+          "rmsRelativeDistance": 0.0028970059504445827,
+          "sourceTriangles": 6,
+          "generatedTriangles": 24
+        },
+        "foliage-2": {
+          "maxRelativeDistance": 0.01648223294088067,
+          "rmsRelativeDistance": 0.0025053501617780818,
+          "sourceTriangles": 6,
+          "generatedTriangles": 24
+        },
+        "foliage-5": {
+          "maxRelativeDistance": 0.01889038787145348,
+          "rmsRelativeDistance": 0.006831226579957713,
+          "sourceTriangles": 6,
+          "generatedTriangles": 24
+        },
+        "foliage-7": {
+          "maxRelativeDistance": 0.024707222299359722,
+          "rmsRelativeDistance": 0.005418900304740584,
+          "sourceTriangles": 6,
+          "generatedTriangles": 24
+        },
+        "foliage-8": {
+          "maxRelativeDistance": 0.025942816561419762,
+          "rmsRelativeDistance": 0.005696774094516969,
+          "sourceTriangles": 6,
+          "generatedTriangles": 24
+        },
+        "foliage-10": {
+          "maxRelativeDistance": 0.012838607516847286,
+          "rmsRelativeDistance": 0.004302930379146437,
+          "sourceTriangles": 6,
+          "generatedTriangles": 24
+        },
+        "foliage-11": {
+          "maxRelativeDistance": 0.014322314041877986,
+          "rmsRelativeDistance": 0.005187929759698838,
+          "sourceTriangles": 6,
+          "generatedTriangles": 24
+        },
+        "foliage-12": {
+          "maxRelativeDistance": 0.029216351057008295,
+          "rmsRelativeDistance": 0.008192946967168512,
+          "sourceTriangles": 6,
+          "generatedTriangles": 24
+        },
+        "foliage-15": {
+          "maxRelativeDistance": 0.018644017146881763,
+          "rmsRelativeDistance": 0.0025628409494822097,
+          "sourceTriangles": 6,
+          "generatedTriangles": 24
+        },
+        "foliage-1": {
+          "maxRelativeDistance": 0.01953495573027908,
+          "rmsRelativeDistance": 0.0026326417505868113,
+          "sourceTriangles": 6,
+          "generatedTriangles": 24
+        },
+        "foliage-3": {
+          "maxRelativeDistance": 0.014468592738113528,
+          "rmsRelativeDistance": 0.0032007506877333313,
+          "sourceTriangles": 6,
+          "generatedTriangles": 24
+        },
+        "foliage-4": {
+          "maxRelativeDistance": 0.013558878871676533,
+          "rmsRelativeDistance": 0.004495326413032649,
+          "sourceTriangles": 6,
+          "generatedTriangles": 24
+        },
+        "foliage-6": {
+          "maxRelativeDistance": 0.014096497927714861,
+          "rmsRelativeDistance": 0.005021503645903043,
+          "sourceTriangles": 6,
+          "generatedTriangles": 24
+        },
+        "foliage-9": {
+          "maxRelativeDistance": 0.015032837350215536,
+          "rmsRelativeDistance": 0.0030689097345216253,
+          "sourceTriangles": 6,
+          "generatedTriangles": 24
+        },
+        "foliage-13": {
+          "maxRelativeDistance": 0.014559696224990457,
+          "rmsRelativeDistance": 0.0034036141972182948,
+          "sourceTriangles": 6,
+          "generatedTriangles": 24
+        },
+        "foliage-14": {
+          "maxRelativeDistance": 0.016337689564839903,
+          "rmsRelativeDistance": 0.002633631819603456,
+          "sourceTriangles": 6,
+          "generatedTriangles": 24
+        },
+        "foliage-16": {
+          "maxRelativeDistance": 0.0234323137733028,
+          "rmsRelativeDistance": 0.004273373861062223,
+          "sourceTriangles": 6,
+          "generatedTriangles": 24
+        },
+        "foliage-17": {
+          "maxRelativeDistance": 0.021784991862135977,
+          "rmsRelativeDistance": 0.0035373368092529596,
+          "sourceTriangles": 6,
+          "generatedTriangles": 24
+        },
+        "foliage-18": {
+          "maxRelativeDistance": 0.03626825046806791,
+          "rmsRelativeDistance": 0.011226150474516227,
+          "sourceTriangles": 6,
+          "generatedTriangles": 24
+        },
+        "foliage-19": {
+          "maxRelativeDistance": 0.03693560959474288,
+          "rmsRelativeDistance": 0.00672769974056848,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-21": {
+          "maxRelativeDistance": 0.03737363425662867,
+          "rmsRelativeDistance": 0.007828222205012506,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-22": {
+          "maxRelativeDistance": 0.035126821064898034,
+          "rmsRelativeDistance": 0.005071529446089548,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-23": {
+          "maxRelativeDistance": 0.03726738137810345,
+          "rmsRelativeDistance": 0.006856039244503071,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-24": {
+          "maxRelativeDistance": 0.03533986898015087,
+          "rmsRelativeDistance": 0.005379155742488377,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-26": {
+          "maxRelativeDistance": 0.03508653168626723,
+          "rmsRelativeDistance": 0.005089365563290111,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-27": {
+          "maxRelativeDistance": 0.03382962306817564,
+          "rmsRelativeDistance": 0.005222391205454337,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-29": {
+          "maxRelativeDistance": 0.03716395884792175,
+          "rmsRelativeDistance": 0.006549084018131373,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-33": {
+          "maxRelativeDistance": 0.03528572301921635,
+          "rmsRelativeDistance": 0.005262912008217524,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-35": {
+          "maxRelativeDistance": 0.03594616534465857,
+          "rmsRelativeDistance": 0.005686524420649076,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-36": {
+          "maxRelativeDistance": 0.03561577495618363,
+          "rmsRelativeDistance": 0.005126645434614611,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-38": {
+          "maxRelativeDistance": 0.033800203978855296,
+          "rmsRelativeDistance": 0.005809830251687915,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-40": {
+          "maxRelativeDistance": 0.032869996799311775,
+          "rmsRelativeDistance": 0.007422279329366581,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-47": {
+          "maxRelativeDistance": 0.03228405555023999,
+          "rmsRelativeDistance": 0.009720004598694074,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-48": {
+          "maxRelativeDistance": 0.03495579928989475,
+          "rmsRelativeDistance": 0.005026883485975843,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-50": {
+          "maxRelativeDistance": 0.03601751274470165,
+          "rmsRelativeDistance": 0.0056227373596095,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-58": {
+          "maxRelativeDistance": 0.033282450958104975,
+          "rmsRelativeDistance": 0.0063579203869877105,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-60": {
+          "maxRelativeDistance": 0.03392144790071526,
+          "rmsRelativeDistance": 0.006485046608264226,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-63": {
+          "maxRelativeDistance": 0.03315183551975531,
+          "rmsRelativeDistance": 0.008219749635199053,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-66": {
+          "maxRelativeDistance": 0.03415186577705883,
+          "rmsRelativeDistance": 0.005976230510463981,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-67": {
+          "maxRelativeDistance": 0.035099488723085465,
+          "rmsRelativeDistance": 0.005174228868713938,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-68": {
+          "maxRelativeDistance": 0.03330231984824992,
+          "rmsRelativeDistance": 0.00666064941639502,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-70": {
+          "maxRelativeDistance": 0.034485232779928904,
+          "rmsRelativeDistance": 0.005504518591003112,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-72": {
+          "maxRelativeDistance": 0.035657574992414856,
+          "rmsRelativeDistance": 0.005358571264651099,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-73": {
+          "maxRelativeDistance": 0.0371279952289003,
+          "rmsRelativeDistance": 0.006460165148532806,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-20": {
+          "maxRelativeDistance": 0.03656739080861886,
+          "rmsRelativeDistance": 0.006507006401780363,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-25": {
+          "maxRelativeDistance": 0.03792162683787617,
+          "rmsRelativeDistance": 0.008745669567549541,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-28": {
+          "maxRelativeDistance": 0.033540469049653875,
+          "rmsRelativeDistance": 0.006160919374563264,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-30": {
+          "maxRelativeDistance": 0.03685073388970522,
+          "rmsRelativeDistance": 0.007058693266129489,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-31": {
+          "maxRelativeDistance": 0.036337713815656016,
+          "rmsRelativeDistance": 0.006327863904767921,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-32": {
+          "maxRelativeDistance": 0.03777240658076832,
+          "rmsRelativeDistance": 0.006920869101945704,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-34": {
+          "maxRelativeDistance": 0.03658210607283241,
+          "rmsRelativeDistance": 0.006391298403563633,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-37": {
+          "maxRelativeDistance": 0.0339013567985578,
+          "rmsRelativeDistance": 0.0060624735728856145,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-39": {
+          "maxRelativeDistance": 0.03439313272752663,
+          "rmsRelativeDistance": 0.00654426225429134,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-41": {
+          "maxRelativeDistance": 0.03478322742966669,
+          "rmsRelativeDistance": 0.005024427627967868,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-42": {
+          "maxRelativeDistance": 0.03495249694648487,
+          "rmsRelativeDistance": 0.00569969361353563,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-43": {
+          "maxRelativeDistance": 0.03683107742926076,
+          "rmsRelativeDistance": 0.006465803444355007,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-44": {
+          "maxRelativeDistance": 0.03619648525098968,
+          "rmsRelativeDistance": 0.006269201991159552,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-45": {
+          "maxRelativeDistance": 0.03490576857071467,
+          "rmsRelativeDistance": 0.005852623985703645,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-46": {
+          "maxRelativeDistance": 0.03482414230507957,
+          "rmsRelativeDistance": 0.005597491168256664,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-49": {
+          "maxRelativeDistance": 0.036221598720284236,
+          "rmsRelativeDistance": 0.005299469103096882,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-51": {
+          "maxRelativeDistance": 0.03629439477566393,
+          "rmsRelativeDistance": 0.006450464893218863,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-52": {
+          "maxRelativeDistance": 0.033107794522747036,
+          "rmsRelativeDistance": 0.008392027568745858,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-53": {
+          "maxRelativeDistance": 0.033218605107693325,
+          "rmsRelativeDistance": 0.009137193190538689,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-54": {
+          "maxRelativeDistance": 0.035547790535408866,
+          "rmsRelativeDistance": 0.005498039385846256,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-55": {
+          "maxRelativeDistance": 0.035595654160293706,
+          "rmsRelativeDistance": 0.005139262626310017,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-56": {
+          "maxRelativeDistance": 0.03451237930126383,
+          "rmsRelativeDistance": 0.005901707576300589,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-57": {
+          "maxRelativeDistance": 0.032543205348663055,
+          "rmsRelativeDistance": 0.008206799611917236,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-59": {
+          "maxRelativeDistance": 0.03456933041498744,
+          "rmsRelativeDistance": 0.005107109692363496,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-61": {
+          "maxRelativeDistance": 0.035329018854051965,
+          "rmsRelativeDistance": 0.00532187040573188,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-62": {
+          "maxRelativeDistance": 0.0333990397452439,
+          "rmsRelativeDistance": 0.006747615707996488,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-64": {
+          "maxRelativeDistance": 0.03389730349255038,
+          "rmsRelativeDistance": 0.005409011435270202,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-65": {
+          "maxRelativeDistance": 0.03371409414507735,
+          "rmsRelativeDistance": 0.005649313615798115,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-69": {
+          "maxRelativeDistance": 0.03453571920013079,
+          "rmsRelativeDistance": 0.00627779267403152,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-71": {
+          "maxRelativeDistance": 0.034481534084535526,
+          "rmsRelativeDistance": 0.005137017176878969,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-74": {
+          "maxRelativeDistance": 0.03426697488081712,
+          "rmsRelativeDistance": 0.005221217296516912,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        },
+        "foliage-75": {
+          "maxRelativeDistance": 0.035381039230388815,
+          "rmsRelativeDistance": 0.005401641378854836,
+          "sourceTriangles": 16,
+          "generatedTriangles": 24
+        }
+      },
+      "projectionErrors": {
+        "front": 0.03666465074085279,
+        "side": 0.03860222585415207,
+        "top": 0.015538052098174715
+      },
+      "sourceTriangles": 1218,
+      "generatedTriangles": 2016,
+      "worstPartRelativeDistance": 0.03792162683787617
+    },
+    {
+      "lod": 1,
+      "parts": {
+        "stem": {
+          "maxRelativeDistance": 1.5677436026839627e-05,
+          "rmsRelativeDistance": 1.8240017974152796e-06,
+          "sourceTriangles": 32,
+          "generatedTriangles": 32
+        },
+        "foliage-0": {
+          "maxRelativeDistance": 0.018187786217305834,
+          "rmsRelativeDistance": 0.003866545867344451,
+          "sourceTriangles": 6,
+          "generatedTriangles": 20
+        },
+        "foliage-2": {
+          "maxRelativeDistance": 0.020143925900633325,
+          "rmsRelativeDistance": 0.003545152083432168,
+          "sourceTriangles": 6,
+          "generatedTriangles": 20
+        },
+        "foliage-5": {
+          "maxRelativeDistance": 0.023442684543695077,
+          "rmsRelativeDistance": 0.007505773044674731,
+          "sourceTriangles": 6,
+          "generatedTriangles": 20
+        },
+        "foliage-7": {
+          "maxRelativeDistance": 0.02918010067809896,
+          "rmsRelativeDistance": 0.00594297192979395,
+          "sourceTriangles": 6,
+          "generatedTriangles": 20
+        },
+        "foliage-8": {
+          "maxRelativeDistance": 0.03062761705929321,
+          "rmsRelativeDistance": 0.006243665385540909,
+          "sourceTriangles": 6,
+          "generatedTriangles": 20
+        },
+        "foliage-10": {
+          "maxRelativeDistance": 0.018225466787796567,
+          "rmsRelativeDistance": 0.005108930973819159,
+          "sourceTriangles": 6,
+          "generatedTriangles": 20
+        },
+        "foliage-11": {
+          "maxRelativeDistance": 0.01961738498867858,
+          "rmsRelativeDistance": 0.00596855475453331,
+          "sourceTriangles": 6,
+          "generatedTriangles": 20
+        },
+        "foliage-12": {
+          "maxRelativeDistance": 0.0339954277988163,
+          "rmsRelativeDistance": 0.00855562393291502,
+          "sourceTriangles": 6,
+          "generatedTriangles": 20
+        },
+        "foliage-15": {
+          "maxRelativeDistance": 0.022564794556567118,
+          "rmsRelativeDistance": 0.0035062846428408796,
+          "sourceTriangles": 6,
+          "generatedTriangles": 20
+        },
+        "foliage-1": {
+          "maxRelativeDistance": 0.023594161423038287,
+          "rmsRelativeDistance": 0.0036561710006464306,
+          "sourceTriangles": 6,
+          "generatedTriangles": 20
+        },
+        "foliage-3": {
+          "maxRelativeDistance": 0.017733367117900075,
+          "rmsRelativeDistance": 0.0041380023106904204,
+          "sourceTriangles": 6,
+          "generatedTriangles": 20
+        },
+        "foliage-4": {
+          "maxRelativeDistance": 0.019178193485772065,
+          "rmsRelativeDistance": 0.0053483070963880565,
+          "sourceTriangles": 6,
+          "generatedTriangles": 20
+        },
+        "foliage-6": {
+          "maxRelativeDistance": 0.01933078738905224,
+          "rmsRelativeDistance": 0.005803633173616012,
+          "sourceTriangles": 6,
+          "generatedTriangles": 20
+        },
+        "foliage-9": {
+          "maxRelativeDistance": 0.018422148502143836,
+          "rmsRelativeDistance": 0.004045095958703207,
+          "sourceTriangles": 6,
+          "generatedTriangles": 20
+        },
+        "foliage-13": {
+          "maxRelativeDistance": 0.01787624627039353,
+          "rmsRelativeDistance": 0.004357667450778124,
+          "sourceTriangles": 6,
+          "generatedTriangles": 20
+        },
+        "foliage-14": {
+          "maxRelativeDistance": 0.01997001373279247,
+          "rmsRelativeDistance": 0.0036767080389374447,
+          "sourceTriangles": 6,
+          "generatedTriangles": 20
+        },
+        "foliage-16": {
+          "maxRelativeDistance": 0.02786922065251665,
+          "rmsRelativeDistance": 0.00495290436505922,
+          "sourceTriangles": 6,
+          "generatedTriangles": 20
+        },
+        "foliage-17": {
+          "maxRelativeDistance": 0.026056099199655496,
+          "rmsRelativeDistance": 0.004309969328333641,
+          "sourceTriangles": 6,
+          "generatedTriangles": 20
+        },
+        "foliage-18": {
+          "maxRelativeDistance": 0.04031303373529901,
+          "rmsRelativeDistance": 0.011536855353270412,
+          "sourceTriangles": 6,
+          "generatedTriangles": 20
+        },
+        "foliage-19": {
+          "maxRelativeDistance": 0.036682632768986013,
+          "rmsRelativeDistance": 0.007576144684957688,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-21": {
+          "maxRelativeDistance": 0.037761665891231075,
+          "rmsRelativeDistance": 0.008719840314530733,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-22": {
+          "maxRelativeDistance": 0.03393836122055856,
+          "rmsRelativeDistance": 0.005685646017803252,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-23": {
+          "maxRelativeDistance": 0.03699495840084595,
+          "rmsRelativeDistance": 0.007700221644804462,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-24": {
+          "maxRelativeDistance": 0.034463591360402494,
+          "rmsRelativeDistance": 0.006091202559148732,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-26": {
+          "maxRelativeDistance": 0.03344753107138675,
+          "rmsRelativeDistance": 0.005607438141893695,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-27": {
+          "maxRelativeDistance": 0.031843948609777024,
+          "rmsRelativeDistance": 0.005595730415112683,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-29": {
+          "maxRelativeDistance": 0.03649360213539649,
+          "rmsRelativeDistance": 0.0073527384592444464,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-33": {
+          "maxRelativeDistance": 0.034129243148408865,
+          "rmsRelativeDistance": 0.005948144993371437,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-35": {
+          "maxRelativeDistance": 0.03501987571025424,
+          "rmsRelativeDistance": 0.0064356634622821434,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-36": {
+          "maxRelativeDistance": 0.033716139298850666,
+          "rmsRelativeDistance": 0.005640160327184854,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-38": {
+          "maxRelativeDistance": 0.031339180941831545,
+          "rmsRelativeDistance": 0.006053643556453725,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-40": {
+          "maxRelativeDistance": 0.030057245854323913,
+          "rmsRelativeDistance": 0.007581453880149332,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-47": {
+          "maxRelativeDistance": 0.028940316627165685,
+          "rmsRelativeDistance": 0.009827982120729703,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-48": {
+          "maxRelativeDistance": 0.033378502268980856,
+          "rmsRelativeDistance": 0.005632095972781225,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-50": {
+          "maxRelativeDistance": 0.035100459380467755,
+          "rmsRelativeDistance": 0.006408491389595393,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-58": {
+          "maxRelativeDistance": 0.03055444381817866,
+          "rmsRelativeDistance": 0.0065282173256541644,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-60": {
+          "maxRelativeDistance": 0.031082729919085617,
+          "rmsRelativeDistance": 0.0066462993299498474,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-63": {
+          "maxRelativeDistance": 0.029922098893261674,
+          "rmsRelativeDistance": 0.008302540679467847,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-66": {
+          "maxRelativeDistance": 0.03166179798654135,
+          "rmsRelativeDistance": 0.006217529324692395,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-67": {
+          "maxRelativeDistance": 0.033869305833912317,
+          "rmsRelativeDistance": 0.005839647407837121,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-68": {
+          "maxRelativeDistance": 0.030860650545896325,
+          "rmsRelativeDistance": 0.006901824136111688,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-70": {
+          "maxRelativeDistance": 0.03254112323795143,
+          "rmsRelativeDistance": 0.0058724177878542085,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-72": {
+          "maxRelativeDistance": 0.034912581677179554,
+          "rmsRelativeDistance": 0.00607178795714793,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-73": {
+          "maxRelativeDistance": 0.03684345661028908,
+          "rmsRelativeDistance": 0.007280051190530571,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-20": {
+          "maxRelativeDistance": 0.036518881934743806,
+          "rmsRelativeDistance": 0.007361721652582246,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-25": {
+          "maxRelativeDistance": 0.03882728531189316,
+          "rmsRelativeDistance": 0.009696713104464242,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-28": {
+          "maxRelativeDistance": 0.03115060483757119,
+          "rmsRelativeDistance": 0.0064250325589368,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-30": {
+          "maxRelativeDistance": 0.03655124601202394,
+          "rmsRelativeDistance": 0.00788684041322092,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-31": {
+          "maxRelativeDistance": 0.03592316294686718,
+          "rmsRelativeDistance": 0.007163480857798261,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-32": {
+          "maxRelativeDistance": 0.037126822149462176,
+          "rmsRelativeDistance": 0.007725846355755808,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-34": {
+          "maxRelativeDistance": 0.035970520962827164,
+          "rmsRelativeDistance": 0.007194359562511259,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-37": {
+          "maxRelativeDistance": 0.03134739487436125,
+          "rmsRelativeDistance": 0.006304681306063527,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-39": {
+          "maxRelativeDistance": 0.03143393564659768,
+          "rmsRelativeDistance": 0.00670702187827385,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-41": {
+          "maxRelativeDistance": 0.03302256376137191,
+          "rmsRelativeDistance": 0.005576783768250433,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-42": {
+          "maxRelativeDistance": 0.032349201509609904,
+          "rmsRelativeDistance": 0.005984439232935667,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-43": {
+          "maxRelativeDistance": 0.03620676718102599,
+          "rmsRelativeDistance": 0.007290423442694501,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-44": {
+          "maxRelativeDistance": 0.03552433618137128,
+          "rmsRelativeDistance": 0.007062520206662825,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-45": {
+          "maxRelativeDistance": 0.032266782490615306,
+          "rmsRelativeDistance": 0.006118771009593305,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-46": {
+          "maxRelativeDistance": 0.03235210728059188,
+          "rmsRelativeDistance": 0.0059135969612671676,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-49": {
+          "maxRelativeDistance": 0.03455478148925244,
+          "rmsRelativeDistance": 0.005962010440850642,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-51": {
+          "maxRelativeDistance": 0.03563508888574503,
+          "rmsRelativeDistance": 0.007251193521751824,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-52": {
+          "maxRelativeDistance": 0.030043340976209275,
+          "rmsRelativeDistance": 0.00853531135300816,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-53": {
+          "maxRelativeDistance": 0.029914504622177755,
+          "rmsRelativeDistance": 0.009247158859454452,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-54": {
+          "maxRelativeDistance": 0.03437281991647511,
+          "rmsRelativeDistance": 0.00622330475106433,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-55": {
+          "maxRelativeDistance": 0.03397370078508436,
+          "rmsRelativeDistance": 0.005770938299615814,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-56": {
+          "maxRelativeDistance": 0.03199504488884412,
+          "rmsRelativeDistance": 0.006175452162180731,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-57": {
+          "maxRelativeDistance": 0.02938930355797096,
+          "rmsRelativeDistance": 0.008309509567073933,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-59": {
+          "maxRelativeDistance": 0.03287767167584062,
+          "rmsRelativeDistance": 0.005618694064283782,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-61": {
+          "maxRelativeDistance": 0.03408395719663589,
+          "rmsRelativeDistance": 0.006017705955938684,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-62": {
+          "maxRelativeDistance": 0.030810644228359947,
+          "rmsRelativeDistance": 0.0069687228180587615,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-64": {
+          "maxRelativeDistance": 0.03175440688330953,
+          "rmsRelativeDistance": 0.005760368271227507,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-65": {
+          "maxRelativeDistance": 0.031741883661063716,
+          "rmsRelativeDistance": 0.00600986277593345,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-69": {
+          "maxRelativeDistance": 0.031836165492149175,
+          "rmsRelativeDistance": 0.006499825728717249,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-71": {
+          "maxRelativeDistance": 0.032954490251455665,
+          "rmsRelativeDistance": 0.005643453942695302,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-74": {
+          "maxRelativeDistance": 0.032812189739902846,
+          "rmsRelativeDistance": 0.005712361519994846,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        },
+        "foliage-75": {
+          "maxRelativeDistance": 0.034797742478910224,
+          "rmsRelativeDistance": 0.006153258004542896,
+          "sourceTriangles": 10,
+          "generatedTriangles": 20
+        }
+      },
+      "projectionErrors": {
+        "front": 0.030923879680785804,
+        "side": 0.03527655562539278,
+        "top": 0.010309860746264388
+      },
+      "sourceTriangles": 716,
+      "generatedTriangles": 1552,
+      "worstPartRelativeDistance": 0.04031303373529901
+    },
+    {
+      "lod": 2,
+      "parts": {
+        "stem": {
+          "maxRelativeDistance": 0.00608197714770031,
+          "rmsRelativeDistance": 0.0029052855060572296,
+          "sourceTriangles": 6,
+          "generatedTriangles": 6
+        },
+        "foliage-0": {
+          "maxRelativeDistance": 0.0058445620059331205,
+          "rmsRelativeDistance": 0.00185312873635318,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-2": {
+          "maxRelativeDistance": 0.0027443701686877707,
+          "rmsRelativeDistance": 0.0008240011622183468,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-5": {
+          "maxRelativeDistance": 0.01987380161275124,
+          "rmsRelativeDistance": 0.007517922601182616,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-7": {
+          "maxRelativeDistance": 0.013933712206614603,
+          "rmsRelativeDistance": 0.00668112740300075,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-8": {
+          "maxRelativeDistance": 0.014880760297147178,
+          "rmsRelativeDistance": 0.007132944810171478,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-10": {
+          "maxRelativeDistance": 0.011803720390482655,
+          "rmsRelativeDistance": 0.004211511339106604,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-11": {
+          "maxRelativeDistance": 0.014901438775294065,
+          "rmsRelativeDistance": 0.005446929923420902,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-12": {
+          "maxRelativeDistance": 0.02305190745862894,
+          "rmsRelativeDistance": 0.010808784741531751,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-15": {
+          "maxRelativeDistance": 0.004512293215875244,
+          "rmsRelativeDistance": 0.0015390055459777484,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-1": {
+          "maxRelativeDistance": 0.006914334078932309,
+          "rmsRelativeDistance": 0.0028921414087845288,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-3": {
+          "maxRelativeDistance": 0.0036085119472372227,
+          "rmsRelativeDistance": 0.0011011629120171464,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-4": {
+          "maxRelativeDistance": 0.008533421007910972,
+          "rmsRelativeDistance": 0.0029211838687674893,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-6": {
+          "maxRelativeDistance": 0.01047005175754378,
+          "rmsRelativeDistance": 0.003719893745954316,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-9": {
+          "maxRelativeDistance": 0.0027877713901314286,
+          "rmsRelativeDistance": 0.0008517720349672617,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-13": {
+          "maxRelativeDistance": 0.004370157521564504,
+          "rmsRelativeDistance": 0.0013549769174028357,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-14": {
+          "maxRelativeDistance": 0.002428629925431241,
+          "rmsRelativeDistance": 0.0005776170723919143,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-16": {
+          "maxRelativeDistance": 0.013761073274635714,
+          "rmsRelativeDistance": 0.0065713936851920516,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-17": {
+          "maxRelativeDistance": 0.010816626287835305,
+          "rmsRelativeDistance": 0.005155633304177724,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-18": {
+          "maxRelativeDistance": 0.11275162897772102,
+          "rmsRelativeDistance": 0.032070389418233994,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-19": {
+          "maxRelativeDistance": 0.10862128383158466,
+          "rmsRelativeDistance": 0.029852832329801873,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-21": {
+          "maxRelativeDistance": 0.10405546649694775,
+          "rmsRelativeDistance": 0.028539622019469645,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-22": {
+          "maxRelativeDistance": 0.1101759218653448,
+          "rmsRelativeDistance": 0.03121435112796804,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-23": {
+          "maxRelativeDistance": 0.11006265428609133,
+          "rmsRelativeDistance": 0.030241006528013998,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-24": {
+          "maxRelativeDistance": 0.10515929182525251,
+          "rmsRelativeDistance": 0.02930430708156426,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-26": {
+          "maxRelativeDistance": 0.11467339056605057,
+          "rmsRelativeDistance": 0.03272044333649471,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-27": {
+          "maxRelativeDistance": 0.10624453047396956,
+          "rmsRelativeDistance": 0.030891797125266626,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-29": {
+          "maxRelativeDistance": 0.11297772001669322,
+          "rmsRelativeDistance": 0.03107286819858937,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-33": {
+          "maxRelativeDistance": 0.10504604795352049,
+          "rmsRelativeDistance": 0.02931395735578299,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-35": {
+          "maxRelativeDistance": 0.10573172042465756,
+          "rmsRelativeDistance": 0.029286995914940512,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-36": {
+          "maxRelativeDistance": 0.1202391496033852,
+          "rmsRelativeDistance": 0.03417963626163643,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-38": {
+          "maxRelativeDistance": 0.10850645126447687,
+          "rmsRelativeDistance": 0.032217219451653054,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-40": {
+          "maxRelativeDistance": 0.11119184331745581,
+          "rmsRelativeDistance": 0.03472792423836642,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-47": {
+          "maxRelativeDistance": 0.11578701848150107,
+          "rmsRelativeDistance": 0.03834769649213097,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-48": {
+          "maxRelativeDistance": 0.10440778662593442,
+          "rmsRelativeDistance": 0.02936105053235093,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-50": {
+          "maxRelativeDistance": 0.10834145913520857,
+          "rmsRelativeDistance": 0.03000430092414428,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-58": {
+          "maxRelativeDistance": 0.10653012631333114,
+          "rmsRelativeDistance": 0.03219093876623619,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-60": {
+          "maxRelativeDistance": 0.11744987065050246,
+          "rmsRelativeDistance": 0.03552494219649323,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-63": {
+          "maxRelativeDistance": 0.11931993337461183,
+          "rmsRelativeDistance": 0.03795878128759886,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-66": {
+          "maxRelativeDistance": 0.11882457868362489,
+          "rmsRelativeDistance": 0.03543308457158181,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-67": {
+          "maxRelativeDistance": 0.10460426019423351,
+          "rmsRelativeDistance": 0.029252859448803733,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-68": {
+          "maxRelativeDistance": 0.11260578255137295,
+          "rmsRelativeDistance": 0.03449602143692757,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-70": {
+          "maxRelativeDistance": 0.11855276914595347,
+          "rmsRelativeDistance": 0.034784943729656376,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-72": {
+          "maxRelativeDistance": 0.10800148026682943,
+          "rmsRelativeDistance": 0.030212035398345518,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-73": {
+          "maxRelativeDistance": 0.11270516092823193,
+          "rmsRelativeDistance": 0.03108006929597705,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-20": {
+          "maxRelativeDistance": 0.0022286681253562528,
+          "rmsRelativeDistance": 0.0008670515071705054,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-25": {
+          "maxRelativeDistance": 0.10310588264671351,
+          "rmsRelativeDistance": 0.02835537568179774,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-28": {
+          "maxRelativeDistance": 0.10867853690022526,
+          "rmsRelativeDistance": 0.032631923714974885,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-30": {
+          "maxRelativeDistance": 0.10284351596012961,
+          "rmsRelativeDistance": 0.02823292953087953,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-31": {
+          "maxRelativeDistance": 0.10472756027919629,
+          "rmsRelativeDistance": 0.02884441427734405,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-32": {
+          "maxRelativeDistance": 0.11324308474816697,
+          "rmsRelativeDistance": 0.03112315545051754,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-34": {
+          "maxRelativeDistance": 0.10457391544731244,
+          "rmsRelativeDistance": 0.028796306590857402,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-37": {
+          "maxRelativeDistance": 0.10789581257960526,
+          "rmsRelativeDistance": 0.032197310037648114,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-39": {
+          "maxRelativeDistance": 0.12456211699431896,
+          "rmsRelativeDistance": 0.03767089153173181,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-41": {
+          "maxRelativeDistance": 0.10421203408096019,
+          "rmsRelativeDistance": 0.029535161827821198,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-42": {
+          "maxRelativeDistance": 0.12001533546287604,
+          "rmsRelativeDistance": 0.03519634462051621,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-43": {
+          "maxRelativeDistance": 0.10564601831630338,
+          "rmsRelativeDistance": 0.029067019644077728,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-44": {
+          "maxRelativeDistance": 0.10252934514358075,
+          "rmsRelativeDistance": 0.028236278572977287,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-45": {
+          "maxRelativeDistance": 0.12062881760814045,
+          "rmsRelativeDistance": 0.03554474428622792,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-46": {
+          "maxRelativeDistance": 0.11671847487410376,
+          "rmsRelativeDistance": 0.03411649014849309,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-49": {
+          "maxRelativeDistance": 0.11451343765248809,
+          "rmsRelativeDistance": 0.032040237327852286,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-51": {
+          "maxRelativeDistance": 0.10155925534367018,
+          "rmsRelativeDistance": 0.027925927090638996,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-52": {
+          "maxRelativeDistance": 0.11701495730082666,
+          "rmsRelativeDistance": 0.03739860416017461,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-53": {
+          "maxRelativeDistance": 0.11738718757181925,
+          "rmsRelativeDistance": 0.038164542651493966,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-54": {
+          "maxRelativeDistance": 0.10225974247267339,
+          "rmsRelativeDistance": 0.02838238681651302,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-55": {
+          "maxRelativeDistance": 0.11194626820516569,
+          "rmsRelativeDistance": 0.03150635893281222,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-56": {
+          "maxRelativeDistance": 0.11399566362190204,
+          "rmsRelativeDistance": 0.03371614114193991,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-57": {
+          "maxRelativeDistance": 0.10705494394999425,
+          "rmsRelativeDistance": 0.03421794284179405,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-59": {
+          "maxRelativeDistance": 0.11035163640940383,
+          "rmsRelativeDistance": 0.0316346403734208,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-61": {
+          "maxRelativeDistance": 0.10286500898324213,
+          "rmsRelativeDistance": 0.0286668065952283,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-62": {
+          "maxRelativeDistance": 0.11259262282024296,
+          "rmsRelativeDistance": 0.03439387408326219,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-64": {
+          "maxRelativeDistance": 0.10575400551158433,
+          "rmsRelativeDistance": 0.03092058542814112,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-65": {
+          "maxRelativeDistance": 0.10950950254942693,
+          "rmsRelativeDistance": 0.03233163346651107,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-69": {
+          "maxRelativeDistance": 0.12033418092349547,
+          "rmsRelativeDistance": 0.03610853131259921,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-71": {
+          "maxRelativeDistance": 0.10723660149673776,
+          "rmsRelativeDistance": 0.03083610682403521,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-74": {
+          "maxRelativeDistance": 0.1078076589773646,
+          "rmsRelativeDistance": 0.031226327685874113,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        },
+        "foliage-75": {
+          "maxRelativeDistance": 0.10655818114157876,
+          "rmsRelativeDistance": 0.02975773724997735,
+          "sourceTriangles": 4,
+          "generatedTriangles": 16
+        }
+      },
+      "projectionErrors": {
+        "front": 0.17396449704142014,
+        "side": 0.18658505805148917,
+        "top": 0.031166839565197835
+      },
+      "sourceTriangles": 310,
+      "generatedTriangles": 1222,
+      "worstPartRelativeDistance": 0.12456211699431896
+    }
+  ],
+  "families": [
+    {
+      "shapeId": "surface-0-0",
+      "instances": 9,
+      "maximumSharedShapeResidual": 0.02778838489308893
+    },
+    {
+      "shapeId": "surface-0-1",
+      "instances": 10,
+      "maximumSharedShapeResidual": 0.03825082588657758
+    },
+    {
+      "shapeId": "surface-0-2",
+      "instances": 25,
+      "maximumSharedShapeResidual": 0.03183725943818672
+    },
+    {
+      "shapeId": "surface-0-3",
+      "instances": 32,
+      "maximumSharedShapeResidual": 0.029778776018229102
+    },
+    {
+      "shapeId": "surface-1-0",
+      "instances": 9,
+      "maximumSharedShapeResidual": 0.02778838489308893
+    },
+    {
+      "shapeId": "surface-1-1",
+      "instances": 10,
+      "maximumSharedShapeResidual": 0.03825082588657758
+    },
+    {
+      "shapeId": "surface-1-2",
+      "instances": 25,
+      "maximumSharedShapeResidual": 0.03163076697185526
+    },
+    {
+      "shapeId": "surface-1-3",
+      "instances": 32,
+      "maximumSharedShapeResidual": 0.029623331640531377
+    },
+    {
+      "shapeId": "surface-2-0",
+      "instances": 9,
+      "maximumSharedShapeResidual": 0.027678629749892072
+    },
+    {
+      "shapeId": "surface-2-1",
+      "instances": 9,
+      "maximumSharedShapeResidual": 0.015627114867673205
+    },
+    {
+      "shapeId": "surface-2-2",
+      "instances": 1,
+      "maximumSharedShapeResidual": 0.0
+    },
+    {
+      "shapeId": "surface-2-3",
+      "instances": 25,
+      "maximumSharedShapeResidual": 0.040110907745984935
+    },
+    {
+      "shapeId": "surface-2-4",
+      "instances": 1,
+      "maximumSharedShapeResidual": 0.0
+    },
+    {
+      "shapeId": "surface-2-5",
+      "instances": 31,
+      "maximumSharedShapeResidual": 0.04118771927820285
+    }
+  ],
+  "projectionMetric": "1-IoU of orthographic front, side and top silhouettes at 256 pixels, no dilation.",
+  "metric": "Bidirectional sampled surface distance divided by each source part bounding-box diagonal; vertices, triangle centroids and edge midpoints.",
+  "acceptance": {
+    "limit": 0.05,
+    "geometryPassed": false,
+    "projectionsPassed": false,
+    "triangleBudgetPassed": false,
+    "productionReady": false
+  },
+  "normalField": {
+    "model": "radial",
+    "fittedFromLod": 0,
+    "field": {
+      "origin": [
+        0.00019113295545243912,
+        -4.532730342969064e-05,
+        -0.00022815468138078635
+      ],
+      "radialBlend": 1
+    },
+    "metric": "Angular residual evaluated at original source corners; independent of geometry reconstruction error.",
+    "lods": [
+      {
+        "lod": 0,
+        "corners": 3078,
+        "medianAngleDegrees": 0.004536099785457376,
+        "p90AngleDegrees": 0.009104494474401086,
+        "maxAngleDegrees": 0.48309125089879057
+      },
+      {
+        "lod": 1,
+        "corners": 2052,
+        "medianAngleDegrees": 0.004318871730064375,
+        "p90AngleDegrees": 0.008399919789324573,
+        "maxAngleDegrees": 0.34231342662561376
+      },
+      {
+        "lod": 2,
+        "corners": 912,
+        "medianAngleDegrees": 0.003751146406512595,
+        "p90AngleDegrees": 0.0070214126180985536,
+        "maxAngleDegrees": 0.2338911833098735
+      }
+    ]
+  }
+}

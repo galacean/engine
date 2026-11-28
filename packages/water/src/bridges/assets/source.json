@@ -1,0 +1,31 @@
+{
+  "source": "Polyart/PolyartStudio/Farmlands",
+  "raw_meshes": [
+    {
+      "name": "SM_Farm_Bridge_End_01_LOD0",
+      "triangles": 6688
+    },
+    {
+      "name": "SM_Farm_Bridge_End_01_LOD1",
+      "triangles": 3276
+    },
+    {
+      "name": "SM_Farm_Bridge_End_01_LOD2",
+      "triangles": 280
+    },
+    {
+      "name": "SM_Farm_Bridge_Middle_01_LOD0",
+      "triangles": 3734
+    },
+    {
+      "name": "SM_Farm_Bridge_Middle_01_LOD1",
+      "triangles": 1900
+    },
+    {
+      "name": "SM_Farm_Bridge_Middle_01_LOD2",
+      "triangles": 205
+    }
+  ],
+  "plankVariants": 9,
+  "units": "metres; Blender X span/Y width/Z up; glTF X span/Y up/Z width"
+}

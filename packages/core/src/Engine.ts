@@ -1,8 +1,8 @@
+import { renderCamera, setCameraIndex } from "./ComponentDispatch";
 import { IInputOptions, IPhysics, IPhysicsManager, IShaderCompiler, IXRDevice } from "@galacean/engine-design";
 import { CharRenderInfo } from "./2d/text/CharRenderInfo";
 import { Font } from "./2d/text/Font";
 import { BasicResources } from "./BasicResources";
-import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
 import { EngineEventType } from "./EngineEventType";
 import { EngineSettings } from "./EngineSettings";
@@ -17,6 +17,7 @@ import { RenderingStatistics } from "./asset/RenderingStatistics";
 import { ResourceManager } from "./asset/ResourceManager";
 import { EngineObject, EventDispatcher, Logger, Time } from "./base";
 import { InputManager } from "./input";
+import { AudioManager } from "./audio/AudioManager";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
 import { ColliderShape } from "./physics/shape/ColliderShape";
 import { PostProcessPass } from "./postProcess/PostProcessPass";
@@ -198,7 +199,7 @@ export class Engine extends EventDispatcher {
 
   /**
    * The number of vertical synchronization means the number of vertical blanking for one frame.
-   * @remarks 0 means that the vertical synchronization is turned off. Hosts without animation-frame scheduling use `targetFrameRate`.
+   * @remarks 0 means that the vertical synchronization is turned off.
    */
   get vSyncCount(): number {
     return this._vSyncCount;
@@ -211,8 +212,8 @@ export class Engine extends EventDispatcher {
   /**
    * Set the target frame rate you want to achieve.
    * @remarks
-   * It takes effect when `vSyncCount = 0` or the host does not provide animation-frame scheduling.
-   * The larger the value, the higher the target frame rate, `Number.POSITIVE_INFINITY` represents the infinite target frame rate.
+   * It only takes effect when vSyncCount = 0 (ie, vertical synchronization is turned off).
+   * The larger the value, the higher the target frame rate, Number.POSITIVE_INFINITY represents the infinite target frame rate.
    */
   get targetFrameRate(): number {
     return this._targetFrameRate;
@@ -371,10 +372,15 @@ export class Engine extends EventDispatcher {
       scene._componentsManager.callScriptOnLateUpdate(deltaTime);
     }
 
+    // Audio follows the final transforms after animation and late scripts.
+    AudioManager._update(this);
+
     // Render scene and fire `onBeginRender` and `onEndRender`
     if (!this._hardwareRenderer.isContextLost()) {
       this._render(scenes);
     }
+
+    this._renderTargetPool.trim();
 
     // Process pending destroys
     this._processPendingDestroyObjects();
@@ -500,7 +506,7 @@ export class Engine extends EventDispatcher {
 
     this.inputManager._destroy();
     this._batcherManager.destroy();
-    this._renderTargetPool.gc();
+    this._renderTargetPool.destroy();
     this.xrManager?._destroy();
     this.dispatch(EngineEventType.Shutdown, this);
 
@@ -571,31 +577,7 @@ export class Engine extends EventDispatcher {
       if (cameras.length === 0) {
         Logger.debug("No active camera in scene.");
       } else {
-        cameras.forEach(
-          (camera: Camera) => {
-            componentsManager.callCameraOnBeginRender(camera);
-
-            const { pixelViewport } = camera;
-            // `pixelViewport` width or height is `0` will cause internal render target create error and return can save performance
-            if (pixelViewport.width !== 0 && pixelViewport.height !== 0) {
-              // Update post process manager
-              scene.postProcessManager._update(camera);
-              camera.render();
-            } else {
-              Logger.warn("Camera pixelViewport width or height is 0.");
-            }
-
-            componentsManager.callCameraOnEndRender(camera);
-
-            // Temp solution for webgl implement bug
-            if (this._hardwareRenderer._options._forceFlush) {
-              this._hardwareRenderer.flush();
-            }
-          },
-          (camera: Camera, index: number) => {
-            camera._cameraIndex = index;
-          }
-        );
+        cameras._forEachWithContext(scene, renderCamera, setCameraIndex);
       }
 
       const uiCanvas = componentsManager._overlayCanvases;
@@ -629,6 +611,8 @@ export class Engine extends EventDispatcher {
       // shader-compiler defaults to an empty map and stays free of any direct
       // ShaderFactory dependency, so the binding has to be wired here at the
       // runtime boundary.
+      // @ts-ignore — `_setIncludeMap` is shader-compiler @internal; `includeMap`
+      // is `ShaderFactory` @internal. Both intentionally cross-package wired.
       shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
       Shader._shaderCompiler = shaderCompiler;
     }

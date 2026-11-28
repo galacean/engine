@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="../../../packages/vegetation/src/wind-vegetation/styles.css" />
+    <title>P3 风 × 树木与植被验收场</title>
+  </head>
+  <body data-state="loading" data-coverage-mode="trees">
+    <canvas id="canvas" aria-label="树木风响应独立验收场"></canvas>
+    <header class="hero">
+      <p>P3 WIND CONSUMERS / TREE + VEGETATION</p>
+      <h1>树木与植被风响应</h1>
+      <div class="hero__state" data-wind-state data-active="true"><span></span>风场运行中</div>
+    </header>
+    <aside class="panel" aria-label="树木风与观察控制">
+      <section>
+        <div class="section-title">
+          <span>WIND STRUCTURE</span><small>平均倾斜 → 风谱摇曳 → 方向漂移 → 惯性回弹 → 父子枝叶响应</small>
+        </div>
+        <div class="segmented segmented--four">
+          <button type="button" data-wind-preset="calm">静风</button>
+          <button type="button" data-wind-preset="breeze" data-active="true">微风</button>
+          <button type="button" data-wind-preset="windy">强风</button>
+          <button type="button" data-wind-preset="gale">大风</button>
+        </div>
+        <div class="actions">
+          <button type="button" data-action="gust">触发行进阵风</button>
+          <button type="button" data-action="wind-toggle" data-active="true">风开 / 关</button>
+          <button type="button" data-action="record-start">开始逐帧记录</button>
+          <button type="button" data-action="record-stop">停止并判定</button>
+          <button type="button" data-action="standard-acceptance">运行标准验收</button>
+        </div>
+      </section>
+      <section>
+        <div class="section-title"><span>OBSERVATION</span><small>逐层检查根、干、冠</small></div>
+        <div class="segmented segmented--four">
+          <button type="button" data-camera="overview" data-active="true">全景</button>
+          <button type="button" data-camera="vegetation">植被近景</button>
+          <button type="button" data-camera="grass">树根 / 主干</button>
+          <button type="button" data-camera="canopy">树冠近景</button>
+        </div>
+        <div class="section-title"><span>LOD CALIBRATION</span><small>固定投影触发真实 0.28 s CrossFade</small></div>
+        <div class="segmented segmented--four">
+          <button type="button" data-tree-lod="auto" data-active="true">AUTO</button>
+          <button type="button" data-tree-lod="0">LOD 0</button>
+          <button type="button" data-tree-lod="1">LOD 1</button>
+          <button type="button" data-tree-lod="2">LOD 2</button>
+        </div>
+      </section>
+      <section class="response-lab" aria-label="树木风响应分解实验室">
+        <details open>
+          <summary>
+            <span>RESPONSE LAB</span>
+            <small>风输入 → 木质结构 → 枝叶局部</small>
+          </summary>
+          <p class="response-lab__principle">
+            每项只控制一个物理机制；父子连接与锚点运输始终保留。先用隔离预设定位，再调单项权重或时间尺度。
+          </p>
+          <div class="response-presets" aria-label="树木风响应隔离预设">
+            <button type="button" data-tree-wind-preset="full" data-active="true">完整 P3</button>
+            <button type="button" data-tree-wind-preset="mean-only">仅平均载荷</button>
+            <button type="button" data-tree-wind-preset="no-gust">去阵风</button>
+            <button type="button" data-tree-wind-preset="no-spectrum">去风谱</button>
+            <button type="button" data-tree-wind-preset="woody-only">仅木质骨架</button>
+            <button type="button" data-tree-wind-preset="no-direction-variation">去横向扰动</button>
+            <button type="button" data-tree-wind-preset="locked-mean-direction">锁定平均风向</button>
+          </div>
+          <div class="response-controls" data-tree-wind-controls></div>
+        </details>
+      </section>
+      <section class="metrics" aria-label="运行指标">
+        <div><span>FPS</span><output data-output="fps">…</output></div>
+        <div><span>FRAME</span><output data-output="frame-time">…</output></div>
+        <div><span>WIND</span><output data-output="speed">…</output></div>
+        <div><span>GUSTS</span><output data-output="gusts">0</output></div>
+        <div><span>FIELD CPU</span><output data-output="field-cpu">…</output></div>
+        <div><span>TREES</span><output data-output="instances">8</output></div>
+        <div><span>VEGETATION</span><output data-output="vegetation">…</output></div>
+        <div><span>GRASS DRAWS</span><output data-output="batches">…</output></div>
+        <div><span>MSAA</span><output data-output="msaa">1×</output></div>
+        <div><span>ASSET</span><output data-output="tree-asset">…</output></div>
+        <div><span>TREE LOD</span><output data-output="tree-lod">AUTO</output></div>
+        <div><span>ROOT BEND</span><output data-output="root-bend">0.00°</output></div>
+        <div><span>ROOT RECOIL</span><output data-output="root-recoil">+0.00°</output></div>
+        <div><span>SPECTRAL LOAD</span><output data-output="root-sway">+0.00°</output></div>
+        <div><span>AXIS DRIFT</span><output data-output="axis-drift">+0.00°</output></div>
+        <div><span>MEAN LOAD</span><output data-output="input-mean">0.00 m/s</output></div>
+        <div><span>GUST LOAD</span><output data-output="input-gust">0.00 m/s</output></div>
+        <div><span>SPECTRUM</span><output data-output="input-spectrum">0.00 m/s</output></div>
+        <div><span>LOCAL LOAD</span><output data-output="input-local">0.00 m/s</output></div>
+        <div><span>ROOT Δ/F</span><output data-output="root-step">0.000°</output></div>
+        <div><span>ROOT RATE</span><output data-output="root-rate">0.00°/s</output></div>
+        <div><span>ROOT ACCEL</span><output data-output="root-acceleration">0.0°/s²</output></div>
+        <div><span>RESPONSE Δ</span><output data-output="response-range">0.00</output></div>
+        <div><span>TURN Σ</span><output data-output="direction-travel">0°</output></div>
+        <div><span>ACCEPTANCE</span><output data-output="acceptance">待记录</output></div>
+      </section>
+      <button class="msaa" type="button" data-action="msaa" data-active="false">切换 1× / 4× MSAA</button>
+    </aside>
+    <aside class="coverage" aria-label="树木覆盖范围">
+      <strong>P3 FINAL TREE + VEGETATION RESPONSE</strong>
+      <p>50 × 50 m 场地同场展示 8 个 Terrain 活体树资产与全部 7 种生产草、花、灌木；双草种以高密实例草场连续覆盖。</p>
+      <div>
+        <span>P3 · Final：几何/枝径/叶载荷驱动，不依赖 Unity UV2 风权重</span>
+        <span>P3 · GPU Vegetation：2 个实例 Draw 承载高密草场，生产 Vegetation Shader 直接采样共享空间风场</span>
+      </div>
+      <p>默认同场展示全部资产；URL 可用 asset=某一资产进入单树校准，lod=auto|0|1|2</p>
+    </aside>
+    <output class="diagnostic-data" data-tree-wind-diagnostics aria-hidden="true"></output>
+    <div class="loading" role="status">
+      <span></span>
+      <div>
+        <strong>正在装配 P3 风消费者</strong>
+        <p data-loading-message>加载树木、草花灌木、Response Profile 与共享空间风场…</p>
+      </div>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
